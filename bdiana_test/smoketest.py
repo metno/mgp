@@ -3,6 +3,8 @@
 """
 This script verifies that the bdiana executable behaves in a sensible
 way when launched without arguments.
+The script indicates the test result by writing 'pass' or 'fail' to stdout
+(all other output is written to stderr).
 """
 
 import sys, re
@@ -29,6 +31,16 @@ def getOptDict():
             key = None
     return options
 
+# Exits script with status = fail.
+def _fail():
+    sys.stdout.write('fail\n')
+    sys.exit(0)
+
+# Exits script with status = pass.
+def _pass():
+    sys.stdout.write('pass\n')
+    sys.exit(0)
+
 # --- END global functions ---------------------------------------
 
 
@@ -42,7 +54,7 @@ if not 'exec' in options:
         '[--expexit <expected exit code>] ' +
         '[--expout <file containing expected standard output> ' +
         '[--experr <file containing expected standard error>\n')
-    sys.exit(1)
+    fail()
 bdiana_exec = options['exec']
 
 # Run executable without arguments
@@ -52,10 +64,10 @@ try:
     stdout, stderr = p.communicate()
 except OSError as e:
     sys.stderr.write('{}: OS error({}): {}\n'.format(leadmsg, e.errno, e.strerror))
-    sys.exit(1)
+    _fail()
 except:
     sys.stderr.write('{}: Unexpected error: {}\n'.format(leadmsg, sys.exc_info()[0]))
-    sys.exit(1)
+    _fail()
 
 # Print exit code and output
 sys.stderr.write('EXIT CODE: {}\n'.format(p.returncode))
@@ -71,10 +83,10 @@ sys.stderr.write(
 # Simply check that the word 'Usage:' occurs in stdout.
 if stdout.find('Usage:') < 0:
     sys.stderr.write('Error: expected word \'Usage:\' not found in standard output\n')
-    sys.exit(1)
+    _fail()
 
 # Smoke test passed
 sys.stderr.write('Smoke test passed\n')
-sys.exit(0)
+_pass()
 
 # --- END main program ---------------------------------------
