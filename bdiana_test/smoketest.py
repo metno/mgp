@@ -54,7 +54,7 @@ if not 'exec' in options:
         '[--expexit <expected exit code>] ' +
         '[--expout <file containing expected standard output> ' +
         '[--experr <file containing expected standard error>\n')
-    fail()
+    _fail()
 bdiana_exec = options['exec']
 
 # Run executable without arguments
