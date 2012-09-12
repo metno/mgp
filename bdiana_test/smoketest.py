@@ -46,21 +46,20 @@ def _pass():
 
 # --- BEGIN main program ---------------------------------------
 
-# Extract command-line options
+# Validate command-line
 options = getOptDict()
-if not 'exec' in options:
+if not 'cmd' in options:
     sys.stderr.write(
-        'usage: ' + sys.argv[0] + ' --exec <bdiana executable> ' +
+        'usage: ' + sys.argv[0] + ' --cmd \'<bdiana command>\' ' +
         '[--expexit <expected exit code>] ' +
         '[--expout <file containing expected standard output> ' +
         '[--experr <file containing expected standard error>\n')
     _fail()
-bdiana_exec = options['exec']
 
-# Run executable without arguments
+# Run bdiana command
 try:
-    leadmsg = 'Failed to run {}'.format(bdiana_exec)
-    p = Popen([bdiana_exec], stdout = PIPE, stderr = PIPE)
+    leadmsg = 'Failed to run \'{}\''.format(options['cmd'])
+    p = Popen(options['cmd'].split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
 except OSError as e:
     sys.stderr.write('{}: OS error({}): {}\n'.format(leadmsg, e.errno, e.strerror))
