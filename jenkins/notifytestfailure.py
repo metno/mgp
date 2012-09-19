@@ -81,17 +81,20 @@ def getFixedRecipients(jenkins_home, test_job):
     return recipients
 
 
+# Returns the Jenkins admin email address.
+def getJenkinsAdminAddr(jenkins_home):
+    fname = '{}/hudson.tasks.Mailer.xml'.format(jenkins_home)
+    dom = parse(fname)
+    addr_elem = dom.getElementsByTagName('adminAddress')[0]
+    return addr_elem.childNodes[0].nodeValue
+
+
 # For the given SVN repo ('repo_url'), this function extracts descriptions of all
 # commits with revision number 'lo_rev' or later. The description records are added
 # to the dictionary 'commits'.
 #
 def addLatestCommits(repo_url, lo_rev, commits):
-    # FINAL VERSION:
-    #    cmd = 'svn log {} -r{}:HEAD --xml'.format(repo_url, lo_rev)
-    # ### HACK USED FOR TESTING:
-    sys.stderr.write('(--- hack enabled - remove before pushing ---)\n')
-    cmd = 'svn log {} -r{}:HEAD --xml'.format(repo_url, lo_rev - 4)
-
+    cmd = 'svn log {} -r{}:HEAD --xml --non-interactive --trust-server-cert'.format(repo_url, lo_rev)
     p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
 
@@ -113,10 +116,6 @@ def addLatestCommits(repo_url, lo_rev, commits):
 
 # Sends a single email.
 def sendEmail(from_addr, to_addr, subject, html):
-    if to_addr != 'joa@met.no' and to_addr != 'jo.asplin@met.no':
-        print '### sendEmail() SKIPPED ... to_addr:', to_addr
-        return
-
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
@@ -131,7 +130,7 @@ def sendEmail(from_addr, to_addr, subject, html):
     # Attach parts into message container.
     # According to RFC 2046, the last part of a multipart message, in this case
     # the HTML message, is best and preferred.
-    msg.attach(part1)
+    #msg.attach(part1)
     msg.attach(part2)
 
     # Send the message via local SMTP server.
@@ -140,6 +139,7 @@ def sendEmail(from_addr, to_addr, subject, html):
     # and message to send - here it is sent as one string.
     s.sendmail(from_addr, to_addr, msg.as_string())
     s.quit()
+
 
 # Returns the URL to the description of a repository revision.
 def revisionUrl(repo_url, rev):
@@ -159,7 +159,9 @@ def revisionUrl(repo_url, rev):
 #   - candidate committers, i.e. people who may potentially have caused the test failure.
 # cand_commits is a dictionary with the SVN repo URL as key and a dictionary containing the
 # description for an individual commit as value: { 'rev': ..., 'author': ..., 'date': ..., 'msg': ... }
-def sendEmails(fixed_recipients, cand_commits, test_name, test_url, report):
+def sendEmails(
+    fixed_recipients, cand_commits, jenkins_url, test_name, test_build, from_addr, last_pass_prod_revs,
+    report):
     # Get author names and revision numbers
     authors = set()
     revs = set()
@@ -167,8 +169,6 @@ def sendEmails(fixed_recipients, cand_commits, test_name, test_url, report):
         for commit in cand_commits[repo_url]:
             authors.add(commit['author'])
             revs.add(commit['rev'])
-    authors_maxlen = len(max(authors, key=lambda item: len(item)))
-    revs_maxlen = len(str(max(revs, key=lambda item: len(str(item)))))
 
     # Create top part of html document
     html_top = '<html>'
@@ -191,20 +191,27 @@ def sendEmails(fixed_recipients, cand_commits, test_name, test_url, report):
     # Create bottom part of html document
     html_bot_tmpl = ''
     for repo_url in cand_commits:
-        html_bot_tmpl += '<br/>Changes in {} since the last successful test run:<br/>'.format(repo_url)
-        html_bot_tmpl += '<table>'
-        html_bot_tmpl += '<tr><th>Rev</th><th>Author</th><th>Date</th><th>Description</th></tr>'
+        html_bot_tmpl += """
+            <br/>Changes in {} since the last successful test run (i.e. later than Rev. {}):<br/>
+        """.format(repo_url, last_pass_prod_revs[repo_url])
         sorted_commits = sorted(cand_commits[repo_url], key=lambda item: item['rev'], reverse=True)
-        for commit in sorted_commits:
-            html_bot_tmpl += ('<tr class="_x_{}_x_"><td><a href={}>{}</a></td><td>{}</td>' +
-                          '<td style="white-space: nowrap;">{}</td><td class=descr>{}</td></tr>').format(
-                commit['author'], revisionUrl(repo_url, commit['rev']), commit['rev'], commit['author'],
-                commit['date'].strftime('%Y-%m-%d %H:%M:%S'), commit['msg'])
-        html_bot_tmpl += '</table>'
+        if len(sorted_commits) == 0:
+            html_bot_tmpl += '<b>none</b><br/>'
+        else:
+            html_bot_tmpl += '<table>'
+            html_bot_tmpl += '<tr><th>Rev.</th><th>Author</th><th>Date</th><th>Description</th></tr>'
+            for commit in sorted_commits:
+                html_bot_tmpl += (
+                    '<tr class="_x_{}_x_"><td><a href={}>{}</a></td><td>{}</td>' +
+                    '<td style="white-space: nowrap;">{}</td><td class=descr>{}</td></tr>').format(
+                    commit['author'], revisionUrl(repo_url, commit['rev']), commit['rev'], commit['author'],
+                    commit['date'].strftime('%Y-%m-%d %H:%M:%S'), commit['msg'])
+            html_bot_tmpl += '</table>'
+
     html_bot_tmpl += '</body>'
     html_bot_tmpl += '</html>'
 
-    from_addr = 'Jenkins daemon (WMS project)<joa@met.no>'
+    test_url = '{}/job/{}/{}/console'.format(jenkins_url, test_name, test_build)
     report['cand_committers'] = []
     report['fixed_recipients'] = []
 
@@ -214,15 +221,15 @@ def sendEmails(fixed_recipients, cand_commits, test_name, test_url, report):
         html_bot = p.sub('hilight', html_bot_tmpl) # highlight commits made by this author
         html_mid = """
             You receive this email because you may potentially have caused
-            <a href="{}">this test failure</a>.
+            the failure of <a href="{}">{} #{}</a>.
             <br/><br/>
             Please investigate.
             <br/>
-        """.format(test_url)
+        """.format(test_url, test_name, test_build)
         html = html_top + html_mid + html_bot
-        to_addr = '{}@met.no'.format(author)
+        to_addr = '{}@met.no'.format(author) # assuming the domain 'met.no' works for now
         sendEmail(from_addr, to_addr,
-                  'Jenkins alert: {} failed - please investigate'.format(test_name), html)
+                  'Jenkins alert: {} #{} failed - please investigate'.format(test_name, test_build), html)
         report['cand_committers'].append(to_addr)
 
     # Send a separate email to each fixed recipient
@@ -235,7 +242,7 @@ def sendEmails(fixed_recipients, cand_commits, test_name, test_url, report):
             <br/>
         """.format(test_name, test_url)
         html = html_top + html_mid + html_bot_tmpl
-        sendEmail(from_addr, recp, 'Jenkins alert: {} failed'.format(test_name), html)
+        sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(test_name, test_build), html)
         report['fixed_recipients'].append(recp)
 
 # --- END global functions ---------------------------------------
@@ -256,7 +263,7 @@ if not ('jenkinshome' in options and 'jenkinsurl' in options and 'product' in op
 
 # Step 1: Get the product SVN revisions associated with the last successful test run.
 try:
-    lastPassProdRevs = getLastPassProdRevs(options['jenkinshome'], options['product'], options['test'])
+    last_pass_prod_revs = getLastPassProdRevs(options['jenkinshome'], options['product'], options['test'])
 except Exception as e:
     sys.stderr.write('lastPassProdRevs() failed: {}\n'.format(e))
     sys.exit(1)
@@ -267,9 +274,9 @@ except:
 
 # Step 2: Get candidate committers.
 cand_commits = {}
-for repo_url in lastPassProdRevs:
+for repo_url in last_pass_prod_revs:
     cand_commits[repo_url] = []
-    addLatestCommits(repo_url, lastPassProdRevs[repo_url] + 1, cand_commits[repo_url])
+    addLatestCommits(repo_url, last_pass_prod_revs[repo_url] + 1, cand_commits[repo_url])
 
 
 # Step 3: Get fixed recipients.
@@ -278,17 +285,18 @@ fixed_recipients = getFixedRecipients(options['jenkinshome'], options['test'])
 
 # Step 4: Send email to fixed recipients and candidate committers.
 report = {}
-print cand_commits
-sys.exit(1)
-sendEmails(fixed_recipients, cand_commits, options['test'], '{}/job/{}/{}/console'.format(
-        options['jenkinsurl'], options['test'], options['testbuild']), report)
+sendEmails(
+    fixed_recipients, cand_commits, options['jenkinsurl'], options['test'], options['testbuild'],
+    getJenkinsAdminAddr(options['jenkinshome']), last_pass_prod_revs, report)
 
 
 # Step 5: Write report to stdout.
-sys.stdout.write('notified {} candidate committers:\n'.format(len(report['cand_committers'])))
+n = len(report['cand_committers'])
+sys.stdout.write('notified {} candidate committer{}:\n'.format(n, 's' if n != 1 else ''))
 for x in report['cand_committers']:
     sys.stdout.write('  {}\n'.format(x))
-sys.stdout.write('notified {} fixed recipients:\n'.format(len(report['fixed_recipients'])))
+n = len(report['fixed_recipients'])
+sys.stdout.write('notified {} fixed recipient{}:\n'.format(n, 's' if n != 1 else ''))
 for x in report['fixed_recipients']:
     sys.stdout.write('  {}\n'.format(x))
 
