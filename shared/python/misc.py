@@ -18,3 +18,17 @@ def getOptDict():
         else:
             key = None
     return options
+
+
+# Returns a single-line, stripped version of s.
+def singleLine(s):
+    p = re.compile('\s+')
+    return p.sub(' ', s).strip()
+
+
+# Returns an elided version of s.
+def elided(s, n):
+    if len(s) <= n:
+        return s
+    r = ' ...'
+    return s[:n-len(r)] + r
