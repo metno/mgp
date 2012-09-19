@@ -278,6 +278,8 @@ fixed_recipients = getFixedRecipients(options['jenkinshome'], options['test'])
 
 # Step 4: Send email to fixed recipients and candidate committers.
 report = {}
+print cand_commits
+sys.exit(1)
 sendEmails(fixed_recipients, cand_commits, options['test'], '{}/job/{}/{}/console'.format(
         options['jenkinsurl'], options['test'], options['testbuild']), report)
 
