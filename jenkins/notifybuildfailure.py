@@ -1,24 +1,15 @@
 #!/usr/bin/python
 
 """
-This script should be called from a Jenkins job wheneve
+This script is intended to be called from a Jenkins job whenever the job fails.
+The following people are notified by email about the job failure:
 
+  1: those who have explicitly registered to be notified about
+     failures of this job, and
 
-#############
-
-
-This script is intended to be called by the main script of a Jenkins
-test job whenever the test fails.
-
-The script notifies a group of people with an email whenever the test
-fails. Recipients are of two types:
-
-  1: those who have explicitly registered to be notified about test
-     failures, and
-
-  2: those who have committed changes to the an upstream repository
-     since the last successful test run (the idea being that one of
-     these changes caused the test to fail).
+  2: those who have committed changes to an upstream repository
+     since the last successful job build (the idea being that one of
+     these changes caused the job to fail).
 
 Assumptions:
 
@@ -26,8 +17,9 @@ Assumptions:
    (Later the script could be extended to support other VCSs like git.
    The script should then detect the VCS automatically.)
 
- - A test failure can caused by a change in the test itself (rather
-   than a change in an upstream repository) must be resolved manually.
+ - A job failure can caused by a change in one of the repositories local to
+   the job itself (rather than in one of the upstream ones).
+   This situation must be resolved manually.
 """
 
 import sys, re
@@ -42,37 +34,45 @@ from email.mime.text import MIMEText
 
 # --- BEGIN global functions ---------------------------------------
 
-# For the upstream repos that could affect a target job, this
-# function returns the SVN revisions associated with the last
-# successful build of the target job. The return value is a dictionary
-# with repo URLs as keys and revision numbers as values.
+# For the upstream repos that could affect a target job, this function
+# returns the SVN revisions associated with the last successful build
+# of the target job.
+#
+# The return value is a list of dictionaries, one for each upstream
+# job.  Each dictionary contains the upstream job name and a dictionary
+# of (repo URL, revision number) combinations.
+#
 def getLastPassUpstreamRevs(jenkins_home, tgt_job):
 
     # STEP 1: For all upstream jobs, get the build number associated
     # with the latest successful build of the target job.
     fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, tgt_job)
     dom = parse(fname)
-    upstream_project_elems = dom.getElementsByTagName('upstreamProject')
+    upstream_job_elems = dom.getElementsByTagName('upstreamProject')
     upstream_build_elems = dom.getElementsByTagName('upstreamBuild')
-    print 'fname:', fname, ', projects:', len(upstream_project_elems), ', builds:', len(upstream_build_elems)
-    upstream_build = {}
-    for i in range(len(upstream_project_elems)):
-        upstream_build[upstream_project_elems[i].childNodes[0].nodeValue] = \
-            int(upstream_build_elems[i].childNodes[0].nodeValue)
+    upstream_builds = []
+    for i in range(len(upstream_job_elems)):
+        upstream_builds.append(
+            { 'job': upstream_job_elems[i].childNodes[0].nodeValue,
+              'build': int(upstream_build_elems[i].childNodes[0].nodeValue) })
 
     # STEP 2: Get the SVN revision number for each repo
-    rev = {}
-    for upstream_job in upstream_build:
+    revs = []
+    for upstream_build in upstream_builds:
         fname = '{}/jobs/{}/builds/{}/build.xml'.format(
-            jenkins_home, upstream_job, upstream_build[upstream_job])
+            jenkins_home, upstream_build['job'], upstream_build['build'])
         dom = parse(fname)
         repo_elems = dom.getElementsByTagName(
             'hudson.scm.SVNRevisionState')[0].getElementsByTagName('entry')
+        rev = {}
         for repo_elem in repo_elems:
             rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
                 int(repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue)
+        revs.append(
+            { 'job': upstream_build['job'],
+              'rev': rev })
 
-    return rev
+    return revs
 
 
 # Returns the list of email addresses of the people registered to be
@@ -94,20 +94,20 @@ def getJenkinsAdminAddr(jenkins_home):
 
 
 # For the given SVN repo ('repo_url'), this function extracts descriptions of all
-# commits with revision number 'lo_rev' or later. The description records are added
+# commits with revision number later than 'last_pass_rev' or later. The description records are added
 # to the dictionary 'commits'.
 #
-def addLatestCommits(repo_url, lo_rev, commits):
+def addLatestCommits(repo_url, last_pass_rev, commits):
     print '### enable hack'
     x = 3
 
     cmd = 'svn log {} -r{}:HEAD --xml --non-interactive --trust-server-cert'.format(
-        repo_url, lo_rev - x)
+        repo_url, last_pass_rev + 1 - x)
     p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
 
-    # Do nothing if the return code is non-zero (this typically means that lo_rev is beyond
-    # the available range)
+    # Do nothing if the return code is non-zero (this typically means that no revisions exist
+    # after last_pass_rev)
     if p.returncode != 0:
         return
 
@@ -172,24 +172,24 @@ def revisionUrl(repo_url, rev):
 #   - candidate committers, i.e. people who may potentially have
 #     caused the such build failures.
 #
-# cand_commits is a dictionary with the SVN repo URL as key and a
-#     dictionary containing the description for an individual commit as
-#     value: { 'rev': ..., 'author': ..., 'date': ..., 'msg': ... }
-#     These commits are the ones made after the last successful build of the target job.
+# cand_commits is a list of dictionaries, one for each upstream job.
+#     Each upstream job dictionary contains the upstream job name and
+#     a dictionary of source repositories for this job. Each repo
+#     dictionary contains the revision number associated with the last
+#     sucessful target job and the list of dictionaries for the
+#     commits made after this point.  Each commit dictionary contains
+#     SVN repo URL as key and a dictionary containing the description
+#     for an individual commit as value: { 'rev': ..., 'author': ...,
+#     'date': ..., 'msg': ... }.
 #
-# last_pass_upstream_revs contains for each upstream repo the revision
-#     associated with the last successful build of the target job.
-#
-def sendEmails(
-    fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, from_addr,
-    last_pass_upstream_revs, report):
+def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, from_addr, report):
     # Get author names and revision numbers
     authors = set()
-    revs = set()
-    for repo_url in cand_commits:
-        for commit in cand_commits[repo_url]:
-            authors.add(commit['author'])
-            revs.add(commit['rev'])
+    for job_info in cand_commits:
+        repo_info = job_info['repo_info']
+        for repo_url in repo_info:
+            for commit in repo_info[repo_url]['commits']:
+                authors.add(commit['author'])
 
     # Create top part of html document
     html_top = '<html>'
@@ -211,23 +211,30 @@ def sendEmails(
 
     # Create bottom part of html document
     html_bot_tmpl = ''
-    for repo_url in cand_commits:
+
+    for job_info in cand_commits:
         html_bot_tmpl += """
-            <br/>Changes in {} since the last successful build of {} (i.e. later than Rev. {}):<br/>
-        """.format(repo_url, tgt_job, last_pass_upstream_revs[repo_url])
-        sorted_commits = sorted(cand_commits[repo_url], key=lambda item: item['rev'], reverse=True)
-        if len(sorted_commits) == 0:
-            html_bot_tmpl += '<b>none</b><br/>'
-        else:
-            html_bot_tmpl += '<table>'
-            html_bot_tmpl += '<tr><th>Rev.</th><th>Author</th><th>Date</th><th>Description</th></tr>'
-            for commit in sorted_commits:
-                html_bot_tmpl += (
-                    '<tr class="_x_{}_x_"><td><a href={}>{}</a></td><td>{}</td>' +
-                    '<td style="white-space: nowrap;">{}</td><td class=descr>{}</td></tr>').format(
-                    commit['author'], revisionUrl(repo_url, commit['rev']), commit['rev'], commit['author'],
-                    commit['date'].strftime('%Y-%m-%d %H:%M:%S'), commit['msg'])
-            html_bot_tmpl += '</table>'
+            <br/><hr><span style="font-size: 120%">Source repositories for upstream job <b>{}</b>:</span>
+            <br/>
+        """.format(job_info['job'])
+        repo_info = job_info['repo_info']
+        for repo_url in repo_info:
+            html_bot_tmpl += """
+                <br/>Changes in {} since the last successful build of {} (i.e. later than Rev. {}):<br/>
+            """.format(repo_url, tgt_job, repo_info[repo_url]['last_pass_rev'])
+            sorted_commits = sorted(repo_info[repo_url]['commits'], key=lambda item: item['rev'], reverse=True)
+            if len(sorted_commits) == 0:
+                html_bot_tmpl += '<b>none</b><br/>'
+            else:
+                html_bot_tmpl += '<table>'
+                html_bot_tmpl += '<tr><th>Rev.</th><th>Author</th><th>Date</th><th>Description</th></tr>'
+                for commit in sorted_commits:
+                    html_bot_tmpl += (
+                        '<tr class="_x_{}_x_"><td><a href={}>{}</a></td><td>{}</td>' +
+                        '<td style="white-space: nowrap;">{}</td><td class=descr>{}</td></tr>').format(
+                        commit['author'], revisionUrl(repo_url, commit['rev']), commit['rev'], commit['author'],
+                        commit['date'].strftime('%Y-%m-%d %H:%M:%S'), commit['msg'])
+                html_bot_tmpl += '</table>'
 
     html_bot_tmpl += '</body>'
     html_bot_tmpl += '</html>'
@@ -295,11 +302,15 @@ except:
 
 
 # Step 2: Get candidate committers.
-cand_commits = {}
-for repo_url in last_pass_upstream_revs:
-    cand_commits[repo_url] = []
-    addLatestCommits(repo_url, last_pass_upstream_revs[repo_url] + 1, cand_commits[repo_url])
-
+cand_commits = []
+for upstream_job in last_pass_upstream_revs:
+    repo_info = {}
+    for repo_url in upstream_job['rev']:
+        repo_info[repo_url] = {}
+        repo_info[repo_url]['last_pass_rev'] = upstream_job['rev'][repo_url]
+        repo_info[repo_url]['commits'] = []
+        addLatestCommits(repo_url, upstream_job['rev'][repo_url], repo_info[repo_url]['commits'])
+    cand_commits.append( { 'job': upstream_job['job'], 'repo_info': repo_info } )
 
 # Step 3: Get fixed recipients.
 fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
@@ -309,8 +320,7 @@ fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
 report = {}
 sendEmails(
     fixed_recipients, cand_commits, options['jenkinsurl'], options['job'],
-    options['build'], getJenkinsAdminAddr(options['jenkinshome']),
-    last_pass_upstream_revs, report)
+    options['build'], getJenkinsAdminAddr(options['jenkinshome']), report)
 
 
 # Step 5: Write report to stdout.
