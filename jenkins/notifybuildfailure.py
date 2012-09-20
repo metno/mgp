@@ -98,11 +98,8 @@ def getJenkinsAdminAddr(jenkins_home):
 # to the dictionary 'commits'.
 #
 def addLatestCommits(repo_url, last_pass_rev, commits):
-    print '### enable hack'
-    x = 3
-
     cmd = 'svn log {} -r{}:HEAD --xml --non-interactive --trust-server-cert'.format(
-        repo_url, last_pass_rev + 1 - x)
+        repo_url, last_pass_rev + 1)
     p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
 
@@ -124,10 +121,6 @@ def addLatestCommits(repo_url, last_pass_rev, commits):
 
 # Sends a single email.
 def sendEmail(from_addr, to_addr, subject, html):
-    if to_addr != 'joa@met.no':
-        print '### skip sending email to', to_addr
-        return
-
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
