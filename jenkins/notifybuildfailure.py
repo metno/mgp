@@ -242,7 +242,7 @@ def sendEmails(
         html_bot = p.sub('hilight', html_bot_tmpl) # highlight commits made by this author
         html_mid = """
             You receive this email because you may potentially have caused
-            the failure of <a href="{}">{} #{}</a>.
+            the failure of <a href="{}"><b>{}</b> #{}</a>.
             <br/><br/>
             Please investigate.
             <br/>
@@ -257,11 +257,11 @@ def sendEmails(
     for recp in fixed_recipients:
         html_mid = """
             You receive this email because you have registered to be notified whenever
-            {} <a href="{}">fails</a>.
+            <b>{}</b> fails (in this case <a href="{}">Build #{}</a>).
             <br/><br/>
             Candidate committers (listed below) have been notified separately.
             <br/>
-        """.format(tgt_job, tgt_url)
+        """.format(tgt_job, tgt_url, tgt_build)
         html = html_top + html_mid + html_bot_tmpl
         sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(tgt_job, tgt_build), html)
         report['fixed_recipients'].append(recp)
