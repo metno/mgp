@@ -1,9 +1,14 @@
 #!/usr/bin/python
 
 """
-Given two Jenkins jobs, one product build job and one test job to test
-the product, this script is intended to be called by the main script
-of the test job whenever the test fails.
+This script should be called from a Jenkins job wheneve
+
+
+#############
+
+
+This script is intended to be called by the main script of a Jenkins
+test job whenever the test fails.
 
 The script notifies a group of people with an email whenever the test
 fails. Recipients are of two types:
@@ -11,18 +16,18 @@ fails. Recipients are of two types:
   1: those who have explicitly registered to be notified about test
      failures, and
 
-  2: those who have committed changes to the product since the last
-     successful test run (the idea being that one of these changes
-     caused the test to fail).
+  2: those who have committed changes to the an upstream repository
+     since the last successful test run (the idea being that one of
+     these changes caused the test to fail).
 
 Assumptions:
 
- - Only Subversion is supported for the product source repositories.
+ - Only Subversion is supported for the upstream source repositories.
    (Later the script could be extended to support other VCSs like git.
    The script should then detect the VCS automatically.)
 
  - A test failure can caused by a change in the test itself (rather
-   than a change in the product) must be resolved manually.
+   than a change in an upstream repository) must be resolved manually.
 """
 
 import sys, re
@@ -37,44 +42,43 @@ from email.mime.text import MIMEText
 
 # --- BEGIN global functions ---------------------------------------
 
-# For the repos used to build the given product, this function returns the SVN revisions associated with
-# the last successful run of the given test. The return value is a dictionary with repo URLs as keys
-# and revision numbers as values.
-def getLastPassProdRevs(jenkins_home, product_job, test_job):
+# For the upstream repos that could affect a target job, this
+# function returns the SVN revisions associated with the last
+# successful build of the target job. The return value is a dictionary
+# with repo URLs as keys and revision numbers as values.
+def getLastPassUpstreamRevs(jenkins_home, tgt_job):
 
-    # STEP 1: Get the product job build number associated with the
-    # latest successful test run (note: we assume that the nearest
-    # upstream job is the first one to appear in the XML file)
-    fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, test_job)
+    # STEP 1: For all upstream jobs, get the build number associated
+    # with the latest successful build of the target job.
+    fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, tgt_job)
     dom = parse(fname)
-    # ... verify that the product job name matches
-    upstream_job_elem = dom.getElementsByTagName('upstreamProject')[0]
-    upstream_job_name = upstream_job_elem.childNodes[0].nodeValue
-    if upstream_job_name != product_job:
-        raise Exception('nearest upstream job (\'{}\') does not match \'{}\''.format(
-                upstream_job_name, product_job))
-    # ... get the build number
-    upstream_build_elem = dom.getElementsByTagName('upstreamBuild')[0]
-    upstream_build_no = int(upstream_build_elem.childNodes[0].nodeValue)
+    upstream_project_elems = dom.getElementsByTagName('upstreamProject')
+    upstream_build_elems = dom.getElementsByTagName('upstreamBuild')
+    print 'fname:', fname, ', projects:', len(upstream_project_elems), ', builds:', len(upstream_build_elems)
+    upstream_build = {}
+    for i in range(len(upstream_project_elems)):
+        upstream_build[upstream_project_elems[i].childNodes[0].nodeValue] = \
+            int(upstream_build_elems[i].childNodes[0].nodeValue)
 
-    # STEP 2: Get the SVN revision number for each repo URL
-    rev =  {}
-    fname = '{}/jobs/{}/builds/{}/build.xml'.format(
-        jenkins_home, product_job, upstream_build_no)
-    dom = parse(fname)
-    repo_elems = dom.getElementsByTagName(
-        'hudson.scm.SVNRevisionState')[0].getElementsByTagName('entry')
-    for repo_elem in repo_elems:
-        rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
-            int(repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue)
+    # STEP 2: Get the SVN revision number for each repo
+    rev = {}
+    for upstream_job in upstream_build:
+        fname = '{}/jobs/{}/builds/{}/build.xml'.format(
+            jenkins_home, upstream_job, upstream_build[upstream_job])
+        dom = parse(fname)
+        repo_elems = dom.getElementsByTagName(
+            'hudson.scm.SVNRevisionState')[0].getElementsByTagName('entry')
+        for repo_elem in repo_elems:
+            rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
+                int(repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue)
 
     return rev
 
 
-# Returns the list of email addresses of the people registered to be notified whenever a test job
-# fails.
-def getFixedRecipients(jenkins_home, test_job):
-    fname = '{}/jobs/{}/config.xml'.format(jenkins_home, test_job)
+# Returns the list of email addresses of the people registered to be
+# notified whenever a target job fails.
+def getFixedRecipients(jenkins_home, tgt_job):
+    fname = '{}/jobs/{}/config.xml'.format(jenkins_home, tgt_job)
     dom = parse(fname)
     recp_elem = dom.getElementsByTagName('recipients')[0]
     recipients = recp_elem.childNodes[0].nodeValue.split()
@@ -94,7 +98,11 @@ def getJenkinsAdminAddr(jenkins_home):
 # to the dictionary 'commits'.
 #
 def addLatestCommits(repo_url, lo_rev, commits):
-    cmd = 'svn log {} -r{}:HEAD --xml --non-interactive --trust-server-cert'.format(repo_url, lo_rev)
+    print '### enable hack'
+    x = 3
+
+    cmd = 'svn log {} -r{}:HEAD --xml --non-interactive --trust-server-cert'.format(
+        repo_url, lo_rev - x)
     p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
 
@@ -116,6 +124,10 @@ def addLatestCommits(repo_url, lo_rev, commits):
 
 # Sends a single email.
 def sendEmail(from_addr, to_addr, subject, html):
+    if to_addr != 'joa@met.no':
+        print '### skip sending email to', to_addr
+        return
+
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
@@ -155,13 +167,22 @@ def revisionUrl(repo_url, rev):
 
 
 # Sends an email to the following people:
-#   - fixed recipients, i.e. those who have explicitly registered to be notified about test failures
-#   - candidate committers, i.e. people who may potentially have caused the test failure.
-# cand_commits is a dictionary with the SVN repo URL as key and a dictionary containing the
-# description for an individual commit as value: { 'rev': ..., 'author': ..., 'date': ..., 'msg': ... }
+#   - fixed recipients, i.e. those who have explicitly registered to
+#     be notified about build failures of the target job
+#   - candidate committers, i.e. people who may potentially have
+#     caused the such build failures.
+#
+# cand_commits is a dictionary with the SVN repo URL as key and a
+#     dictionary containing the description for an individual commit as
+#     value: { 'rev': ..., 'author': ..., 'date': ..., 'msg': ... }
+#     These commits are the ones made after the last successful build of the target job.
+#
+# last_pass_upstream_revs contains for each upstream repo the revision
+#     associated with the last successful build of the target job.
+#
 def sendEmails(
-    fixed_recipients, cand_commits, jenkins_url, test_name, test_build, from_addr, last_pass_prod_revs,
-    report):
+    fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, from_addr,
+    last_pass_upstream_revs, report):
     # Get author names and revision numbers
     authors = set()
     revs = set()
@@ -192,8 +213,8 @@ def sendEmails(
     html_bot_tmpl = ''
     for repo_url in cand_commits:
         html_bot_tmpl += """
-            <br/>Changes in {} since the last successful test run (i.e. later than Rev. {}):<br/>
-        """.format(repo_url, last_pass_prod_revs[repo_url])
+            <br/>Changes in {} since the last successful build of {} (i.e. later than Rev. {}):<br/>
+        """.format(repo_url, tgt_job, last_pass_upstream_revs[repo_url])
         sorted_commits = sorted(cand_commits[repo_url], key=lambda item: item['rev'], reverse=True)
         if len(sorted_commits) == 0:
             html_bot_tmpl += '<b>none</b><br/>'
@@ -211,7 +232,7 @@ def sendEmails(
     html_bot_tmpl += '</body>'
     html_bot_tmpl += '</html>'
 
-    test_url = '{}/job/{}/{}/console'.format(jenkins_url, test_name, test_build)
+    tgt_url = '{}/job/{}/{}/console'.format(jenkins_url, tgt_job, tgt_build)
     report['cand_committers'] = []
     report['fixed_recipients'] = []
 
@@ -225,11 +246,11 @@ def sendEmails(
             <br/><br/>
             Please investigate.
             <br/>
-        """.format(test_url, test_name, test_build)
+        """.format(tgt_url, tgt_job, tgt_build)
         html = html_top + html_mid + html_bot
         to_addr = '{}@met.no'.format(author) # assuming the domain 'met.no' works for now
         sendEmail(from_addr, to_addr,
-                  'Jenkins alert: {} #{} failed - please investigate'.format(test_name, test_build), html)
+                  'Jenkins alert: {} #{} failed - please investigate'.format(tgt_job, tgt_build), html)
         report['cand_committers'].append(to_addr)
 
     # Send a separate email to each fixed recipient
@@ -240,9 +261,9 @@ def sendEmails(
             <br/><br/>
             Candidate committers (listed below) have been notified separately.
             <br/>
-        """.format(test_name, test_url)
+        """.format(tgt_job, tgt_url)
         html = html_top + html_mid + html_bot_tmpl
-        sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(test_name, test_build), html)
+        sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(tgt_job, tgt_build), html)
         report['fixed_recipients'].append(recp)
 
 # --- END global functions ---------------------------------------
@@ -252,42 +273,44 @@ def sendEmails(
 
 # Validate command-line
 options = getOptDict()
-if not ('jenkinshome' in options and 'jenkinsurl' in options and 'product' in options
-        and 'test' in options and 'testbuild' in options):
+if not ('jenkinshome' in options and 'jenkinsurl' in options
+        and 'job' in options and 'build' in options):
     sys.stderr.write(
         'usage: ' + sys.argv[0] + ' --jenkinshome <Jenkins home directory> ' +
-        '--jenkinsurl <Jenkins base URL> --product <name of product build job> ' +
-        '--test <name of test job> --testbuild <current test build number>\n')
+        '--jenkinsurl <Jenkins base URL> --job <target job> ' +
+        '--build <target build number>\n')
     sys.exit(1)
 
 
-# Step 1: Get the product SVN revisions associated with the last successful test run.
+# Step 1: Get the upstream SVN revisions associated with the last successful target job.
 try:
-    last_pass_prod_revs = getLastPassProdRevs(options['jenkinshome'], options['product'], options['test'])
+    last_pass_upstream_revs = getLastPassUpstreamRevs(
+        options['jenkinshome'], options['job'])
 except Exception as e:
-    sys.stderr.write('lastPassProdRevs() failed: {}\n'.format(e))
+    sys.stderr.write('lastPassUpstreamRevs() failed: {}\n'.format(e))
     sys.exit(1)
 except:
-    sys.stderr.write('lastPassProdRevs() failed (other exception): {}\n'.format(sys.exc_info()))
+    sys.stderr.write('lastPassUpstreamRevs() failed (other exception): {}\n'.format(sys.exc_info()))
     sys.exit(1)
 
 
 # Step 2: Get candidate committers.
 cand_commits = {}
-for repo_url in last_pass_prod_revs:
+for repo_url in last_pass_upstream_revs:
     cand_commits[repo_url] = []
-    addLatestCommits(repo_url, last_pass_prod_revs[repo_url] + 1, cand_commits[repo_url])
+    addLatestCommits(repo_url, last_pass_upstream_revs[repo_url] + 1, cand_commits[repo_url])
 
 
 # Step 3: Get fixed recipients.
-fixed_recipients = getFixedRecipients(options['jenkinshome'], options['test'])
+fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
 
 
 # Step 4: Send email to fixed recipients and candidate committers.
 report = {}
 sendEmails(
-    fixed_recipients, cand_commits, options['jenkinsurl'], options['test'], options['testbuild'],
-    getJenkinsAdminAddr(options['jenkinshome']), last_pass_prod_revs, report)
+    fixed_recipients, cand_commits, options['jenkinsurl'], options['job'],
+    options['build'], getJenkinsAdminAddr(options['jenkinshome']),
+    last_pass_upstream_revs, report)
 
 
 # Step 5: Write report to stdout.
