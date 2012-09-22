@@ -13,16 +13,19 @@ The following people are notified by email about the job failure:
 
 Assumptions:
 
- - Only Subversion is supported for the upstream source repositories.
-   (Later the script could be extended to support other VCSs like git.
-   The script should then detect the VCS automatically.)
+ - At most one git repo per upstream job is supported for now (need to
+   figure out the exact XML format).
 
- - A job failure can caused by a change in one of the repositories local to
-   the job itself (rather than in one of the upstream ones).
+ - Email aliases are not supported. Although the 'met.no' domain is
+   recognized, 'joa' (svn) (or 'joa@met.no' (git)) would be considered
+   different from 'jo.asplin@met.no' (git).
+
+ - A job failure can be caused by a change in one of the repositories
+   local to the job itself (rather than in one of the upstream ones).
    This situation must be resolved manually.
 """
 
-import sys, re
+import sys, os, re
 sys.path.append('../shared/python')
 from misc import getOptDict
 from xml.dom.minidom import parse, parseString
@@ -31,6 +34,114 @@ from datetime import datetime
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from traceback import format_exc
+
+# --- BEGIN classes ---------------------------------------
+
+# Base class for extracting information that depends on the version control system (git, SVN ...).
+# This class employs the template method pattern.
+class VCSExtractor(object):
+    # Returns the URL for the description of a repository revision.
+    def revisionURL(self, repo_url, rev):
+        m = re.search(self.repoNamePattern(), repo_url)
+        if m:
+            repo_name = m.group(1)
+        else:
+            raise Exception('failed to extract repo name from {}'.format(repo_url))
+        url = self.revURLTemplate().format(repo_name, rev)
+        return url
+
+    # For the given job and source repository, this function extracts descriptions of all
+    # commits with revision number later than 'last_pass_rev'. The description records are added
+    # to the dictionary 'commits'.
+    def addCandidateCommits(self, jenkins_home, job, repo_url, last_pass_rev, commits):
+        hack = False
+        if hack:
+            print '### hack to get more revs'
+        self.offset = 3 if hack else 0
+        workspace = '{}/jobs/{}/workspace'.format(jenkins_home, job)
+        self.addCandidateCommits_helper(workspace, repo_url, last_pass_rev, commits)
+        for commit in commits:
+            commit['vcs_ext'] = self
+
+    def emailAddress(author):
+        return self.emailAddress_helper(author)
+
+
+class GitExtractor(VCSExtractor):
+    @staticmethod
+    def repoNamePattern():
+        return '^git://git.met.no/(.+)$'
+
+    @staticmethod
+    def revURLTemplate():
+        return 'https://git.met.no/cgi-bin/gitweb.cgi?p={};a=commit;h={}'
+
+    def addCandidateCommits_helper(self, workspace, repo_url, last_pass_rev, commits):
+        os.chdir(workspace)
+        cmd = [
+            'git', 'log', '{}~{}..HEAD'.format(last_pass_rev, self.offset), '--pretty=format:%H %ce %ct %s']
+        p = Popen(cmd, stdout = PIPE, stderr = PIPE)
+        stdout, stderr = p.communicate()
+
+        if p.returncode != 0:
+            raise Exception('git command \'{}\' failed in workspace \'{}\''.format(' '.join(cmd), workspace))
+
+        # Do nothing if stdout is empty (this typically means that no revisions exist
+        # after last_pass_rev)
+        if len(stdout) == 0:
+            return
+
+        lines = filter(lambda line: len(line.strip()) > 0, stdout.split('\n'))
+        for line in lines:
+            words = line.split()
+            rev = words[0]
+            author = words[1]
+            date = datetime.fromtimestamp(int(words[2]))
+            msg = ' '.join(words[3:])
+            commits.append( { 'rev': rev, 'author': author, 'date': date, 'msg': msg } )
+
+    @staticmethod
+    def emailAddress(author):
+        return author
+
+
+class SVNExtractor(VCSExtractor):
+    @staticmethod
+    def repoNamePattern():
+        return '^https://svn.met.no/([^/]+)'
+
+    @staticmethod
+    def revURLTemplate():
+        return 'https://svn.met.no/viewvc/{}?view=revision&revision={}'
+
+    def addCandidateCommits_helper(self, workspace, repo_url, last_pass_rev, commits):
+        cmd = 'svn log {} -rHEAD:{} --xml --non-interactive --trust-server-cert'.format(
+            repo_url, int(last_pass_rev) + 1 - self.offset)
+        p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
+        stdout, stderr = p.communicate()
+
+        # Do nothing if the return code is non-zero (this typically means that no revisions exist
+        # after last_pass_rev)
+        if p.returncode != 0:
+            return
+
+        dom = parseString(stdout)
+        for log_entry in dom.getElementsByTagName('logentry'):
+            rev = log_entry.getAttribute('revision')
+            author = log_entry.getElementsByTagName('author')[0].childNodes[0].nodeValue
+            date = datetime.strptime(
+                log_entry.getElementsByTagName('date')[0].childNodes[0].nodeValue,
+                '%Y-%m-%dT%H:%M:%S.%fZ')
+            msg = log_entry.getElementsByTagName('msg')[0].childNodes[0].nodeValue
+            commits.append( { 'rev': rev, 'author': author, 'date': date, 'msg': msg } )
+
+    @staticmethod
+    def emailAddress(author):
+        return author + '@met.no'
+
+# --- END classes ---------------------------------------
+
 
 # --- BEGIN global functions ---------------------------------------
 
@@ -54,23 +165,38 @@ def getLastPassUpstreamRevs(jenkins_home, tgt_job):
     for i in range(len(upstream_job_elems)):
         upstream_builds.append(
             { 'job': upstream_job_elems[i].childNodes[0].nodeValue,
-              'build': int(upstream_build_elems[i].childNodes[0].nodeValue) })
+              'build': upstream_build_elems[i].childNodes[0].nodeValue })
 
-    # STEP 2: Get the SVN revision number for each repo
+    # STEP 2: Get the revision number for each repo
     revs = []
+    git_ext = GitExtractor()
+    svn_ext = SVNExtractor()
     for upstream_build in upstream_builds:
         fname = '{}/jobs/{}/builds/{}/build.xml'.format(
             jenkins_home, upstream_build['job'], upstream_build['build'])
         dom = parse(fname)
-        repo_elems = dom.getElementsByTagName(
-            'hudson.scm.SVNRevisionState')[0].getElementsByTagName('entry')
+
         rev = {}
-        for repo_elem in repo_elems:
-            rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
-                int(repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue)
-        revs.append(
-            { 'job': upstream_build['job'],
-              'rev': rev })
+
+        # Add SVN repos
+        svn_info_elems = dom.getElementsByTagName('hudson.scm.SVNRevisionState')
+        if len(svn_info_elems) > 0:
+            svn_repo_elems = svn_info_elems[0].getElementsByTagName('entry')
+            for repo_elem in svn_repo_elems:
+                rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
+                    { 'value': repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue,
+                      'vcs_ext': svn_ext }
+
+        # Add git repos
+        git_info_elems = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')
+        if len(git_info_elems) > 0:
+            git_info_elem = git_info_elems[0] # ### Multiple git repos not supported for now
+            rev[git_info_elem.getElementsByTagName('remoteUrls')[0].getElementsByTagName(
+                    'string')[0].childNodes[0].nodeValue] = \
+                    { 'value': git_info_elem.getElementsByTagName('sha1')[0].childNodes[0].nodeValue,
+                      'vcs_ext': git_ext }
+
+        revs.append( { 'job': upstream_build['job'], 'rev': rev } )
 
     return revs
 
@@ -91,32 +217,6 @@ def getJenkinsAdminAddr(jenkins_home):
     dom = parse(fname)
     addr_elem = dom.getElementsByTagName('adminAddress')[0]
     return addr_elem.childNodes[0].nodeValue
-
-
-# For the given SVN repo ('repo_url'), this function extracts descriptions of all
-# commits with revision number later than 'last_pass_rev' or later. The description records are added
-# to the dictionary 'commits'.
-#
-def addLatestCommits(repo_url, last_pass_rev, commits):
-    cmd = 'svn log {} -r{}:HEAD --xml --non-interactive --trust-server-cert'.format(
-        repo_url, last_pass_rev + 1)
-    p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
-    stdout, stderr = p.communicate()
-
-    # Do nothing if the return code is non-zero (this typically means that no revisions exist
-    # after last_pass_rev)
-    if p.returncode != 0:
-        return
-
-    dom = parseString(stdout)
-    for log_entry in dom.getElementsByTagName('logentry'):
-        rev = int(log_entry.getAttribute('revision'))
-        author = log_entry.getElementsByTagName('author')[0].childNodes[0].nodeValue
-        date = datetime.strptime(
-            log_entry.getElementsByTagName('date')[0].childNodes[0].nodeValue,
-            '%Y-%m-%dT%H:%M:%S.%fZ')
-        msg = log_entry.getElementsByTagName('msg')[0].childNodes[0].nodeValue
-        commits.append({ 'rev': rev, 'author': author, 'date': date, 'msg': msg })
 
 
 # Sends a single email.
@@ -146,19 +246,6 @@ def sendEmail(from_addr, to_addr, subject, html):
     s.quit()
 
 
-# Returns the URL to the description of a repository revision.
-def revisionUrl(repo_url, rev):
-    main_repo_name = 'diana'
-    m = re.search('^https://svn.met.no/([^/]+)', repo_url)
-    if m:
-        main_repo_name = m.group(1)
-    else:
-        raise Exception('failed to extract main repo name from {}'.format(repo_url))
-
-    url = 'https://svn.met.no/viewvc/{}?view=revision&revision={}'.format(main_repo_name, rev)
-    return url
-
-
 # Sends an email to the following people:
 #   - fixed recipients, i.e. those who have explicitly registered to
 #     be notified about build failures of the target job
@@ -176,14 +263,6 @@ def revisionUrl(repo_url, rev):
 #     'date': ..., 'msg': ... }.
 #
 def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, from_addr, report):
-    # Get author names and revision numbers
-    authors = set()
-    for job_info in cand_commits:
-        repo_info = job_info['repo_info']
-        for repo_url in repo_info:
-            for commit in repo_info[repo_url]['commits']:
-                authors.add(commit['author'])
-
     # Create top part of html document
     html_top = '<html>'
     html_top += """
@@ -202,9 +281,10 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
     """
     html_top += '<body>'
 
+    emails = set()
+
     # Create bottom part of html document
     html_bot_tmpl = ''
-
     for job_info in cand_commits:
         html_bot_tmpl += """
             <br/><hr><span style="font-size: 120%">Source repositories for upstream job <b>{}</b>:</span>
@@ -213,19 +293,21 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
         repo_info = job_info['repo_info']
         for repo_url in repo_info:
             html_bot_tmpl += """
-                <br/>Changes in {} since the last successful build of {} (i.e. later than Rev. {}):<br/>
+                <br/>Changes in {} since the last successful build of {} (i.e. later than Rev. {}):
             """.format(repo_url, tgt_job, repo_info[repo_url]['last_pass_rev'])
-            sorted_commits = sorted(repo_info[repo_url]['commits'], key=lambda item: item['rev'], reverse=True)
-            if len(sorted_commits) == 0:
-                html_bot_tmpl += '<b>none</b><br/>'
+            commits = repo_info[repo_url]['commits']
+            if len(commits) == 0:
+                html_bot_tmpl += '<span style="color:red"><b>none</b></span><br/>'
             else:
-                html_bot_tmpl += '<table>'
+                html_bot_tmpl += '<br/><table>'
                 html_bot_tmpl += '<tr><th>Rev.</th><th>Author</th><th>Date</th><th>Description</th></tr>'
-                for commit in sorted_commits:
+                for commit in commits:
+                    email = commit['vcs_ext'].emailAddress(commit['author'])
+                    emails.add(email)
                     html_bot_tmpl += (
                         '<tr class="_x_{}_x_"><td><a href={}>{}</a></td><td>{}</td>' +
                         '<td style="white-space: nowrap;">{}</td><td class=descr>{}</td></tr>').format(
-                        commit['author'], revisionUrl(repo_url, commit['rev']), commit['rev'], commit['author'],
+                        email, commit['vcs_ext'].revisionURL(repo_url, commit['rev']), commit['rev'], email,
                         commit['date'].strftime('%Y-%m-%d %H:%M:%S'), commit['msg'])
                 html_bot_tmpl += '</table>'
 
@@ -236,24 +318,32 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
     report['cand_committers'] = []
     report['fixed_recipients'] = []
 
-    # Send a separate email to each author
-    for author in authors:
-        p = re.compile('_x_{}_x_'.format(author))
-        html_bot = p.sub('hilight', html_bot_tmpl) # highlight commits made by this author
+    # Notify authors (NOTE: email aliases are not supported)
+    for email in emails:
+        p = re.compile('_x_{}_x_'.format(email))
+        html_bot = p.sub('hilight', html_bot_tmpl) # highlight commits associated with this email address
         html_mid = """
             You receive this email because you may potentially have caused
             the failure of <a href="{}"><b>{}</b> #{}</a>.
             <br/><br/>
             Please investigate.
-            <br/>
-        """.format(tgt_url, tgt_job, tgt_build)
+            <br/><br/>
+            <span style="background-color: #eee; font-size: 80%"><b>Note:</b>
+            This email was sent to {}. Email aliases are not supported
+            yet, so a given user will receive a separate email for
+            each syntactically different email address deduced from
+            the affected source repositories (e.g. foob@met.no and
+            foo.bar@met.no would be considered different).
+            </span><br/>
+        """.format(tgt_url, tgt_job, tgt_build, email)
         html = html_top + html_mid + html_bot
-        to_addr = '{}@met.no'.format(author) # assuming the domain 'met.no' works for now
+
+        to_addr = email
         sendEmail(from_addr, to_addr,
                   'Jenkins alert: {} #{} failed - please investigate'.format(tgt_job, tgt_build), html)
         report['cand_committers'].append(to_addr)
 
-    # Send a separate email to each fixed recipient
+    # Notify fixed recipients
     for recp in fixed_recipients:
         html_mid = """
             You receive this email because you have registered to be notified whenever
@@ -281,42 +371,40 @@ if not ('jenkinshome' in options and 'jenkinsurl' in options
         '--build <target build number>\n')
     sys.exit(1)
 
-
-# Step 1: Get the upstream SVN revisions associated with the last successful target job.
+# Get the upstream SVN revisions associated with the last successful target job.
 try:
     last_pass_upstream_revs = getLastPassUpstreamRevs(
         options['jenkinshome'], options['job'])
-except Exception as e:
-    sys.stderr.write('lastPassUpstreamRevs() failed: {}\n'.format(e))
+except Exception:
+    sys.stderr.write('lastPassUpstreamRevs() failed: {}\n'.format(format_exc()))
     sys.exit(1)
 except:
-    sys.stderr.write('lastPassUpstreamRevs() failed (other exception): {}\n'.format(sys.exc_info()))
+    sys.stderr.write('lastPassUpstreamRevs() failed (other exception): {}\n'.format(format_exc()))
     sys.exit(1)
 
-
-# Step 2: Get candidate committers.
+# Get candidate committers.
 cand_commits = []
 for upstream_job in last_pass_upstream_revs:
     repo_info = {}
     for repo_url in upstream_job['rev']:
         repo_info[repo_url] = {}
-        repo_info[repo_url]['last_pass_rev'] = upstream_job['rev'][repo_url]
+        repo_info[repo_url]['last_pass_rev'] = upstream_job['rev'][repo_url]['value']
         repo_info[repo_url]['commits'] = []
-        addLatestCommits(repo_url, upstream_job['rev'][repo_url], repo_info[repo_url]['commits'])
+        upstream_job['rev'][repo_url]['vcs_ext'].addCandidateCommits(
+            options['jenkinshome'], upstream_job['job'], repo_url, upstream_job['rev'][repo_url]['value'],
+            repo_info[repo_url]['commits'])
     cand_commits.append( { 'job': upstream_job['job'], 'repo_info': repo_info } )
 
-# Step 3: Get fixed recipients.
+# Get fixed recipients.
 fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
 
-
-# Step 4: Send email to fixed recipients and candidate committers.
+# Send email to fixed recipients and candidate committers.
 report = {}
 sendEmails(
     fixed_recipients, cand_commits, options['jenkinsurl'], options['job'],
     options['build'], getJenkinsAdminAddr(options['jenkinshome']), report)
 
-
-# Step 5: Write report to stdout.
+# Write report to stdout.
 n = len(report['cand_committers'])
 sys.stdout.write('notified {} candidate committer{}:\n'.format(n, 's' if n != 1 else ''))
 for x in report['cand_committers']:
