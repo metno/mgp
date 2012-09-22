@@ -56,10 +56,10 @@ sys.stderr.write('EXIT CODE: {}\n'.format(p.returncode))
 w = 40
 sys.stderr.write(
     '--- BEGIN standard output ' + '-'*w +
-    '\n{}\n--- END standard output '.format(stdout) + '-'*w + '\n')
+    '\n{}--- END standard output '.format(stdout) + '-'*w + '\n')
 sys.stderr.write(
     '--- BEGIN standard error ' + '-'*w +
-    '\n{}\n--- END standard error '.format(stderr) + '-'*w + '\n')
+    '\n{}--- END standard error '.format(stderr) + '-'*w + '\n')
 
 # For now we don't implement detailed comparison of expected and actual output.
 # Simply check that the word 'Usage:' occurs in stdout.
