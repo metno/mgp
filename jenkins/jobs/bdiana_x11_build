@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# This script builds and installs the X11-dependent bdiana version,
+
+install_dir=$WORKSPACE/install
+mkdir -p $install_dir
+rm -rf $install_dir/*
+./autogen.sh
+./configure \
+  PKG_CONFIG_PATH=$JENKINS_HOME/jobs/metlibs_build/workspace/install/lib/pkgconfig \
+  --prefix=$install_dir \
+  --enable-batch-only
+make clean
+make -j7
+make install

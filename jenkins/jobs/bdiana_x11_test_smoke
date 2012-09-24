@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# This script is a smoke test of the X11-dependent bdiana version.
+
+# We assume that this bdiana needs to connect to an X server,
+# so start an xvfb session
+export DISPLAY=:99
+Xvfb $DISPLAY -ac &
+
+# Run smoke test
+bdiana_exec_dir=$JENKINS_HOME/jobs/bdiana_x11_build/workspace/install/bin
+bdiana_exec=`ls $bdiana_exec_dir | grep bdiana`
+exitcode=`$JENKINS_SCRIPTS_PATH/../bdiana_test/smoketest.py --cmd $bdiana_exec_dir/$bdiana_exec`
+
+# Stop xvfb session
+killall Xvfb
+
+return $exitcode

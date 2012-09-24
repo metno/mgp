@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# This script builds and installs metlibs.
+
+install_dir=$WORKSPACE/install
+mkdir -p $install_dir
+rm -rf $install_dir/*
+./autogen.sh
+
+./configure \
+  --prefix=$install_dir \
+  --disable-shared \
+  --enable-pgconpool \
+  --with-fimex \
+  --with-geotiff \
+#  --enable-allprofet \ # couldn't get this to work, skip for now
+  LDFLAGS="-Wl,-z,defs"
+
+make clean
+make -j7
+make install

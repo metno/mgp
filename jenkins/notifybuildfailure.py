@@ -22,7 +22,7 @@ Assumptions:
 """
 
 import sys, os, re
-sys.path.append('../shared/python')
+sys.path.append(os.environ['JENKINS_SCRIPTS_PATH'] + '/../shared/python')
 from misc import getOptDict
 from xml.dom.minidom import parse, parseString
 from subprocess import Popen, PIPE
@@ -223,6 +223,10 @@ def getJenkinsAdminAddr(jenkins_home):
 
 # Sends a single email.
 def sendEmail(from_addr, to_addr, subject, html):
+    if to_addr != 'joa@met.no' and to_addr != 'jo.asplin@met.no':
+        print 'skipping sending email to', to_addr
+        return
+
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject

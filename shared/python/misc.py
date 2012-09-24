@@ -32,3 +32,13 @@ def elided(s, n):
         return s
     r = ' ...'
     return s[:n-len(r)] + r
+
+# Pretty-prints output from another process to stderr.
+def printOutput(stdout, stderr):
+    w = 40
+    sys.stderr.write(
+        '--- BEGIN standard output ' + '-'*w +
+        '\n{}--- END standard output '.format(stdout) + '-'*w + '\n')
+    sys.stderr.write(
+        '--- BEGIN standard error ' + '-'*w +
+        '\n{}--- END standard error '.format(stderr) + '-'*w + '\n')
