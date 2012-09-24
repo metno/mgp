@@ -7,22 +7,18 @@ The following people are notified by email about the job failure:
   1: those who have explicitly registered to be notified about
      failures of this job, and
 
-  2: those who have committed changes to an upstream repository
-     since the last successful job build (the idea being that one of
-     these changes caused the job to fail).
+  2: those who have committed changes to a source repository (local or
+     upstream) since the last successful job build (the idea being
+     that one of these changes caused the job to fail).
 
 Assumptions:
 
- - At most one git repo per upstream job is supported for now (need to
+ - At most one git repo per job is supported for now (need to
    figure out the exact XML format).
 
  - Email aliases are not supported. Although the 'met.no' domain is
    recognized, 'joa' (svn) (or 'joa@met.no' (git)) would be considered
    different from 'jo.asplin@met.no' (git).
-
- - A job failure can be caused by a change in one of the repositories
-   local to the job itself (rather than in one of the upstream ones).
-   This situation must be resolved manually.
 """
 
 import sys, os, re
@@ -145,20 +141,52 @@ class SVNExtractor(VCSExtractor):
 
 # --- BEGIN global functions ---------------------------------------
 
-# For the upstream repos that could affect a target job, this function
-# returns the SVN revisions associated with the last successful build
-# of the target job.
-#
-# The return value is a list of dictionaries, one for each upstream
-# job.  Each dictionary contains the upstream job name and a dictionary
-# of (repo URL, revision number) combinations.
-#
-def getLastPassUpstreamRevs(jenkins_home, tgt_job):
-
-    # STEP 1: For all upstream jobs, get the build number associated
-    # with the latest successful build of the target job.
-    fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, tgt_job)
+# Extracts the revision number for each repo found in a given file.
+def getSrcRepoRevsFromFile(fname, job, git_ext, svn_ext, revs):
     dom = parse(fname)
+    rev = {}
+
+    # Add SVN repos
+    svn_info_elems = dom.getElementsByTagName('hudson.scm.SVNRevisionState')
+    if len(svn_info_elems) > 0:
+        svn_repo_elems = svn_info_elems[0].getElementsByTagName('entry')
+        for repo_elem in svn_repo_elems:
+            rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
+                { 'value': repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue,
+                  'vcs_ext': svn_ext }
+
+    # Add git repos
+    git_info_elems = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')
+    if len(git_info_elems) > 0:
+        git_info_elem = git_info_elems[0] # ### Multiple git repos not supported for now
+        rev[git_info_elem.getElementsByTagName('remoteUrls')[0].getElementsByTagName(
+                'string')[0].childNodes[0].nodeValue] = \
+                { 'value': git_info_elem.getElementsByTagName('sha1')[0].childNodes[0].nodeValue,
+                  'vcs_ext': git_ext }
+
+    revs.append( { 'job': job, 'rev': rev } )
+
+
+# For the source repos (local or upstream ones) that could affect a
+# target job, this function returns the SVN revisions associated with
+# the last successful build of the target job.
+#
+# The return value is a list of dictionaries, one for each job that
+# contains source repos. Each dictionary contains the job name and a
+# dictionary of (repo URL, revision number) combinations.
+#
+def getLastPassSrcRepoRevs(jenkins_home, tgt_job):
+    revs = []
+    git_ext = GitExtractor()
+    svn_ext = SVNExtractor()
+
+    # STEP 1: Get the revision number for each local repo:
+    local_fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, tgt_job)
+    getSrcRepoRevsFromFile(local_fname, tgt_job, git_ext, svn_ext, revs)
+
+    # STEP 2: For all upstream jobs, get the
+    # ... relevant job/build combinations:
+    dom = parse(local_fname)
     upstream_job_elems = dom.getElementsByTagName('upstreamProject')
     upstream_build_elems = dom.getElementsByTagName('upstreamBuild')
     upstream_builds = []
@@ -166,37 +194,11 @@ def getLastPassUpstreamRevs(jenkins_home, tgt_job):
         upstream_builds.append(
             { 'job': upstream_job_elems[i].childNodes[0].nodeValue,
               'build': upstream_build_elems[i].childNodes[0].nodeValue })
-
-    # STEP 2: Get the revision number for each repo
-    revs = []
-    git_ext = GitExtractor()
-    svn_ext = SVNExtractor()
+    # ... and then the repo/rev combinations:
     for upstream_build in upstream_builds:
         fname = '{}/jobs/{}/builds/{}/build.xml'.format(
             jenkins_home, upstream_build['job'], upstream_build['build'])
-        dom = parse(fname)
-
-        rev = {}
-
-        # Add SVN repos
-        svn_info_elems = dom.getElementsByTagName('hudson.scm.SVNRevisionState')
-        if len(svn_info_elems) > 0:
-            svn_repo_elems = svn_info_elems[0].getElementsByTagName('entry')
-            for repo_elem in svn_repo_elems:
-                rev[repo_elem.getElementsByTagName('string')[0].childNodes[0].nodeValue] = \
-                    { 'value': repo_elem.getElementsByTagName('long')[0].childNodes[0].nodeValue,
-                      'vcs_ext': svn_ext }
-
-        # Add git repos
-        git_info_elems = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')
-        if len(git_info_elems) > 0:
-            git_info_elem = git_info_elems[0] # ### Multiple git repos not supported for now
-            rev[git_info_elem.getElementsByTagName('remoteUrls')[0].getElementsByTagName(
-                    'string')[0].childNodes[0].nodeValue] = \
-                    { 'value': git_info_elem.getElementsByTagName('sha1')[0].childNodes[0].nodeValue,
-                      'vcs_ext': git_ext }
-
-        revs.append( { 'job': upstream_build['job'], 'rev': rev } )
+        getSrcRepoRevsFromFile(fname, upstream_build['job'], git_ext, svn_ext, revs)
 
     return revs
 
@@ -252,9 +254,9 @@ def sendEmail(from_addr, to_addr, subject, html):
 #   - candidate committers, i.e. people who may potentially have
 #     caused the such build failures.
 #
-# cand_commits is a list of dictionaries, one for each upstream job.
-#     Each upstream job dictionary contains the upstream job name and
-#     a dictionary of source repositories for this job. Each repo
+# cand_commits is a list of dictionaries, one for each source job
+#     (local or upstream).  Each job dictionary contains the job name
+#     and a dictionary of source repositories for this job. Each repo
 #     dictionary contains the revision number associated with the last
 #     sucessful target job and the list of dictionaries for the
 #     commits made after this point.  Each commit dictionary contains
@@ -286,10 +288,12 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
     # Create bottom part of html document
     html_bot_tmpl = ''
     for job_info in cand_commits:
+
         html_bot_tmpl += """
-            <br/><hr><span style="font-size: 120%">Source repositories for upstream job <b>{}</b>:</span>
+            <br/><hr><span style="font-size: 120%">Source repositories {} <b>{}</b>:</span>
             <br/>
-        """.format(job_info['job'])
+        """.format('local to' if (job_info['job'] == tgt_job) else 'for upstream job', job_info['job'])
+
         repo_info = job_info['repo_info']
         for repo_url in repo_info:
             html_bot_tmpl += """
@@ -328,12 +332,13 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
             <br/><br/>
             Please investigate.
             <br/><br/>
-            <span style="background-color: #eee; font-size: 80%"><b>Note:</b>
-            This email was sent to {}. Email aliases are not supported
-            yet, so a given user will receive a separate email for
-            each syntactically different email address deduced from
-            the affected source repositories (e.g. foob@met.no and
-            foo.bar@met.no would be considered different).
+            <span style="background-color: #eee; font-size:
+            80%"><b>Note:</b> This email was sent to {}. Email aliases
+            are not supported yet, so a given user will receive a
+            separate email for each syntactically different email
+            address deduced from the affected source repositories
+            (e.g. foob@met.no and foo.bar@met.no would be considered
+            different even if they refer to the same person).
             </span><br/>
         """.format(tgt_url, tgt_job, tgt_build, email)
         html = html_top + html_mid + html_bot
@@ -371,29 +376,29 @@ if not ('jenkinshome' in options and 'jenkinsurl' in options
         '--build <target build number>\n')
     sys.exit(1)
 
-# Get the upstream SVN revisions associated with the last successful target job.
+# Get the source repo revisions associated with the last successful target job.
 try:
-    last_pass_upstream_revs = getLastPassUpstreamRevs(
+    last_pass_src_repo_revs = getLastPassSrcRepoRevs(
         options['jenkinshome'], options['job'])
 except Exception:
-    sys.stderr.write('lastPassUpstreamRevs() failed: {}\n'.format(format_exc()))
+    sys.stderr.write('getLastPassSrcRepoRevs() failed: {}\n'.format(format_exc()))
     sys.exit(1)
 except:
-    sys.stderr.write('lastPassUpstreamRevs() failed (other exception): {}\n'.format(format_exc()))
+    sys.stderr.write('getLastPassSrcRepoRevs() failed (other exception): {}\n'.format(format_exc()))
     sys.exit(1)
 
 # Get candidate committers.
 cand_commits = []
-for upstream_job in last_pass_upstream_revs:
+for job in last_pass_src_repo_revs:
     repo_info = {}
-    for repo_url in upstream_job['rev']:
+    for repo_url in job['rev']:
         repo_info[repo_url] = {}
-        repo_info[repo_url]['last_pass_rev'] = upstream_job['rev'][repo_url]['value']
+        repo_info[repo_url]['last_pass_rev'] = job['rev'][repo_url]['value']
         repo_info[repo_url]['commits'] = []
-        upstream_job['rev'][repo_url]['vcs_ext'].addCandidateCommits(
-            options['jenkinshome'], upstream_job['job'], repo_url, upstream_job['rev'][repo_url]['value'],
+        job['rev'][repo_url]['vcs_ext'].addCandidateCommits(
+            options['jenkinshome'], job['job'], repo_url, job['rev'][repo_url]['value'],
             repo_info[repo_url]['commits'])
-    cand_commits.append( { 'job': upstream_job['job'], 'repo_info': repo_info } )
+    cand_commits.append( { 'job': job['job'], 'repo_info': repo_info } )
 
 # Get fixed recipients.
 fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
