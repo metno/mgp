@@ -2,6 +2,8 @@
 
 # This script builds and installs metlibs.
 
+set -e # Exit on first failure
+
 install_dir=$WORKSPACE/install
 mkdir -p $install_dir
 rm -rf $install_dir/*

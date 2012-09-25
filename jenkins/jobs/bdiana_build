@@ -3,6 +3,8 @@
 # This script builds and installs the headless bdiana version,
 # i.e. the one that depends on QWS rather than on X11.
 
+set -e # Exit on first failure
+
 installdir=$WORKSPACE/install
 mkdir -p $installdir
 rm -rf $installdir/*

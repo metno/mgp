@@ -3,6 +3,8 @@
 # This script is a smoke test of the headless bdiana version, i.e. the
 # one that depends on QWS rather than on X11.
 
+set -e # Exit on first failure
+
 bdiana_exec_dir=$JENKINS_HOME/jobs/bdiana_build/workspace/install/bin
 bdiana_exec=`ls $bdiana_exec_dir | grep bdiana`
 $JENKINS_SCRIPTS_PATH/../bdiana_test/smoketest.py --cmd "$bdiana_exec_dir/$bdiana_exec -display dummy:7771"

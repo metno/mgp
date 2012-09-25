@@ -2,6 +2,8 @@
 
 # This script is a smoke test of the X11-dependent bdiana version.
 
+set -e # Exit on first failure
+
 # We assume that this bdiana needs to connect to an X server,
 # so start an xvfb session
 export DISPLAY=:99
