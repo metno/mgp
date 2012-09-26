@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script builds and installs the X11-dependent bdiana version,
+# This script builds and (locally) installs the X11-dependent bdiana version directly.
 
 set -e # Exit on first failure
 
