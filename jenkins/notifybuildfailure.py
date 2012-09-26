@@ -141,8 +141,10 @@ class SVNExtractor(VCSExtractor):
 
 # --- BEGIN global functions ---------------------------------------
 
-# Extracts the revision number for each repo found in a given file.
-def getSrcRepoRevsFromFile(fname, job, git_ext, svn_ext, revs):
+# Adds information from a build status file into two structures:
+#     1: revs: a list of dictionaries of (repository, revision) combinations.
+#     2: build: a dictionary of (job, build number) combinations.
+def addRevsAndBuildNumbers(fname, job, git_ext, svn_ext, revs, build):
     dom = parse(fname)
     rev = {}
 
@@ -166,23 +168,29 @@ def getSrcRepoRevsFromFile(fname, job, git_ext, svn_ext, revs):
 
     revs.append( { 'job': job, 'rev': rev } )
 
+    # Add build number
+    build[job] = dom.getElementsByTagName('number')[0].childNodes[0].nodeValue
+
 
 # For the source repos (local or upstream ones) that could affect a
 # target job, this function returns the SVN revisions associated with
 # the last successful build of the target job.
 #
-# The return value is a list of dictionaries, one for each job that
-# contains source repos. Each dictionary contains the job name and a
-# dictionary of (repo URL, revision number) combinations.
+# Two values are returned:
+#   1: A list of dictionaries, one for each job that contains source repos.
+#      Each dictionary contains the job name and a dictionary of
+#      (repo URL, revision number) combinations.
+#   2: A dictionary of (job, last pass build number) combinations.
 #
-def getLastPassSrcRepoRevs(jenkins_home, tgt_job):
+def getLastPassInfo(jenkins_home, tgt_job):
     revs = []
+    last_pass_build = {}
     git_ext = GitExtractor()
     svn_ext = SVNExtractor()
 
     # STEP 1: Get the revision number for each local repo:
     local_fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, tgt_job)
-    getSrcRepoRevsFromFile(local_fname, tgt_job, git_ext, svn_ext, revs)
+    addRevsAndBuildNumbers(local_fname, tgt_job, git_ext, svn_ext, revs, last_pass_build)
 
     # STEP 2: For all upstream jobs, get the
     # ... relevant job/build combinations:
@@ -191,16 +199,18 @@ def getLastPassSrcRepoRevs(jenkins_home, tgt_job):
     upstream_build_elems = dom.getElementsByTagName('upstreamBuild')
     upstream_builds = []
     for i in range(len(upstream_job_elems)):
-        upstream_builds.append(
-            { 'job': upstream_job_elems[i].childNodes[0].nodeValue,
-              'build': upstream_build_elems[i].childNodes[0].nodeValue })
+        upstream_builds.append({
+                'job': upstream_job_elems[i].childNodes[0].nodeValue,
+                'build': upstream_build_elems[i].childNodes[0].nodeValue
+                })
     # ... and then the repo/rev combinations:
     for upstream_build in upstream_builds:
         fname = '{}/jobs/{}/builds/{}/build.xml'.format(
             jenkins_home, upstream_build['job'], upstream_build['build'])
-        getSrcRepoRevsFromFile(fname, upstream_build['job'], git_ext, svn_ext, revs)
+        addRevsAndBuildNumbers(fname, upstream_build['job'], git_ext, svn_ext, revs, last_pass_build)
+        assert last_pass_build[upstream_build['job']] == upstream_build['build']
 
-    return revs
+    return revs, last_pass_build
 
 
 # Returns the list of email addresses of the people registered to be
@@ -264,7 +274,8 @@ def sendEmail(from_addr, to_addr, subject, html):
 #     for an individual commit as value: { 'rev': ..., 'author': ...,
 #     'date': ..., 'msg': ... }.
 #
-def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, from_addr, report):
+def sendEmails(
+    fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, last_pass_build, from_addr, report):
     # Create top part of html document
     html_top = '<html>'
     html_top += """
@@ -297,8 +308,11 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
         repo_info = job_info['repo_info']
         for repo_url in repo_info:
             html_bot_tmpl += """
-                <br/>Changes in {} since the last successful build of {} (i.e. later than Rev. {}):
-            """.format(repo_url, tgt_job, repo_info[repo_url]['last_pass_rev'])
+                <br/>Candidate changes in {} (i.e. later than <a href="{}">Build #{}</a> / Rev. {}):
+            """.format(
+                repo_url, '{}/job/{}/{}/'.format(
+                    jenkins_url, job_info['job'], last_pass_build[job_info['job']]),
+                last_pass_build[job_info['job']], repo_info[repo_url]['last_pass_rev'])
             commits = repo_info[repo_url]['commits']
             if len(commits) == 0:
                 html_bot_tmpl += '<span style="color:red"><b>none</b></span><br/>'
@@ -319,6 +333,7 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
     html_bot_tmpl += '</html>'
 
     tgt_url = '{}/job/{}/{}/console'.format(jenkins_url, tgt_job, tgt_build)
+    tgt_last_pass_url = '{}/job/{}/{}/'.format(jenkins_url, tgt_job, last_pass_build[tgt_job])
     report['cand_committers'] = []
     report['fixed_recipients'] = []
 
@@ -330,6 +345,9 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
             You receive this email because you may potentially have caused
             the failure of <a href="{}"><b>{}</b> #{}</a>.
             <br/><br/>
+            Changes in local and upstream repositories since the <a href="{}">last
+            successful build (#{})</a> are listed below.
+            <br/><br/>
             Please investigate.
             <br/><br/>
             <span style="background-color: #eee; font-size:
@@ -340,7 +358,7 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
             (e.g. foob@met.no and foo.bar@met.no would be considered
             different even if they refer to the same person).
             </span><br/>
-        """.format(tgt_url, tgt_job, tgt_build, email)
+        """.format(tgt_url, tgt_job, tgt_build, tgt_last_pass_url, last_pass_build[tgt_job], email)
         html = html_top + html_mid + html_bot
 
         to_addr = email
@@ -354,9 +372,12 @@ def sendEmails(fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, 
             You receive this email because you have registered to be notified whenever
             <b>{}</b> fails (in this case <a href="{}">Build #{}</a>).
             <br/><br/>
-            Candidate committers (listed below) have been notified separately.
+            Changes in local and upstream repositories since the <a href="{}">last
+            successful build (#{})</a> are listed below.
+            <br/><br/>
+            Candidate committers have been notified separately.
             <br/>
-        """.format(tgt_job, tgt_url, tgt_build)
+        """.format(tgt_job, tgt_url, tgt_build, tgt_last_pass_url, last_pass_build[tgt_job])
         html = html_top + html_mid + html_bot_tmpl
         sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(tgt_job, tgt_build), html)
         report['fixed_recipients'].append(recp)
@@ -376,15 +397,15 @@ if not ('jenkinshome' in options and 'jenkinsurl' in options
         '--build <target build number>\n')
     sys.exit(1)
 
-# Get the source repo revisions associated with the last successful target job.
+# Get information associated with the last successful target job.
 try:
-    last_pass_src_repo_revs = getLastPassSrcRepoRevs(
+    last_pass_src_repo_revs, last_pass_build = getLastPassInfo(
         options['jenkinshome'], options['job'])
 except Exception:
-    sys.stderr.write('getLastPassSrcRepoRevs() failed: {}\n'.format(format_exc()))
+    sys.stderr.write('getLastPassInfo() failed: {}\n'.format(format_exc()))
     sys.exit(1)
 except:
-    sys.stderr.write('getLastPassSrcRepoRevs() failed (other exception): {}\n'.format(format_exc()))
+    sys.stderr.write('getLastPassInfo() failed (other exception): {}\n'.format(format_exc()))
     sys.exit(1)
 
 # Get candidate committers.
@@ -407,7 +428,7 @@ fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
 report = {}
 sendEmails(
     fixed_recipients, cand_commits, options['jenkinsurl'], options['job'],
-    options['build'], getJenkinsAdminAddr(options['jenkinshome']), report)
+    options['build'], last_pass_build, getJenkinsAdminAddr(options['jenkinshome']), report)
 
 # Write report to stdout.
 n = len(report['cand_committers'])
