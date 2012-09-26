@@ -300,19 +300,22 @@ def sendEmails(
     html_bot_tmpl = ''
     for job_info in cand_commits:
 
+        job = job_info['job']
         html_bot_tmpl += """
-            <br/><hr><span style="font-size: 120%">Source repositories {} <b>{}</b>:</span>
+            <br/><hr><span style="font-size: 120%">Source repositories {} <b>{}</b>
+            (build associated with last successful build of <b>{}</b>: <a href="{}">#{}</a>):</span>
             <br/>
-        """.format('local to' if (job_info['job'] == tgt_job) else 'for upstream job', job_info['job'])
+        """.format(
+            'local to' if (job == tgt_job) else 'for upstream job', job, tgt_job,
+            '{}/job/{}/{}/'.format(jenkins_url, job, last_pass_build[job]),
+            last_pass_build[job])
 
         repo_info = job_info['repo_info']
         for repo_url in repo_info:
             html_bot_tmpl += """
-                <br/>Candidate changes in {} (i.e. later than <a href="{}">Build #{}</a> / Rev. {}):
+                <br/>Candidate changes in {} (i.e. later than Rev. {}):
             """.format(
-                repo_url, '{}/job/{}/{}/'.format(
-                    jenkins_url, job_info['job'], last_pass_build[job_info['job']]),
-                last_pass_build[job_info['job']], repo_info[repo_url]['last_pass_rev'])
+                repo_url, repo_info[repo_url]['last_pass_rev'])
             commits = repo_info[repo_url]['commits']
             if len(commits) == 0:
                 html_bot_tmpl += '<span style="color:red"><b>none</b></span><br/>'
