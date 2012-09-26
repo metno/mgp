@@ -172,24 +172,29 @@ def addRevsAndBuildNumbers(fname, job, git_ext, svn_ext, revs, build):
     build[job] = dom.getElementsByTagName('number')[0].childNodes[0].nodeValue
 
 
-# For the source repos (local or upstream ones) that could affect a
-# target job, this function returns the SVN revisions associated with
-# the last successful build of the target job.
+# For the builds and source repos that could affect a target job
+# (i.e. local or upstream ones), this function extracts info
+# associated with the last successful build (if any) of the target
+# job.
 #
-# Two values are returned:
-#   1: A list of dictionaries, one for each job that contains source repos.
+# If a last successful build exists, the following structures are populated:
+#   1: revs: A list of dictionaries, one for each job that contains source repos.
 #      Each dictionary contains the job name and a dictionary of
 #      (repo URL, revision number) combinations.
-#   2: A dictionary of (job, last pass build number) combinations.
+#   2: last_pass_build: A dictionary of (job, last pass build number) combinations.
 #
-def getLastPassInfo(jenkins_home, tgt_job):
-    revs = []
-    last_pass_build = {}
+def getLastPassInfo(jenkins_home, tgt_job, revs, last_pass_build):
+    # Clear out parameters
+    del revs[:]
+    last_pass_build.clear()
+
     git_ext = GitExtractor()
     svn_ext = SVNExtractor()
 
     # STEP 1: Get the revision number for each local repo:
     local_fname = '{}/jobs/{}/lastSuccessful/build.xml'.format(jenkins_home, tgt_job)
+    if not os.path.exists(local_fname):
+        return # Apparently the target job has never succeeded
     addRevsAndBuildNumbers(local_fname, tgt_job, git_ext, svn_ext, revs, last_pass_build)
 
     # STEP 2: For all upstream jobs, get the
@@ -209,8 +214,6 @@ def getLastPassInfo(jenkins_home, tgt_job):
             jenkins_home, upstream_build['job'], upstream_build['build'])
         addRevsAndBuildNumbers(fname, upstream_build['job'], git_ext, svn_ext, revs, last_pass_build)
         assert last_pass_build[upstream_build['job']] == upstream_build['build']
-
-    return revs, last_pass_build
 
 
 # Returns the list of email addresses of the people registered to be
@@ -336,11 +339,12 @@ def sendEmails(
     html_bot_tmpl += '</html>'
 
     tgt_url = '{}/job/{}/{}/console'.format(jenkins_url, tgt_job, tgt_build)
-    tgt_last_pass_url = '{}/job/{}/{}/'.format(jenkins_url, tgt_job, last_pass_build[tgt_job])
+    if len(last_pass_build) > 0:
+        tgt_last_pass_url = '{}/job/{}/{}/'.format(jenkins_url, tgt_job, last_pass_build[tgt_job])
     report['cand_committers'] = []
     report['fixed_recipients'] = []
 
-    # Notify authors (NOTE: email aliases are not supported)
+    # Notify candidate committers (NOTE: email aliases are not supported)
     for email in emails:
         p = re.compile('_x_{}_x_'.format(email))
         html_bot = p.sub('hilight', html_bot_tmpl) # highlight commits associated with this email address
@@ -374,13 +378,18 @@ def sendEmails(
         html_mid = """
             You receive this email because you have registered to be notified whenever
             <b>{}</b> fails (in this case <a href="{}">Build #{}</a>).
-            <br/><br/>
-            Changes in local and upstream repositories since the <a href="{}">last
-            successful build (#{})</a> are listed below.
-            <br/><br/>
-            Candidate committers have been notified separately.
+            <br/><br/>{}
             <br/>
-        """.format(tgt_job, tgt_url, tgt_build, tgt_last_pass_url, last_pass_build[tgt_job])
+        """.format(
+            tgt_job, tgt_url, tgt_build,
+            """
+            Changes in local and upstream repositories since the <a href="{}">last
+            successful build (#{})</a> are listed below.<br/><br/>
+            Candidate committers have been notified separately.
+            """.format(tgt_last_pass_url, last_pass_build[tgt_job]) if len(last_pass_build) > 0 else
+            """
+            <b>Note:</b> This job has never built successfully.
+            """)
         html = html_top + html_mid + html_bot_tmpl
         sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(tgt_job, tgt_build), html)
         report['fixed_recipients'].append(recp)
@@ -401,9 +410,11 @@ if not ('jenkinshome' in options and 'jenkinsurl' in options
     sys.exit(1)
 
 # Get information associated with the last successful target job.
+last_pass_src_repo_revs = []
+last_pass_build = {}
 try:
-    last_pass_src_repo_revs, last_pass_build = getLastPassInfo(
-        options['jenkinshome'], options['job'])
+     last_pass_found = getLastPassInfo(
+         options['jenkinshome'], options['job'], last_pass_src_repo_revs, last_pass_build)
 except Exception:
     sys.stderr.write('getLastPassInfo() failed: {}\n'.format(format_exc()))
     sys.exit(1)
