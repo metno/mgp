@@ -3,4 +3,6 @@
 # This script builds the headless bdiana version as a Debian package.
 # (The headless version is the one that depends on QWS rather than on X11.)
 
+set -e # Exit on first failure
+
 metno-debuild -eMETNO_CONFIG=precise_headless -b -us -uc -j7
