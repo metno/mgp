@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script is a smoke test of WMS/Diana.
+# This script performs a smoke test of WMS/Diana.
 
 set -e # Exit on first failure
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script is a smoke test of the headless bdiana version, i.e. the
+# This script performs a smoke test of the headless bdiana version, i.e. the
 # one that depends on QWS rather than on X11.
 
 set -e # Exit on first failure

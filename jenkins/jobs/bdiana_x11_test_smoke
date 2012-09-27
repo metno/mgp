@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script is a smoke test of the X11-dependent bdiana version.
+# This script performs a smoke test of the X11-dependent bdiana version.
 
 set -e # Exit on first failure
 
