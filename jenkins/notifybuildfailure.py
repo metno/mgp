@@ -265,7 +265,7 @@ def sendEmail(from_addr, to_addr, subject, html):
 #   - fixed recipients, i.e. those who have explicitly registered to
 #     be notified about build failures of the target job
 #   - candidate committers, i.e. people who may potentially have
-#     caused the such build failures.
+#     caused the current failure.
 #
 # cand_commits is a list of dictionaries, one for each source job
 #     (local or upstream).  Each job dictionary contains the job name
@@ -273,12 +273,13 @@ def sendEmail(from_addr, to_addr, subject, html):
 #     dictionary contains the revision number associated with the last
 #     sucessful target job and the list of dictionaries for the
 #     commits made after this point.  Each commit dictionary contains
-#     SVN repo URL as key and a dictionary containing the description
+#     the repo URL as key and a dictionary containing the description
 #     for an individual commit as value: { 'rev': ..., 'author': ...,
 #     'date': ..., 'msg': ... }.
 #
 def sendEmails(
-    fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, last_pass_build, from_addr, report):
+    fixed_recipients, cand_commits, jenkins_url, tgt_job, tgt_build, last_pass_build, from_addr, xpass_msg,
+    report):
     # Create top part of html document
     html_top = '<html>'
     html_top += """
@@ -341,6 +342,10 @@ def sendEmails(
     tgt_url = '{}/job/{}/{}/console'.format(jenkins_url, tgt_job, tgt_build)
     if len(last_pass_build) > 0:
         tgt_last_pass_url = '{}/job/{}/{}/'.format(jenkins_url, tgt_job, last_pass_build[tgt_job])
+    if xpass_msg != None:
+        incident = '<span style="color:#f00">the core build script <u>passed unexpectedly</u></span>: ' + xpass_msg
+    else:
+        incident = '<span style="color:#f00">the core build script <u>failed</u></span>'
     report['cand_committers'] = []
     report['fixed_recipients'] = []
 
@@ -351,6 +356,8 @@ def sendEmails(
         html_mid = """
             You receive this email because you may potentially have caused
             the failure of <a href="{}"><b>{}</b> #{}</a>.
+            <br/><br/>
+            Incident: {}
             <br/><br/>
             Changes in local and upstream repositories since the <a href="{}">last
             successful build (#{})</a> are listed below.
@@ -365,12 +372,12 @@ def sendEmails(
             (e.g. foob@met.no and foo.bar@met.no would be considered
             different even if they refer to the same person).
             </span><br/>
-        """.format(tgt_url, tgt_job, tgt_build, tgt_last_pass_url, last_pass_build[tgt_job], email)
+        """.format(tgt_url, tgt_job, tgt_build, incident, tgt_last_pass_url, last_pass_build[tgt_job], email)
         html = html_top + html_mid + html_bot
 
         to_addr = email
         sendEmail(from_addr, to_addr,
-                  'Jenkins alert: {} #{} failed - please investigate'.format(tgt_job, tgt_build), html)
+                  'Jenkins alert: {} #{} failed - please investigate'.format(tgt_job, tgt_build), html) ###
         report['cand_committers'].append(to_addr)
 
     # Notify fixed recipients
@@ -378,10 +385,12 @@ def sendEmails(
         html_mid = """
             You receive this email because you have registered to be notified whenever
             <b>{}</b> fails (in this case <a href="{}">Build #{}</a>).
+            <br/><br/>
+            Incident: {}
             <br/><br/>{}
             <br/>
         """.format(
-            tgt_job, tgt_url, tgt_build,
+            tgt_job, tgt_url, tgt_build, incident,
             """
             Changes in local and upstream repositories since the <a href="{}">last
             successful build (#{})</a> are listed below.<br/><br/>
@@ -391,7 +400,7 @@ def sendEmails(
             <b>Note:</b> This job has never built successfully.
             """)
         html = html_top + html_mid + html_bot_tmpl
-        sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(tgt_job, tgt_build), html)
+        sendEmail(from_addr, recp, 'Jenkins alert: {} #{} failed'.format(tgt_job, tgt_build), html) ###
         report['fixed_recipients'].append(recp)
 
 # --- END global functions ---------------------------------------
@@ -406,8 +415,11 @@ if not ('jenkinshome' in options and 'jenkinsurl' in options
     sys.stderr.write(
         'usage: ' + sys.argv[0] + ' --jenkinshome <Jenkins home directory> ' +
         '--jenkinsurl <Jenkins base URL> --job <target job> ' +
-        '--build <target build number>\n')
+        '--build <target build number> [--xpass <original comment about expected failure>]\n')
     sys.exit(1)
+
+# Note: The --xpass option is for indicating that the job passed unexpectedly. Often this failure situation
+# is resolved simply by no longer expecting the job to fail.
 
 # Get information associated with the last successful target job.
 last_pass_src_repo_revs = []
@@ -442,7 +454,8 @@ fixed_recipients = getFixedRecipients(options['jenkinshome'], options['job'])
 report = {}
 sendEmails(
     fixed_recipients, cand_commits, options['jenkinsurl'], options['job'],
-    options['build'], last_pass_build, getJenkinsAdminAddr(options['jenkinshome']), report)
+    options['build'], last_pass_build, getJenkinsAdminAddr(options['jenkinshome']),
+    options['xpass'] if 'xpass' in options else None, report)
 
 # Write report to stdout.
 n = len(report['cand_committers'])
