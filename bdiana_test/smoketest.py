@@ -3,7 +3,7 @@
 """
 This script verifies that the bdiana executable behaves in a sensible
 way when launched without arguments.
-The exit code of the script reflects the test result.
+The script exits with code 0 iff the test passes.
 """
 
 import sys, os, re
