@@ -4,4 +4,4 @@
 
 set -e # Exit on first failure
 
-metno-debuild -b -us -uc -j7
+metno-debuild -b -us -uc
