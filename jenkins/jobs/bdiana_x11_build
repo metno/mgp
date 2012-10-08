@@ -14,4 +14,5 @@ rm -rf $install_dir/*
   --enable-batch-only
 make clean
 make -j7
+make check
 make install

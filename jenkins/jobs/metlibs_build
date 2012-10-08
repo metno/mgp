@@ -20,4 +20,5 @@ rm -rf $install_dir/*
 
 make clean
 make -j7
+make check
 make install
