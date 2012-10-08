@@ -4,4 +4,5 @@
 
 set -e # Exit on first failure
 
-$JENKINS_SCRIPTS_PATH/../wms_test/smoketest.py
+cd $JENKINS_SCRIPTS_PATH/../wms_test
+./smoketest.py --schema capabilities_1.3.0.2.xsd
