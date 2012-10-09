@@ -35,7 +35,7 @@ def download(url):
 
 # Validates a capabilities document against an XML Schema.
 # Raises an exception with an appropriate message iff the validation fails.
-def validateCapabilities(cap_str, schema_fname):
+def validateCapabilities(cap_str, schema_fname, schema_urls):
     # Parse capabilities document
     try:
         cap_doc = etree.fromstring(cap_str)
@@ -60,8 +60,14 @@ def validateCapabilities(cap_str, schema_fname):
         schema.assertValid(cap_doc)
     except etree.DocumentInvalid as e:
         #sys.stderr.write('error log: {}\n'.format(str(schema.error_log)))
-        raise Exception, 'capabilities document is invalid according to XML Schema {}: {}'.format(
-            schema_fname, e)
+        msg = 'capabilities document is invalid according to XML Schema {}: {}\n'.format(schema_fname, e)
+
+        if schema_urls != None:
+            msg += 'schema URLs:\n'
+            for modified, original in zip(schema_urls[::2], schema_urls[1::2]):
+                msg += '    {} (modified from {})\n'.format(modified, original)
+
+        raise Exception, msg
     except:
         raise Exception, 'other exception: {}'.format(format_exc())
 
@@ -75,8 +81,15 @@ def validateCapabilities(cap_str, schema_fname):
 options = getOptDict()
 if not 'schema' in options:
     sys.stderr.write(
-        'usage: ' + sys.argv[0] + ' --schema <XML Schema file>\n')
+        'usage: ' + sys.argv[0] + ' --schema <XML Schema file> ' +
+        '[--schemaurls \'<locally modified schema URL 1> <original schema URL 1> ' +
+        '<locally modified schema URL 2> <original schema URL 2> ...\']\n')
     sys.exit(1)
+
+if ('schemaurls' in options) and ((len(options['schemaurls'].split()) % 2) != 0):
+    sys.stderr.write('error: --schemaurls must contain an even number of URLs\n')
+    sys.exit(1)
+
 
 base_url = 'http://c1wms2.met.no/verportal/verportal.map?service=WMS&version=1.3.0' # For now
 
@@ -90,7 +103,7 @@ except Exception:
 
 # Validate capabilities
 try:
-    validateCapabilities(cap, options['schema'])
+    validateCapabilities(cap, options['schema'], options['schemaurls'].split() if 'schemaurls' in options else None)
 except Exception:
     sys.stderr.write('error: failed to validate capabilities document: {}\n'.format(format_exc()))
     sys.exit(1)
