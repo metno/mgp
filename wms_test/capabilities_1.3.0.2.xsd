@@ -7,9 +7,8 @@
 		To obtain additional rights of use, visit http://www.opengeospatial.org/legal/ .
 	-->
 
-	<import namespace="http://www.w3.org/1999/xlink" schemaLocation="file:///home/joa/dev/joa/wms_test/xlink.xsd"/>
-	<import namespace="http://www.opengis.net/sld"
-            schemaLocation="file:///home/joa/dev/joa/wms_test/sld_capabilities_1.1.0.2.xsd"/>
+	<import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+	<import namespace="http://www.opengis.net/sld" schemaLocation="sld_capabilities_1.1.0.2.xsd"/>
 	<!-- ********************************************************************* -->
 	<!-- **  The Top-Level Element.                                         ** -->
 	<!-- ********************************************************************* -->
