@@ -31,7 +31,7 @@ try:
     dom = parse(fname)
     git_info_elem = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')[0]
     p = re.compile('^git://git.met.no/(.+)$')
-    m = p.match(git_info_elem.getElementsByTagName('remooteUrls')[0].getElementsByTagName(
+    m = p.match(git_info_elem.getElementsByTagName('remoteUrls')[0].getElementsByTagName(
             'string')[0].childNodes[0].nodeValue)
     repo = m.group(1)
     fname = 'jenkins/jobs/{}'.format(options['job'])
