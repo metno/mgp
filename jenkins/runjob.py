@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
-import sys, os
+import sys, os, re
 from subprocess import Popen, PIPE
 sys.path.append(os.environ['JENKINS_SCRIPTS_PATH'] + '/../shared/python')
 from misc import getOptDict, printOutput
 from traceback import format_exc
+from xml.dom.minidom import parse
 
 # --- BEGIN global functions ---------------------------------------
 
@@ -24,8 +25,26 @@ if not ('job' in options):
         '[--expectfail \'<comment about expected failure>\']\n')
     sys.exit(1)
 
+# Extract URL to current version of core build script
+try:
+    fname = '{}/jobs/scripts/lastSuccessful/build.xml'.format(os.environ['JENKINS_HOME'])
+    dom = parse(fname)
+    git_info_elem = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')[0]
+    p = re.compile('^git://git.met.no/(.+)$')
+    m = p.match(git_info_elem.getElementsByTagName('remooteUrls')[0].getElementsByTagName(
+            'string')[0].childNodes[0].nodeValue)
+    repo = m.group(1)
+    fname = 'jenkins/jobs/{}'.format(options['job'])
+    sha1 = git_info_elem.getElementsByTagName('sha1')[0].childNodes[0].nodeValue
+    script_url = 'https://git.met.no/cgi-bin/gitweb.cgi?p={};a=blob;f={};hb={}'.format(repo, fname, sha1)
+except:
+    sys.stderr.write('warning: failed to get link to current version of core build script: {}\n'.format(
+            format_exc()))
+    script_url = 'failed to extract URL'
+
 # Execute core build script
 script = os.environ['JENKINS_SCRIPTS_PATH'] + '/jobs/' + options['job']
+sys.stderr.write('running core build script {} ({}) ...\n'.format(script, script_url))
 try:
     p = Popen([script], stdout = PIPE, stderr = PIPE)
     bs_stdout, bs_stderr = p.communicate()
