@@ -43,9 +43,6 @@ for dirpath, dirnames, filenames in os.walk(options['dir']):
                 if os.path.isfile(cfpath):
                     cfg_fpath[fpath] = cfpath
 
-print 'tst_fpaths:', tst_fpaths
-print 'cfg_fpath:', cfg_fpath
-
 
 # Run tests
 result = {}
