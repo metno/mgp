@@ -1,0 +1,1 @@
+../../bdiana_tests/smoketest/smoketest.py

@@ -1,11 +1,9 @@
 #!/bin/sh
 
-# This script performs a smoke test of WMS/Diana.
+# This script runs a smoke test of WMS/Diana.
 
-set -e # Exit on first failure
-
-cd $JENKINS_SCRIPTS_PATH/../wms_test
-./smoketest.py --schema capabilities_1_3_0_2.xsd --schemaurls \
+tstdir=`dirname $0`
+$tstdir/smoketest.py --schema $tstdir/capabilities_1_3_0_2.xsd --schemaurls \
 'https://git.met.no/cgi-bin/gitweb.cgi?p=joa.git;a=blob_plain;f=wms_test/capabilities_1_3_0_2.xsd;hb=HEAD
  http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xsd
 

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# This script runs the test suite for the X11-dependent bdiana version.
+
+# Start xvfb session
+export DISPLAY=:99
+Xvfb $DISPLAY -ac &
+
+# Run test suite
+bdiana_exec_dir=$JENKINS_HOME/jobs/bdiana_x11_build/workspace/install/bin
+bdiana_exec=`ls $bdiana_exec_dir | grep bdiana`
+
+PYTHONPATH=$PYTHONPATH:$JENKINS_SCRIPTS_PATH/../shared/python \
+BDIANA_EXEC_PATH=$bdiana_exec_dir/$bdiana_exec \
+$JENKINS_SCRIPTS_PATH/runtests.py --dir $JENKINS_SCRIPTS_PATH/../bdiana_x11_tests
+
+exitcode=$?
+
+# Stop xvfb session
+killall Xvfb
+
+return $exitcode

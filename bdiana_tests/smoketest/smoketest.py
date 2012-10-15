@@ -8,8 +8,7 @@ The script exits with code 0 iff the test passes.
 
 import sys, os, re
 from subprocess import Popen, PIPE
-sys.path.append(os.environ['JENKINS_SCRIPTS_PATH'] + '/../shared/python')
-from misc import getOptDict, printOutput
+from misc import getOptDict, printOutput # Relies on PYTHONPATH being properly set
 
 # --- BEGIN main program ---------------------------------------
 
