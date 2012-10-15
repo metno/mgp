@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# This script builds and (locally) installs the headless bdiana version directly.
+# (The headless version is the one that depends on QWS rather than on X11.)
+
+set -e # Exit on first failure
+
+installdir=$WORKSPACE/install
+mkdir -p $installdir
+rm -rf $installdir/*
+./autogen.sh
+
+# ### NOTE: Hard coding the search path of the dynamic (shared) Qt libraries into the bdiana executable
+# ### (see CXXFLAGS) is a workaround until the Qt libraries are built as static libraries.
+./configure \
+  PKG_CONFIG_PATH=$JENKINS_HOME/jobs/metlibs_build/workspace/install/lib/pkgconfig \
+  CXXFLAGS='-Wl,-rpath,/opt/qt4-qws/lib' \
+  --prefix=$installdir \
+  --enable-obs-bufr \
+  --disable-proddb \
+  --disable-profet \
+  --disable-video-export \
+  --enable-geotiff \
+  --with-qt4=/opt/qt4-qws \
+  --with-qt4-includedir=/opt/qt4-qws/include \
+  --with-qt4-libdir=/opt/qt4-qws/lib \
+  --with-qmake=/opt/qt4-qws/bin/qmake \
+  --with-moc=/opt/qt4-qws/bin/moc \
+  --with-rcc=/opt/qt4-qws/bin/rcc \
+  --with-uic=/opt/qt4-qws/bin/uic \
+  --with-lupdate=/opt/qt4-qws/bin/lupdate \
+  --with-lrelease=/opt/qt4-qws/bin/lrelease \
+  --enable-embedded \
+  --enable-perl \
+  --enable-batch-only
+
+make clean
+make -j7
+make check
+make install
