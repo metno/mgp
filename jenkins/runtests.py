@@ -60,7 +60,7 @@ for fpath in tst_fpaths:
 nfail = npass = 0
 sys.stderr.write('\n{} TEST RESULTS {}\n'.format('='*6, '='*80))
 for fpath in result:
-    sys.stderr.write('\n{}\n{} {}\n\n'.format('_'*100, '-'*6, fpath))
+    sys.stderr.write('\n{}\nTEST: {}\n\n'.format('_'*100, fpath))
     r = result[fpath]
     sys.stderr.write('EXIT CODE: {}\n'.format(r['exitcode']))
     if int(r['exitcode']) > 0:
