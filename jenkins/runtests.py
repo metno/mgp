@@ -6,7 +6,6 @@ This script runs all tests in a test suite.
 
 import sys, os, re
 from subprocess import Popen, PIPE
-sys.stderr.write('PYTHONPATH: >{}<\n'.format(os.environ['PYTHONPATH']))
 from misc import getOptDict, printOutput # Relies on PYTHONPATH being properly set
 from traceback import format_exc
 
