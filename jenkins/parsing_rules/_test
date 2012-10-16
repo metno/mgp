@@ -9,9 +9,9 @@ ok /standard error/
 ok /failed - flagging overall/
 
 # Errors:
-error /^EXIT CODE: 0*[^0e]+.*$/    # Non-zero exit code
+error /^__EXIT CODE: 0*[^0e]+.*$/    # Non-zero exit code
 error /(?i)error/
 error /(?i)fail/
 
 # Start of individual test section:
-start /^TEST: .+$/
+start /^__TEST: .+$/
