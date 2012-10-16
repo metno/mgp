@@ -3,4 +3,4 @@
 # This script runs the test suite for WMS/Diana.
 
 PYTHONPATH=$PYTHONPATH:$JENKINS_SCRIPTS_PATH/../shared/python \
-$JENKINS_SCRIPTS_PATH/runtests.py --dir $JENKINS_SCRIPTS_PATH/../wms_tests
+$JENKINS_SCRIPTS_PATH/runtests.py --dir $JENKINS_SCRIPTS_PATH/../tests/wms
