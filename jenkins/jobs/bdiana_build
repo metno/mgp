@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# This script builds and (locally) installs the headless bdiana version directly.
-# (The headless version is the one that depends on QWS rather than on X11.)
+# This script builds and installs the bdiana version that depends on QWS (rather than on X11).
 
 set -e # Exit on first failure
 

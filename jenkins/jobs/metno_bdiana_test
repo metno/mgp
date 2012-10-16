@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# This script runs the test suite for the bdiana version that depends
+# on QWS (rather than on X11) and is configured with perl.
+
+bdiana_exec_dir=$JENKINS_HOME/jobs/metno_bdiana_build/workspace/install/bin
+bdiana_exec=`ls $bdiana_exec_dir | grep bdiana`
+
+PYTHONPATH=$PYTHONPATH:$JENKINS_SCRIPTS_PATH/../shared/python \
+BDIANA_EXEC_PATH=$bdiana_exec_dir/$bdiana_exec \
+$JENKINS_SCRIPTS_PATH/runtests.py --dir $JENKINS_SCRIPTS_PATH/../tests/bdiana/qws+perl
