@@ -4,9 +4,10 @@
 #
 # See the log-parser documentation for details.
 
-# Exceptions to errors:
+# Exceptions to errors (i.e. lines that would otherwise match an 'error' pattern):
 ok /standard error/
-ok /failed - flagging overall/
+ok /^failures: \d+$/
+ok /^__INSIGNIFICANT (failure is tolerated)/
 
 # Errors:
 error /^__EXIT CODE: 0*[^0e]+.*$/    # Non-zero exit code
