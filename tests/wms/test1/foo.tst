@@ -2,4 +2,4 @@
 
 # This script is a dummy test.
 
-exit 0 # return 0 to indicate that the test passed
+exit 1 # return non-zero to indicate test failure
