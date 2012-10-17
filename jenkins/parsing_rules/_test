@@ -6,8 +6,8 @@
 
 # Exceptions to errors (i.e. lines that would otherwise match an 'error' pattern):
 ok /standard error/
-ok /^failures: \d+$/
-ok /^insignificant failures: \d+$/
+ok /^\s*failures: \d+$/
+ok /^\s*insignificant failures: \d+$/
 ok /^__INSIGNIFICANT \(failure is tolerated\)/
 
 # Errors:
