@@ -8,7 +8,7 @@
 ok /standard error/
 ok /^failures: \d+$/
 ok /^insignificant failures: \d+$/
-ok /^__INSIGNIFICANT (failure is tolerated)/
+ok /^__INSIGNIFICANT \(failure is tolerated\)/
 
 # Errors:
 error /^__EXIT CODE: 0*[^0e]+.*$/    # Non-zero exit code
