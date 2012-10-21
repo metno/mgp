@@ -8,9 +8,6 @@ The script exits with code 0 iff the test passes.
 import sys, os
 from subprocess import Popen, PIPE
 from misc import getOptDict, printOutput # Relies on PYTHONPATH being properly set
-# The next line is a workaround. Check http://lxml.de/installation.html for
-# how to install lxml properly.
-sys.path.append('/home/joa/lib/python2.7/site-packages/lxml-2.3.6-py2.7-linux-x86_64.egg')
 from lxml import etree
 from traceback import format_exc
 
