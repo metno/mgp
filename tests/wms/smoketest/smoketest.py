@@ -86,8 +86,11 @@ if ('schemaurls' in options) and ((len(options['schemaurls'].split()) % 2) != 0)
     sys.stderr.write('error: --schemaurls must contain an even number of URLs\n')
     sys.exit(1)
 
+if not 'WMSHOST' in os.environ: 
+    sys.stderr.write('error: WMSHOST not found in environment\n')
+    sys.exit(1)
 
-base_url = 'http://c1wms2.met.no/verportal/verportal.map?service=WMS&version=1.3.0' # For now
+base_url = 'http://{}/verportal/verportal.map?service=WMS&version=1.3.0'.format(os.environ['WMSHOST']) # For now
 
 # Download capabilities document
 try:
