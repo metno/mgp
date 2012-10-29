@@ -22,11 +22,14 @@ This script resets the virtual machine to be used for WMS testing.
 #    sys.stderr.write('usage: ' + sys.argv[0] + ' --vm <virtual machine>\n')
 #    sys.exit(1)
 
-vm_name = 'wms'
+name = 'wms'
+memory = 2048
+cpus = 7
+snapshot = 'snapshot1'
 
 # Ensure VM is turned off
 sys.stderr.write('ensure VM is powered off ... ')
-cmd = 'vboxmanage controlvm {} poweroff'.format(vm_name)
+cmd = 'vboxmanage controlvm {} poweroff'.format(name)
 try:
     p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
@@ -42,7 +45,7 @@ if p.returncode != 0:
 
 # Restart VM from base snapshot
 sys.stderr.write('restarting VM from base snapshot ... ')
-cmd = '{}/vm_use {}'.format(os.path.dirname(os.path.abspath(__file__)), vm_name)
+cmd = '{}/vm_use {} {} {} {}'.format(os.path.dirname(os.path.abspath(__file__)), name, memory, cpus, snapshot)
 try:
     p = Popen(cmd.split(), stdout = PIPE, stderr = PIPE)
     stdout, stderr = p.communicate()
