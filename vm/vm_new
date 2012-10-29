@@ -1,0 +1,162 @@
+#!/bin/bash
+#set -x
+set -o nounset # Same as set -u
+set -o errexit # Same as set -e
+
+ME=$(basename $0)
+DEFAULT_TEMPLATE_VM=precise64template
+
+usage ()
+{
+    set +u
+    [ "$1" != "" ] && echo -e "\n[FAILED]" $1 "\n"
+    set -u
+
+    cat <<EOF
+Usage: $ME name [template]
+
+ name      hostname for the new virtual machine
+ template  name of the template virtual machine to clone, 
+           default template is $DEFAULT_TEMPLATE_VM
+
+To use: vm_use VMNAME
+To delete: vboxmanage unregistervm VMNAME --delete
+
+EOF
+    echo
+    exit 1
+}
+
+err ()
+{
+    echo "${ME}: ${1:-"Unknown error"}" 1>&2
+    exit 1
+}
+
+#
+# Validate arguments
+#
+[ $# == 0 ] && usage
+VMNAME=$1
+TEMPLATE_VM=${2:-$DEFAULT_TEMPLATE_VM}
+
+vboxmanage showvminfo $VMNAME      >/dev/null 2>&1 && usage $1": Name in use"
+vboxmanage showvminfo $TEMPLATE_VM >/dev/null 2>&1 \
+|| usage $TEMPLATE_VM": No such virtual machine"
+
+#
+# Config
+#
+export VMUSERNAME=ubuntu
+#
+# Clone the template and keep the MAC (to ensure same IP-address from dhcp-srv)
+#
+echo = Making $VMNAME a clone of $TEMPLATE_VM
+vboxmanage clonevm $TEMPLATE_VM --name $VMNAME --options keepallmacs --register
+# --basefolder
+for port in {6000..6050}; do 
+    netstat -t -l -n |grep -q $port || break
+done
+echo = VNC-port: $port
+echo = Waiting for vm to start in "screen"
+screen -dmS "$VMNAME:$port" vboxheadless -n -m $port -s $VMNAME
+echo = done
+#
+# Create script to
+# - create new host ssh keys
+# - but keep using the old keys
+# - store the new keys in /etc/ssh/new/ for retrieval
+#
+workdir=`mktemp -d`
+cat > $workdir/new_host_key_for_$VMNAME.sh << EOF
+#!/bin/sh
+mkdir /etc/ssh/old /etc/ssh/new
+mv /etc/ssh/ssh_host_*_key* /etc/ssh/old/
+hostname $VMNAME
+echo == Generating new ssh host keys
+ssh-keygen -N '' -t dsa -f /etc/ssh/ssh_host_dsa_key >> /root/vm.log 2>&1
+ssh-keygen -N '' -t rsa -f /etc/ssh/ssh_host_rsa_key >> /root/vm.log 2>&1
+hostname $TEMPLATE_VM
+chmod o+r /etc/ssh/ssh_host_*_key.pub
+mv /etc/ssh/ssh_host_*_key* /etc/ssh/new/
+mv /etc/ssh/old/* /etc/ssh/
+EOF
+#
+# Run script
+#
+echo = Copying new_host_key_for_$VMNAME.sh to clone
+chmod a+x $workdir/new_host_key_for_$VMNAME.sh
+result="not done"; tries_left=10; 
+while [ "$result" = "not done" -a $tries_left -gt 0 ]; do
+    tries_left=`expr \$tries_left - 1`
+    scp -o CheckHostIP=no $workdir/new_host_key_for_$VMNAME.sh \
+    $VMUSERNAME@$TEMPLATE_VM.local: >/dev/null 2>&1 && result="done"
+    [[ "$result" = "done" ]] || echo = trying again
+done
+echo = done
+rm $workdir/new_host_key_for_$VMNAME.sh
+echo = Running script on clone
+ssh -o CheckHostIP=no root@$TEMPLATE_VM.local \
+  /home/ubuntu/new_host_key_for_$VMNAME.sh
+#
+# Retrieve new host ssh keys from /etc/ssh/new/
+#
+[ -d $workdir/${VMNAME}_ssh_host_keys ] ||mkdir $workdir/${VMNAME}_ssh_host_keys
+echo = Fetching keys from clone
+scp -q -o CheckHostIP=no $VMUSERNAME@$TEMPLATE_VM.local:/etc/ssh/new/*.pub \
+$workdir/${VMNAME}_ssh_host_keys/
+#
+# Create script to
+# - use the newly generated host ssh keys
+# - change hostname
+# - restart avahi-daemon to broadcast new hostname
+#
+cat > $workdir/new_hostname_for_$VMNAME.sh << EOF
+#!/bin/sh
+set -e
+echo == Changing hostname to $VMNAME
+mv /etc/ssh/new/* /etc/ssh/
+sed -i -e s/$TEMPLATE_VM/$VMNAME/ /etc/hosts
+hostname $VMNAME
+sed -i -e s/$TEMPLATE_VM/$VMNAME/ /etc/hostname
+shutdown -h now
+EOF
+#
+# Run script
+#
+chmod a+x $workdir/new_hostname_for_$VMNAME.sh
+echo = Copy new_hostname_for_$VMNAME.sh to clone
+scp -q -o CheckHostIP=no $workdir/new_hostname_for_$VMNAME.sh \
+$VMUSERNAME@$TEMPLATE_VM.local:
+
+rm $workdir/new_hostname_for_$VMNAME.sh
+echo = Running script to set new hostname and shut down clone
+ssh -o CheckHostIP=no root@$TEMPLATE_VM.local \
+  /home/ubuntu/new_hostname_for_$VMNAME.sh
+#
+# Prepare the host ssh key for insertion into .ssh/known_hosts
+#
+perl -pe 's/(\S+) (\S+) root@(\S+)/$3.local $1 $2\n/' \
+$workdir/${VMNAME}_ssh_host_keys/ssh_host_rsa_key.pub \
+>> ~/.ssh/known_hosts
+rm    $workdir/${VMNAME}_ssh_host_keys/ssh_host_*sa_key.pub
+rmdir $workdir/${VMNAME}_ssh_host_keys
+rmdir $workdir
+#
+# Change the MAC address. 
+#
+result="not done"; tries_left=20; 
+echo = Waiting for $VMNAME to shut down:
+while [ "$result" = "not done" -a $tries_left -gt 0 ]; do
+    sleep 1
+    tries_left=`expr \$tries_left - 1`
+    vboxmanage modifyvm  $VMNAME --macaddress1 auto > /dev/null 2>&1 \
+    && result="done"
+    [[ "$result" = "done" ]] || echo = waiting
+done
+echo = done
+echo = Taking snapshot "Pristine"
+vboxmanage snapshot $VMNAME take "Pristine"
+echo = done
+echo = VM "$VMNAME" ready for use.
+echo = To delete: vboxmanage unregistervm $VMNAME --delete
