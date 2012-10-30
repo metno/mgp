@@ -22,7 +22,7 @@ attrs = [] # Attribute dictionary for each job
 jobs_root_dir = '{}/jobs'.format(options['jenkinshome'])
 job_names = [
     name for name in os.listdir(jobs_root_dir)
-    if os.path.isdir(os.path.join(jobs_root_dir, namae))]
+    if os.path.isdir(os.path.join(jobs_root_dir, name))]
 for job_name in job_names:
     try:
         fname = '{}/config.xml'.format(os.path.join(jobs_root_dir, job_name))
