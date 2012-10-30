@@ -25,22 +25,23 @@ if not ('job' in options):
         '[--expectfail \'<comment about expected failure>\']\n')
     sys.exit(1)
 
-# Extract URL to current version of core build script
-try:
-    fname = '{}/jobs/scripts/lastSuccessful/build.xml'.format(os.environ['JENKINS_HOME'])
-    dom = parse(fname)
-    git_info_elem = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')[0]
-    p = re.compile('^git://git.met.no/(.+)$')
-    m = p.match(git_info_elem.getElementsByTagName('remoteUrls')[0].getElementsByTagName(
-            'string')[0].childNodes[0].nodeValue)
-    repo = m.group(1)
-    fname = 'jenkins/jobs/{}'.format(options['job'])
-    sha1 = git_info_elem.getElementsByTagName('sha1')[0].childNodes[0].nodeValue
-    script_url = 'https://git.met.no/cgi-bin/gitweb.cgi?p={};a=blob;f={};hb={}'.format(repo, fname, sha1)
-except:
-    sys.stderr.write('warning: failed to get link to current version of core build script: {}\n'.format(
-            format_exc()))
-    script_url = 'failed to extract URL'
+# # Extract URL to current version of core build script
+# try:
+#     fname = '{}/jobs/scripts/lastSuccessful/build.xml'.format(os.environ['JENKINS_HOME'])
+#     dom = parse(fname)
+#     git_info_elem = dom.getElementsByTagName('hudson.plugins.git.util.BuildData')[0]
+#     p = re.compile('^git://git.met.no/(.+)$')
+#     m = p.match(git_info_elem.getElementsByTagName('remoteUrls')[0].getElementsByTagName(
+#             'string')[0].childNodes[0].nodeValue)
+#     repo = m.group(1)
+#     fname = 'jenkins/jobs/{}'.format(options['job'])
+#     sha1 = git_info_elem.getElementsByTagName('sha1')[0].childNodes[0].nodeValue
+#     script_url = 'https://git.met.no/cgi-bin/gitweb.cgi?p={};a=blob;f={};hb={}'.format(repo, fname, sha1)
+# except:
+#     sys.stderr.write('warning: failed to get link to current version of core build script: {}\n'.format(
+#             format_exc()))
+#     script_url = 'failed to extract URL'
+script_url = 'core build script URL unavailable for now'
 
 # Execute core build script
 script = os.environ['JENKINS_SCRIPTS_PATH'] + '/jobs/' + options['job']
