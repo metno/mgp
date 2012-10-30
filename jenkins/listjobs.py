@@ -26,6 +26,8 @@ job_names = [
 for job_name in job_names:
     try:
         fname = '{}/config.xml'.format(os.path.join(jobs_root_dir, job_name))
+        if not os.path.isfile(fname):
+            continue
         dom = parse(fname)
 
         # Name
