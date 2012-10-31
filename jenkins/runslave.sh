@@ -4,9 +4,10 @@ set -e
 set -x
 
 host=$1
+jardir=$2
 ssh_options='-i /tmp/jenkins/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
 
-source=$JENKINS_SCRIPTS_PATH/slave.jar
+source=$jardir/slave.jar
 target=$JENKINS_HOME/slave.jar
 scp $ssh_options $source root@$host:$target
 ssh $ssh_options root@$host java -jar $target
