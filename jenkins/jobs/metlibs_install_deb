@@ -19,7 +19,8 @@ for p in \
   metlibs-glp-dev_4.7.0-1_amd64.deb \
   metlibs-milogger-dev_4.7.0-1_amd64.deb \
   metlibs-miftgl-dev_4.7.0-1_amd64.deb \
-  metlibs-pgconpool-dev_4.7.0-1_amd64.deb
+  metlibs-pgconpool-dev_4.7.0-1_amd64.deb \
+  metlibs-putools-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
 
