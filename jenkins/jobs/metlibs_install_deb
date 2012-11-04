@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# This script installs the Debian package built from metlibs.
+echo running metlibs_install_deb ... (skipped for now)
+return 0
