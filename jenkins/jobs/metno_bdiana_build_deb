@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This script builds a Debian package of the bdiana version that depends
+# on QWS (rather than on X11) and is configured with Perl.
+
+set -e # Exit on first failure
+set -x
+
+metno-debuild -eMETNO_CONFIG=precise_headless -b -us -uc -j7

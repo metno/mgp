@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script builds metlibs as a Debian package.
+# This script builds a Debian package of metlibs.
 
 set -e # Exit on first failure
 
