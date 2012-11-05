@@ -5,7 +5,7 @@
 set -e # Exit on first failure
 set -x
 
-cd ..
+cd .. # Assume the .deb files are located one level up from the workspace
 
 # NOTE: To avoid missing dependencies when installing packages below,
 # packages in Level i must be installed before packages in

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# This script builds the Debian package built from the bdiana version
+# that depends on QWS (rather than on X11) and is configured with Perl.
+
+set -e # Exit on first failure
+set -x
+
+cd .. # Assume the .deb files are located one level up from the workspace
+
+dpkg -i diana-headless-3.29_3.29.2-0_amd64.deb
+dpkg -i diana-headless-dev_3.29.2-0_amd64.deb
