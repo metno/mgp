@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script builds the Debian package built from the bdiana version
+# This script installs the Debian package built from the bdiana version
 # that depends on QWS (rather than on X11) and is configured with Perl.
 
 set -e # Exit on first failure
