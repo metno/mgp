@@ -5,4 +5,4 @@
 set -e # Exit on first failure
 set -x
 
-dpkg -i metno-wmsserver_2.0.26-0_all.deb
+dpkg -i ../wmsserver_build_deb/metno-wmsserver_2.0.26-0_all.deb
