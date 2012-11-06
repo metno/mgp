@@ -27,53 +27,53 @@ done
 # Level 2
 echo installing Level 2 ...
 for p in \
-metlibs-milib-dev_4.7.0-1_amd64.deb \
-metlibs-puctools-dev_4.7.0-1_amd64.deb \
-metlibs-pumet-dev_4.7.0-1_amd64.deb \
-metlibs-pusql-dev_4.7.0-1_amd64.deb \
-metlibs-propoly-dev_4.7.0-1_amd64.deb \
-metlibs-gltext-dev_4.7.0-1_amd64.deb
+  metlibs-milib-dev_4.7.0-1_amd64.deb \
+  metlibs-puctools-dev_4.7.0-1_amd64.deb \
+  metlibs-pumet-dev_4.7.0-1_amd64.deb \
+  metlibs-pusql-dev_4.7.0-1_amd64.deb \
+  metlibs-propoly-dev_4.7.0-1_amd64.deb \
+  metlibs-gltext-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
 
 # Level 3
 echo installing Level 3 ...
 for p in \
-metlibs-difield-dev_4.7.0-1_amd64.deb \
-metlibs-dimitiff-dev_4.7.0-1_amd64.deb \
-metlibs-disql-dev_4.7.0-1_amd64.deb \
-metlibs-parameter-dev_4.7.0-1_amd64.deb \
-metlibs-qutilities-dev_4.7.0-1_amd64.deb
+  metlibs-difield-dev_4.7.0-1_amd64.deb \
+  metlibs-dimitiff-dev_4.7.0-1_amd64.deb \
+  metlibs-disql-dev_4.7.0-1_amd64.deb \
+  metlibs-parameter-dev_4.7.0-1_amd64.deb \
+  metlibs-qutilities-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
 
 # Level 4
 echo installing Level 4 ...
 for p in \
-metlibs-pudatatypes-dev_4.7.0-1_amd64.deb \
-metlibs-robs-dev_4.7.0-1_amd64.deb \
-metlibs-profunctions-dev_4.7.0-1_amd64.deb
+  metlibs-pudatatypes-dev_4.7.0-1_amd64.deb \
+  metlibs-robs-dev_4.7.0-1_amd64.deb \
+  metlibs-profunctions-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
 
 # Level 5
 echo installing Level 5 ...
 for p in \
-metlibs-profet-dev_4.7.0-1_amd64.deb \
-metlibs-tsdata-dev_4.7.0-1_amd64.deb
+  metlibs-profet-dev_4.7.0-1_amd64.deb \
+  metlibs-tsdata-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
 
 # Level 6
 echo installing Level 6 ...
 for p in \
-metlibs-pets2-dev_4.7.0-1_amd64.deb
+  metlibs-pets2-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
 
 # Level 7
 echo installing Level 7 ...
 for p in \
-metlibs-qtimeseries-dev_4.7.0-1_amd64.deb
+  metlibs-qtimeseries-dev_4.7.0-1_amd64.deb
 do dpkg -i $p
 done
