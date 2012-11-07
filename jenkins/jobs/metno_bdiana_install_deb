@@ -8,7 +8,6 @@ set -x
 
 cd upstream_artifacts
 
-# TODO: Remove dependencies to version number in the commands below
-# (plus ensure that there are exactly two .deb files etc.):
-dpkg -i diana-headless-3.29_3.29.2-0_amd64.deb
-dpkg -i diana-headless-dev_3.29.2-0_amd64.deb
+# TODO: Remove dependencies to version number in the command below
+# (plus ensure that there is exactly one .deb files etc.):
+dpkg -i libmetno-bdiana-perl_3.29.2-0_amd64.deb
