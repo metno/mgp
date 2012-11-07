@@ -9,7 +9,7 @@ apt-get install cgi-mapserver=6.0.1-3metno1
 
 mkdir debs
 cd debs
-cp metno-wmsserver*.deb .
+cp ../upstream_artifacts/*.deb .
 
 dpkg-scanpackages . /dev/null | gzip -c -9 > Packages.gz
 cat >> /etc/apt/sources.list << EOF
