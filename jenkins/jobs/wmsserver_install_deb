@@ -5,7 +5,37 @@
 set -e # Exit on first failure
 set -x
 
-apt-get install cgi-mapserver=6.0.1-3metno1
+# Runs a command up to n times before giving up
+tryntimes() {
+    n=$1
+    cmd=$2
+
+    echo running \'$cmd\' up to $n times before giving up 1>&2
+    i=1
+    while [ $i -le $n ]
+    do
+	if [ $i -gt 1 ]
+        then
+            echo sleeping 60 secs before next attempt 1>&2
+            sleep 60
+        fi
+	echo attempt $i of $n 1>&2
+        $cmd
+	exitcode=$?
+        if [ $exitcode -eq 0 ]
+        then
+            return
+        fi
+        echo failed with exit code $exitcode
+        i=`expr $i + 1`
+    done
+    echo giving up 1>&2
+    exit $exitcode
+}
+
+set +e
+tryntimes 2 'apt-get -y install cgi-mapserver=6.0.1-3metno1'
+set -e
 
 mkdir debs
 cd debs
@@ -19,4 +49,6 @@ EOF
 
 apt-get update
 
-apt-get install metno-wmsserver
+set +e
+tryntimes 2 'apt-get -y install metno-wmsserver'
+set -e
