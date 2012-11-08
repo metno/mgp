@@ -7,3 +7,6 @@ set -e # Exit on first failure
 set -x
 
 metno-debuild -eMETNO_CONFIG=precise_headless -b -us -uc -j7
+
+# Keep artifacts inside the workspace, otherwise Jenkins won't find them
+mv ../libmetno-bdiana-perl*.deb .
