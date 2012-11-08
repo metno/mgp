@@ -8,6 +8,4 @@ set -x
 
 cd upstream_artifacts
 
-# TODO: Remove dependencies to version number in the command below
-# (plus ensure that there is exactly one .deb files etc.):
-dpkg -i libmetno-bdiana-perl_3.29.2-0_amd64.deb
+dpkg -i libmetno-bdiana-perl_*_amd64.deb

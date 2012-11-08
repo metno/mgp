@@ -14,66 +14,66 @@ cd upstream_artifacts
 # Level 1
 echo installing Level 1 ...
 for p in \
-  metlibs-libmi-dev_4.7.0-1_amd64.deb \
-  metlibs-pods-dev_4.7.0-1_amd64.deb \
-  metlibs-glp-dev_4.7.0-1_amd64.deb \
-  metlibs-milogger-dev_4.7.0-1_amd64.deb \
-  metlibs-miftgl-dev_4.7.0-1_amd64.deb \
-  metlibs-pgconpool-dev_4.7.0-1_amd64.deb \
-  metlibs-putools-dev_4.7.0-1_amd64.deb
+  metlibs-libmi-dev_*_amd64.deb \
+  metlibs-pods-dev_*_amd64.deb \
+  metlibs-glp-dev_*_amd64.deb \
+  metlibs-milogger-dev_*_amd64.deb \
+  metlibs-miftgl-dev_*_amd64.deb \
+  metlibs-pgconpool-dev_*_amd64.deb \
+  metlibs-putools-dev_*_amd64.deb
 do dpkg -i $p
 done
 
 # Level 2
 echo installing Level 2 ...
 for p in \
-  metlibs-milib-dev_4.7.0-1_amd64.deb \
-  metlibs-puctools-dev_4.7.0-1_amd64.deb \
-  metlibs-pumet-dev_4.7.0-1_amd64.deb \
-  metlibs-pusql-dev_4.7.0-1_amd64.deb \
-  metlibs-propoly-dev_4.7.0-1_amd64.deb \
-  metlibs-gltext-dev_4.7.0-1_amd64.deb
+  metlibs-milib-dev_*_amd64.deb \
+  metlibs-puctools-dev_*_amd64.deb \
+  metlibs-pumet-dev_*_amd64.deb \
+  metlibs-pusql-dev_*_amd64.deb \
+  metlibs-propoly-dev_*_amd64.deb \
+  metlibs-gltext-dev_*_amd64.deb
 do dpkg -i $p
 done
 
 # Level 3
 echo installing Level 3 ...
 for p in \
-  metlibs-difield-dev_4.7.0-1_amd64.deb \
-  metlibs-dimitiff-dev_4.7.0-1_amd64.deb \
-  metlibs-disql-dev_4.7.0-1_amd64.deb \
-  metlibs-parameter-dev_4.7.0-1_amd64.deb \
-  metlibs-qutilities-dev_4.7.0-1_amd64.deb
+  metlibs-difield-dev_*_amd64.deb \
+  metlibs-dimitiff-dev_*_amd64.deb \
+  metlibs-disql-dev_*_amd64.deb \
+  metlibs-parameter-dev_*_amd64.deb \
+  metlibs-qutilities-dev_*_amd64.deb
 do dpkg -i $p
 done
 
 # Level 4
 echo installing Level 4 ...
 for p in \
-  metlibs-pudatatypes-dev_4.7.0-1_amd64.deb \
-  metlibs-robs-dev_4.7.0-1_amd64.deb \
-  metlibs-profunctions-dev_4.7.0-1_amd64.deb
+  metlibs-pudatatypes-dev_*_amd64.deb \
+  metlibs-robs-dev_*_amd64.deb \
+  metlibs-profunctions-dev_*_amd64.deb
 do dpkg -i $p
 done
 
 # Level 5
 echo installing Level 5 ...
 for p in \
-  metlibs-profet-dev_4.7.0-1_amd64.deb \
-  metlibs-tsdata-dev_4.7.0-1_amd64.deb
+  metlibs-profet-dev_*_amd64.deb \
+  metlibs-tsdata-dev_*_amd64.deb
 do dpkg -i $p
 done
 
 # Level 6
 echo installing Level 6 ...
 for p in \
-  metlibs-pets2-dev_4.7.0-1_amd64.deb
+  metlibs-pets2-dev_*_amd64.deb
 do dpkg -i $p
 done
 
 # Level 7
 echo installing Level 7 ...
 for p in \
-  metlibs-qtimeseries-dev_4.7.0-1_amd64.deb
+  metlibs-qtimeseries-dev_*_amd64.deb
 do dpkg -i $p
 done
