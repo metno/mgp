@@ -3,6 +3,7 @@
 
 QPushButton *startButton;
 QPushButton *stopButton;
+QLineEdit *message;
 
 
 // Class to manage an external quasselclient process.
@@ -35,6 +36,9 @@ public:
         QObject::connect(
             process, SIGNAL(finished(int, QProcess::ExitStatus)),
             this, SLOT(finished(int, QProcess::ExitStatus)));
+        QObject::connect(
+            process, SIGNAL(error(QProcess::ProcessError)),
+            this, SLOT(error(QProcess::ProcessError)));
     }
 
 private slots:
@@ -48,10 +52,20 @@ private slots:
     void finished(int exitCode, QProcess::ExitStatus exitStatus) const
     {
         qDebug() << "process finished, exit code:" << exitCode << ", exit status:" << exitStatus;
+        qDebug() << "STDOUT:" << process->readAllStandardOutput();
+        qDebug() << "STDERR:" << process->readAllStandardError();
         stopButton->setEnabled(false);
         startButton->setEnabled(true);
     }
 
+    void error(QProcess::ProcessError error) const
+    {
+        qDebug() << "process failed, error code:" << error;
+        qDebug() << "STDOUT:" << process->readAllStandardOutput();
+        qDebug() << "STDERR:" << process->readAllStandardError();
+        stopButton->setEnabled(false);
+        startButton->setEnabled(true);
+    }
 
 public slots:
     void start()
@@ -77,6 +91,10 @@ public slots:
 
         stopProcess();
     }
+
+    void send()
+    {
+    }
 };
 
 class QCManager_separateWindow : public QCManager
@@ -92,6 +110,7 @@ protected:
     void startProcess()
     {
         qDebug() << "QCManager_separateWindow::startProcess() ...";
+//        process->start("/home/joa/dev/joa/profet/quassel/quasselclient");
         process->start("/usr/bin/quasselclient");
     }
 
@@ -109,12 +128,15 @@ protected:
 
 class QCManager_embedded : public QCManager
 {
+    Q_OBJECT
 public:
     QCManager_embedded(QVBoxLayout *layout_)
         : layout(layout_)
         , container(new QX11EmbedContainer)
     {
         layout->addWidget(container);
+        QObject::connect(container, SIGNAL(clientIsEmbedded()), this, SLOT(clientIsEmbedded()));
+        QObject::connect(container, SIGNAL(clientClosed()), this, SLOT(clientClosed()));
     }
 
 private:
@@ -127,18 +149,34 @@ private:
     QVBoxLayout *layout;
     QX11EmbedContainer *container;
 
+private slots:
+    void clientIsEmbedded() const
+    {
+        qDebug() << "clientIsEmbedded() ...";
+    }
+    void clientClosed() const
+    {
+        qDebug() << "clientClosed() ...";
+    }
+
+
 protected:
     void startProcess()
     {
         qDebug() << "QCManager_embedded::startProcess() ...";
 
+        // Launch special version of quasselclient passing container window ID as argument.
+        // Have quasselclient embed itself into the client using QX11EmbedWidget.embedInto(winID)
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert("PECWINID", QString::number(container->winId()));
+        process->setProcessEnvironment(env);
+        process->start("/home/joa/dev/joa/profet/quassel/quasselclient");
+//        process->start("xterm", QStringList() << "-into" << QString::number(container->winId()));
         container->show();
-
-        //process->start("/usr/bin/quasselclient");
 
         // For now, embed an already existing quasselclient window
         // (got window ID from xwininfo):
-        container->embedClient(0x4e00003);
+        //container->embedClient(0x4e00003);
 
         // TODO: Modify quasselclient to turn it into a proper XEmbed widget
         // (otherwise focus handling doesn't work properly etc.)
@@ -153,7 +191,7 @@ protected:
         if (!processOnly)
             container->hide();
 
-        // process->terminate();
+        process->terminate();
         // // NOTE: In contrast to terminate(), the below functions both give
         // // a QProcess::ExitStatus of 1 (but still an exit code of 0):
         // //process->kill();
@@ -192,8 +230,18 @@ int main(int argc, char *argv[])
     QObject::connect(quitButton, SIGNAL(clicked()), &app, SLOT(quit()));
     layout->addWidget(quitButton);
 
+    QHBoxLayout *layout2 = new QHBoxLayout;
+    QPushButton *sendButton = new QPushButton("send to irc server");
+    QObject::connect(sendButton, SIGNAL(clicked()), qcmgr.data(), SLOT(send()));
+    layout2->addWidget(sendButton);
+    message = new QLineEdit();
+    layout2->addWidget(message);
+
+    layout->addLayout(layout2);
+
     QWidget window;
     window.setLayout(layout);
+    //window.resize(800, 200);
     window.show();
 
     return app.exec();
