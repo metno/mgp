@@ -1,0 +1,11 @@
+*** QC library ***
+
+The QC library is a simple protocol for interaction between an
+application (such as Diana) and a modified quasselclient.
+
+The Q in QC may stand for Quassel or Qt while the C may stand for
+Channel, Chat, or Communication.
+
+The example/ directory shows how to use the QC library.
+
+See INSTALL for how to compile the library and the example.
