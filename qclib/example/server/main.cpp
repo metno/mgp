@@ -16,9 +16,9 @@ public:
 public slots:
     void handleChannelConnected(QCChannel *channel)
     {
+        qDebug() << "new client connected:" << channel->peerInfo().toLatin1().data();
         connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
         connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
-        connect(channel, SIGNAL(socketError(QAbstractSocket::SocketError)), SLOT(handleSocketError(QAbstractSocket::SocketError)));
         connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
         channels.append(channel);
     }
@@ -32,18 +32,15 @@ private slots:
 
     void handleChannelError(const QString &msg)
     {
-        qDebug() << "channel error:" << msg;
-    }
-
-    void handleSocketError(QAbstractSocket::SocketError e)
-    {
-        handleChannelError(QString("socket error: %1").arg(e));
+        qDebug() << "channel error:" << msg.toLatin1().data();
     }
 
     void handleChannelDisconnected()
     {
-        qDebug() << "channel disconnected (2 B IMPLEMENTED)";
-        // remove sender() from channels
+        QCChannel *channel = static_cast<QCChannel *>(sender());
+        qDebug() << "client disconnected:" << channel->peerInfo().toLatin1().data();
+        channels.removeOne(channel);
+        channel->deleteLater(); // ### or 'delete channel' directly?
     }
 
 private:

@@ -29,18 +29,19 @@ private:
     QString lastError_;
     void initSocket();
     void putMessage(const QByteArray &);
+    void resetState();
     bool readSegment();
     void handleError(const QString &);
     void setLastError(const QString &);
 signals:
     void error(const QString &);
-    void socketError(QAbstractSocket::SocketError); // ### handle this signal too in client
     void socketDisconnected(); // ### handle this signal too in client (rename from 'disconnected()')
     void messageArrived(const QString &);
     //void connectSignals(const BMMessage *); OBSOLETE?
 
 private slots:
     void readyRead();
+    void handleSocketError(QAbstractSocket::SocketError);
 };
 
 class QCChannelServer : public QObject

@@ -7,22 +7,39 @@ class QCChannelManager : public QObject
 {
     Q_OBJECT
 public:
+    QCChannelManager()
+        : channel(0)
+    {
+    }
+
     bool connectToServer(const quint16 port)
     {
-        if (!channel.connectToServer(port)) {
-            lastError_ = channel.lastError();
+        if (channel) {
+            lastError_ = "channel already connected, please disconnect first";
             return false;
         }
-        connect(&channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
-        connect(&channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
-        connect(&channel, SIGNAL(socketError(QAbstractSocket::SocketError)), SLOT(handleSocketError(QAbstractSocket::SocketError)));
-        connect(&channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
+
+        channel = new QCChannel;
+
+        if (!channel->connectToServer(port)) {
+            lastError_ = channel->lastError();
+            return false;
+        }
+        connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+        connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+        connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
         return true;
     }
 
     void sendMessage(const QString &msg)
     {
-        channel.sendMessage(msg);
+        if (!channel) {
+            const char *emsg = "channel not connected";
+            qWarning("%s", emsg);
+            lastError_ = emsg;
+            return;
+        }
+        channel->sendMessage(msg);
     }
 
     QString lastError() const
@@ -39,23 +56,20 @@ private slots:
 
     void handleChannelError(const QString &msg)
     {
-        qDebug() << "channel error:" << msg;
+        qDebug() << "channel error:" << msg.toLatin1().data();
         lastError_ = msg;
-    }
-
-    void handleSocketError(QAbstractSocket::SocketError e)
-    {
-        handleChannelError(QString("socket error: %1").arg(e));
     }
 
     void handleChannelDisconnected()
     {
-        qDebug() << "channel disconnected (2 B IMPLEMENTED)";
-        // remove sender() from channels
+        Q_ASSERT(channel);
+        qDebug() << "server disconnected:" << channel->peerInfo().toLatin1().data();
+        channel->deleteLater();
+        channel = 0;
     }
 
 private:
-    QCChannel channel;
+    QCChannel *channel;
     QString lastError_;
 };
 

@@ -71,7 +71,7 @@ void QCChannel::initSocket()
     Q_ASSERT(socket);
     connect(
         socket, SIGNAL(error(QAbstractSocket::SocketError)),
-        SIGNAL(socketError(QAbstractSocket::SocketError)));
+        SLOT(handleSocketError(QAbstractSocket::SocketError)));
     connect(socket, SIGNAL(disconnected()), SIGNAL(socketDisconnected()));
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
     Q_ASSERT(!socket->peerAddress().isNull());
@@ -156,6 +156,14 @@ void QCChannel::readyRead()
         QTimer::singleShot(0, this, SLOT(readyRead()));
 }
 
+void QCChannel::resetState()
+{
+    if (msg)
+        delete msg;
+    msg = 0;
+    state = Idle;
+}
+
 // Reads the next available segment. Returns true iff it makes sense to immediately check if
 // new data has arrived (while executing this function).
 bool QCChannel::readSegment()
@@ -179,9 +187,7 @@ bool QCChannel::readSegment()
                 msg->emitArrived();
                 deliveringMessage = false;
 
-                delete msg;
-                msg = 0;
-                state = Idle;
+                resetState();
             }
 
             recheck = true;
@@ -203,8 +209,14 @@ bool QCChannel::readSegment()
 
 void QCChannel::handleError(const QString &what)
 {
-    state = Idle;
+    resetState();
     emit error(what);
+}
+
+void QCChannel::handleSocketError(QAbstractSocket::SocketError)
+{
+    resetState();
+    emit error(socket->errorString());
 }
 
 QCChannelServer::QCChannelServer()
