@@ -16,27 +16,33 @@ public:
 public slots:
     void handleChannelConnected(QCChannel *channel)
     {
-        QObject::connect(channel, SIGNAL(messageArrived(const QString &)), this, SLOT(handleMessageArrived(const QString &)));
-        QObject::connect(channel, SIGNAL(error(const QString &)), this, SLOT(handleError(const QString &)));
-        QObject::connect(channel, SIGNAL(disconnected()), this, SLOT(handleDisconnected()));
+        connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+        connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+        connect(channel, SIGNAL(socketError(QAbstractSocket::SocketError)), SLOT(handleSocketError(QAbstractSocket::SocketError)));
+        connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
         channels.append(channel);
     }
 
 private slots:
     void handleMessageArrived(const QString &msg)
     {
-        Q_UNUSED(msg);
+        qDebug() << "message arrived:" << msg;
         // parse msg and act accordingly
     }
 
-    void handleError(const QString &msg)
+    void handleChannelError(const QString &msg)
     {
-        Q_UNUSED(msg);
-        // report error
+        qDebug() << "channel error:" << msg;
     }
 
-    void handleDisconnected()
+    void handleSocketError(QAbstractSocket::SocketError e)
     {
+        handleChannelError(QString("socket error: %1").arg(e));
+    }
+
+    void handleChannelDisconnected()
+    {
+        qDebug() << "channel disconnected (2 B IMPLEMENTED)";
         // remove sender() from channels
     }
 
@@ -52,7 +58,7 @@ int main(int argc, char *argv[])
     QCChannelServer server;
     const int port = 1104;
     if (!server.listen(port))
-        qFatal(QString("server.init() failed: %1").arg(server.errorString()).toLatin1());
+        qFatal("server.init() failed: %s", server.lastError().toLatin1().data());
     QCChannelManager cmgr;
     QObject::connect(&server, SIGNAL(channelConnected(QCChannel *)), &cmgr, SLOT(handleChannelConnected(QCChannel *)));
 

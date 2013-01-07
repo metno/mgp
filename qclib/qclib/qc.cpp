@@ -1,24 +1,35 @@
 #include "qc.h"
 
-bool QCChannel::connect(const quint16 port) { Q_UNUSED(port); return false; }
-void QCChannel::disconnect() { }
-bool QCChannel::isConnected() const { return false; }
-void QCChannel::sendMessage(const QString &msg) { Q_UNUSED(msg); }
+class QCMessage : public QObject
+{
+    Q_OBJECT
+public:
+    QCMessage() : totSize(4) {} // initially we expect only payload size (4 bytes)
+    virtual ~QCMessage() {}
+    int remaining() const { return totSize - msg.size(); }
+    void append(const QByteArray &);
+    bool isComplete() const { return remaining() == 0; }
+    void emitArrived() const
+    {
+        emit arrived(QString::fromUtf8(QByteArray::fromRawData(msg.data() + 4, msg.size() - 4).data()));
+    }
 
-bool QCChannelServer::listen(const qint16 port) { Q_UNUSED(port); return false; }
-QString QCChannelServer::errorString() const { return "unimplemented"; }
+private:
+    int totSize; // total message size currently expected (including payload size)
+    QByteArray msg; // message buffer being read from the network
 
+signals:
+    // emits the payload converted from UTF-8 as soon as the complete message has arrived:
+    void arrived(const QString &) const;
+};
 
-
-/*   OLD CODE BELOW
-
-void BMMessage::append(const QByteArray &data)
+void QCMessage::append(const QByteArray &data)
 {
     Q_ASSERT(data.size() <= remaining());
     msg.append(data);
     if (isComplete()) {
         if (msg.size() == 4) {
-            // XML data size complete, prepare reception of data itself:
+            // payload size complete, prepare reception of data part:
             const int dataSize =
                 qFromBigEndian<quint32>(reinterpret_cast<const uchar *>(msg.data()));
             Q_ASSERT(dataSize > 0);
@@ -27,15 +38,37 @@ void BMMessage::append(const QByteArray &data)
     }
 }
 
-BMChannel::BMChannel(QTcpSocket *socket)
+QCChannel::QCChannel(QTcpSocket *socket)
     : socket(socket)
     , state(Idle)
-    , syncMsgSize(-1)
-    , asyncMsg(0)
-    , deleteRequested(false)
+    , msg(0)
     , deliveringMessage(false)
     , puttingMessage(false)
+    , lastError_("<INITIAL VALUE (no error)>")
 {
+    if (socket)
+        initSocket();
+}
+
+QCChannel::~QCChannel()
+{
+    // socket->close(); ?
+    delete socket;
+}
+
+QString QCChannel::lastError() const
+{
+    return lastError_;
+}
+
+void QCChannel::setLastError(const QString &lastError_)
+{
+    this->lastError_ = lastError_;
+}
+
+void QCChannel::initSocket()
+{
+    Q_ASSERT(socket);
     connect(
         socket, SIGNAL(error(QAbstractSocket::SocketError)),
         SIGNAL(socketError(QAbstractSocket::SocketError)));
@@ -48,26 +81,42 @@ BMChannel::BMChannel(QTcpSocket *socket)
         .arg(socket->peerPort());
 }
 
-BMChannel::~BMChannel()
+bool QCChannel::connectToServer(const quint16 port)
 {
-    // socket->close(); ?
-    delete socket;
-}
-
-void BMChannel::safeDelete()
-{
-    if (state == Sync) {
-        deleteRequested = true;
-        eventLoop.exit(0);
-    } else {
-//        delete this;
-        deleteLater();
+    if (socket) {
+        setLastError("socket already connected, please disconnect first");
+        return false;
     }
+
+    socket = new QTcpSocket;
+    QString host("localhost"); // for now
+    socket->connectToHost(host, port);
+    if (!socket->waitForConnected(-1)) {
+        setLastError(QString("waitForConnected() failed: %1").arg(socket->errorString()));
+        delete socket;
+        socket = 0;
+        return false;
+    }
+
+    initSocket();
+    return true;
 }
 
-// Sends \a data on the channel, prepending the size as a qint32 value at the front.
-void BMChannel::sendMessage(const QByteArray &data)
+bool QCChannel::isConnected() const
 {
+    return socket != 0;
+}
+
+// Sends \a s converted to UTF-8 on the channel, prepending the size as a qint32 value at the front.
+void QCChannel::sendMessage(const QString &s)
+{
+    if (!socket) {
+        const char *emsg = "socket not connected";
+        qWarning("%s", emsg);
+        setLastError(emsg);
+        return;
+    }
+    QByteArray data = s.toUtf8();
     QByteArray msg;
     msg.resize(4);
     qToBigEndian<quint32>(data.size(), reinterpret_cast<uchar *>(msg.data()));
@@ -75,20 +124,7 @@ void BMChannel::sendMessage(const QByteArray &data)
     putMessage(msg);
 }
 
-BMChannel * BMChannel::createClient(const QString &host, const quint16 port, QString *error)
-{
-    QTcpSocket *socket_ = new QTcpSocket;
-    socket_->connectToHost(host, port);
-    if (socket_->waitForConnected(-1)) {
-        return new BMChannel(socket_);
-    } else {
-        *error = QString("BMChannel::createClient() failed: %1").arg(socket_->errorString());
-        delete socket_;
-        return 0;
-    }
-}
-
-void BMChannel::putMessage(const QByteArray &msg)
+void QCChannel::putMessage(const QByteArray &msg)
 {
     puttingMessage = true;
     socket->write(msg);
@@ -98,28 +134,7 @@ void BMChannel::putMessage(const QByteArray &msg)
         QTimer::singleShot(0, this, SLOT(readyRead()));
 }
 
-// Synchronously receives a message of a specific size. Returns an empty message upon error.
-QByteArray BMChannel::getMessage(int size)
-{
-    Q_ASSERT(size > 0);
-    Q_ASSERT(state == Idle);
-
-    state = Sync;
-    syncMsg.clear();
-    syncMsgSize = size;
-
-    // accumulate data in a local event loop ...
-    if (eventLoop.exec(QEventLoop::WaitForMoreEvents) != 0)
-        syncMsg.clear();
-
-    if (deleteRequested)
-        deleteLater();
-
-    state = Idle;
-    return syncMsg;
-}
-
-void BMChannel::readyRead()
+void QCChannel::readyRead()
 {
     // the following test is necessary because we also call this slot from a zero timer
     // (i.e. two separate calls may in theory be scheduled on behalf of the same data;
@@ -143,42 +158,29 @@ void BMChannel::readyRead()
 
 // Reads the next available segment. Returns true iff it makes sense to immediately check if
 // new data has arrived (while executing this function).
-bool BMChannel::readSegment()
+bool QCChannel::readSegment()
 {
     bool recheck = false;
 
-    if (state == Sync) {
-        Q_ASSERT(asyncMsg == 0);
+    if (state == Receiving) {
+        Q_ASSERT(msg != 0);
+        Q_ASSERT(msg->remaining() > 0);
 
-        QByteArray segment = socket->read(syncMsgSize - syncMsg.size());
-
-        if (segment.isEmpty()) {
-            handleError("BMChannel::readyRead()/Sync: read() failed while reading segment");
-        } else {
-            syncMsg.append(segment);
-            if (syncMsg.size() == syncMsgSize)
-                eventLoop.exit(0);
-        }
-
-    } else if (state == Async) {
-        Q_ASSERT(asyncMsg != 0);
-        Q_ASSERT(asyncMsg->remaining() > 0);
-
-        QByteArray segment = socket->read(asyncMsg->remaining());
+        QByteArray segment = socket->read(msg->remaining());
 
         if (segment.isEmpty()) {
-            handleError("BMChannel::readyRead()/Async: read() failed while reading segment");
+            handleError("QCChannel::readSegment(): read() failed");
         } else {
-            asyncMsg->append(segment);
+            msg->append(segment);
 
-            if (asyncMsg->isComplete()) {
+            if (msg->isComplete()) {
 
                 deliveringMessage = true;
-                asyncMsg->emitArrived();
+                msg->emitArrived();
                 deliveringMessage = false;
 
-                delete asyncMsg;
-                asyncMsg = 0;
+                delete msg;
+                msg = 0;
                 state = Idle;
             }
 
@@ -187,218 +189,53 @@ bool BMChannel::readSegment()
 
     } else {
         Q_ASSERT(state == Idle);
-        Q_ASSERT(asyncMsg == 0);
+        Q_ASSERT(msg == 0);
 
-        asyncMsg = new BMMessage;
-        emit connectSignals(asyncMsg);
+        msg = new QCMessage;
+        connect(msg, SIGNAL(arrived(const QString &)), SIGNAL(messageArrived(const QString &)));
 
-        state = Async;
+        state = Receiving;
         recheck = true;
     }
 
     return recheck;
 }
 
-void BMChannel::handleError(const QString &what)
+void QCChannel::handleError(const QString &what)
 {
-    if (state == Sync)
-        eventLoop.exit(1);
     state = Idle;
     emit error(what);
 }
 
-
-//--------------------------------------------------------------------------------------
-
-BMConnection::BMConnection()
-    : channel(0)
-    , connected(false)
+QCChannelServer::QCChannelServer()
+    : lastError_("<INITIAL VALUE (no error)>")
 {
 }
 
-BMConnection::BMConnection(BMChannel *channel)
-    : channel(channel)
-    , connected(false)
+bool QCChannelServer::listen(const qint16 port)
 {
-    connectChannel();
+    if (!server.listen(QHostAddress::Any, port)) {
+        setLastError(QString("listen() failed: %1").arg(server.errorString()));
+        return false;
+    }
+    connect(&server, SIGNAL(newConnection()), SLOT(newConnection()));
+    qDebug() << "accepting client connections on port" << port << "...";
+    return true;
 }
 
-BMConnection::~BMConnection()
-{
-    if (channel)
-        channel->safeDelete();
-}
-
-QString BMConnection::lastError() const
+QString QCChannelServer::lastError() const
 {
     return lastError_;
 }
 
-void BMConnection::setLastError(const QString &lastError_)
+void QCChannelServer::setLastError(const QString &lastError_)
 {
     this->lastError_ = lastError_;
 }
 
-void BMConnection::connectChannel()
+void QCChannelServer::newConnection()
 {
-    if (!channel)
-        return;
-
-#ifdef BMDEBUG
-    qDebug() << "new connection; peer info:" << channel->peerInfo();
-#endif
-
-    connect(channel, SIGNAL(error(const QString &)), SLOT(handleError(const QString &)));
-    connect(channel, SIGNAL(error(const QString &)), SIGNAL(error(const QString &)));
-    connect(
-        channel, SIGNAL(socketError(QAbstractSocket::SocketError)),
-        SLOT(handleSocketError(QAbstractSocket::SocketError)));
-    connect(channel, SIGNAL(socketDisconnected()), SLOT(handleSocketDisconnected()));
-    connect(channel, SIGNAL(connectSignals(const BMMessage *)),
-            SLOT(connectSignals(const BMMessage *)));
-
-    connected = true;
+    emit channelConnected(new QCChannel(server.nextPendingConnection()));
 }
 
-void BMConnection::deleteChannel()
-{
-    static bool deletingChannel = false;
-    if (deletingChannel || !channel)
-        return;
-    deletingChannel = true;
-#ifdef BMDEBUG
-    qDebug() << "deleting channel; peer info:" << channel->peerInfo();
-#endif
-    channel->safeDelete();
-    channel = 0;
-    deletingChannel = false;
-}
-
-void BMConnection::handleError(const QString &what)
-{
-#ifdef BMDEBUG
-    qDebug() << "BMConnection::error():" << what;
-#else
-    Q_UNUSED(what);
-#endif
-    deleteChannel();
-    connected = false;
-}
-
-void BMConnection::handleSocketError(QAbstractSocket::SocketError error)
-{
-#ifdef BMDEBUG
-    qDebug() << "BMConnection::socketError():" << error;
-#else
-    Q_UNUSED(error);
-#endif
-    deleteChannel();
-    connected = false;
-}
-
-void BMConnection::handleSocketDisconnected()
-{
-#ifdef BMDEBUG
-    qDebug() << "BMConnection::socketDisconnected()";
-#endif
-    emit disconnected();
-    deleteChannel();
-    connected = false;
-}
-
-void BMConnection::connectSignals(const BMMessage *msg)
-{
-    connect(msg, SIGNAL(arrived(const QByteArray &)), SLOT(msgArrived(const QByteArray &)));
-}
-
-BMClientConnection::BMClientConnection(
-    const QString &host, quint16 port, BMRequest::OutputFormat outputFormat,
-    const QStringList &args)
-    : host(host)
-    , port(port)
-    , outputFormat(outputFormat)
-    , args(args)
-{
-}
-
-// Attempts to connect to the server. Returns true iff a connection was successfully established.
-bool BMClientConnection::connect()
-{
-    QString error;
-    channel = BMChannel::createClient(host, port, &error);
-    if (!channel) {
-        setLastError(error);
-        return false;
-    }
-    connectChannel();
-    return isConnected();
-}
-
-bool BMClientConnection::sendRequest(BMRequest *request)
-{
-    QString error;
-    QByteArray buf = request->toRequestBuffer(&error);
-    delete request;
-    if (buf.isEmpty()) {
-        setLastError(error);
-        return false;
-    }
-    channel->sendMessage(buf);
-    return true;
-}
-
-// Handles a reply message from the server.
-void BMClientConnection::msgArrived(const QByteArray &data)
-{
-    BMRequest *request = BMRequest::create(data);
-    Q_ASSERT(request);
-    request->handleReply(outputFormat, args);
-    delete request;
-    emit replyDone();
-}
-
-BMServerConnection::BMServerConnection(BMChannel *channel, QSqlDatabase *database)
-    : BMConnection(channel)
-    , database(database)
-{
-}
-
-// Handles a request message from the client.
-void BMServerConnection::msgArrived(const QByteArray &data)
-{
-    BMRequest *request = BMRequest::create(data, database);
-    Q_ASSERT(request);
-    channel->sendMessage(request->toReplyBuffer());
-    delete request;
-}
-
-BMServer::BMServer(const quint16 port, QSqlDatabase *database)
-    : valid(false)
-    , database(database)
-{
-    if (!server.listen(QHostAddress::Any, port)) {
-#ifdef BMDEBUG
-        qDebug() << "BMServer::BMServer(): listen() failed:" << server.errorString();
-#endif
-        return;
-    }
-    connect(&server, SIGNAL(newConnection()), SLOT(newConnection()));
-#ifdef BMDEBUG
-    qDebug() << "accepting client connections on port" << port << "...";
-#endif
-    valid = true;
-}
-
-void BMServer::newConnection()
-{
-    BMChannel *channel = new BMChannel(server.nextPendingConnection());
-    BMServerConnection *connection = new BMServerConnection(channel, database);
-#ifdef BMDEBUG
-    if (!connection->isConnected())
-        qDebug() << "BMServer::newConnection(): new connection failed to initialize";
-#else
-    Q_UNUSED(connection);
-#endif
-}
-
-*/
+#include "qc.moc"
