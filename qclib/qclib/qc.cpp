@@ -44,7 +44,7 @@ QCChannel::QCChannel(QTcpSocket *socket)
     , msg(0)
     , deliveringMessage(false)
     , puttingMessage(false)
-    , lastError_("<INITIAL VALUE (no error)>")
+    , lastError_("<not set yet>")
 {
     if (socket)
         initSocket();
@@ -225,7 +225,7 @@ void QCChannel::handleSocketError(QAbstractSocket::SocketError)
 }
 
 QCChannelServer::QCChannelServer()
-    : lastError_("<INITIAL VALUE (no error)>")
+    : lastError_("<not set yet>")
 {
 }
 
@@ -253,6 +253,168 @@ void QCChannelServer::setLastError(const QString &lastError_)
 void QCChannelServer::newConnection()
 {
     emit channelConnected(new QCChannel(server.nextPendingConnection()));
+}
+
+QCServerChannel::QCServerChannel()
+    : channel(0)
+    , lastError_("<not set yet>")
+{
+}
+
+bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
+{
+    if (channel) {
+        lastError_ = "channel already connected, please disconnect first";
+        return false;
+    }
+
+    channel = new QCChannel;
+
+    if (!channel->connectToServer(host, port)) {
+        lastError_ = channel->lastError();
+        return false;
+    }
+    connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+    connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+    connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
+    return true;
+}
+
+void QCServerChannel::openChatWindow()
+{
+    sendMessage("open_chat_win");
+}
+
+void QCServerChannel::closeChatWindow()
+{
+    sendMessage("close_chat_win");
+}
+
+void QCServerChannel::sendNotification(const QString &msg)
+{
+    sendMessage(QString("notify %1").arg(msg));
+}
+
+QString QCServerChannel::lastError() const
+{
+    return lastError_;
+}
+
+void QCServerChannel::sendMessage(const QString &msg)
+{
+    if (!channel) {
+        const char *emsg = "channel not connected";
+        qWarning("%s", emsg);
+        lastError_ = emsg;
+        return;
+    }
+    channel->sendMessage(msg);
+}
+
+void QCServerChannel::handleMessageArrived(const QString &msg)
+{
+    if (msg == "chat_win_opened") {
+        emit chatWindowOpened(); // typically for updating button sensitivities
+    } else if (msg == "chat_win_closed") {
+            emit chatWindowClosed(); // typically for updating button sensitivities
+    } else {
+        const QString nfKeyword("notify");
+        if (msg.split(" ").first() == nfKeyword) {
+            // typically for updating text in a status bar
+            emit notification(msg.right(msg.size() - nfKeyword.size()).trimmed());
+        }
+    }
+}
+
+void QCServerChannel::handleChannelError(const QString &msg)
+{
+    qDebug() << "channel error:" << msg.toLatin1().data();
+    lastError_ = msg;
+}
+
+void QCServerChannel::handleChannelDisconnected()
+{
+    Q_ASSERT(channel);
+    qDebug() << "server disconnected:" << channel->peerInfo().toLatin1().data();
+    channel->deleteLater();
+    channel = 0;
+}
+
+QCClientChannels::QCClientChannels()
+  : lastError_("<not set yet>")
+{
+}
+
+bool QCClientChannels::listen(const qint16 port)
+{
+    if (!server.listen(port)) {
+        lastError_ = QString("server.listen() failed: %1").arg(server.lastError());
+        return false;
+    }
+    QObject::connect(&server, SIGNAL(channelConnected(QCChannel *)), SLOT(handleChannelConnected(QCChannel *)));
+    return true;
+}
+
+void QCClientChannels::notifyChatWindowOpened()
+{
+    broadcast("chat_win_opened");
+}
+
+void QCClientChannels::notifyChatWindowClosed()
+{
+    broadcast("chat_win_closed");
+}
+
+void QCClientChannels::sendNotification(const QString &msg)
+{
+    broadcast(QString("notify %1").arg(msg));
+}
+
+QString QCClientChannels::lastError() const
+{
+    return lastError_;
+}
+
+void QCClientChannels::broadcast(const QString &msg)
+{
+    foreach (QCChannel *channel, channels)
+        channel->sendMessage(msg);
+}
+
+void QCClientChannels::handleChannelConnected(QCChannel *channel)
+{
+    qDebug() << "new client connected:" << channel->peerInfo().toLatin1().data();
+    connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+    connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+    connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
+    channels.append(channel);
+}
+
+void QCClientChannels::handleMessageArrived(const QString &msg)
+{
+    if (msg == "open_chat_win") {
+        emit openChatWindowRequested();
+    } else if (msg == "close_chat_win") {
+        emit closeChatWindowRequested();
+    } else {
+        const QString nfKeyword("notify");
+        if (msg.split(" ").first() == nfKeyword) {
+            emit notificationRequested(msg.right(msg.size() - nfKeyword.size()).trimmed());
+        }
+    }
+}
+
+void QCClientChannels::handleChannelError(const QString &msg)
+{
+    qDebug() << "channel error:" << msg.toLatin1().data();
+}
+
+void QCClientChannels::handleChannelDisconnected()
+{
+    QCChannel *channel = static_cast<QCChannel *>(sender());
+    qDebug() << "client disconnected:" << channel->peerInfo().toLatin1().data();
+    channels.removeOne(channel);
+    channel->deleteLater(); // ### or 'delete channel' directly?
 }
 
 #include "qc.moc"

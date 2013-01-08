@@ -61,4 +61,56 @@ signals:
     void channelConnected(QCChannel *);
 };
 
+// This class is instantiated in the client to handle the server channel.
+class QCServerChannel : public QObject
+{
+    Q_OBJECT
+public:
+    QCServerChannel();
+    bool connectToServer(const QString &, const quint16);
+    void openChatWindow();
+    void closeChatWindow();
+    void sendNotification(const QString &);
+    QString lastError() const;
+private:
+    QCChannel *channel;
+    QString lastError_;
+    void sendMessage(const QString &);
+private slots:
+    void handleMessageArrived(const QString &);
+    void handleChannelError(const QString &);
+    void handleChannelDisconnected();
+signals:
+    void chatWindowOpened();
+    void chatWindowClosed();
+    void notification(const QString &);
+};
+
+// This class is instantiated in the server to handle client channels.
+class QCClientChannels : public QObject
+{
+    Q_OBJECT
+public:
+    QCClientChannels();
+    bool listen(const qint16);
+    void notifyChatWindowOpened();
+    void notifyChatWindowClosed();
+    void sendNotification(const QString &);
+    QString lastError() const;
+private slots:
+    void handleChannelConnected(QCChannel *);
+    void handleMessageArrived(const QString &);
+    void handleChannelError(const QString &);
+    void handleChannelDisconnected();
+private:
+    QCChannelServer server;
+    QList<QCChannel *> channels;
+    QString lastError_;
+    void broadcast(const QString &);
+signals:
+    void openChatWindowRequested();
+    void closeChatWindowRequested();
+    void notificationRequested(const QString &);
+};
+
 #endif // QC_H
