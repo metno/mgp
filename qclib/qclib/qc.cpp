@@ -81,7 +81,8 @@ void QCChannel::initSocket()
         .arg(socket->peerPort());
 }
 
-bool QCChannel::connectToServer(const quint16 port)
+// Connects the channel to a server on \a host listening on \a port.
+bool QCChannel::connectToServer(const QString &host, const quint16 port)
 {
     if (socket) {
         setLastError("socket already connected, please disconnect first");
@@ -89,7 +90,6 @@ bool QCChannel::connectToServer(const quint16 port)
     }
 
     socket = new QTcpSocket;
-    QString host("localhost"); // for now
     socket->connectToHost(host, port);
     if (!socket->waitForConnected(-1)) {
         setLastError(QString("waitForConnected() failed: %1").arg(socket->errorString()));
@@ -107,7 +107,7 @@ bool QCChannel::isConnected() const
     return socket != 0;
 }
 
-// Sends \a s converted to UTF-8 on the channel, prepending the size as a qint32 value at the front.
+// Sends the string \a s in UTF-8 format on the channel.
 void QCChannel::sendMessage(const QString &s)
 {
     if (!socket) {
@@ -118,9 +118,14 @@ void QCChannel::sendMessage(const QString &s)
     }
     QByteArray data = s.toUtf8();
     QByteArray msg;
+
+    // insert the payload size as the message header
     msg.resize(4);
     qToBigEndian<quint32>(data.size(), reinterpret_cast<uchar *>(msg.data()));
+
+    // append the payload itself
     msg.append(data);
+
     putMessage(msg);
 }
 

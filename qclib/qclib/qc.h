@@ -14,7 +14,7 @@ public:
     QCChannel(QTcpSocket * = 0);
     virtual ~QCChannel();
     QString peerInfo() const { return peerInfo_; }
-    bool connectToServer(const quint16 port);
+    bool connectToServer(const QString &, const quint16);
     //void disconnect() { }; ### needed?
     bool isConnected() const;
     void sendMessage(const QString &);

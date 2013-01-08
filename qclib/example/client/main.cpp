@@ -12,7 +12,7 @@ public:
     {
     }
 
-    bool connectToServer(const quint16 port)
+    bool connectToServer(const QString &host, const quint16 port)
     {
         if (channel) {
             lastError_ = "channel already connected, please disconnect first";
@@ -21,7 +21,7 @@ public:
 
         channel = new QCChannel;
 
-        if (!channel->connectToServer(port)) {
+        if (!channel->connectToServer(host, port)) {
             lastError_ = channel->lastError();
             return false;
         }
@@ -79,8 +79,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
 
     QCChannelManager cmgr;
-    const int port = 1104;
-    if (!cmgr.connectToServer(port))
+    if (!cmgr.connectToServer("localhost", 1104)) // for now
         qFatal("cmgr.connectToServer() failed: %s", cmgr.lastError().toLatin1().data());
     cmgr.sendMessage("open_chat_win");
     cmgr.sendMessage("close_chat_win");
