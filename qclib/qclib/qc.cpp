@@ -280,14 +280,14 @@ bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
     return true;
 }
 
-void QCServerChannel::openChatWindow()
+void QCServerChannel::showChatWindow()
 {
-    sendMessage("open_chat_win");
+    sendMessage("show_chat_win");
 }
 
-void QCServerChannel::closeChatWindow()
+void QCServerChannel::hideChatWindow()
 {
-    sendMessage("close_chat_win");
+    sendMessage("hide_chat_win");
 }
 
 void QCServerChannel::sendNotification(const QString &msg)
@@ -313,10 +313,10 @@ void QCServerChannel::sendMessage(const QString &msg)
 
 void QCServerChannel::handleMessageArrived(const QString &msg)
 {
-    if (msg == "chat_win_opened") {
-        emit chatWindowOpened(); // typically for updating button sensitivities
-    } else if (msg == "chat_win_closed") {
-            emit chatWindowClosed(); // typically for updating button sensitivities
+    if (msg == "chat_win_shown") {
+        emit chatWindowShown(); // typically for updating button sensitivities
+    } else if (msg == "chat_win_hidden") {
+            emit chatWindowHidden(); // typically for updating button sensitivities
     } else {
         const QString nfKeyword("notify");
         if (msg.split(" ").first() == nfKeyword) {
@@ -338,6 +338,7 @@ void QCServerChannel::handleChannelDisconnected()
     qDebug() << "server disconnected:" << channel->peerInfo().toLatin1().data();
     channel->deleteLater();
     channel = 0;
+    emit serverDisconnected();
 }
 
 QCClientChannels::QCClientChannels()
@@ -355,14 +356,14 @@ bool QCClientChannels::listen(const qint16 port)
     return true;
 }
 
-void QCClientChannels::notifyChatWindowOpened()
+void QCClientChannels::notifyChatWindowShown()
 {
-    broadcast("chat_win_opened");
+    broadcast("chat_win_shown");
 }
 
-void QCClientChannels::notifyChatWindowClosed()
+void QCClientChannels::notifyChatWindowHidden()
 {
-    broadcast("chat_win_closed");
+    broadcast("chat_win_hidden");
 }
 
 void QCClientChannels::sendNotification(const QString &msg)
@@ -388,14 +389,15 @@ void QCClientChannels::handleChannelConnected(QCChannel *channel)
     connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
     connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
     channels.append(channel);
+    emit clientConnected();
 }
 
 void QCClientChannels::handleMessageArrived(const QString &msg)
 {
-    if (msg == "open_chat_win") {
-        emit openChatWindowRequested();
-    } else if (msg == "close_chat_win") {
-        emit closeChatWindowRequested();
+    if (msg == "show_chat_win") {
+        emit showChatWindowRequested();
+    } else if (msg == "hide_chat_win") {
+        emit hideChatWindowRequested();
     } else {
         const QString nfKeyword("notify");
         if (msg.split(" ").first() == nfKeyword) {

@@ -68,10 +68,11 @@ class QCServerChannel : public QObject
 public:
     QCServerChannel();
     bool connectToServer(const QString &, const quint16);
-    void openChatWindow();
-    void closeChatWindow();
-    void sendNotification(const QString &);
     QString lastError() const;
+public slots:
+    void showChatWindow();
+    void hideChatWindow();
+    void sendNotification(const QString &);
 private:
     QCChannel *channel;
     QString lastError_;
@@ -81,8 +82,9 @@ private slots:
     void handleChannelError(const QString &);
     void handleChannelDisconnected();
 signals:
-    void chatWindowOpened();
-    void chatWindowClosed();
+    void serverDisconnected();
+    void chatWindowShown();
+    void chatWindowHidden();
     void notification(const QString &);
 };
 
@@ -93,8 +95,8 @@ class QCClientChannels : public QObject
 public:
     QCClientChannels();
     bool listen(const qint16);
-    void notifyChatWindowOpened();
-    void notifyChatWindowClosed();
+    void notifyChatWindowShown();
+    void notifyChatWindowHidden();
     void sendNotification(const QString &);
     QString lastError() const;
 private slots:
@@ -108,8 +110,9 @@ private:
     QString lastError_;
     void broadcast(const QString &);
 signals:
-    void openChatWindowRequested();
-    void closeChatWindowRequested();
+    void clientConnected();
+    void showChatWindowRequested();
+    void hideChatWindowRequested();
     void notificationRequested(const QString &);
 };
 
