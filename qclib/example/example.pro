@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS = client server
+SUBDIRS = qcapp qclserver
 #CONFIG += ordered
