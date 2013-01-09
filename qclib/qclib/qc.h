@@ -4,8 +4,6 @@
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QtNetwork> // ### TODO: include relevant headers only
 
-class QCMessage;
-
 // ### Warning: This class is not reentrant!
 class QCChannel : public QObject
 {
@@ -21,23 +19,14 @@ public:
     QString lastError() const;
 private:
     QTcpSocket *socket;
-    enum {Idle, Receiving} state;
-    QCMessage *msg;
-    bool deliveringMessage;
-    bool puttingMessage;
     QString peerInfo_;
     QString lastError_;
     void initSocket();
-    void putMessage(const QByteArray &);
-    void resetState();
-    bool readSegment();
-    void handleError(const QString &);
     void setLastError(const QString &);
 signals:
     void error(const QString &);
-    void socketDisconnected(); // ### handle this signal too in client (rename from 'disconnected()')
+    void socketDisconnected();
     void messageArrived(const QString &);
-    //void connectSignals(const BMMessage *); OBSOLETE?
 
 private slots:
     void readyRead();

@@ -1,49 +1,9 @@
 #include "qc.h"
 
-class QCMessage : public QObject
-{
-    Q_OBJECT
-public:
-    QCMessage() : totSize(4) {} // initially we expect only payload size (4 bytes)
-    virtual ~QCMessage() {}
-    int remaining() const { return totSize - msg.size(); }
-    void append(const QByteArray &);
-    bool isComplete() const { return remaining() == 0; }
-    void emitArrived() const
-    {
-        emit arrived(QString::fromUtf8(QByteArray::fromRawData(msg.data() + 4, msg.size() - 4).data()));
-    }
-
-private:
-    int totSize; // total message size currently expected (including payload size)
-    QByteArray msg; // message buffer being read from the network
-
-signals:
-    // emits the payload converted from UTF-8 as soon as the complete message has arrived:
-    void arrived(const QString &) const;
-};
-
-void QCMessage::append(const QByteArray &data)
-{
-    Q_ASSERT(data.size() <= remaining());
-    msg.append(data);
-    if (isComplete()) {
-        if (msg.size() == 4) {
-            // payload size complete, prepare reception of data part:
-            const int dataSize =
-                qFromBigEndian<quint32>(reinterpret_cast<const uchar *>(msg.data()));
-            Q_ASSERT(dataSize > 0);
-            totSize += dataSize;
-        }
-    }
-}
+#define MAXMSGSIZE 2048
 
 QCChannel::QCChannel(QTcpSocket *socket)
     : socket(socket)
-    , state(Idle)
-    , msg(0)
-    , deliveringMessage(false)
-    , puttingMessage(false)
     , lastError_("<not set yet>")
 {
     if (socket)
@@ -116,111 +76,41 @@ void QCChannel::sendMessage(const QString &s)
         setLastError(emsg);
         return;
     }
-    QByteArray data = s.toUtf8();
-    QByteArray msg;
 
-    // insert the payload size as the message header
-    msg.resize(4);
-    qToBigEndian<quint32>(data.size(), reinterpret_cast<uchar *>(msg.data()));
+    QString msg = s.trimmed();
 
-    // append the payload itself
-    msg.append(data);
+    if (msg.contains('\n')) {
+        const char *emsg = "attempt to send message with internal newlines";
+        qWarning("%s", emsg);
+        setLastError(emsg);
+        return;
+    }
 
-    putMessage(msg);
-}
+    if (msg.size() > MAXMSGSIZE) {
+        qWarning("message too long; truncating to max %d characters", MAXMSGSIZE);
+        msg.truncate(MAXMSGSIZE);
+        msg = msg.trimmed();
+    }
 
-void QCChannel::putMessage(const QByteArray &msg)
-{
-    puttingMessage = true;
-    socket->write(msg);
+    msg.append('\n');
+
+    socket->write(msg.toUtf8());
     socket->waitForBytesWritten(-1);
-    puttingMessage = false;
-    if (socket->bytesAvailable())
-        QTimer::singleShot(0, this, SLOT(readyRead()));
 }
 
 void QCChannel::readyRead()
 {
-    // the following test is necessary because we also call this slot from a zero timer
-    // (i.e. two separate calls may in theory be scheduled on behalf of the same data;
-    // one from the zero timer and one from the network interface itself):
-    if (socket->bytesAvailable() == 0)
+    if (socket->bytesAvailable() == 0) {
+        qDebug() << "warning: readyRead() called with no bytes available";
         return;
-
-    // we don't want to recurse while delivering messages either ...
-    if (deliveringMessage)
-        return;
-
-    // ... nor while putting a message ...
-    if (puttingMessage)
-        return;
-
-    const bool recheck = readSegment();
-
-    if (recheck && socket->bytesAvailable())
-        QTimer::singleShot(0, this, SLOT(readyRead()));
-}
-
-void QCChannel::resetState()
-{
-    if (msg)
-        delete msg;
-    msg = 0;
-    state = Idle;
-}
-
-// Reads the next available segment. Returns true iff it makes sense to immediately check if
-// new data has arrived (while executing this function).
-bool QCChannel::readSegment()
-{
-    bool recheck = false;
-
-    if (state == Receiving) {
-        Q_ASSERT(msg != 0);
-        Q_ASSERT(msg->remaining() > 0);
-
-        QByteArray segment = socket->read(msg->remaining());
-
-        if (segment.isEmpty()) {
-            handleError("QCChannel::readSegment(): read() failed");
-        } else {
-            msg->append(segment);
-
-            if (msg->isComplete()) {
-
-                deliveringMessage = true;
-                msg->emitArrived();
-                deliveringMessage = false;
-
-                resetState();
-            }
-
-            recheck = true;
-        }
-
-    } else {
-        Q_ASSERT(state == Idle);
-        Q_ASSERT(msg == 0);
-
-        msg = new QCMessage;
-        connect(msg, SIGNAL(arrived(const QString &)), SIGNAL(messageArrived(const QString &)));
-
-        state = Receiving;
-        recheck = true;
     }
 
-    return recheck;
-}
-
-void QCChannel::handleError(const QString &what)
-{
-    resetState();
-    emit error(what);
+    QByteArray msg = socket->readLine();
+    emit messageArrived(QString::fromUtf8(msg).trimmed());
 }
 
 void QCChannel::handleSocketError(QAbstractSocket::SocketError)
 {
-    resetState();
     emit error(socket->errorString());
 }
 
@@ -418,5 +308,3 @@ void QCClientChannels::handleChannelDisconnected()
     channels.removeOne(channel);
     channel->deleteLater(); // ### or 'delete channel' directly?
 }
-
-#include "qc.moc"
