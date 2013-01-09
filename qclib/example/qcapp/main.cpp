@@ -89,9 +89,16 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    bool ok;
+    const quint16 port = qgetenv("QCLPORT").toUInt(&ok);
+    if (!ok) {
+        qDebug("failed to extract int from environment variable QCLPORT");
+        return 1;
+    }
+
     // establish the server channel
     QCServerChannel schannel;
-    if (!schannel.connectToServer("localhost", 1104)) // hardcode address and port number for now
+    if (!schannel.connectToServer("localhost", port))
         qFatal("schannel.connectToServer() failed: %s", schannel.lastError().toLatin1().data());
 
     // create a dummy app window

@@ -94,9 +94,16 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    bool ok;
+    const quint16 port = qgetenv("QCLPORT").toUInt(&ok);
+    if (!ok) {
+        qDebug("failed to extract int from environment variable QCLPORT");
+        return 1;
+    }
+
     // listen for incoming client connections
     QCClientChannels cchannels;
-    if (!cchannels.listen(1104)) // hardcode port number for now
+    if (!cchannels.listen(port))
         qFatal("cchannels.listen() failed: %s", cchannels.lastError().toLatin1().data());
 
     // create a dummy chat window
