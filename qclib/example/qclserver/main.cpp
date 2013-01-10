@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
         qDebug("failed to extract int from environment variable QCLPORT");
         return 1;
     }
-    const QString qcchost = qgetenv("QCCHOST").trimmed();
+    const QString qcchost = qgetenv("QCCHOST");
     if (qcchost.isEmpty()) {
         qDebug("failed to extract string from environment variable QCCHOST");
         return 1;
