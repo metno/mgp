@@ -145,70 +145,43 @@ void QCChannelServer::newConnection()
     emit channelConnected(new QCChannel(server.nextPendingConnection()));
 }
 
-QCServerChannel::QCServerChannel()
-    : channel(0)
-    , lastError_("<not set yet>")
+QCBase::QCBase()
+    : lastError_("<not set yet>")
 {
 }
 
-bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
+void QCBase::setLastError(const QString &error)
 {
-    if (channel) {
-        lastError_ = "channel already connected, please disconnect first";
-        return false;
-    }
-
-    channel = new QCChannel;
-
-    if (!channel->connectToServer(host, port)) {
-        lastError_ = channel->lastError();
-        return false;
-    }
-    connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
-    connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
-    connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
-    return true;
+    lastError_ = error;
 }
 
-void QCServerChannel::showChatWindow()
-{
-    sendMessage("show_chat_win");
-}
-
-void QCServerChannel::hideChatWindow()
-{
-    sendMessage("hide_chat_win");
-}
-
-void QCServerChannel::sendChatMessage(const QString &msg)
-{
-    sendMessage(QString("chat %1").arg(msg));
-}
-
-void QCServerChannel::sendNotification(const QString &msg)
-{
-    sendMessage(QString("notify %1").arg(msg));
-}
-
-QString QCServerChannel::lastError() const
+QString QCBase::lastError() const
 {
     return lastError_;
 }
 
-void QCServerChannel::sendMessage(const QString &msg)
+void QCBase::showChatWindow()
 {
-    if (!channel) {
-        const char *emsg = "channel not connected";
-        qWarning("%s", emsg);
-        lastError_ = emsg;
-        return;
-    }
-    channel->sendMessage(msg);
+    sendMessage("show_chat_win");
 }
 
-void QCServerChannel::handleMessageArrived(const QString &msg)
+void QCBase::hideChatWindow()
 {
-    // ### duplicate of QCClientChannels::handleMessageArrived() -> move to common base class
+    sendMessage("hide_chat_win");
+}
+
+void QCBase::sendChatMessage(const QString &msg)
+{
+    sendMessage(QString("chat %1").arg(msg));
+}
+
+void QCBase::sendNotification(const QString &msg)
+{
+    sendMessage(QString("notify %1").arg(msg));
+}
+
+void QCBase::handleMessageArrived(const QString &msg)
+{
     const QString chatKeyword("chat");
     const QString notifyKeyword("notify");
     if (msg == "show_chat_win") {
@@ -222,10 +195,46 @@ void QCServerChannel::handleMessageArrived(const QString &msg)
     }
 }
 
-void QCServerChannel::handleChannelError(const QString &msg)
+void QCBase::handleChannelError(const QString &msg)
 {
     qDebug() << "channel error:" << msg.toLatin1().data();
     lastError_ = msg;
+}
+
+
+QCServerChannel::QCServerChannel()
+    : channel(0)
+{
+}
+
+bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
+{
+    if (channel) {
+        setLastError("channel already connected, please disconnect first");
+        return false;
+    }
+
+    channel = new QCChannel;
+
+    if (!channel->connectToServer(host, port)) {
+        setLastError(channel->lastError());
+        return false;
+    }
+    connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+    connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+    connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
+    return true;
+}
+
+void QCServerChannel::sendMessage(const QString &msg)
+{
+    if (!channel) {
+        const char *emsg = "channel not connected";
+        qWarning("%s", emsg);
+        setLastError(emsg);
+        return;
+    }
+    channel->sendMessage(msg);
 }
 
 void QCServerChannel::handleChannelDisconnected()
@@ -238,43 +247,17 @@ void QCServerChannel::handleChannelDisconnected()
 }
 
 QCClientChannels::QCClientChannels()
-  : lastError_("<not set yet>")
 {
 }
 
 bool QCClientChannels::listen(const qint16 port)
 {
     if (!server.listen(port)) {
-        lastError_ = QString("server.listen() failed: %1").arg(server.lastError());
+        setLastError(QString("server.listen() failed: %1").arg(server.lastError()));
         return false;
     }
     QObject::connect(&server, SIGNAL(channelConnected(QCChannel *)), SLOT(handleChannelConnected(QCChannel *)));
     return true;
-}
-
-void QCClientChannels::showChatWindow()
-{
-    sendMessage("show_chat_win");
-}
-
-void QCClientChannels::hideChatWindow()
-{
-    sendMessage("hide_chat_win");
-}
-
-void QCClientChannels::sendChatMessage(const QString &msg)
-{
-    sendMessage(QString("chat %1").arg(msg));
-}
-
-void QCClientChannels::sendNotification(const QString &msg)
-{
-    sendMessage(QString("notify %1").arg(msg));
-}
-
-QString QCClientChannels::lastError() const
-{
-    return lastError_;
 }
 
 void QCClientChannels::sendMessage(const QString &msg)
@@ -291,27 +274,6 @@ void QCClientChannels::handleChannelConnected(QCChannel *channel)
     connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
     channels.append(channel);
     emit clientConnected();
-}
-
-void QCClientChannels::handleMessageArrived(const QString &msg)
-{
-    // ### duplicate of QCServerChannel::handleMessageArrived() -> move to common base class
-    const QString chatKeyword("chat");
-    const QString notifyKeyword("notify");
-    if (msg == "show_chat_win") {
-        emit chatWindowShown();
-    } else if (msg == "hide_chat_win") {
-        emit chatWindowHidden();
-    } else if (msg.split(" ").first() == chatKeyword) {
-        emit chatMessage(msg.right(msg.size() - chatKeyword.size()).trimmed());
-    } else if (msg.split(" ").first() == notifyKeyword) {
-        emit notification(msg.right(msg.size() - notifyKeyword.size()).trimmed());
-    }
-}
-
-void QCClientChannels::handleChannelError(const QString &msg)
-{
-    qDebug() << "channel error:" << msg.toLatin1().data();
 }
 
 void QCClientChannels::handleChannelDisconnected()
