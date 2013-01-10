@@ -1,4 +1,4 @@
-// Example client code.
+// Example qcapp code.
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qc.h"
@@ -40,8 +40,8 @@ public:
         setMinimumWidth(600);
 
         connect(schannel, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
-        connect(schannel, SIGNAL(chatWindowShown()), SLOT(chatWindowShown()));
-        connect(schannel, SIGNAL(chatWindowHidden()), SLOT(chatWindowHidden()));
+        connect(schannel, SIGNAL(chatWindowShown()), SLOT(showChatWindow()));
+        connect(schannel, SIGNAL(chatWindowHidden()), SLOT(hideChatWindow()));
         connect(schannel, SIGNAL(notification(const QString &)), SLOT(notification(const QString &)));
     }
 
@@ -66,13 +66,13 @@ private slots:
         notifyEdit->setEnabled(false);
     }
 
-    void chatWindowShown()
+    void showChatWindow()
     {
         showButton->setEnabled(false);
         hideButton->setEnabled(true);
     }
 
-    void chatWindowHidden()
+    void hideChatWindow()
     {
         showButton->setEnabled(true);
         hideButton->setEnabled(false);
@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    // extract information environment
     bool ok;
     const quint16 port = qgetenv("QCLPORT").toUInt(&ok);
     if (!ok) {
@@ -96,10 +97,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // establish the server channel
+    // establish channel to qclserver
     QCServerChannel schannel;
-    if (!schannel.connectToServer("localhost", port))
-        qFatal("schannel.connectToServer() failed: %s", schannel.lastError().toLatin1().data());
+    if (!schannel.connectToServer("localhost", port)) {
+        qDebug("schannel.connectToServer() failed: %s", schannel.lastError().toLatin1().data());
+        return 1;
+    }
 
     // create a dummy app window
     Window window(&schannel);

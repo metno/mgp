@@ -180,6 +180,11 @@ void QCServerChannel::hideChatWindow()
     sendMessage("hide_chat_win");
 }
 
+void QCServerChannel::sendChatMessage(const QString &msg)
+{
+    sendMessage(QString("chat %1").arg(msg));
+}
+
 void QCServerChannel::sendNotification(const QString &msg)
 {
     sendMessage(QString("notify %1").arg(msg));
@@ -203,16 +208,17 @@ void QCServerChannel::sendMessage(const QString &msg)
 
 void QCServerChannel::handleMessageArrived(const QString &msg)
 {
-    if (msg == "chat_win_shown") {
-        emit chatWindowShown(); // typically for updating button sensitivities
-    } else if (msg == "chat_win_hidden") {
-            emit chatWindowHidden(); // typically for updating button sensitivities
-    } else {
-        const QString nfKeyword("notify");
-        if (msg.split(" ").first() == nfKeyword) {
-            // typically for updating text in a status bar
-            emit notification(msg.right(msg.size() - nfKeyword.size()).trimmed());
-        }
+    // ### duplicate of QCClientChannels::handleMessageArrived() -> move to common base class
+    const QString chatKeyword("chat");
+    const QString notifyKeyword("notify");
+    if (msg == "show_chat_win") {
+        emit chatWindowShown();
+    } else if (msg == "hide_chat_win") {
+        emit chatWindowHidden();
+    } else if (msg.split(" ").first() == chatKeyword) {
+        emit chatMessage(msg.right(msg.size() - chatKeyword.size()).trimmed());
+    } else if (msg.split(" ").first() == notifyKeyword) {
+        emit notification(msg.right(msg.size() - notifyKeyword.size()).trimmed());
     }
 }
 
@@ -246,19 +252,24 @@ bool QCClientChannels::listen(const qint16 port)
     return true;
 }
 
-void QCClientChannels::notifyChatWindowShown()
+void QCClientChannels::showChatWindow()
 {
-    broadcast("chat_win_shown");
+    sendMessage("show_chat_win");
 }
 
-void QCClientChannels::notifyChatWindowHidden()
+void QCClientChannels::hideChatWindow()
 {
-    broadcast("chat_win_hidden");
+    sendMessage("hide_chat_win");
+}
+
+void QCClientChannels::sendChatMessage(const QString &msg)
+{
+    sendMessage(QString("chat %1").arg(msg));
 }
 
 void QCClientChannels::sendNotification(const QString &msg)
 {
-    broadcast(QString("notify %1").arg(msg));
+    sendMessage(QString("notify %1").arg(msg));
 }
 
 QString QCClientChannels::lastError() const
@@ -266,7 +277,7 @@ QString QCClientChannels::lastError() const
     return lastError_;
 }
 
-void QCClientChannels::broadcast(const QString &msg)
+void QCClientChannels::sendMessage(const QString &msg)
 {
     foreach (QCChannel *channel, channels)
         channel->sendMessage(msg);
@@ -284,15 +295,17 @@ void QCClientChannels::handleChannelConnected(QCChannel *channel)
 
 void QCClientChannels::handleMessageArrived(const QString &msg)
 {
+    // ### duplicate of QCServerChannel::handleMessageArrived() -> move to common base class
+    const QString chatKeyword("chat");
+    const QString notifyKeyword("notify");
     if (msg == "show_chat_win") {
-        emit showChatWindowRequested();
+        emit chatWindowShown();
     } else if (msg == "hide_chat_win") {
-        emit hideChatWindowRequested();
-    } else {
-        const QString nfKeyword("notify");
-        if (msg.split(" ").first() == nfKeyword) {
-            emit notificationRequested(msg.right(msg.size() - nfKeyword.size()).trimmed());
-        }
+        emit chatWindowHidden();
+    } else if (msg.split(" ").first() == chatKeyword) {
+        emit chatMessage(msg.right(msg.size() - chatKeyword.size()).trimmed());
+    } else if (msg.split(" ").first() == notifyKeyword) {
+        emit notification(msg.right(msg.size() - notifyKeyword.size()).trimmed());
     }
 }
 

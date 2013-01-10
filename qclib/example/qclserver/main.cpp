@@ -1,13 +1,13 @@
-// Example server code.
+// Example qclserver code.
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qc.h"
 
-class Window : public QWidget
+class ChatWindow : public QWidget
 {
     Q_OBJECT
 public:
-    Window()
+    ChatWindow()
     {
         QVBoxLayout *layout = new QVBoxLayout;
         QLabel *label = new QLabel("DUMMY CHAT WINDOW");
@@ -15,6 +15,11 @@ public:
         layout->addWidget(label);
         setLayout(layout);
         resize(500, 300);
+    }
+
+    void showChatMessage(const QString &msg)
+    {
+        qDebug() << QString("ChatWindow::showChatMessage(%1) ... (2 B IMPLEMENTED)").arg(msg).toLatin1().data();
     }
 
 private:
@@ -38,54 +43,79 @@ private:
 signals:
     void windowShown();
     void windowHidden();
+    void chatMessage(const QString &);
 };
 
-class ClientInteractor : public QObject
+class Interactor : public QObject
 {
     Q_OBJECT
 public:
-    ClientInteractor(QCClientChannels *cchannels, Window *window)
+    Interactor(QCClientChannels *cchannels, QCServerChannel *schannel, ChatWindow *window)
         : cchannels(cchannels)
+        , schannel(schannel)
         , window(window)
     {
-        connect(window, SIGNAL(windowShown()), SLOT(windowShown()));
-        connect(window, SIGNAL(windowHidden()), SLOT(windowHidden()));
-
         connect(cchannels, SIGNAL(clientConnected()), SLOT(clientConnected()));
-        connect(cchannels, SIGNAL(showChatWindowRequested()), window, SLOT(show()));
-        connect(cchannels, SIGNAL(hideChatWindowRequested()), window, SLOT(hide()));
+        connect(cchannels, SIGNAL(chatWindowShown()), window, SLOT(show()));
+        connect(cchannels, SIGNAL(chatWindowHidden()), window, SLOT(hide()));
         connect(
-            cchannels, SIGNAL(notificationRequested(const QString &)),
-            SLOT(notificationRequested(const QString &)));
+            cchannels, SIGNAL(notification(const QString &)),
+            SLOT(localNotification(const QString &)));
+
+        connect(schannel, SIGNAL(chatMessage(const QString &)), SLOT(centralChatMessage(const QString &)));
+        connect(schannel, SIGNAL(notification(const QString &)), SLOT(centralNotification(const QString &)));
+
+        connect(window, SIGNAL(windowShown()), SLOT(showChatWindow()));
+        connect(window, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
+        connect(window, SIGNAL(chatMessage(const QString &)), SLOT(localChatMessage(const QString &)));
     }
 
 private:
-    QCClientChannels *cchannels;
-    Window *window;
+    QCClientChannels *cchannels; // qcapp channels
+    QCServerChannel *schannel; // qccserver channel
+    ChatWindow *window;
 
 private slots:
     void clientConnected()
     {
         if (window->isVisible())
-            cchannels->notifyChatWindowShown();
+            cchannels->showChatWindow();
         else
-            cchannels->notifyChatWindowHidden();
+            cchannels->hideChatWindow();
     }
 
-    void windowShown()
+    void localNotification(const QString &msg)
     {
-        cchannels->notifyChatWindowShown();
+        qDebug() << "notification (from a local qcapp):" << msg;
+        schannel->sendNotification(msg);
     }
 
-    void windowHidden()
+    void centralChatMessage(const QString &msg)
     {
-        cchannels->notifyChatWindowHidden();
+        qDebug() << "chat message (from qccserver):" << msg;
+        window->showChatMessage(msg);
     }
 
-    void notificationRequested(const QString &msg)
+    void centralNotification(const QString &msg)
     {
-        qDebug() << "notification requested:" << msg;
+        qDebug() << "notification (from qccserver):" << msg;
         cchannels->sendNotification(msg);
+    }
+
+    void showChatWindow()
+    {
+        cchannels->showChatWindow();
+    }
+
+    void hideChatWindow()
+    {
+        cchannels->hideChatWindow();
+    }
+
+    void localChatMessage(const QString &msg)
+    {
+        qDebug() << "chat message (from local window):" << msg;
+        schannel->sendChatMessage(msg);
     }
 };
 
@@ -94,24 +124,48 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    // extract information from environment
     bool ok;
-    const quint16 port = qgetenv("QCLPORT").toUInt(&ok);
+    const quint16 qclport = qgetenv("QCLPORT").toUInt(&ok);
     if (!ok) {
         qDebug("failed to extract int from environment variable QCLPORT");
         return 1;
     }
+    const QString qcchost = qgetenv("QCCHOST").trimmed();
+    if (qcchost.isEmpty()) {
+        qDebug("failed to extract string from environment variable QCCHOST");
+        return 1;
+    }
+    const quint16 qccport = qgetenv("QCCPORT").toUInt(&ok);
+    if (!ok) {
+        qDebug("failed to extract int from environment variable QCCPORT");
+        return 1;
+    }
 
-    // listen for incoming client connections
+    // listen for incoming qcapp connections
     QCClientChannels cchannels;
-    if (!cchannels.listen(port))
-        qFatal("cchannels.listen() failed: %s", cchannels.lastError().toLatin1().data());
+    if (!cchannels.listen(qclport)) {
+        qDebug(
+            "failed to listen for incoming qcapp connections: cchannels.listen() failed: %s",
+            cchannels.lastError().toLatin1().data());
+        return 1;
+    }
 
-    // create a dummy chat window
-    Window *window = new Window;
+    // establish channel to qccserver
+    QCServerChannel schannel;
+    if (!schannel.connectToServer(qcchost, qccport)) {
+        qDebug(
+            "failed to connect to qccserver: schannel.connectToServer() failed: %s",
+            schannel.lastError().toLatin1().data());
+        return 1;
+    }
+
+    // create a chat window
+    ChatWindow *window = new ChatWindow;
     //window->show();
 
-    // create object to handle interaction between clients and chat window
-    ClientInteractor interactor(&cchannels, window);
+    // create object to handle interaction between qcapps, qccserver, and chat window
+    Interactor interactor(&cchannels, &schannel, window);
 
     return app.exec();
 }
