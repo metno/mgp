@@ -8,11 +8,24 @@ class ChatWindow : public QWidget
     Q_OBJECT
 public:
     ChatWindow()
+        : log(0)
+        , edit(0)
     {
         QVBoxLayout *layout = new QVBoxLayout;
-        QLabel *label = new QLabel("DUMMY CHAT WINDOW");
+
+        QLabel *label = new QLabel("CHAT WINDOW MOCKUP");
+        label->setStyleSheet("QLabel { background-color : yellow; color : black; }");
         label->setAlignment(Qt::AlignCenter);
         layout->addWidget(label);
+
+        log = new QListWidget;
+        layout->addWidget(log);
+
+        edit = new QLineEdit;
+        connect(edit, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
+
+        layout->addWidget(edit);
+
         setLayout(layout);
         resize(500, 300);
     }
@@ -23,6 +36,9 @@ public:
     }
 
 private:
+    QListWidget *log;
+    QLineEdit *edit;
+
     void closeEvent(QCloseEvent *event)
     {
         // prevent the close event from terminating the application
@@ -38,6 +54,15 @@ private:
     void hideEvent(QHideEvent *)
     {
         emit windowHidden();
+    }
+
+private slots:
+    void sendChatMessage()
+    {
+        const QString msg = edit->text().trimmed();
+        edit->clear();
+        if (!msg.isEmpty())
+            emit chatMessage(msg);
     }
 
 signals:

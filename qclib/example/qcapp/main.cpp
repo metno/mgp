@@ -9,8 +9,17 @@ class Window : public QWidget
 public:
     Window(QCServerChannel *schannel)
         : schannel(schannel)
+        , showButton(0)
+        , hideButton(0)
+        , notifyButton(0)
+        , notifyEdit(0)
     {
         QVBoxLayout *layout = new QVBoxLayout;
+
+        QLabel *label = new QLabel("CLIENT APPLICATION MOCKUP");
+        label->setStyleSheet("QLabel { background-color : yellow; color : black; }");
+        label->setAlignment(Qt::AlignCenter);
+        layout->addWidget(label);
 
         showButton = new QPushButton("show chat window");
         showButton->setEnabled(false);
