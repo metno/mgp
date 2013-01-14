@@ -47,6 +47,7 @@ public:
     {
         connect(cchannels, SIGNAL(chatMessage(const QString &)), SLOT(chatMessage(const QString &)));
         connect(cchannels, SIGNAL(notification(const QString &)), SLOT(notification(const QString &)));
+        connect(cchannels, SIGNAL(historyRequest(qint64)), SLOT(historyRequest(qint64)));
     }
 
 private:
@@ -85,6 +86,14 @@ private slots:
         qDebug() << "notification (from a qclserver):" << msg;
         cchannels->sendNotification(msg); // forward to all qclservers
         appendToDatabase(NOTIFICATION, msg);
+    }
+
+    void historyRequest(qint64 qclserver)
+    {
+        qDebug() << QString("history request (from qclserver %1)").arg(qclserver).toLatin1().data();
+        // for now (eventually extract from DB):
+        QStringList h = QStringList() << "chat msg 1" << "chat msg 2" << "notification 1" << "chat msg 3";
+        cchannels->sendHistory(h, qclserver);
     }
 };
 

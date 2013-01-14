@@ -30,9 +30,14 @@ public:
         resize(500, 300);
     }
 
-    void showChatMessage(const QString &msg)
+    void appendChatMessage(const QString &msg)
     {
-        qDebug() << QString("ChatWindow::showChatMessage(%1) ... (2 B IMPLEMENTED)").arg(msg).toLatin1().data();
+        qDebug() << QString("ChatWindow::appendChatMessage(%1) ... (2 B IMPLEMENTED)").arg(msg).toLatin1().data();
+    }
+
+    void prependHistory(const QStringList &h)
+    {
+        qDebug() << QString("ChatWindow::prependHistory(...) ... (2 B IMPLEMENTED)");
     }
 
 private:
@@ -80,7 +85,7 @@ public:
         , schannel(schannel)
         , window(window)
     {
-        connect(cchannels, SIGNAL(clientConnected()), SLOT(clientConnected()));
+        connect(cchannels, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
         connect(cchannels, SIGNAL(chatWindowShown()), window, SLOT(show()));
         connect(cchannels, SIGNAL(chatWindowHidden()), window, SLOT(hide()));
         connect(
@@ -89,10 +94,13 @@ public:
 
         connect(schannel, SIGNAL(chatMessage(const QString &)), SLOT(centralChatMessage(const QString &)));
         connect(schannel, SIGNAL(notification(const QString &)), SLOT(centralNotification(const QString &)));
+        connect(schannel, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
 
         connect(window, SIGNAL(windowShown()), SLOT(showChatWindow()));
         connect(window, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
         connect(window, SIGNAL(chatMessage(const QString &)), SLOT(localChatMessage(const QString &)));
+
+        schannel->sendHistoryRequest();
     }
 
 private:
@@ -101,12 +109,13 @@ private:
     ChatWindow *window;
 
 private slots:
-    void clientConnected()
+    void clientConnected(qint64 id)
     {
+        // inform about current chat window visibility
         if (window->isVisible())
-            cchannels->showChatWindow();
+            cchannels->showChatWindow(id);
         else
-            cchannels->hideChatWindow();
+            cchannels->hideChatWindow(id);
     }
 
     void localNotification(const QString &msg)
@@ -118,13 +127,21 @@ private slots:
     void centralChatMessage(const QString &msg)
     {
         qDebug() << "chat message (from qccserver):" << msg;
-        window->showChatMessage(msg);
+        window->appendChatMessage(msg);
     }
 
     void centralNotification(const QString &msg)
     {
         qDebug() << "notification (from qccserver):" << msg;
         cchannels->sendNotification(msg);
+    }
+
+    void history(const QStringList &h)
+    {
+        qDebug() << "history (from qccserver):" << h;
+        window->prependHistory(h);
+        // *prepend* in chat window (i.e. in front of any individual chat messages that may have arrived
+        // in the meantime!)
     }
 
     void showChatWindow()

@@ -11,6 +11,7 @@ class QCChannel : public QObject
 public:
     QCChannel(QTcpSocket * = 0);
     virtual ~QCChannel();
+    qint64 id() const { return id_; }
     QString peerInfo() const { return peerInfo_; }
     bool connectToServer(const QString &, const quint16);
     //void disconnect() { }; ### needed?
@@ -18,8 +19,10 @@ public:
     void sendMessage(const QVariantMap &);
     QString lastError() const;
 private:
+    qint64 id_;
+    static qint64 nextId_;
     QByteArray msgbuf_;
-    QTcpSocket *socket;
+    QTcpSocket *socket_;
     QString peerInfo_;
     QString lastError_;
     void initSocket();
@@ -41,7 +44,7 @@ public:
     bool listen(const qint16 port);
     QString lastError() const;
 private:
-    QTcpServer server;
+    QTcpServer server_;
     void setLastError(const QString &);
     QString lastError_;
 private slots:
@@ -57,14 +60,14 @@ public:
     QString lastError() const;
 protected:
     QCBase();
-    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification };
+    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification, HistoryRequest, History };
     void setLastError(const QString &);
 private:
     QString lastError_;
     virtual void sendMessage(const QVariantMap &) = 0;
 public slots:
-    void showChatWindow();
-    void hideChatWindow();
+    void showChatWindow(qint64 = -1);
+    void hideChatWindow(qint64 = -1);
     void sendChatMessage(const QString &);
     void sendNotification(const QString &);
 protected slots:
@@ -75,6 +78,8 @@ signals:
     void chatWindowHidden();
     void chatMessage(const QString &);
     void notification(const QString &);
+    void historyRequest(qint64);
+    void history(const QStringList &);
 };
 
 // This class is instantiated in the client to handle the server channel.
@@ -84,6 +89,7 @@ class QCServerChannel : public QCBase
 public:
     QCServerChannel();
     bool connectToServer(const QString &, const quint16);
+    void sendHistoryRequest();
 private:
     QCChannel *channel;
     virtual void sendMessage(const QVariantMap &);
@@ -100,15 +106,16 @@ class QCClientChannels : public QCBase
 public:
     QCClientChannels();
     bool listen(const qint16);
+    void sendHistory(const QStringList &, qint64);
 private:
-    QCChannelServer server;
-    QList<QCChannel *> channels;
+    QCChannelServer server_;
+    QMap<qint64, QCChannel *> channels_;
     virtual void sendMessage(const QVariantMap &);
 private slots:
     void handleChannelConnected(QCChannel *);
     void handleChannelDisconnected();
 signals:
-    void clientConnected();
+    void clientConnected(qint64);
 };
 
 #endif // QC_H
