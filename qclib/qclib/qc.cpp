@@ -67,8 +67,8 @@ bool QCChannel::isConnected() const
     return socket != 0;
 }
 
-// Sends the string \a s in UTF-8 format on the channel.
-void QCChannel::sendMessage(const QString &s)
+// Sends the variant map \a vmap as a message on the channel.
+void QCChannel::sendMessage(const QVariantMap &vmap)
 {
     if (!socket) {
         const char *emsg = "socket not connected";
@@ -77,24 +77,14 @@ void QCChannel::sendMessage(const QString &s)
         return;
     }
 
-    QString msg = s.trimmed();
+    // serialize into byte array
+    QByteArray ba;
+    QDataStream dstream(&ba, QIODevice::Append);
+    dstream << vmap;
 
-    if (msg.contains('\n')) {
-        const char *emsg = "attempt to send message with internal newlines";
-        qWarning("%s", emsg);
-        setLastError(emsg);
-        return;
-    }
-
-    if (msg.size() > MAXMSGSIZE) {
-        qWarning("message too long; truncating to max %d characters", MAXMSGSIZE);
-        msg.truncate(MAXMSGSIZE);
-        msg = msg.trimmed();
-    }
-
-    msg.append('\n');
-
-    socket->write(msg.toUtf8());
+    // send as newline-terminated base64
+    socket->write(ba.toBase64());
+    socket->write("\n");
     socket->waitForBytesWritten(-1);
 }
 
@@ -105,8 +95,21 @@ void QCChannel::readyRead()
         return;
     }
 
-    QByteArray msg = socket->readLine();
-    emit messageArrived(QString::fromUtf8(msg).trimmed());
+    // receive as newline-terminated base64
+    msgbuf_.append(socket->readLine());
+    if (msgbuf_.at(msgbuf_.size() - 1) != '\n')
+        return; // message not complete yet
+
+    msgbuf_.chop(1); // strip trailing newline
+    QByteArray ba = QByteArray::fromBase64(msgbuf_); // decode
+    msgbuf_.clear(); // prepare reception of next message
+
+    // deserialize into variant map
+    QDataStream dstream(ba);
+    QVariantMap msg;
+    dstream >> msg;
+
+    emit messageArrived(msg);
 }
 
 void QCChannel::handleSocketError(QAbstractSocket::SocketError)
@@ -162,36 +165,63 @@ QString QCBase::lastError() const
 
 void QCBase::showChatWindow()
 {
-    sendMessage("show_chat_win");
+    QVariantMap msg;
+    msg.insert("type", ShowChatWin);
+    // add more fields as necessary ... 2 B DONE
+    sendMessage(msg);
 }
 
 void QCBase::hideChatWindow()
 {
-    sendMessage("hide_chat_win");
+    QVariantMap msg;
+    msg.insert("type", HideChatWin);
+    // add more fields as necessary ... 2 B DONE
+    sendMessage(msg);
 }
 
-void QCBase::sendChatMessage(const QString &msg)
+void QCBase::sendChatMessage(const QString &m)
 {
-    sendMessage(QString("chat %1").arg(msg));
+    QVariantMap msg;
+    msg.insert("type", ChatMsg);
+    msg.insert("value", m);
+    // add more fields as necessary ... 2 B DONE
+    sendMessage(msg);
 }
 
-void QCBase::sendNotification(const QString &msg)
+void QCBase::sendNotification(const QString &m)
 {
-    sendMessage(QString("notify %1").arg(msg));
+    QVariantMap msg;
+    msg.insert("type", Notification);
+    msg.insert("value", m);
+    // add more fields as necessary ... 2 B DONE
+    sendMessage(msg);
 }
 
-void QCBase::handleMessageArrived(const QString &msg)
+void QCBase::handleMessageArrived(const QVariantMap &msg)
 {
-    const QString chatKeyword("chat");
-    const QString notifyKeyword("notify");
-    if (msg == "show_chat_win") {
+    Q_ASSERT(!msg.contains("type"));
+    bool ok;
+    const MsgType type = static_cast<MsgType>(msg.value("type").toInt(&ok));
+    if (!ok) {
+        qDebug() << "vmap:" << msg;
+        qFatal("failed to convert message type to int: %s", msg.value("type").toString().toLatin1().data());
+    }
+    if (type == ShowChatWin) {
+        // pass more fields as necessary ... 2 B DONE
         emit chatWindowShown();
-    } else if (msg == "hide_chat_win") {
+    } else if (type == HideChatWin) {
+        // pass more fields as necessary ... 2 B DONE
         emit chatWindowHidden();
-    } else if (msg.split(" ").first() == chatKeyword) {
-        emit chatMessage(msg.right(msg.size() - chatKeyword.size()).trimmed());
-    } else if (msg.split(" ").first() == notifyKeyword) {
-        emit notification(msg.right(msg.size() - notifyKeyword.size()).trimmed());
+    } else if (type == ChatMsg) {
+        Q_ASSERT(msg.value("value").canConvert(QVariant::String));
+        // pass more fields as necessary ... 2 B DONE
+        emit chatMessage(msg.value("value").toString());
+    } else if (type == Notification) {
+        Q_ASSERT(msg.value("value").canConvert(QVariant::String));
+        // pass more fields as necessary ... 2 B DONE
+        emit notification(msg.value("value").toString());
+    } else {
+        qFatal("invalid message type: %d", type);
     }
 }
 
@@ -220,13 +250,13 @@ bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
         setLastError(channel->lastError());
         return false;
     }
-    connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+    connect(channel, SIGNAL(messageArrived(const QVariantMap &)), SLOT(handleMessageArrived(const QVariantMap &)));
     connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
     connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
     return true;
 }
 
-void QCServerChannel::sendMessage(const QString &msg)
+void QCServerChannel::sendMessage(const QVariantMap &msg)
 {
     if (!channel) {
         const char *emsg = "channel not connected";
@@ -260,7 +290,7 @@ bool QCClientChannels::listen(const qint16 port)
     return true;
 }
 
-void QCClientChannels::sendMessage(const QString &msg)
+void QCClientChannels::sendMessage(const QVariantMap &msg)
 {
     foreach (QCChannel *channel, channels)
         channel->sendMessage(msg);
@@ -269,7 +299,7 @@ void QCClientChannels::sendMessage(const QString &msg)
 void QCClientChannels::handleChannelConnected(QCChannel *channel)
 {
     qDebug() << "new client connected:" << channel->peerInfo().toLatin1().data();
-    connect(channel, SIGNAL(messageArrived(const QString &)), SLOT(handleMessageArrived(const QString &)));
+    connect(channel, SIGNAL(messageArrived(const QVariantMap &)), SLOT(handleMessageArrived(const QVariantMap &)));
     connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
     connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
     channels.append(channel);

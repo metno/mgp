@@ -15,9 +15,10 @@ public:
     bool connectToServer(const QString &, const quint16);
     //void disconnect() { }; ### needed?
     bool isConnected() const;
-    void sendMessage(const QString &);
+    void sendMessage(const QVariantMap &);
     QString lastError() const;
 private:
+    QByteArray msgbuf_;
     QTcpSocket *socket;
     QString peerInfo_;
     QString lastError_;
@@ -26,8 +27,7 @@ private:
 signals:
     void error(const QString &);
     void socketDisconnected();
-    void messageArrived(const QString &);
-
+    void messageArrived(const QVariantMap &);
 private slots:
     void readyRead();
     void handleSocketError(QAbstractSocket::SocketError);
@@ -57,17 +57,18 @@ public:
     QString lastError() const;
 protected:
     QCBase();
+    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification };
     void setLastError(const QString &);
 private:
     QString lastError_;
-    virtual void sendMessage(const QString &) = 0;
+    virtual void sendMessage(const QVariantMap &) = 0;
 public slots:
     void showChatWindow();
     void hideChatWindow();
     void sendChatMessage(const QString &);
     void sendNotification(const QString &);
 protected slots:
-    void handleMessageArrived(const QString &);
+    void handleMessageArrived(const QVariantMap &);
     void handleChannelError(const QString &);
 signals:
     void chatWindowShown();
@@ -85,7 +86,7 @@ public:
     bool connectToServer(const QString &, const quint16);
 private:
     QCChannel *channel;
-    virtual void sendMessage(const QString &);
+    virtual void sendMessage(const QVariantMap &);
 private slots:
     void handleChannelDisconnected();
 signals:
@@ -102,7 +103,7 @@ public:
 private:
     QCChannelServer server;
     QList<QCChannel *> channels;
-    virtual void sendMessage(const QString &);
+    virtual void sendMessage(const QVariantMap &);
 private slots:
     void handleChannelConnected(QCChannel *);
     void handleChannelDisconnected();
