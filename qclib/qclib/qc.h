@@ -30,7 +30,7 @@ private:
 signals:
     void error(const QString &);
     void socketDisconnected();
-    void messageArrived(const QVariantMap &);
+    void messageArrived(qint64, const QVariantMap &);
 private slots:
     void readyRead();
     void handleSocketError(QAbstractSocket::SocketError);
@@ -68,16 +68,16 @@ private:
 public slots:
     void showChatWindow(qint64 = -1);
     void hideChatWindow(qint64 = -1);
-    void sendChatMessage(const QString &);
-    void sendNotification(const QString &);
+    void sendChatMessage(const QString &, int timestamp = -1);
+    void sendNotification(const QString &, int timestamp = -1);
 protected slots:
-    void handleMessageArrived(const QVariantMap &);
+    void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
 signals:
     void chatWindowShown();
     void chatWindowHidden();
-    void chatMessage(const QString &);
-    void notification(const QString &);
+    void chatMessage(const QString &, int);
+    void notification(const QString &, int);
     void historyRequest(qint64);
     void history(const QStringList &);
 };

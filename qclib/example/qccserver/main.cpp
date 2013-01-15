@@ -5,6 +5,7 @@
 #include <QSqlError>
 #include "qc.h"
 
+// ### Define these in a central place:
 #define CHATMESSAGE 0
 #define NOTIFICATION 1
 
@@ -45,8 +46,8 @@ public:
         : cchannels(cchannels)
         , db(db)
     {
-        connect(cchannels, SIGNAL(chatMessage(const QString &)), SLOT(chatMessage(const QString &)));
-        connect(cchannels, SIGNAL(notification(const QString &)), SLOT(notification(const QString &)));
+        connect(cchannels, SIGNAL(chatMessage(const QString &, int)), SLOT(chatMessage(const QString &)));
+        connect(cchannels, SIGNAL(notification(const QString &, int)), SLOT(notification(const QString &)));
         connect(cchannels, SIGNAL(historyRequest(qint64)), SLOT(historyRequest(qint64)));
     }
 
@@ -54,11 +55,10 @@ private:
     QCClientChannels *cchannels; // qclserver channels
     QSqlDatabase *db;
 
-    void appendToDatabase(int type, const QString &msg)
+    void appendToDatabase(int type, int timestamp, const QString &msg)
     {
         Q_ASSERT(db);
         Q_ASSERT(db->isOpen());
-        uint timestamp = QDateTime::currentDateTime().toTime_t();
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db));
         QString query_s = QString(
             "INSERT INTO log (timestamp, type, value) VALUES (%1, %2, '%3');").arg(timestamp).arg(type).arg(msg);
@@ -85,7 +85,7 @@ private:
              const int timestamp = query->value(0).toInt();
              const int type = query->value(1).toInt();
              const QString value = query->value(2).toString();
-             h << QString("%1 %2 %3").arg(timestamp).arg(type).arg(value);
+             h << QString("%1 %2 %3").arg(type).arg(timestamp).arg(value);
         }
         return h;
     }
@@ -94,20 +94,22 @@ private slots:
     void chatMessage(const QString &msg)
     {
         qDebug() << "chat message (from a qclserver):" << msg;
-        cchannels->sendChatMessage(msg); // forward to all qclservers
-        appendToDatabase(CHATMESSAGE, msg);
+        const int timestamp = QDateTime::currentDateTime().toTime_t();
+        cchannels->sendChatMessage(msg, timestamp); // forward to all qclservers
+        appendToDatabase(CHATMESSAGE, timestamp, msg);
     }
 
     void notification(const QString &msg)
     {
         qDebug() << "notification (from a qclserver):" << msg;
-        cchannels->sendNotification(msg); // forward to all qclservers
-        appendToDatabase(NOTIFICATION, msg);
+        const int timestamp = QDateTime::currentDateTime().toTime_t();
+        cchannels->sendNotification(msg, timestamp); // forward to all qclservers
+        appendToDatabase(NOTIFICATION, timestamp, msg);
     }
 
     void historyRequest(qint64 qclserver)
     {
-        qDebug() << QString("history request (from qclserver %1)").arg(qclserver).toLatin1().data();
+        qDebug() << QString("history request (from qclserver channel %1)").arg(qclserver).toLatin1().data();
 //        QStringList h = QStringList() << "chat msg 1" << "chat msg 2" << "notification 1" << "chat msg 3";
         QStringList h = getHistoryFromDatabase();
         cchannels->sendHistory(h, qclserver);

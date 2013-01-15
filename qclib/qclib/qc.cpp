@@ -109,7 +109,7 @@ void QCChannel::readyRead()
     dstream >> msg;
 
     //qDebug() << "msg arrived:" << msg;
-    emit messageArrived(msg);
+    emit messageArrived(id(), msg);
 }
 
 void QCChannel::handleSocketError(QAbstractSocket::SocketError)
@@ -181,23 +181,25 @@ void QCBase::hideChatWindow(qint64 qcapp)
     sendMessage(msg);
 }
 
-void QCBase::sendChatMessage(const QString &m)
+void QCBase::sendChatMessage(const QString &m, int timestamp)
 {
     QVariantMap msg;
     msg.insert("type", ChatMsg);
     msg.insert("value", m);
+    msg.insert("timestamp", timestamp);
     sendMessage(msg);
 }
 
-void QCBase::sendNotification(const QString &m)
+void QCBase::sendNotification(const QString &m, int timestamp)
 {
     QVariantMap msg;
     msg.insert("type", Notification);
     msg.insert("value", m);
+    msg.insert("timestamp", timestamp);
     sendMessage(msg);
 }
 
-void QCBase::handleMessageArrived(const QVariantMap &msg)
+void QCBase::handleMessageArrived(qint64 channelId, const QVariantMap &msg)
 {
     Q_ASSERT(!msg.contains("type"));
     bool ok;
@@ -212,13 +214,14 @@ void QCBase::handleMessageArrived(const QVariantMap &msg)
         emit chatWindowHidden();
     } else if (type == ChatMsg) {
         Q_ASSERT(msg.value("value").canConvert(QVariant::String));
-        emit chatMessage(msg.value("value").toString());
+        Q_ASSERT(msg.value("timestamp").canConvert(QVariant::Int));
+        emit chatMessage(msg.value("value").toString(), msg.value("timestamp").toInt());
     } else if (type == Notification) {
         Q_ASSERT(msg.value("value").canConvert(QVariant::String));
-        emit notification(msg.value("value").toString());
+        Q_ASSERT(msg.value("timestamp").canConvert(QVariant::Int));
+        emit notification(msg.value("value").toString(), msg.value("timestamp").toInt());
     } else if (type == HistoryRequest) {
-        Q_ASSERT(msg.value("qclserver").canConvert(QVariant::LongLong));
-        emit historyRequest(msg.value("qclserver").toLongLong());
+        emit historyRequest(channelId);
     } else if (type == History) {
         Q_ASSERT(msg.value("value").canConvert(QVariant::StringList));
         emit history(msg.value("value").toStringList());
@@ -252,7 +255,9 @@ bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
         setLastError(channel->lastError());
         return false;
     }
-    connect(channel, SIGNAL(messageArrived(const QVariantMap &)), SLOT(handleMessageArrived(const QVariantMap &)));
+    connect(
+        channel, SIGNAL(messageArrived(qint64, const QVariantMap &)),
+        SLOT(handleMessageArrived(qint64, const QVariantMap &)));
     connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
     connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
     return true;
@@ -335,7 +340,9 @@ void QCClientChannels::sendMessage(const QVariantMap &msg)
 void QCClientChannels::handleChannelConnected(QCChannel *channel)
 {
     qDebug() << "new client connected:" << channel->peerInfo().toLatin1().data();
-    connect(channel, SIGNAL(messageArrived(const QVariantMap &)), SLOT(handleMessageArrived(const QVariantMap &)));
+    connect(
+        channel, SIGNAL(messageArrived(qint64, const QVariantMap &)),
+        SLOT(handleMessageArrived(qint64, const QVariantMap &)));
     connect(channel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
     connect(channel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
     channels_.insert(channel->id(), channel);

@@ -8,11 +8,11 @@ class Window : public QWidget
     Q_OBJECT
 public:
     Window(QCServerChannel *schannel)
-        : schannel(schannel)
-        , showButton(0)
-        , hideButton(0)
-        , notifyButton(0)
-        , notifyEdit(0)
+        : schannel_(schannel)
+        , showButton_(0)
+        , hideButton_(0)
+        , notifyButton_(0)
+        , notifyEdit_(0)
     {
         QVBoxLayout *layout = new QVBoxLayout;
 
@@ -21,23 +21,23 @@ public:
         label->setAlignment(Qt::AlignCenter);
         layout->addWidget(label);
 
-        showButton = new QPushButton("show chat window");
-        showButton->setEnabled(false);
-        connect(showButton, SIGNAL(clicked()), schannel, SLOT(showChatWindow()));
-        layout->addWidget(showButton);
+        showButton_ = new QPushButton("show chat window");
+        showButton_->setEnabled(false);
+        connect(showButton_, SIGNAL(clicked()), schannel_, SLOT(showChatWindow()));
+        layout->addWidget(showButton_);
 
-        hideButton = new QPushButton("hide chat window");
-        hideButton->setEnabled(false);
-        connect(hideButton, SIGNAL(clicked()), schannel, SLOT(hideChatWindow()));
-        layout->addWidget(hideButton);
+        hideButton_ = new QPushButton("hide chat window");
+        hideButton_->setEnabled(false);
+        connect(hideButton_, SIGNAL(clicked()), schannel_, SLOT(hideChatWindow()));
+        layout->addWidget(hideButton_);
 
         QHBoxLayout *layout2 = new QHBoxLayout;
-        notifyButton = new QPushButton("send notification:");
-        connect(notifyButton, SIGNAL(clicked()), SLOT(sendNotification()));
-        layout2->addWidget(notifyButton);
-        notifyEdit = new QLineEdit();
-        connect(notifyEdit, SIGNAL(returnPressed()), SLOT(sendNotification()));
-        layout2->addWidget(notifyEdit);
+        notifyButton_ = new QPushButton("send notification:");
+        connect(notifyButton_, SIGNAL(clicked()), SLOT(sendNotification()));
+        layout2->addWidget(notifyButton_);
+        notifyEdit_ = new QLineEdit();
+        connect(notifyEdit_, SIGNAL(returnPressed()), SLOT(sendNotification()));
+        layout2->addWidget(notifyEdit_);
 
         layout->addLayout(layout2);
 
@@ -48,48 +48,48 @@ public:
         setLayout(layout);
         setMinimumWidth(600);
 
-        connect(schannel, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
-        connect(schannel, SIGNAL(chatWindowShown()), SLOT(showChatWindow()));
-        connect(schannel, SIGNAL(chatWindowHidden()), SLOT(hideChatWindow()));
-        connect(schannel, SIGNAL(notification(const QString &)), SLOT(notification(const QString &)));
+        connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
+        connect(schannel_, SIGNAL(chatWindowShown()), SLOT(showChatWindow()));
+        connect(schannel_, SIGNAL(chatWindowHidden()), SLOT(hideChatWindow()));
+        connect(schannel_, SIGNAL(notification(const QString &, int)), SLOT(notification(const QString &, int)));
     }
 
 private:
-    QCServerChannel *schannel;
-    QPushButton *showButton;
-    QPushButton *hideButton;
-    QPushButton *notifyButton;
-    QLineEdit *notifyEdit;
+    QCServerChannel *schannel_;
+    QPushButton *showButton_;
+    QPushButton *hideButton_;
+    QPushButton *notifyButton_;
+    QLineEdit *notifyEdit_;
 
 private slots:
     void sendNotification()
     {
-        schannel->sendNotification(notifyEdit->text());
+        schannel_->sendNotification(notifyEdit_->text());
     }
 
     void serverDisconnected()
     {
-        showButton->setEnabled(false);
-        hideButton->setEnabled(false);
-        notifyButton->setEnabled(false);
-        notifyEdit->setEnabled(false);
+        showButton_->setEnabled(false);
+        hideButton_->setEnabled(false);
+        notifyButton_->setEnabled(false);
+        notifyEdit_->setEnabled(false);
     }
 
     void showChatWindow()
     {
-        showButton->setEnabled(false);
-        hideButton->setEnabled(true);
+        showButton_->setEnabled(false);
+        hideButton_->setEnabled(true);
     }
 
     void hideChatWindow()
     {
-        showButton->setEnabled(true);
-        hideButton->setEnabled(false);
+        showButton_->setEnabled(true);
+        hideButton_->setEnabled(false);
     }
 
-    void notification(const QString &msg)
+    void notification(const QString &msg, int timestamp)
     {
-        qDebug() << "notification:" << msg;
+        qDebug() << QString("notification (at timestamp %1): %2").arg(timestamp).arg(msg).toLatin1().data();
     }
 };
 

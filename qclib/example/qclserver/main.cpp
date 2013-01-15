@@ -3,13 +3,17 @@
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qc.h"
 
+// ### Define these in a central place:
+#define CHATMESSAGE 0
+#define NOTIFICATION 1
+
 class ChatWindow : public QWidget
 {
     Q_OBJECT
 public:
     ChatWindow()
-        : log(0)
-        , edit(0)
+        : log_(0)
+        , edit_(0)
     {
         QVBoxLayout *layout = new QVBoxLayout;
 
@@ -18,31 +22,53 @@ public:
         label->setAlignment(Qt::AlignCenter);
         layout->addWidget(label);
 
-        log = new QListWidget;
-        layout->addWidget(log);
+        log_ = new QListWidget;
+        log_->show(); // to ensure scrollToBottom() has effect initially
+        layout->addWidget(log_);
 
-        edit = new QLineEdit;
-        connect(edit, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
+        edit_ = new QLineEdit;
+        connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
 
-        layout->addWidget(edit);
+        layout->addWidget(edit_);
 
         setLayout(layout);
         resize(500, 300);
     }
 
-    void appendChatMessage(const QString &msg)
+    void appendEvent(int type, int timestamp, const QString &text)
     {
-        qDebug() << QString("ChatWindow::appendChatMessage(%1) ... (2 B IMPLEMENTED)").arg(msg).toLatin1().data();
+        log_->addItem(formatEvent(type, timestamp, text));
+        log_->scrollToBottom();
     }
 
+    // Prepends history (i.e. in front of any individual chat messages that may have arrived
+    // in the meantime!)
     void prependHistory(const QStringList &h)
     {
-        qDebug() << QString("ChatWindow::prependHistory(...) ... (2 B IMPLEMENTED)");
+        QRegExp rx("^(\\d+)\\s+(\\d+)\\s+(.*)$");
+        QStringList events;
+        QListIterator<QString> it(h);
+        while (it.hasNext()) {
+            QString item = it.next();
+            if (rx.indexIn(item) == -1)
+                qFatal("regexp mismatch: %s", item.toLatin1().data());
+            const int type = rx.cap(1).toInt();
+            const int timestamp = rx.cap(2).toInt();
+            const QString text = rx.cap(3);
+            events << formatEvent(type, timestamp, text);
+        }
+
+        prependFormattedEvents(events);
+    }
+
+    void scrollToBottom()
+    {
+        log_->scrollToBottom();
     }
 
 private:
-    QListWidget *log;
-    QLineEdit *edit;
+    QListWidget *log_;
+    QLineEdit *edit_;
 
     void closeEvent(QCloseEvent *event)
     {
@@ -61,11 +87,22 @@ private:
         emit windowHidden();
     }
 
+    QString formatEvent(int type, int timestamp, const QString &text) const
+    {
+        return QString("[%1] [%2]  %3").arg(type).arg(timestamp).arg(text);
+    }
+
+    void prependFormattedEvents(const QStringList &events)
+    {
+        log_->insertItems(0, events);
+        log_->scrollToBottom();
+    }
+
 private slots:
     void sendChatMessage()
     {
-        const QString msg = edit->text().trimmed();
-        edit->clear();
+        const QString msg = edit_->text().trimmed();
+        edit_->clear();
         if (!msg.isEmpty())
             emit chatMessage(msg);
     }
@@ -89,11 +126,13 @@ public:
         connect(cchannels, SIGNAL(chatWindowShown()), window, SLOT(show()));
         connect(cchannels, SIGNAL(chatWindowHidden()), window, SLOT(hide()));
         connect(
-            cchannels, SIGNAL(notification(const QString &)),
+            cchannels, SIGNAL(notification(const QString &, int)),
             SLOT(localNotification(const QString &)));
 
-        connect(schannel, SIGNAL(chatMessage(const QString &)), SLOT(centralChatMessage(const QString &)));
-        connect(schannel, SIGNAL(notification(const QString &)), SLOT(centralNotification(const QString &)));
+        connect(
+            schannel, SIGNAL(chatMessage(const QString &, int)), SLOT(centralChatMessage(const QString &, int)));
+        connect(
+            schannel, SIGNAL(notification(const QString &, int)), SLOT(centralNotification(const QString &, int)));
         connect(schannel, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
 
         connect(window, SIGNAL(windowShown()), SLOT(showChatWindow()));
@@ -120,28 +159,29 @@ private slots:
 
     void localNotification(const QString &msg)
     {
-        qDebug() << "notification (from a local qcapp):" << msg;
+        //qDebug() << "notification (from a local qcapp):" << msg;
         schannel->sendNotification(msg);
     }
 
-    void centralChatMessage(const QString &msg)
+    void centralChatMessage(const QString &msg, int timestamp)
     {
-        qDebug() << "chat message (from qccserver):" << msg;
-        window->appendChatMessage(msg);
+        //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << msg;
+        window->appendEvent(CHATMESSAGE, timestamp, msg);
+        window->scrollToBottom();
     }
 
-    void centralNotification(const QString &msg)
+    void centralNotification(const QString &msg, int timestamp)
     {
-        qDebug() << "notification (from qccserver):" << msg;
-        cchannels->sendNotification(msg);
+        //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << msg;
+        cchannels->sendNotification(msg, timestamp);
+        window->appendEvent(NOTIFICATION, timestamp, msg);
+        window->scrollToBottom();
     }
 
     void history(const QStringList &h)
     {
-        qDebug() << "history (from qccserver):" << h;
+        //qDebug() << "history (from qccserver):" << h;
         window->prependHistory(h);
-        // *prepend* in chat window (i.e. in front of any individual chat messages that may have arrived
-        // in the meantime!)
     }
 
     void showChatWindow()
@@ -156,7 +196,7 @@ private slots:
 
     void localChatMessage(const QString &msg)
     {
-        qDebug() << "chat message (from local window):" << msg;
+        //qDebug() << "chat message (from local window):" << msg;
         schannel->sendChatMessage(msg);
     }
 };
