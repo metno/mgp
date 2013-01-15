@@ -59,18 +59,35 @@ private:
         Q_ASSERT(db);
         Q_ASSERT(db->isOpen());
         uint timestamp = QDateTime::currentDateTime().toTime_t();
-        QSqlQuery *query = new QSqlQuery(*db);
-        db->transaction();
+        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db));
         QString query_s = QString(
             "INSERT INTO log (timestamp, type, value) VALUES (%1, %2, '%3');").arg(timestamp).arg(type).arg(msg);
-        if (!query->exec(query_s)) {
-            qDebug() << "query failed:" << query->lastError().text().trimmed();
-            // hm ... maybe this is only required for a SELECT:
-            // if (query->isActive())
-            //     query->finish();
-        }
-
+        db->transaction();
+        if (!query->exec(query_s))
+            qWarning(
+                "WARNING: query '%s' failed: %s",
+                query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
         db->commit();
+    }
+
+    QStringList getHistoryFromDatabase()
+    {
+        Q_ASSERT(db);
+        Q_ASSERT(db->isOpen());
+        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db));
+        QString query_s = QString("SELECT timestamp, type, value FROM log ORDER BY timestamp;");
+        QStringList h;
+        if (!query->exec(query_s)) {
+            qWarning(
+                "WARNING: query '%s' failed: %s",
+                query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
+        } else while (query->next()) {
+             const int timestamp = query->value(0).toInt();
+             const int type = query->value(1).toInt();
+             const QString value = query->value(2).toString();
+             h << QString("%1 %2 %3").arg(timestamp).arg(type).arg(value);
+        }
+        return h;
     }
 
 private slots:
@@ -91,8 +108,8 @@ private slots:
     void historyRequest(qint64 qclserver)
     {
         qDebug() << QString("history request (from qclserver %1)").arg(qclserver).toLatin1().data();
-        // for now (eventually extract from DB):
-        QStringList h = QStringList() << "chat msg 1" << "chat msg 2" << "notification 1" << "chat msg 3";
+//        QStringList h = QStringList() << "chat msg 1" << "chat msg 2" << "notification 1" << "chat msg 3";
+        QStringList h = getHistoryFromDatabase();
         cchannels->sendHistory(h, qclserver);
     }
 };

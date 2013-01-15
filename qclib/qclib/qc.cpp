@@ -71,7 +71,7 @@ void QCChannel::sendMessage(const QVariantMap &msg)
 {
     if (!socket_) {
         const char *emsg = "socket not connected";
-        qWarning("%s", emsg);
+        qWarning("WARNING: %s", emsg);
         setLastError(emsg);
         return;
     }
@@ -271,7 +271,7 @@ void QCServerChannel::sendMessage(const QVariantMap &msg)
 {
     if (!channel) {
         const char *emsg = "channel not connected";
-        qWarning("%s", emsg);
+        qWarning("WARNING: %s", emsg);
         setLastError(emsg);
         return;
     }
@@ -305,7 +305,7 @@ bool QCClientChannels::listen(const qint16 port)
 void QCClientChannels::sendHistory(const QStringList &h, qint64 qclserver)
 {
     if (!channels_.contains(qclserver)) {
-        qWarning("QCClientChannels::sendHistory(): qclserver %lld no longer connected", qclserver);
+        qWarning("WARNING: QCClientChannels::sendHistory(): qclserver %lld no longer connected", qclserver);
         return;
     }
 
@@ -322,7 +322,7 @@ void QCClientChannels::sendMessage(const QVariantMap &msg)
     qint64 client = msg.value("client").toLongLong(&ok);
     if (ok && (client >= 0)) {
         if (!channels_.contains(client)) {
-            qWarning("QCClientChannels::sendMessages(): client %lld no longer connected", client);
+            qWarning("WARNING: QCClientChannels::sendMessages(): client %lld no longer connected", client);
             return;
         }
         channels_.value(client)->sendMessage(msg);
