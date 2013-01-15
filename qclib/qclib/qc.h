@@ -4,6 +4,10 @@
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QtNetwork> // ### TODO: include relevant headers only
 
+// Chat event types
+#define CHATMESSAGE 0
+#define NOTIFICATION 1
+
 // ### Warning: This class is not reentrant!
 class QCChannel : public QObject
 {

@@ -5,10 +5,6 @@
 #include <QSqlError>
 #include "qc.h"
 
-// ### Define these in a central place:
-#define CHATMESSAGE 0
-#define NOTIFICATION 1
-
 static bool initDatabase(const QString &dbfile, QString *error)
 {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");

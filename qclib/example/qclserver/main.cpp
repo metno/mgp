@@ -3,10 +3,6 @@
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qc.h"
 
-// ### Define these in a central place:
-#define CHATMESSAGE 0
-#define NOTIFICATION 1
-
 class ChatWindow : public QWidget
 {
     Q_OBJECT
@@ -15,6 +11,7 @@ public:
         : log_(0)
         , edit_(0)
     {
+
         QVBoxLayout *layout = new QVBoxLayout;
 
         QLabel *label = new QLabel("CHAT WINDOW MOCKUP");
