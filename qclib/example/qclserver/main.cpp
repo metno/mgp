@@ -118,86 +118,88 @@ class Interactor : public QObject
     Q_OBJECT
 public:
     Interactor(QCClientChannels *cchannels, QCServerChannel *schannel, ChatWindow *window)
-        : cchannels(cchannels)
-        , schannel(schannel)
-        , window(window)
+        : cchannels_(cchannels)
+        , schannel_(schannel)
+        , window_(window)
     {
-        connect(cchannels, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
-        connect(cchannels, SIGNAL(chatWindowShown()), window, SLOT(show()));
-        connect(cchannels, SIGNAL(chatWindowHidden()), window, SLOT(hide()));
+        connect(cchannels_, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
+        connect(cchannels_, SIGNAL(chatWindowShown()), window_, SLOT(show()));
+        connect(cchannels_, SIGNAL(chatWindowHidden()), window_, SLOT(hide()));
         connect(
-            cchannels, SIGNAL(notification(const QString &, int)),
+            cchannels_, SIGNAL(notification(const QString &, int)),
             SLOT(localNotification(const QString &)));
 
         connect(
-            schannel, SIGNAL(chatMessage(const QString &, int)), SLOT(centralChatMessage(const QString &, int)));
+            schannel_, SIGNAL(chatMessage(const QString &, int)),
+            SLOT(centralChatMessage(const QString &, int)));
         connect(
-            schannel, SIGNAL(notification(const QString &, int)), SLOT(centralNotification(const QString &, int)));
-        connect(schannel, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
+            schannel_, SIGNAL(notification(const QString &, int)),
+            SLOT(centralNotification(const QString &, int)));
+        connect(schannel_, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
 
-        connect(window, SIGNAL(windowShown()), SLOT(showChatWindow()));
-        connect(window, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
-        connect(window, SIGNAL(chatMessage(const QString &)), SLOT(localChatMessage(const QString &)));
+        connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
+        connect(window_, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
+        connect(window_, SIGNAL(chatMessage(const QString &)), SLOT(localChatMessage(const QString &)));
 
-        schannel->sendHistoryRequest();
+        schannel_->sendHistoryRequest();
     }
 
 private:
-    QCClientChannels *cchannels; // qcapp channels
-    QCServerChannel *schannel; // qccserver channel
-    ChatWindow *window;
+    QCClientChannels *cchannels_; // qcapp channels
+    QCServerChannel *schannel_; // qccserver channel
+    ChatWindow *window_;
 
 private slots:
     void clientConnected(qint64 id)
     {
         // inform about current chat window visibility
-        if (window->isVisible())
-            cchannels->showChatWindow(id);
+        if (window_->isVisible())
+            cchannels_->showChatWindow(id);
         else
-            cchannels->hideChatWindow(id);
+            cchannels_->hideChatWindow(id);
     }
 
     void localNotification(const QString &msg)
     {
         //qDebug() << "notification (from a local qcapp):" << msg;
-        schannel->sendNotification(msg);
+        schannel_->sendNotification(msg);
     }
 
     void centralChatMessage(const QString &msg, int timestamp)
     {
         //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << msg;
-        window->appendEvent(CHATMESSAGE, timestamp, msg);
-        window->scrollToBottom();
+        window_->appendEvent(CHATMESSAGE, timestamp, msg);
+        window_->scrollToBottom();
     }
 
     void centralNotification(const QString &msg, int timestamp)
     {
         //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << msg;
-        cchannels->sendNotification(msg, timestamp);
-        window->appendEvent(NOTIFICATION, timestamp, msg);
-        window->scrollToBottom();
+        cchannels_->sendNotification(msg, timestamp);
+        window_->appendEvent(NOTIFICATION, timestamp, msg);
+        window_->scrollToBottom();
     }
 
     void history(const QStringList &h)
     {
         //qDebug() << "history (from qccserver):" << h;
-        window->prependHistory(h);
+        window_->prependHistory(h);
     }
 
     void showChatWindow()
     {
-        cchannels->showChatWindow();
+        cchannels_->showChatWindow();
     }
 
     void hideChatWindow()
     {
-        cchannels->hideChatWindow();
+        cchannels_->hideChatWindow();
     }
 
     void localChatMessage(const QString &msg)
     {
         //qDebug() << "chat message (from local window):" << msg;
-        schannel->sendChatMessage(msg);
+        schannel_->sendChatMessage(msg);
     }
 };
 

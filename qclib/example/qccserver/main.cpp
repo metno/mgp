@@ -43,38 +43,38 @@ class Interactor : public QObject
     Q_OBJECT
 public:
     Interactor(QCClientChannels *cchannels, QSqlDatabase *db)
-        : cchannels(cchannels)
-        , db(db)
+        : cchannels_(cchannels)
+        , db_(db)
     {
-        connect(cchannels, SIGNAL(chatMessage(const QString &, int)), SLOT(chatMessage(const QString &)));
-        connect(cchannels, SIGNAL(notification(const QString &, int)), SLOT(notification(const QString &)));
-        connect(cchannels, SIGNAL(historyRequest(qint64)), SLOT(historyRequest(qint64)));
+        connect(cchannels_, SIGNAL(chatMessage(const QString &, int)), SLOT(chatMessage(const QString &)));
+        connect(cchannels_, SIGNAL(notification(const QString &, int)), SLOT(notification(const QString &)));
+        connect(cchannels_, SIGNAL(historyRequest(qint64)), SLOT(historyRequest(qint64)));
     }
 
 private:
-    QCClientChannels *cchannels; // qclserver channels
-    QSqlDatabase *db;
+    QCClientChannels *cchannels_; // qclserver channels
+    QSqlDatabase *db_;
 
     void appendToDatabase(int type, int timestamp, const QString &msg)
     {
-        Q_ASSERT(db);
-        Q_ASSERT(db->isOpen());
-        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db));
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
         QString query_s = QString(
             "INSERT INTO log (timestamp, type, value) VALUES (%1, %2, '%3');").arg(timestamp).arg(type).arg(msg);
-        db->transaction();
+        db_->transaction();
         if (!query->exec(query_s))
             qWarning(
                 "WARNING: query '%s' failed: %s",
                 query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
-        db->commit();
+        db_->commit();
     }
 
     QStringList getHistoryFromDatabase()
     {
-        Q_ASSERT(db);
-        Q_ASSERT(db->isOpen());
-        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db));
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
         QString query_s = QString("SELECT timestamp, type, value FROM log ORDER BY timestamp;");
         QStringList h;
         if (!query->exec(query_s)) {
@@ -95,7 +95,7 @@ private slots:
     {
         qDebug() << "chat message (from a qclserver):" << msg;
         const int timestamp = QDateTime::currentDateTime().toTime_t();
-        cchannels->sendChatMessage(msg, timestamp); // forward to all qclservers
+        cchannels_->sendChatMessage(msg, timestamp); // forward to all qclservers
         appendToDatabase(CHATMESSAGE, timestamp, msg);
     }
 
@@ -103,7 +103,7 @@ private slots:
     {
         qDebug() << "notification (from a qclserver):" << msg;
         const int timestamp = QDateTime::currentDateTime().toTime_t();
-        cchannels->sendNotification(msg, timestamp); // forward to all qclservers
+        cchannels_->sendNotification(msg, timestamp); // forward to all qclservers
         appendToDatabase(NOTIFICATION, timestamp, msg);
     }
 
@@ -112,7 +112,7 @@ private slots:
         qDebug() << QString("history request (from qclserver channel %1)").arg(qclserver).toLatin1().data();
 //        QStringList h = QStringList() << "chat msg 1" << "chat msg 2" << "notification 1" << "chat msg 3";
         QStringList h = getHistoryFromDatabase();
-        cchannels->sendHistory(h, qclserver);
+        cchannels_->sendHistory(h, qclserver);
     }
 };
 
