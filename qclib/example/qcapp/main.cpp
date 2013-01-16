@@ -51,7 +51,9 @@ public:
         connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
         connect(schannel_, SIGNAL(chatWindowShown()), SLOT(showChatWindow()));
         connect(schannel_, SIGNAL(chatWindowHidden()), SLOT(hideChatWindow()));
-        connect(schannel_, SIGNAL(notification(const QString &, int)), SLOT(notification(const QString &, int)));
+        connect(
+            schannel_, SIGNAL(notification(const QString &, const QString &, int)),
+            SLOT(notification(const QString &, const QString &, int)));
     }
 
 private:
@@ -87,9 +89,10 @@ private slots:
         hideButton_->setEnabled(false);
     }
 
-    void notification(const QString &msg, int timestamp)
+    void notification(const QString &text, const QString &user, int timestamp)
     {
-        qDebug() << QString("notification (at timestamp %1): %2").arg(timestamp).arg(msg).toLatin1().data();
+        qDebug() << QString("notification (user %1, timestamp %2): %3")
+            .arg(user).arg(timestamp).arg(text).toLatin1().data();
     }
 };
 

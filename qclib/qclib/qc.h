@@ -4,7 +4,7 @@
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QtNetwork> // ### TODO: include relevant headers only
 
-// Chat event types
+// Chat event types (### maybe define these somewhere else?)
 #define CHATMESSAGE 0
 #define NOTIFICATION 1
 
@@ -72,16 +72,16 @@ private:
 public slots:
     void showChatWindow(qint64 = -1);
     void hideChatWindow(qint64 = -1);
-    void sendChatMessage(const QString &, int timestamp = -1);
-    void sendNotification(const QString &, int timestamp = -1);
+    void sendChatMessage(const QString &, const QString &, int timestamp = -1);
+    void sendNotification(const QString &, const QString & = QString(), int timestamp = -1);
 protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
 signals:
     void chatWindowShown();
     void chatWindowHidden();
-    void chatMessage(const QString &, int);
-    void notification(const QString &, int);
+    void chatMessage(const QString &, const QString &, int);
+    void notification(const QString &, const QString &, int);
     void historyRequest(qint64);
     void history(const QStringList &);
 };

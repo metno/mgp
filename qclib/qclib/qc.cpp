@@ -181,21 +181,23 @@ void QCBase::hideChatWindow(qint64 qcapp)
     sendMessage(msg);
 }
 
-void QCBase::sendChatMessage(const QString &m, int timestamp)
+void QCBase::sendChatMessage(const QString &text, const QString &user, int timestamp)
 {
     QVariantMap msg;
-    msg.insert("type", ChatMsg);
-    msg.insert("value", m);
+    msg.insert("text", text);
+    msg.insert("user", user);
     msg.insert("timestamp", timestamp);
+    msg.insert("type", ChatMsg);
     sendMessage(msg);
 }
 
-void QCBase::sendNotification(const QString &m, int timestamp)
+void QCBase::sendNotification(const QString &text, const QString &user, int timestamp)
 {
     QVariantMap msg;
-    msg.insert("type", Notification);
-    msg.insert("value", m);
+    msg.insert("text", text);
+    msg.insert("user", user);
     msg.insert("timestamp", timestamp);
+    msg.insert("type", Notification);
     sendMessage(msg);
 }
 
@@ -213,13 +215,17 @@ void QCBase::handleMessageArrived(qint64 channelId, const QVariantMap &msg)
     } else if (type == HideChatWin) {
         emit chatWindowHidden();
     } else if (type == ChatMsg) {
-        Q_ASSERT(msg.value("value").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("text").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("user").canConvert(QVariant::String));
         Q_ASSERT(msg.value("timestamp").canConvert(QVariant::Int));
-        emit chatMessage(msg.value("value").toString(), msg.value("timestamp").toInt());
+        emit chatMessage(
+            msg.value("text").toString(), msg.value("user").toString(), msg.value("timestamp").toInt());
     } else if (type == Notification) {
-        Q_ASSERT(msg.value("value").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("text").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("user").canConvert(QVariant::String));
         Q_ASSERT(msg.value("timestamp").canConvert(QVariant::Int));
-        emit notification(msg.value("value").toString(), msg.value("timestamp").toInt());
+        emit notification(
+            msg.value("text").toString(), msg.value("user").toString(), msg.value("timestamp").toInt());
     } else if (type == HistoryRequest) {
         emit historyRequest(channelId);
     } else if (type == History) {

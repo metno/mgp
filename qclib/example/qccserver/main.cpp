@@ -23,9 +23,10 @@ static bool initDatabase(const QString &dbfile, QString *error)
     // log
     ok = query.exec(
         "CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT"
+        ", text TEXT NOT NULL"
+        ", user TEXT NOT NULL"
         ", timestamp INTEGER NOT NULL"
-        ", type INTEGER NOT NULL"
-        ", value TEXT NOT NULL);");
+        ", type INTEGER NOT NULL);");
     Q_ASSERT(ok);
 
     // *** Create indexes ***
@@ -42,8 +43,12 @@ public:
         : cchannels_(cchannels)
         , db_(db)
     {
-        connect(cchannels_, SIGNAL(chatMessage(const QString &, int)), SLOT(chatMessage(const QString &)));
-        connect(cchannels_, SIGNAL(notification(const QString &, int)), SLOT(notification(const QString &)));
+        connect(
+            cchannels_, SIGNAL(chatMessage(const QString &, const QString &, int)),
+            SLOT(chatMessage(const QString &, const QString &)));
+        connect(
+            cchannels_, SIGNAL(notification(const QString &, const QString &, int)),
+            SLOT(notification(const QString &, const QString &)));
         connect(cchannels_, SIGNAL(historyRequest(qint64)), SLOT(historyRequest(qint64)));
     }
 
@@ -51,13 +56,14 @@ private:
     QCClientChannels *cchannels_; // qclserver channels
     QSqlDatabase *db_;
 
-    void appendToDatabase(int type, int timestamp, const QString &msg)
+    void appendToDatabase(const QString &text, const QString &user, int timestamp, int type)
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
         QString query_s = QString(
-            "INSERT INTO log (timestamp, type, value) VALUES (%1, %2, '%3');").arg(timestamp).arg(type).arg(msg);
+            "INSERT INTO log (text, user, timestamp, type) VALUES ('%1', '%2', %3, %4);")
+            .arg(text).arg(user).arg(timestamp).arg(type);
         db_->transaction();
         if (!query->exec(query_s))
             qWarning(
@@ -71,42 +77,42 @@ private:
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
-        QString query_s = QString("SELECT timestamp, type, value FROM log ORDER BY timestamp;");
+        QString query_s = QString("SELECT text, user, timestamp, type FROM log ORDER BY timestamp;");
         QStringList h;
         if (!query->exec(query_s)) {
             qWarning(
                 "WARNING: query '%s' failed: %s",
                 query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
         } else while (query->next()) {
-             const int timestamp = query->value(0).toInt();
-             const int type = query->value(1).toInt();
-             const QString value = query->value(2).toString();
-             h << QString("%1 %2 %3").arg(type).arg(timestamp).arg(value);
+             const QString text = query->value(0).toString();
+             const QString user = query->value(1).toString();
+             const int timestamp = query->value(2).toInt();
+             const int type = query->value(3).toInt();
+             h << QString("%1 %2 %3 %4").arg(user).arg(timestamp).arg(type).arg(text);
         }
         return h;
     }
 
 private slots:
-    void chatMessage(const QString &msg)
+    void chatMessage(const QString &text, const QString &user)
     {
-        qDebug() << "chat message (from a qclserver):" << msg;
+        qDebug() << QString("chat message (from a qclserver; user: %1): %2").arg(user).arg(text).toLatin1().data();
         const int timestamp = QDateTime::currentDateTime().toTime_t();
-        cchannels_->sendChatMessage(msg, timestamp); // forward to all qclservers
-        appendToDatabase(CHATMESSAGE, timestamp, msg);
+        cchannels_->sendChatMessage(text, user, timestamp); // forward to all qclservers
+        appendToDatabase(text, user, timestamp, CHATMESSAGE);
     }
 
-    void notification(const QString &msg)
+    void notification(const QString &text, const QString &user)
     {
-        qDebug() << "notification (from a qclserver):" << msg;
+        qDebug() << QString("notification (from a qclserver; user: %1): %2").arg(user).arg(text).toLatin1().data();
         const int timestamp = QDateTime::currentDateTime().toTime_t();
-        cchannels_->sendNotification(msg, timestamp); // forward to all qclservers
-        appendToDatabase(NOTIFICATION, timestamp, msg);
+        cchannels_->sendNotification(text, user, timestamp); // forward to all qclservers
+        appendToDatabase(text, user, timestamp, NOTIFICATION);
     }
 
     void historyRequest(qint64 qclserver)
     {
         qDebug() << QString("history request (from qclserver channel %1)").arg(qclserver).toLatin1().data();
-//        QStringList h = QStringList() << "chat msg 1" << "chat msg 2" << "notification 1" << "chat msg 3";
         QStringList h = getHistoryFromDatabase();
         cchannels_->sendHistory(h, qclserver);
     }

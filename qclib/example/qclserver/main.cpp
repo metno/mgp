@@ -32,9 +32,9 @@ public:
         resize(500, 300);
     }
 
-    void appendEvent(int type, int timestamp, const QString &text)
+    void appendEvent(const QString &text, const QString &user, int timestamp, int type)
     {
-        log_->addItem(formatEvent(type, timestamp, text));
+        log_->addItem(formatEvent(text, user, timestamp, type));
         log_->scrollToBottom();
     }
 
@@ -42,17 +42,18 @@ public:
     // in the meantime!)
     void prependHistory(const QStringList &h)
     {
-        QRegExp rx("^(\\d+)\\s+(\\d+)\\s+(.*)$");
+        QRegExp rx("^(\\S+)\\s+(\\d+)\\s+(\\d+)\\s+(.*)$");
         QStringList events;
         QListIterator<QString> it(h);
         while (it.hasNext()) {
             QString item = it.next();
             if (rx.indexIn(item) == -1)
                 qFatal("regexp mismatch: %s", item.toLatin1().data());
-            const int type = rx.cap(1).toInt();
+            const QString user = rx.cap(1);
             const int timestamp = rx.cap(2).toInt();
-            const QString text = rx.cap(3);
-            events << formatEvent(type, timestamp, text);
+            const int type = rx.cap(3).toInt();
+            const QString text = rx.cap(4);
+            events << formatEvent(text, user, timestamp, type);
         }
 
         prependFormattedEvents(events);
@@ -84,9 +85,9 @@ private:
         emit windowHidden();
     }
 
-    QString formatEvent(int type, int timestamp, const QString &text) const
+    QString formatEvent(const QString &text, const QString &user, int timestamp, int type) const
     {
-        return QString("[%1] [%2]  %3").arg(type).arg(timestamp).arg(text);
+        return QString("[%1] [%2] [%3]  %4").arg(type).arg(timestamp).arg(user).arg(text);
     }
 
     void prependFormattedEvents(const QStringList &events)
@@ -98,10 +99,10 @@ private:
 private slots:
     void sendChatMessage()
     {
-        const QString msg = edit_->text().trimmed();
+        const QString text = edit_->text().trimmed();
         edit_->clear();
-        if (!msg.isEmpty())
-            emit chatMessage(msg);
+        if (!text.isEmpty())
+            emit chatMessage(text);
     }
 
 signals:
@@ -119,19 +120,25 @@ public:
         , schannel_(schannel)
         , window_(window)
     {
+        user_ = qgetenv("USER");
+        if (user_.isEmpty()) {
+            qWarning("failed to extract string from environment variable USER; using '<unknown>'");
+            user_ = QString("<unknown>");
+        }
+
         connect(cchannels_, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
         connect(cchannels_, SIGNAL(chatWindowShown()), window_, SLOT(show()));
         connect(cchannels_, SIGNAL(chatWindowHidden()), window_, SLOT(hide()));
         connect(
-            cchannels_, SIGNAL(notification(const QString &, int)),
+            cchannels_, SIGNAL(notification(const QString &, const QString &, int)),
             SLOT(localNotification(const QString &)));
 
         connect(
-            schannel_, SIGNAL(chatMessage(const QString &, int)),
-            SLOT(centralChatMessage(const QString &, int)));
+            schannel_, SIGNAL(chatMessage(const QString &, const QString &, int)),
+            SLOT(centralChatMessage(const QString &, const QString &, int)));
         connect(
-            schannel_, SIGNAL(notification(const QString &, int)),
-            SLOT(centralNotification(const QString &, int)));
+            schannel_, SIGNAL(notification(const QString &, const QString &, int)),
+            SLOT(centralNotification(const QString &, const QString &, int)));
         connect(schannel_, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
 
         connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
@@ -145,6 +152,7 @@ private:
     QCClientChannels *cchannels_; // qcapp channels
     QCServerChannel *schannel_; // qccserver channel
     ChatWindow *window_;
+    QString user_;
 
 private slots:
     void clientConnected(qint64 id)
@@ -156,24 +164,24 @@ private slots:
             cchannels_->hideChatWindow(id);
     }
 
-    void localNotification(const QString &msg)
+    void localNotification(const QString &text)
     {
-        //qDebug() << "notification (from a local qcapp):" << msg;
-        schannel_->sendNotification(msg);
+        //qDebug() << "notification (from a local qcapp):" << text;
+        schannel_->sendNotification(text, user_);
     }
 
-    void centralChatMessage(const QString &msg, int timestamp)
+    void centralChatMessage(const QString &text, const QString &user, int timestamp)
     {
-        //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << msg;
-        window_->appendEvent(CHATMESSAGE, timestamp, msg);
+        //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << text;
+        window_->appendEvent(text, user, timestamp, CHATMESSAGE);
         window_->scrollToBottom();
     }
 
-    void centralNotification(const QString &msg, int timestamp)
+    void centralNotification(const QString &text, const QString &user, int timestamp)
     {
-        //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << msg;
-        cchannels_->sendNotification(msg, timestamp);
-        window_->appendEvent(NOTIFICATION, timestamp, msg);
+        //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << text;
+        cchannels_->sendNotification(text, user, timestamp);
+        window_->appendEvent(text, user, timestamp, NOTIFICATION);
         window_->scrollToBottom();
     }
 
@@ -193,10 +201,10 @@ private slots:
         cchannels_->hideChatWindow();
     }
 
-    void localChatMessage(const QString &msg)
+    void localChatMessage(const QString &text)
     {
-        //qDebug() << "chat message (from local window):" << msg;
-        schannel_->sendChatMessage(msg);
+        //qDebug() << "chat message (from local window):" << text;
+        schannel_->sendChatMessage(text, user_);
     }
 };
 
