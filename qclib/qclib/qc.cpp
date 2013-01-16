@@ -181,10 +181,19 @@ void QCBase::hideChatWindow(qint64 qcapp)
     sendMessage(msg);
 }
 
+static QString truncateText(const QString &text)
+{
+    const int maxSize = 1024;
+    if (text.size() <= maxSize)
+        return text;
+    qWarning("text too long (%d chars); truncating to %d chars", text.size(), maxSize);
+    return text.left(maxSize);
+}
+
 void QCBase::sendChatMessage(const QString &text, const QString &user, int timestamp)
 {
     QVariantMap msg;
-    msg.insert("text", text);
+    msg.insert("text", truncateText(text));
     msg.insert("user", user);
     msg.insert("timestamp", timestamp);
     msg.insert("type", ChatMsg);
@@ -194,7 +203,7 @@ void QCBase::sendChatMessage(const QString &text, const QString &user, int times
 void QCBase::sendNotification(const QString &text, const QString &user, int timestamp)
 {
     QVariantMap msg;
-    msg.insert("text", text);
+    msg.insert("text", truncateText(text));
     msg.insert("user", user);
     msg.insert("timestamp", timestamp);
     msg.insert("type", Notification);
