@@ -10,8 +10,8 @@ public:
     ChatWindow()
         : log_(0)
         , edit_(0)
+        , html_("<table></table>")
     {
-
         QVBoxLayout *layout = new QVBoxLayout;
 
         QLabel *label = new QLabel("CHAT WINDOW MOCKUP");
@@ -19,8 +19,10 @@ public:
         label->setAlignment(Qt::AlignCenter);
         layout->addWidget(label);
 
-        log_ = new QListWidget;
-        log_->show(); // to ensure scrollToBottom() has effect initially
+        log_ = new QTextBrowser;
+        log_->setHtml(html_);
+        log_->setReadOnly(true);
+        log_->setOpenExternalLinks(true);
         layout->addWidget(log_);
 
         edit_ = new QLineEdit;
@@ -29,19 +31,22 @@ public:
         layout->addWidget(edit_);
 
         setLayout(layout);
-        resize(500, 300);
+        resize(1000, 400);
     }
 
     void appendEvent(const QString &text, const QString &user, int timestamp, int type)
     {
-        log_->addItem(formatEvent(text, user, timestamp, type));
-        log_->scrollToBottom();
+        html_.insert(html_.lastIndexOf("</table>"), formatEvent(text, user, timestamp, type));
+        log_->setHtml(html_);
     }
 
-    // Prepends history (i.e. in front of any individual chat messages that may have arrived
+    // Prepends history (i.e. in front of any individual events that may have arrived
     // in the meantime!)
     void prependHistory(const QStringList &h)
     {
+        if (h.size() == 0)
+            return;
+
         QRegExp rx("^(\\S+)\\s+(\\d+)\\s+(\\d+)\\s+(.*)$");
         QStringList events;
         QListIterator<QString> it(h);
@@ -56,17 +61,19 @@ public:
             events << formatEvent(text, user, timestamp, type);
         }
 
-        prependFormattedEvents(events);
+        html_.insert(html_.indexOf("<table>") + QString("<table>").size(), events.join(""));
+        log_->setHtml(html_);
     }
 
     void scrollToBottom()
     {
-        log_->scrollToBottom();
+        log_->verticalScrollBar()->setValue(log_->verticalScrollBar()->maximum());
     }
 
 private:
-    QListWidget *log_;
+    QTextBrowser *log_;
     QLineEdit *edit_;
+    QString html_;
 
     void closeEvent(QCloseEvent *event)
     {
@@ -77,6 +84,7 @@ private:
 
     void showEvent(QShowEvent *)
     {
+        scrollToBottom();
         emit windowShown();
     }
 
@@ -85,15 +93,37 @@ private:
         emit windowHidden();
     }
 
-    QString formatEvent(const QString &text, const QString &user, int timestamp, int type) const
+    // Returns a version of \a s where hyperlinks are embedded in HTML <a> tags.
+    static QString toAnchorTagged(const QString &s)
     {
-        return QString("[%1] [%2] [%3]  %4").arg(type).arg(timestamp).arg(user).arg(text);
+        return QString(s).replace(
+            QRegExp("(http://\\S*)"), "<a href=\"\\1\" style=\"text-decoration: none;\">\\1</a>");
     }
 
-    void prependFormattedEvents(const QStringList &events)
+    static QString toTimeString(int timestamp)
     {
-        log_->insertItems(0, events);
-        log_->scrollToBottom();
+        return QDateTime::fromTime_t(timestamp).toString("yyyy MMM dd hh:mm:ss");
+    }
+
+    static QString formatEvent(const QString &text, const QString &user, int timestamp, int type)
+    {
+        QString userTdStyle("style=\"padding-left:20px\"");
+        QString textTdStyle("style=\"padding-left:2px\"");
+        QString s("<tr>");
+        s += QString("<td><span style=\"color:%1\">[%2]</span></td>").arg("#888").arg(toTimeString(timestamp));
+        s += QString("<td align=\"right\" %1><span style=\"color:%2\">&lt;%3&gt;</span></td>")
+            .arg(userTdStyle).arg("#000").arg(user);
+        if (type == CHATMESSAGE)
+            s += QString("<td %1><span style=\"color:black\">%2</span></td>")
+                .arg(textTdStyle).arg(toAnchorTagged(text));
+        else if (type == NOTIFICATION)
+            s += QString("<td %1><span style=\"color:%2\">%3</span></td>")
+                .arg(textTdStyle).arg("#916409").arg(toAnchorTagged(text));
+        else
+            qFatal("invalid type: %d", type);
+        s += "</tr>";
+
+        return s;
     }
 
 private slots:
