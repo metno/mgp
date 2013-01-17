@@ -56,6 +56,12 @@ private:
     QCClientChannels *cchannels_; // qclserver channels
     QSqlDatabase *db_;
 
+    // Returns a version of \a s with quotes escaped (to reduce possibility of SQL injection etc.).
+    static QString escapeQuotes(const QString &s)
+    {
+        return QString(s).replace(QRegExp("(')"), "''");
+    }
+
     void appendToDatabase(const QString &text, const QString &user, int timestamp, int type)
     {
         Q_ASSERT(db_);
@@ -63,7 +69,7 @@ private:
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
         QString query_s = QString(
             "INSERT INTO log (text, user, timestamp, type) VALUES ('%1', '%2', %3, %4);")
-            .arg(text).arg(user).arg(timestamp).arg(type);
+            .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(timestamp).arg(type);
         db_->transaction();
         if (!query->exec(query_s))
             qWarning(
