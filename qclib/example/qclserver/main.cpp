@@ -12,25 +12,50 @@ public:
         , edit_(0)
         , html_("<table></table>")
     {
-        QVBoxLayout *layout = new QVBoxLayout;
+        QHBoxLayout *layout1 = new QHBoxLayout;
 
-        QLabel *label = new QLabel("CHAT WINDOW MOCKUP");
-        label->setStyleSheet("QLabel { background-color : yellow; color : black; }");
-        label->setAlignment(Qt::AlignCenter);
-        layout->addWidget(label);
+        QVBoxLayout *layout2 = new QVBoxLayout;
+        layout1->addLayout(layout2);
+
+        QHBoxLayout *layout2_1 = new QHBoxLayout;
+        layout2->addLayout(layout2_1);
+        channelCBox_ = new QComboBox;
+        channelCBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        channelCBox_->addItem("channel A");
+        channelCBox_->addItem("channnnnel B");
+        layout2_1->addWidget(channelCBox_);
+        QLabel *label1 = new QLabel;
+        // QLabel *label1 = new QLabel("CHAT WINDOW MOCKUP");
+        // label1->setStyleSheet("QLabel { background-color : yellow; color : black; }");
+        label1->setAlignment(Qt::AlignCenter);
+        layout2_1->addWidget(label1);
 
         log_ = new QTextBrowser;
         log_->setHtml(html_);
         log_->setReadOnly(true);
         log_->setOpenExternalLinks(true);
-        layout->addWidget(log_);
-
+        log_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+        layout2->addWidget(log_);
         edit_ = new QLineEdit;
         connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
+        edit_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
+        layout2->addWidget(edit_);
 
-        layout->addWidget(edit_);
+        usersLayout_ = new QVBoxLayout;
+        layout1->addLayout(usersLayout_);
+        QLabel *label2 = new QLabel("Users");
+        label2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        //label2->setStyleSheet("QLabel { background-color : cyan; color : black; }");
+        label2->setAlignment(Qt::AlignLeft);
+        usersLayout_->addWidget(label2);
+        userList_ = new QListWidget;
+        userList_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+        userList_->setFixedWidth(100);
+        // userList_->addItem("joa");
+        // userList_->addItem("juergens");
+        usersLayout_->addWidget(userList_);
 
-        setLayout(layout);
+        setLayout(layout1);
         resize(1000, 400);
     }
 
@@ -71,6 +96,9 @@ public:
     }
 
 private:
+    QVBoxLayout *usersLayout_;
+    QComboBox *channelCBox_;
+    QListWidget *userList_;
     QTextBrowser *log_;
     QLineEdit *edit_;
     QString html_;
