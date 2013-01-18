@@ -18,7 +18,7 @@ public:
     qint64 id() const { return id_; }
     QString peerInfo() const { return peerInfo_; }
     bool connectToServer(const QString &, const quint16);
-    //void disconnect() { }; ### needed?
+    void close();
     bool isConnected() const;
     void sendMessage(const QVariantMap &);
     QString lastError() const;
@@ -64,7 +64,7 @@ public:
     QString lastError() const;
 protected:
     QCBase();
-    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification, HistoryRequest, History };
+    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, History, Users };
     void setLastError(const QString &);
 private:
     QString lastError_;
@@ -82,8 +82,9 @@ signals:
     void chatWindowHidden();
     void chatMessage(const QString &, const QString &, int);
     void notification(const QString &, const QString &, int);
-    void historyRequest(qint64);
+    void initialization(qint64, const QVariantMap &msg);
     void history(const QStringList &);
+    void users(const QStringList &);
 };
 
 // This class is instantiated in the client to handle the server channel.
@@ -93,9 +94,10 @@ class QCServerChannel : public QCBase
 public:
     QCServerChannel();
     bool connectToServer(const QString &, const quint16);
-    void sendHistoryRequest();
+    bool isConnected() const;
+    void initialize(const QVariantMap &msg);
 private:
-    QCChannel *channel;
+    QCChannel *channel_;
     virtual void sendMessage(const QVariantMap &);
 private slots:
     void handleChannelDisconnected();
@@ -110,7 +112,9 @@ class QCClientChannels : public QCBase
 public:
     QCClientChannels();
     bool listen(const qint16);
+    void close(qint64);
     void sendHistory(const QStringList &, qint64);
+    void sendUsers(const QStringList &);
 private:
     QCChannelServer server_;
     QMap<qint64, QCChannel *> channels_;
@@ -120,6 +124,7 @@ private slots:
     void handleChannelDisconnected();
 signals:
     void clientConnected(qint64);
+    void clientDisconnected(qint64);
 };
 
 #endif // QC_H

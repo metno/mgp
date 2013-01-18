@@ -90,6 +90,13 @@ public:
         log_->setHtml(html_);
     }
 
+    // Updates the list of currently connected users.
+    void setUsers(const QStringList &u)
+    {
+        userList_->clear();
+        userList_->insertItems(0, u);
+    }
+
     void scrollToBottom()
     {
         log_->verticalScrollBar()->setValue(log_->verticalScrollBar()->maximum());
@@ -191,6 +198,7 @@ public:
             cchannels_, SIGNAL(notification(const QString &, const QString &, int)),
             SLOT(localNotification(const QString &)));
 
+        connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
         connect(
             schannel_, SIGNAL(chatMessage(const QString &, const QString &, int)),
             SLOT(centralChatMessage(const QString &, const QString &, int)));
@@ -198,12 +206,15 @@ public:
             schannel_, SIGNAL(notification(const QString &, const QString &, int)),
             SLOT(centralNotification(const QString &, const QString &, int)));
         connect(schannel_, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
+        connect(schannel_, SIGNAL(users(const QStringList &)), SLOT(users(const QStringList &)));
 
         connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
         connect(window_, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
         connect(window_, SIGNAL(chatMessage(const QString &)), SLOT(localChatMessage(const QString &)));
 
-        schannel_->sendHistoryRequest();
+        QVariantMap msg;
+        msg.insert("user", user_);
+        schannel_->initialize(msg);
     }
 
 private:
@@ -213,8 +224,20 @@ private:
     QString user_;
 
 private slots:
+    void serverDisconnected()
+    {
+        qWarning("WARNING: central server disconnected");
+        qApp->exit(1);
+    }
+
     void clientConnected(qint64 id)
     {
+        if (!schannel_->isConnected()) {
+            qWarning("WARNING: central server not connected; disconnecting");
+            cchannels_->close(id);
+            return;
+        }
+
         // inform about current chat window visibility
         if (window_->isVisible())
             cchannels_->showChatWindow(id);
@@ -247,6 +270,11 @@ private slots:
     {
         //qDebug() << "history (from qccserver):" << h;
         window_->prependHistory(h);
+    }
+
+    void users(const QStringList &u)
+    {
+        window_->setUsers(u);
     }
 
     void showChatWindow()

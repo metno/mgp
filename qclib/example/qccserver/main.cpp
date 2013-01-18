@@ -49,12 +49,16 @@ public:
         connect(
             cchannels_, SIGNAL(notification(const QString &, const QString &, int)),
             SLOT(notification(const QString &, const QString &)));
-        connect(cchannels_, SIGNAL(historyRequest(qint64)), SLOT(historyRequest(qint64)));
+        connect(
+            cchannels_, SIGNAL(initialization(qint64, const QVariantMap &)),
+            SLOT(initialization(qint64, const QVariantMap &)));
+        connect(cchannels_, SIGNAL(clientDisconnected(qint64)), SLOT(clientDisconnected(qint64)));
     }
 
 private:
     QCClientChannels *cchannels_; // qclserver channels
     QSqlDatabase *db_;
+    QMap<qint64, QString> users_;
 
     // Returns a version of \a s with quotes escaped (to reduce possibility of SQL injection etc.).
     static QString escapeQuotes(const QString &s)
@@ -116,11 +120,33 @@ private slots:
         appendToDatabase(text, user, timestamp, NOTIFICATION);
     }
 
-    void historyRequest(qint64 qclserver)
+    void initialization(qint64 qclserver, const QVariantMap &msg)
     {
-        qDebug() << QString("history request (from qclserver channel %1)").arg(qclserver).toLatin1().data();
+        const QString user(msg.value("user").toString());
+        qDebug() << QString("initialization (from qclserver channel %1); user: %2")
+            .arg(qclserver).arg(user).toLatin1().data();
+
+        if (users_.values().contains(user)) {
+            qWarning("WARNING: user '%s' already joined; disconnecting", user.toLatin1().data());
+            cchannels_->close(qclserver);
+            return;
+        }
+
+        users_.insert(qclserver, user);
+
+        // inform all qclservers about the current users
+        cchannels_->sendUsers(users_.values());
+
+        // send history to this qclserver only
         QStringList h = getHistoryFromDatabase();
         cchannels_->sendHistory(h, qclserver);
+    }
+
+    void clientDisconnected(qint64 qclserver)
+    {
+        const QString user = users_.take(qclserver);
+        qDebug() << QString("user '%1' left").arg(user).toLatin1().data();
+        cchannels_->sendUsers(users_.values());
     }
 };
 
