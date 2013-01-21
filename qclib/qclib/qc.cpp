@@ -93,22 +93,25 @@ void QCChannel::readyRead()
         return;
     }
 
-    // receive as newline-terminated base64
-    msgbuf_.append(socket_->readLine());
-    if (msgbuf_.at(msgbuf_.size() - 1) != '\n')
-        return; // message not complete yet
+    msgbuf_.append(socket_->read(socket_->bytesAvailable()));
 
-    msgbuf_.chop(1); // strip trailing newline
-    QByteArray ba = QByteArray::fromBase64(msgbuf_); // decode
-    msgbuf_.clear(); // prepare reception of next message
+    while (true) {
+        const int nlPos = msgbuf_.indexOf('\n');
+        if (nlPos == -1)
+            return; // no complete message in buffer at this point
 
-    // deserialize into variant map
-    QDataStream dstream(ba);
-    QVariantMap msg;
-    dstream >> msg;
+        // extract first message from buffer
+        QByteArray ba = QByteArray::fromBase64(msgbuf_.left(nlPos)); // decode
+        msgbuf_ = msgbuf_.mid(nlPos + 1);
 
-    //qDebug() << "msg arrived:" << msg;
-    emit messageArrived(id(), msg);
+        // deserialize into variant map
+        QDataStream dstream(ba);
+        QVariantMap msg;
+        dstream >> msg;
+
+        //qDebug() << "msg arrived:" << msg;
+        emit messageArrived(id(), msg);
+    }
 }
 
 void QCChannel::handleSocketError(QAbstractSocket::SocketError)
@@ -189,21 +192,23 @@ static QString truncateText(const QString &text)
     return text.left(maxSize);
 }
 
-void QCBase::sendChatMessage(const QString &text, const QString &user, int timestamp)
+void QCBase::sendChatMessage(const QString &text, const QString &user, int channelId, int timestamp)
 {
     QVariantMap msg;
     msg.insert("text", truncateText(text));
     msg.insert("user", user);
+    msg.insert("channelId", channelId);
     msg.insert("timestamp", timestamp);
     msg.insert("type", ChatMsg);
     sendMessage(msg);
 }
 
-void QCBase::sendNotification(const QString &text, const QString &user, int timestamp)
+void QCBase::sendNotification(const QString &text, const QString &user, int channelId, int timestamp)
 {
     QVariantMap msg;
     msg.insert("text", truncateText(text));
     msg.insert("user", user);
+    msg.insert("channelId", channelId);
     msg.insert("timestamp", timestamp);
     msg.insert("type", Notification);
     sendMessage(msg);
@@ -225,17 +230,24 @@ void QCBase::handleMessageArrived(qint64 channelId, const QVariantMap &msg)
     } else if (type == ChatMsg) {
         Q_ASSERT(msg.value("text").canConvert(QVariant::String));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("channelId").canConvert(QVariant::Int));
         Q_ASSERT(msg.value("timestamp").canConvert(QVariant::Int));
         emit chatMessage(
-            msg.value("text").toString(), msg.value("user").toString(), msg.value("timestamp").toInt());
+            msg.value("text").toString(), msg.value("user").toString(), msg.value("channelId").toInt(),
+            msg.value("timestamp").toInt());
     } else if (type == Notification) {
         Q_ASSERT(msg.value("text").canConvert(QVariant::String));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("channelId").canConvert(QVariant::Int));
         Q_ASSERT(msg.value("timestamp").canConvert(QVariant::Int));
         emit notification(
-            msg.value("text").toString(), msg.value("user").toString(), msg.value("timestamp").toInt());
+            msg.value("text").toString(), msg.value("user").toString(), msg.value("channelId").toInt(),
+            msg.value("timestamp").toInt());
     } else if (type == Initialization) {
         emit initialization(channelId, msg);
+    } else if (type == Channels) {
+        Q_ASSERT(msg.value("channels").canConvert(QVariant::StringList));
+        emit channels(msg.value("channels").toStringList());
     } else if (type == History) {
         Q_ASSERT(msg.value("history").canConvert(QVariant::StringList));
         emit history(msg.value("history").toStringList());
@@ -320,6 +332,13 @@ QCClientChannels::QCClientChannels()
 {
 }
 
+QCClientChannels::~QCClientChannels()
+{
+    // hm ... maybe avoid this loop by wrapping each channel pointer in a suitable smart pointer?
+    foreach (QCChannel *channel, channels_.values())
+        delete channel;
+}
+
 bool QCClientChannels::listen(const qint16 port)
 {
     if (!server_.listen(port)) {
@@ -335,6 +354,20 @@ void QCClientChannels::close(qint64 qclserver)
 {
     Q_ASSERT(channels_.contains(qclserver));
     delete channels_.take(qclserver);
+}
+
+// Sends a 'channels' message to a specific qclserver client.
+void QCClientChannels::sendChannels(const QStringList &c, qint64 qclserver)
+{
+    if (!channels_.contains(qclserver)) {
+        qWarning("WARNING: QCClientChannels::sendChannels(): qclserver %lld no longer connected", qclserver);
+        return;
+    }
+
+    QVariantMap msg;
+    msg.insert("type", Channels);
+    msg.insert("channels", c);
+    channels_.value(qclserver)->sendMessage(msg);
 }
 
 // Sends a 'history' message to a specific qclserver client.

@@ -64,7 +64,7 @@ public:
     QString lastError() const;
 protected:
     QCBase();
-    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, History, Users };
+    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, Channels, History, Users };
     void setLastError(const QString &);
 private:
     QString lastError_;
@@ -72,17 +72,18 @@ private:
 public slots:
     void showChatWindow(qint64 = -1);
     void hideChatWindow(qint64 = -1);
-    void sendChatMessage(const QString &, const QString &, int timestamp = -1);
-    void sendNotification(const QString &, const QString & = QString(), int timestamp = -1);
+    void sendChatMessage(const QString &, const QString &, int channelId, int timestamp = -1);
+    void sendNotification(const QString &, const QString & = QString(), int channelId = -1, int timestamp = -1);
 protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
 signals:
     void chatWindowShown();
     void chatWindowHidden();
-    void chatMessage(const QString &, const QString &, int);
-    void notification(const QString &, const QString &, int);
+    void chatMessage(const QString &, const QString &, int, int);
+    void notification(const QString &, const QString &, int, int);
     void initialization(qint64, const QVariantMap &msg);
+    void channels(const QStringList &);
     void history(const QStringList &);
     void users(const QStringList &);
 };
@@ -111,8 +112,10 @@ class QCClientChannels : public QCBase
     Q_OBJECT
 public:
     QCClientChannels();
+    virtual ~QCClientChannels();
     bool listen(const qint16);
     void close(qint64);
+    void sendChannels(const QStringList &, qint64);
     void sendHistory(const QStringList &, qint64);
     void sendUsers(const QStringList &);
 private:

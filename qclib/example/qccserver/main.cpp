@@ -20,11 +20,27 @@ static bool initDatabase(const QString &dbfile, QString *error)
 
     // *** Create tables ***
 
+    // channels (a.k.a. 'chat rooms')
+    ok = query.exec(
+        "CREATE TABLE channel(id INTEGER PRIMARY KEY AUTOINCREMENT"
+        ", name TEXT NOT NULL"
+        ", description TEXT NOT NULL"
+        ", UNIQUE(name)"
+        ", UNIQUE(description));");
+    Q_ASSERT(ok);
+    ok = query.exec("INSERT INTO channel(name, description) VALUES ('profet', '<beskrivelse av profet-kanalen>');");
+    Q_ASSERT(ok);
+    ok = query.exec("INSERT INTO channel(name, description) VALUES ('analyse', '<beskrivelse av analyse-kanalen>');");
+    Q_ASSERT(ok);
+    ok = query.exec("INSERT INTO channel(name, description) VALUES ('flyvær', '<beskrivelse av flyvær-kanalen>');");
+    Q_ASSERT(ok);
+
     // log
     ok = query.exec(
         "CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT"
         ", text TEXT NOT NULL"
         ", user TEXT NOT NULL"
+        ", channelId INTEGER REFERENCES channel(id) NOT NULL"
         ", timestamp INTEGER NOT NULL"
         ", type INTEGER NOT NULL);");
     Q_ASSERT(ok);
@@ -44,11 +60,11 @@ public:
         , db_(db)
     {
         connect(
-            cchannels_, SIGNAL(chatMessage(const QString &, const QString &, int)),
-            SLOT(chatMessage(const QString &, const QString &)));
+            cchannels_, SIGNAL(chatMessage(const QString &, const QString &, int, int)),
+            SLOT(chatMessage(const QString &, const QString &, int)));
         connect(
-            cchannels_, SIGNAL(notification(const QString &, const QString &, int)),
-            SLOT(notification(const QString &, const QString &)));
+            cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
+            SLOT(notification(const QString &, const QString &, int)));
         connect(
             cchannels_, SIGNAL(initialization(qint64, const QVariantMap &)),
             SLOT(initialization(qint64, const QVariantMap &)));
@@ -66,14 +82,14 @@ private:
         return QString(s).replace(QRegExp("(')"), "''");
     }
 
-    void appendToDatabase(const QString &text, const QString &user, int timestamp, int type)
+    void appendToDatabase(const QString &text, const QString &user, int channelId, int timestamp, int type)
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
         QString query_s = QString(
-            "INSERT INTO log (text, user, timestamp, type) VALUES ('%1', '%2', %3, %4);")
-            .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(timestamp).arg(type);
+            "INSERT INTO log (text, user, channelId, timestamp, type) VALUES ('%1', '%2', %3, %4, %5);")
+            .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(channelId).arg(timestamp).arg(type);
         db_->transaction();
         if (!query->exec(query_s))
             qWarning(
@@ -82,12 +98,32 @@ private:
         db_->commit();
     }
 
+    QStringList getChannelsFromDatabase()
+    {
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
+        QString query_s = QString("SELECT id, name, description FROM channel;");
+        QStringList c;
+        if (!query->exec(query_s)) {
+            qWarning(
+                "WARNING: query '%s' failed: %s",
+                query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
+        } else while (query->next()) {
+             const int id = query->value(0).toInt();
+             const QString name = query->value(1).toString();
+             const QString descr = query->value(2).toString();
+             c << QString("%1 %2 %3").arg(id).arg(name).arg(descr);
+        }
+        return c;
+    }
+
     QStringList getHistoryFromDatabase()
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
-        QString query_s = QString("SELECT text, user, timestamp, type FROM log ORDER BY timestamp;");
+        QString query_s = QString("SELECT text, user, channelId, timestamp, type FROM log ORDER BY timestamp;");
         QStringList h;
         if (!query->exec(query_s)) {
             qWarning(
@@ -96,28 +132,29 @@ private:
         } else while (query->next()) {
              const QString text = query->value(0).toString();
              const QString user = query->value(1).toString();
-             const int timestamp = query->value(2).toInt();
-             const int type = query->value(3).toInt();
-             h << QString("%1 %2 %3 %4").arg(user).arg(timestamp).arg(type).arg(text);
+             const int channelId = query->value(2).toInt();
+             const int timestamp = query->value(3).toInt();
+             const int type = query->value(4).toInt();
+             h << QString("%1 %2 %3 %4 %5").arg(user).arg(channelId).arg(timestamp).arg(type).arg(text);
         }
         return h;
     }
 
 private slots:
-    void chatMessage(const QString &text, const QString &user)
+    void chatMessage(const QString &text, const QString &user, int channelId)
     {
         qDebug() << QString("chat message (from a qclserver; user: %1): %2").arg(user).arg(text).toLatin1().data();
         const int timestamp = QDateTime::currentDateTime().toTime_t();
-        cchannels_->sendChatMessage(text, user, timestamp); // forward to all qclservers
-        appendToDatabase(text, user, timestamp, CHATMESSAGE);
+        cchannels_->sendChatMessage(text, user, channelId, timestamp); // forward to all qclservers
+        appendToDatabase(text, user, channelId, timestamp, CHATMESSAGE);
     }
 
-    void notification(const QString &text, const QString &user)
+    void notification(const QString &text, const QString &user, int channelId)
     {
         qDebug() << QString("notification (from a qclserver; user: %1): %2").arg(user).arg(text).toLatin1().data();
         const int timestamp = QDateTime::currentDateTime().toTime_t();
-        cchannels_->sendNotification(text, user, timestamp); // forward to all qclservers
-        appendToDatabase(text, user, timestamp, NOTIFICATION);
+        cchannels_->sendNotification(text, user, channelId, timestamp); // forward to all qclservers
+        appendToDatabase(text, user, channelId, timestamp, NOTIFICATION);
     }
 
     void initialization(qint64 qclserver, const QVariantMap &msg)
@@ -137,6 +174,10 @@ private slots:
         // inform all qclservers about the current users
         cchannels_->sendUsers(users_.values());
 
+        // send available chat channels to this qclserver only
+        QStringList c = getChannelsFromDatabase();
+        cchannels_->sendChannels(c, qclserver);
+
         // send history to this qclserver only
         QStringList h = getHistoryFromDatabase();
         cchannels_->sendHistory(h, qclserver);
@@ -153,6 +194,10 @@ private slots:
 
 int main(int argc, char *argv[])
 {
+    // the following enables support for unicode chars (like 'æ') in
+    // SQL INSERT statements etc.
+    QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
+
     QCoreApplication app(argc, argv);
 
     // extract information from environment
@@ -166,7 +211,8 @@ int main(int argc, char *argv[])
     if (!initdb.isEmpty() && initdb != "0" && initdb.toLower() != "false" && initdb.toLower() != "no") {
         // initialize DB and terminate
         if (QFile::exists(dbfile)) {
-            qDebug() << "database file already exists:" << dbfile.toLatin1().data();
+            qDebug() << QString("database file already exists: %1; please (re)move it first")
+                .arg(dbfile).toLatin1().data();
             return 1;
         }
         QString error;

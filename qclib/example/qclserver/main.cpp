@@ -8,9 +8,7 @@ class ChatWindow : public QWidget
     Q_OBJECT
 public:
     ChatWindow()
-        : log_(0)
-        , edit_(0)
-        , html_("<table></table>")
+        : edit_(0)
     {
         QHBoxLayout *layout1 = new QHBoxLayout;
 
@@ -21,8 +19,6 @@ public:
         layout2->addLayout(layout2_1);
         channelCBox_ = new QComboBox;
         channelCBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        channelCBox_->addItem("channel A");
-        channelCBox_->addItem("channnnnel B");
         layout2_1->addWidget(channelCBox_);
         QLabel *label1 = new QLabel;
         // QLabel *label1 = new QLabel("CHAT WINDOW MOCKUP");
@@ -30,12 +26,9 @@ public:
         label1->setAlignment(Qt::AlignCenter);
         layout2_1->addWidget(label1);
 
-        log_ = new QTextBrowser;
-        log_->setHtml(html_);
-        log_->setReadOnly(true);
-        log_->setOpenExternalLinks(true);
-        log_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
-        layout2->addWidget(log_);
+        layout2->addLayout(&logStack_);
+        connect(channelCBox_, SIGNAL(activated(int)), &logStack_, SLOT(setCurrentIndex(int)));
+
         edit_ = new QLineEdit;
         connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
         edit_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
@@ -59,56 +52,105 @@ public:
         resize(1000, 400);
     }
 
-    void appendEvent(const QString &text, const QString &user, int timestamp, int type)
+    void appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
     {
-        html_.insert(html_.lastIndexOf("</table>"), formatEvent(text, user, timestamp, type));
-        log_->setHtml(html_);
+        if (channelId < 0) {
+            qWarning("WARNING: appendEvent(): ignoring event with channelId < 0 for now");
+            return;
+        }
+
+        html_[channelId].insert(
+            html_.value(channelId).lastIndexOf("</table>"), formatEvent(text, user, timestamp, type));
+        log_[channelId]->setHtml(html_.value(channelId));
+    }
+
+    // Sets the list of available chat channels.
+    void setChannels(const QStringList &chatChannels)
+    {
+        Q_ASSERT(!chatChannels.isEmpty());
+
+        QRegExp rx("^(\\d+)\\s+(\\S+)\\s+(.*)$");
+        QListIterator<QString> it(chatChannels);
+        while (it.hasNext()) {
+            QString item = it.next();
+            if (rx.indexIn(item) == -1)
+                qFatal("setChannels(): regexp mismatch: %s", item.toLatin1().data());
+            const int id = rx.cap(1).toInt();
+            const QString name = rx.cap(2);
+            //const QString descr = rx.cap(3); unused for now
+            channelCBox_->addItem(name);
+            channelId_.insert(name, id);
+
+            html_.insert(id, "<table></table>");
+
+            QTextBrowser *tb = new QTextBrowser;
+            tb->setHtml(html_.value(id));
+            tb->setReadOnly(true);
+            tb->setOpenExternalLinks(true);
+            tb->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+            log_.insert(id, tb);
+            logStack_.addWidget(tb);
+        }
     }
 
     // Prepends history (i.e. in front of any individual events that may have arrived
     // in the meantime!)
     void prependHistory(const QStringList &h)
     {
-        if (h.size() == 0)
+        if (h.isEmpty())
             return;
 
-        QRegExp rx("^(\\S+)\\s+(\\d+)\\s+(\\d+)\\s+(.*)$");
-        QStringList events;
+        QRegExp rx("^(\\S+)\\s+(-?\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(.*)$");
+        QMap<int, QStringList> events;
         QListIterator<QString> it(h);
         while (it.hasNext()) {
             QString item = it.next();
             if (rx.indexIn(item) == -1)
-                qFatal("regexp mismatch: %s", item.toLatin1().data());
+                qFatal("prependHistory(): regexp mismatch: %s", item.toLatin1().data());
             const QString user = rx.cap(1);
-            const int timestamp = rx.cap(2).toInt();
-            const int type = rx.cap(3).toInt();
-            const QString text = rx.cap(4);
-            events << formatEvent(text, user, timestamp, type);
+            const int channelId = rx.cap(2).toInt();
+            const int timestamp = rx.cap(3).toInt();
+            const int type = rx.cap(4).toInt();
+            const QString text = rx.cap(5);
+            events[channelId] << formatEvent(text, user, timestamp, type);
         }
 
-        html_.insert(html_.indexOf("<table>") + QString("<table>").size(), events.join(""));
-        log_->setHtml(html_);
+        foreach (int channelId, events.keys()) {
+            if (channelId >= 0) {
+                html_[channelId].insert(
+                    html_.value(channelId).indexOf("<table>") + QString("<table>").size(),
+                    events.value(channelId).join(""));
+                log_[channelId]->setHtml(html_.value(channelId));
+            } else {
+                qWarning("WARNING: prependHistory(): ignoring events with channelId < 0 for now");
+            }
+        }
     }
 
     // Updates the list of currently connected users.
-    void setUsers(const QStringList &u)
+    void updateUsers(const QStringList &u)
     {
+        Q_ASSERT(!u.isEmpty()); // the local user should be present at least
         userList_->clear();
         userList_->insertItems(0, u);
     }
 
     void scrollToBottom()
     {
-        log_->verticalScrollBar()->setValue(log_->verticalScrollBar()->maximum());
+        QTextBrowser *currTB = qobject_cast<QTextBrowser *>(logStack_.currentWidget());
+        Q_ASSERT(currTB);
+        currTB->verticalScrollBar()->setValue(currTB->verticalScrollBar()->maximum());
     }
 
 private:
     QVBoxLayout *usersLayout_;
     QComboBox *channelCBox_;
+    QMap<QString, int> channelId_;
     QListWidget *userList_;
-    QTextBrowser *log_;
+    QMap<int, QTextBrowser *>log_;
+    QStackedLayout logStack_;
     QLineEdit *edit_;
-    QString html_;
+    QMap<int, QString> html_;
 
     void closeEvent(QCloseEvent *event)
     {
@@ -166,14 +208,15 @@ private slots:
     {
         const QString text = edit_->text().trimmed();
         edit_->clear();
+        const int channelId = channelId_.value(channelCBox_->currentText());
         if (!text.isEmpty())
-            emit chatMessage(text);
+            emit chatMessage(text, channelId);
     }
 
 signals:
     void windowShown();
     void windowHidden();
-    void chatMessage(const QString &);
+    void chatMessage(const QString &, int);
 };
 
 class Interactor : public QObject
@@ -195,22 +238,23 @@ public:
         connect(cchannels_, SIGNAL(chatWindowShown()), window_, SLOT(show()));
         connect(cchannels_, SIGNAL(chatWindowHidden()), window_, SLOT(hide()));
         connect(
-            cchannels_, SIGNAL(notification(const QString &, const QString &, int)),
-            SLOT(localNotification(const QString &)));
+            cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
+            SLOT(localNotification(const QString &, const QString &, int)));
 
         connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
         connect(
-            schannel_, SIGNAL(chatMessage(const QString &, const QString &, int)),
-            SLOT(centralChatMessage(const QString &, const QString &, int)));
+            schannel_, SIGNAL(chatMessage(const QString &, const QString &, int, int)),
+            SLOT(centralChatMessage(const QString &, const QString &, int, int)));
         connect(
-            schannel_, SIGNAL(notification(const QString &, const QString &, int)),
-            SLOT(centralNotification(const QString &, const QString &, int)));
+            schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
+            SLOT(centralNotification(const QString &, const QString &, int, int)));
+        connect(schannel_, SIGNAL(channels(const QStringList &)), SLOT(channels(const QStringList &)));
         connect(schannel_, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
         connect(schannel_, SIGNAL(users(const QStringList &)), SLOT(users(const QStringList &)));
 
         connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
         connect(window_, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
-        connect(window_, SIGNAL(chatMessage(const QString &)), SLOT(localChatMessage(const QString &)));
+        connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
 
         QVariantMap msg;
         msg.insert("user", user_);
@@ -222,6 +266,7 @@ private:
     QCServerChannel *schannel_; // qccserver channel
     ChatWindow *window_;
     QString user_;
+    QStringList chatChannels_; //  a.k.a. chat rooms
 
 private slots:
     void serverDisconnected()
@@ -230,40 +275,51 @@ private slots:
         qApp->exit(1);
     }
 
-    void clientConnected(qint64 id)
+    void clientConnected(qint64 qcapp)
     {
         if (!schannel_->isConnected()) {
             qWarning("WARNING: central server not connected; disconnecting");
-            cchannels_->close(id);
+            cchannels_->close(qcapp);
             return;
         }
 
         // inform about current chat window visibility
         if (window_->isVisible())
-            cchannels_->showChatWindow(id);
+            cchannels_->showChatWindow(qcapp);
         else
-            cchannels_->hideChatWindow(id);
+            cchannels_->hideChatWindow(qcapp);
+
+        // send available chat channels to this qcapp only
+        cchannels_->sendChannels(chatChannels_, qcapp);
     }
 
-    void localNotification(const QString &text)
+    void localNotification(const QString &text, const QString &, int channelId)
     {
         //qDebug() << "notification (from a local qcapp):" << text;
-        schannel_->sendNotification(text, user_);
+        schannel_->sendNotification(text, user_, channelId);
     }
 
-    void centralChatMessage(const QString &text, const QString &user, int timestamp)
+    void centralChatMessage(const QString &text, const QString &user, int channelId, int timestamp)
     {
         //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << text;
-        window_->appendEvent(text, user, timestamp, CHATMESSAGE);
+        //qDebug() << "channel ID:" << channelId;
+        window_->appendEvent(text, user, channelId, timestamp, CHATMESSAGE);
         window_->scrollToBottom();
     }
 
-    void centralNotification(const QString &text, const QString &user, int timestamp)
+    void centralNotification(const QString &text, const QString &user, int channelId, int timestamp)
     {
         //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << text;
-        cchannels_->sendNotification(text, user, timestamp);
-        window_->appendEvent(text, user, timestamp, NOTIFICATION);
+        //qDebug() << "channel ID:" << channelId;
+        cchannels_->sendNotification(text, user, channelId, timestamp);
+        window_->appendEvent(text, user, channelId, timestamp, NOTIFICATION);
         window_->scrollToBottom();
+    }
+
+    void channels(const QStringList &chatChannels)
+    {
+        window_->setChannels(chatChannels);
+        chatChannels_ = chatChannels;
     }
 
     void history(const QStringList &h)
@@ -274,7 +330,7 @@ private slots:
 
     void users(const QStringList &u)
     {
-        window_->setUsers(u);
+        window_->updateUsers(u);
     }
 
     void showChatWindow()
@@ -287,10 +343,10 @@ private slots:
         cchannels_->hideChatWindow();
     }
 
-    void localChatMessage(const QString &text)
+    void localChatMessage(const QString &text, int channelId)
     {
         //qDebug() << "chat message (from local window):" << text;
-        schannel_->sendChatMessage(text, user_);
+        schannel_->sendChatMessage(text, user_, channelId);
     }
 };
 
