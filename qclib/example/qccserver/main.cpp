@@ -66,6 +66,9 @@ public:
             cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(notification(const QString &, const QString &, int)));
         connect(
+            cchannels_, SIGNAL(channelSwitch(qint64, int, const QString &)),
+            SLOT(channelSwitch(qint64, int, const QString &)));
+        connect(
             cchannels_, SIGNAL(initialization(qint64, const QVariantMap &)),
             SLOT(initialization(qint64, const QVariantMap &)));
         connect(cchannels_, SIGNAL(clientDisconnected(qint64)), SLOT(clientDisconnected(qint64)));
@@ -74,7 +77,8 @@ public:
 private:
     QCClientChannels *cchannels_; // qclserver channels
     QSqlDatabase *db_;
-    QMap<qint64, QString> users_;
+    QMap<qint64, QString> user_;
+    QMap<qint64, int> channel_; // current chat channel (a.k.a. chat room)
 
     // Returns a version of \a s with quotes escaped (to reduce possibility of SQL injection etc.).
     static QString escapeQuotes(const QString &s)
@@ -157,26 +161,41 @@ private slots:
         appendToDatabase(text, user, channelId, timestamp, NOTIFICATION);
     }
 
+    void channelSwitch(qint64 qclserver, int channelId, const QString &)
+    {
+        qDebug() << QString("channel switch (from a qclserver; channelId: %1; user: %2)")
+            .arg(channelId).arg(user_.value(qclserver)).toLatin1().data();
+        channel_.insert(qclserver, channelId); // store new value
+        cchannels_->sendChannelSwitch(channelId, user_.value(qclserver)); // forward to all qclservers
+    }
+
     void initialization(qint64 qclserver, const QVariantMap &msg)
     {
         const QString user(msg.value("user").toString());
         qDebug() << QString("initialization (from qclserver channel %1); user: %2")
-            .arg(qclserver).arg(user).toLatin1().data();
+            .arg(qclserver).arg(user_.value(qclserver)).toLatin1().data();
 
-        if (users_.values().contains(user)) {
+        if (user_.values().contains(user)) {
             qWarning("WARNING: user '%s' already joined; disconnecting", user.toLatin1().data());
             cchannels_->close(qclserver);
             return;
         }
 
-        users_.insert(qclserver, user);
-
-        // inform all qclservers about the current users
-        cchannels_->sendUsers(users_.values());
+        user_.insert(qclserver, user);
+        Q_ASSERT(!channel_.contains(qclserver));
 
         // send available chat channels to this qclserver only
         QStringList c = getChannelsFromDatabase();
         cchannels_->sendChannels(c, qclserver);
+
+        // inform all qclservers about users and their current channels
+        QStringList users;
+        QList<int> channels;
+        foreach (qint64 qclserver, user_.keys()) {
+            users.append(user_.value(qclserver));
+            channels.append(channel_.contains(qclserver) ? channel_.value(qclserver) : -1);
+        }
+        cchannels_->sendUsers(users, channels);
 
         // send history to this qclserver only
         QStringList h = getHistoryFromDatabase();
@@ -185,9 +204,10 @@ private slots:
 
     void clientDisconnected(qint64 qclserver)
     {
-        const QString user = users_.take(qclserver);
+        const QString user = user_.take(qclserver);
+        channel_.remove(qclserver);
         qDebug() << QString("user '%1' left").arg(user).toLatin1().data();
-        cchannels_->sendUsers(users_.values());
+        cchannels_->sendUsers(user_.values(), channel_.values());
     }
 };
 

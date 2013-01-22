@@ -64,7 +64,9 @@ public:
     QString lastError() const;
 protected:
     QCBase();
-    enum MsgType { ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, Channels, History, Users };
+    enum MsgType {
+        ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, Channels, History, Users, ChannelSwitch
+    };
     void setLastError(const QString &);
 private:
     QString lastError_;
@@ -72,8 +74,9 @@ private:
 public slots:
     void showChatWindow(qint64 = -1);
     void hideChatWindow(qint64 = -1);
-    void sendChatMessage(const QString &, const QString &, int channelId, int timestamp = -1);
-    void sendNotification(const QString &, const QString & = QString(), int channelId = -1, int timestamp = -1);
+    void sendChatMessage(const QString &, const QString &, int, int = -1);
+    void sendNotification(const QString &, const QString & = QString(), int = -1, int = -1);
+    void sendChannelSwitch(int, const QString & = QString());
 protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
@@ -85,7 +88,8 @@ signals:
     void initialization(qint64, const QVariantMap &msg);
     void channels(const QStringList &);
     void history(const QStringList &);
-    void users(const QStringList &);
+    void users(const QStringList &, const QList<int> &);
+    void channelSwitch(qint64, int, const QString &);
 };
 
 // This class is instantiated in the client to handle the server channel.
@@ -117,7 +121,7 @@ public:
     void close(qint64);
     void sendChannels(const QStringList &, qint64);
     void sendHistory(const QStringList &, qint64);
-    void sendUsers(const QStringList &);
+    void sendUsers(const QStringList &, const QList<int> &);
 private:
     QCChannelServer server_;
     QMap<qint64, QCChannel *> channels_;

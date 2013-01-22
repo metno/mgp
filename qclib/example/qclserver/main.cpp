@@ -27,7 +27,7 @@ public:
         layout2_1->addWidget(label1);
 
         layout2->addLayout(&logStack_);
-        connect(channelCBox_, SIGNAL(activated(int)), &logStack_, SLOT(setCurrentIndex(int)));
+        connect(channelCBox_, SIGNAL(activated(int)), SLOT(handleChannelSwitch()));
 
         edit_ = new QLineEdit;
         connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
@@ -41,12 +41,11 @@ public:
         //label2->setStyleSheet("QLabel { background-color : cyan; color : black; }");
         label2->setAlignment(Qt::AlignLeft);
         usersLayout_->addWidget(label2);
-        userList_ = new QListWidget;
-        userList_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-        userList_->setFixedWidth(100);
-        // userList_->addItem("joa");
-        // userList_->addItem("juergens");
-        usersLayout_->addWidget(userList_);
+        userTree_ = new QTreeWidget;
+        userTree_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+        userTree_->setFixedWidth(120);
+        userTree_->header()->close();
+        usersLayout_->addWidget(userTree_);
 
         setLayout(layout1);
         resize(1000, 400);
@@ -55,7 +54,7 @@ public:
     void appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
     {
         if (channelId < 0) {
-            qWarning("WARNING: appendEvent(): ignoring event with channelId < 0 for now");
+            qWarning("WARNING: appendEvent(): ignoring event with channel id < 0 for now");
             return;
         }
 
@@ -80,6 +79,7 @@ public:
             //const QString descr = rx.cap(3); unused for now
             channelCBox_->addItem(name);
             channelId_.insert(name, id);
+            channelName_.insert(id, name);
 
             html_.insert(id, "<table></table>");
 
@@ -90,7 +90,11 @@ public:
             tb->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
             log_.insert(id, tb);
             logStack_.addWidget(tb);
+
+            channelUsers_.insert(id, new QSet<QString>);
         }
+
+        emit channelSwitch(currentChannelId());
     }
 
     // Prepends history (i.e. in front of any individual events that may have arrived
@@ -127,12 +131,38 @@ public:
         }
     }
 
-    // Updates the list of currently connected users.
-    void updateUsers(const QStringList &u)
+    // Sets connected users and their current channels.
+    void setUsers(const QStringList &u, const QList<int> &channelIds)
     {
         Q_ASSERT(!u.isEmpty()); // the local user should be present at least
-        userList_->clear();
-        userList_->insertItems(0, u);
+        Q_ASSERT(u.size() == channelIds.size());
+
+        foreach (int channelId, channelUsers_.keys())
+            channelUsers_.value(channelId)->clear();
+        for (int i = 0; i < u.size(); ++i) {
+            const int channelId = channelIds.at(i);
+            if (channelUsers_.contains(channelId))
+                channelUsers_.value(channelId)->insert(u.at(i));
+            else
+                qDebug() << "ignoring user" << u.at(i) << "with invalid channel id:" << channelId;
+        }
+
+        updateUserTree();
+    }
+
+    // Handles a user switching to a channel.
+    void handleCentralChannelSwitch(const QString &user, int channelId)
+    {
+        Q_ASSERT(channelUsers_.contains(channelId));
+
+        // remove user from its current channel (if any)
+        foreach (QSet<QString> *users, channelUsers_.values())
+            users->remove(user);
+
+        // associate user with its current channel
+        channelUsers_.value(channelId)->insert(user);
+
+        updateUserTree();
     }
 
     void scrollToBottom()
@@ -142,15 +172,22 @@ public:
         currTB->verticalScrollBar()->setValue(currTB->verticalScrollBar()->maximum());
     }
 
+    int currentChannelId() const
+    {
+        return channelId_.value(channelCBox_->currentText());
+    }
+
 private:
     QVBoxLayout *usersLayout_;
     QComboBox *channelCBox_;
     QMap<QString, int> channelId_;
-    QListWidget *userList_;
+    QMap<int, QString> channelName_;
+    QTreeWidget *userTree_;
     QMap<int, QTextBrowser *>log_;
     QStackedLayout logStack_;
     QLineEdit *edit_;
     QMap<int, QString> html_;
+    QMap<int, QSet<QString> *> channelUsers_;
 
     void closeEvent(QCloseEvent *event)
     {
@@ -203,20 +240,75 @@ private:
         return s;
     }
 
+    void deleteTree(QTreeWidgetItem *root)
+    {
+        QList<QTreeWidgetItem *> children = root->takeChildren();
+        foreach (QTreeWidgetItem *child, children)
+            deleteTree(child);
+        delete root;
+    }
+
+    void updateUserTree()
+    {
+        // foreach (int channelId, channelUsers_.keys())
+        //     qDebug() << "users in channel" << channelId << ":" << *(channelUsers_.value(channelId));
+        QTreeWidgetItem *root = userTree_->invisibleRootItem();
+
+        // save 'expanded' state
+        QMap<QString, bool> channelExpanded;
+        for (int i = 0; i < root->childCount(); ++i)
+            channelExpanded.insert(
+                root->child(i)->data(0, Qt::DisplayRole).toString().split(" ").first(), root->child(i)->isExpanded());
+
+        // clear
+        QList<QTreeWidgetItem *> channelItems = root->takeChildren();
+        foreach (QTreeWidgetItem *channelItem, channelItems)
+            deleteTree(channelItem);
+
+        // rebuild
+        foreach (int channelId, channelUsers_.keys()) {
+            const QString channelName = channelName_.value(channelId);
+            // create channel branch
+            QTreeWidgetItem *channelItem = new QTreeWidgetItem;
+            root->addChild(channelItem);
+            QStringList channelUsers = channelUsers_.value(channelId)->values();
+            channelItem->setData(0, Qt::DisplayRole, QString("%1 (%2)").arg(channelName).arg(channelUsers.size()));
+            foreach (QString user, channelUsers) {
+                // insert user in this channel branch
+                QTreeWidgetItem *userItem = new QTreeWidgetItem;
+                userItem->setData(0, Qt::DisplayRole, user);
+                userItem->setForeground(0, QColor("#888"));
+                channelItem->addChild(userItem);
+            }
+        }
+
+        // save 'expanded' state
+        for (int i = 0; i < root->childCount(); ++i)
+            root->child(i)->setExpanded(
+                channelExpanded.value(root->child(i)->data(0, Qt::DisplayRole).toString().split(" ").first()));
+    }
+
 private slots:
     void sendChatMessage()
     {
         const QString text = edit_->text().trimmed();
         edit_->clear();
-        const int channelId = channelId_.value(channelCBox_->currentText());
         if (!text.isEmpty())
-            emit chatMessage(text, channelId);
+            emit chatMessage(text, currentChannelId());
+    }
+
+    void handleChannelSwitch()
+    {
+        const int channelId = currentChannelId();
+        logStack_.setCurrentWidget(log_.value(channelId));
+        emit channelSwitch(channelId);
     }
 
 signals:
     void windowShown();
     void windowHidden();
     void chatMessage(const QString &, int);
+    void channelSwitch(int);
 };
 
 class Interactor : public QObject
@@ -248,13 +340,19 @@ public:
         connect(
             schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(centralNotification(const QString &, const QString &, int, int)));
+        connect(
+            schannel_, SIGNAL(channelSwitch(qint64, int, const QString &)),
+            SLOT(centralChannelSwitch(qint64, int, const QString &)));
         connect(schannel_, SIGNAL(channels(const QStringList &)), SLOT(channels(const QStringList &)));
         connect(schannel_, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
-        connect(schannel_, SIGNAL(users(const QStringList &)), SLOT(users(const QStringList &)));
+        connect(
+            schannel_, SIGNAL(users(const QStringList &, const QList<int> &)),
+            SLOT(users(const QStringList &, const QList<int> &)));
 
         connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
         connect(window_, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
         connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
+        connect(window_, SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
 
         QVariantMap msg;
         msg.insert("user", user_);
@@ -316,6 +414,12 @@ private slots:
         window_->scrollToBottom();
     }
 
+    void centralChannelSwitch(qint64, int channelId, const QString &user)
+    {
+        //qDebug() << "user" << user << "switched to channelId" << channelId;
+        window_->handleCentralChannelSwitch(user, channelId);
+    }
+
     void channels(const QStringList &chatChannels)
     {
         window_->setChannels(chatChannels);
@@ -328,9 +432,9 @@ private slots:
         window_->prependHistory(h);
     }
 
-    void users(const QStringList &u)
+    void users(const QStringList &u, const QList<int> &channelIds)
     {
-        window_->updateUsers(u);
+        window_->setUsers(u, channelIds);
     }
 
     void showChatWindow()
@@ -347,6 +451,11 @@ private slots:
     {
         //qDebug() << "chat message (from local window):" << text;
         schannel_->sendChatMessage(text, user_, channelId);
+    }
+
+    void handleChannelSwitch(int channelId)
+    {
+        schannel_->sendChannelSwitch(channelId);
     }
 };
 

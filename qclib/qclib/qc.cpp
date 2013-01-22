@@ -152,6 +152,26 @@ void QCChannelServer::newConnection()
     emit channelConnected(new QCChannel(server_.nextPendingConnection()));
 }
 
+static QList<int> toIntList(const QList<QVariant> &vlist)
+{
+    QList<int> ilist;
+    bool ok;
+    foreach (QVariant v, vlist) {
+        const int i = v.toInt(&ok);
+        Q_ASSERT(ok);
+        ilist.append(i);
+    }
+    return ilist;
+}
+
+static QList<QVariant> toVariantList(const QList<int> &ilist)
+{
+    QList<QVariant> vlist;
+    foreach (int i, ilist)
+        vlist.append(i);
+    return vlist;
+}
+
 QCBase::QCBase()
     : lastError_("<not set yet>")
 {
@@ -214,7 +234,16 @@ void QCBase::sendNotification(const QString &text, const QString &user, int chan
     sendMessage(msg);
 }
 
-void QCBase::handleMessageArrived(qint64 channelId, const QVariantMap &msg)
+void QCBase::sendChannelSwitch(int channelId, const QString &user)
+{
+    QVariantMap msg;
+    msg.insert("channelId", channelId);
+    msg.insert("user", user);
+    msg.insert("type", ChannelSwitch);
+    sendMessage(msg);
+}
+
+void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
 {
     Q_ASSERT(!msg.contains("type"));
     bool ok;
@@ -244,7 +273,7 @@ void QCBase::handleMessageArrived(qint64 channelId, const QVariantMap &msg)
             msg.value("text").toString(), msg.value("user").toString(), msg.value("channelId").toInt(),
             msg.value("timestamp").toInt());
     } else if (type == Initialization) {
-        emit initialization(channelId, msg);
+        emit initialization(peerId, msg);
     } else if (type == Channels) {
         Q_ASSERT(msg.value("channels").canConvert(QVariant::StringList));
         emit channels(msg.value("channels").toStringList());
@@ -253,7 +282,12 @@ void QCBase::handleMessageArrived(qint64 channelId, const QVariantMap &msg)
         emit history(msg.value("history").toStringList());
     } else if (type == Users) {
         Q_ASSERT(msg.value("users").canConvert(QVariant::StringList));
-        emit users(msg.value("users").toStringList());
+        Q_ASSERT(msg.value("channelIds").canConvert(QVariant::VariantList));
+        emit users(msg.value("users").toStringList(), toIntList(msg.value("channelIds").toList()));
+    } else if (type == ChannelSwitch) {
+        Q_ASSERT(msg.value("channelId").canConvert(QVariant::Int));
+        Q_ASSERT(msg.value("user").canConvert(QVariant::String));
+        emit channelSwitch(peerId, msg.value("channelId").toInt(), msg.value("user").toString());
     } else {
         qFatal("invalid message type: %d", type);
     }
@@ -385,11 +419,12 @@ void QCClientChannels::sendHistory(const QStringList &h, qint64 qclserver)
 }
 
 // Sends a 'users' message to all clients.
-void QCClientChannels::sendUsers(const QStringList &users)
+void QCClientChannels::sendUsers(const QStringList &users, const QList<int> &channelIds)
 {
     QVariantMap msg;
     msg.insert("type", Users);
     msg.insert("users", users);
+    msg.insert("channelIds", toVariantList(channelIds));
     sendMessage(msg);
 }
 
