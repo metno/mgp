@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# This script builds the headless bdiana version as a Debian package.
-# (The headless version is the one that depends on QWS rather than on X11.)
+# This script builds a Debian package of the bdiana version that depends
+# on QWS (rather than on X11).
 
 set -e # Exit on first failure
 

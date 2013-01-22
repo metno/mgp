@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# This script resets the virtual machine to be used for WMS testing.
+
+PYTHONPATH=$PYTHONPATH:$JENKINS_SCRIPTS_PATH/../shared/python \
+$JENKINS_SCRIPTS_PATH/../vm/resetwmsvm.py

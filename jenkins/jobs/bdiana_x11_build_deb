@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script builds the X11-dependent bdiana version as a Debian package.
+# This script builds a Debian package of the bdiana version that depends on X11.
 
 set -e # Exit on first failure
 

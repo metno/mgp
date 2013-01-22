@@ -145,6 +145,12 @@ class SVNExtractor(VCSExtractor):
 #     1: revs: a list of dictionaries of (repository, revision) combinations.
 #     2: build: a dictionary of (job, build number) combinations.
 def addRevsAndBuildNumbers(fname, job, git_ext, svn_ext, revs, build):
+    if not os.path.exists(fname):
+        # This may actually happen, so handle it gracefully
+        revs.append( { 'job': job, 'rev': {} } )
+        build[job] = -1
+        return
+
     dom = parse(fname)
     rev = {}
 
@@ -213,7 +219,8 @@ def getLastPassInfo(jenkins_home, tgt_job, revs, last_pass_build):
         fname = '{}/jobs/{}/builds/{}/build.xml'.format(
             jenkins_home, upstream_build['job'], upstream_build['build'])
         addRevsAndBuildNumbers(fname, upstream_build['job'], git_ext, svn_ext, revs, last_pass_build)
-        assert last_pass_build[upstream_build['job']] == upstream_build['build']
+        assert ((last_pass_build[upstream_build['job']] == upstream_build['build']) or
+                (last_pass_build[upstream_build['job']] == -1))
 
 
 # Returns the list of email addresses of the people registered to be
@@ -312,7 +319,7 @@ def sendEmails(
         """.format(
             'local to' if (job == tgt_job) else 'for upstream job', job, tgt_job,
             '{}/job/{}/{}/'.format(jenkins_url, job, last_pass_build[job]),
-            last_pass_build[job])
+            last_pass_build[job] if int(last_pass_build[job]) >= 0 else '<span style="color:red">&lt;not found&gt;</span>')
 
         repo_info = job_info['repo_info']
         for repo_url in repo_info:

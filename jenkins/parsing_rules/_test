@@ -1,0 +1,19 @@
+# This file is used by the Jenkins log-parser plugin. It defines rules to identify errors and other information
+# from the build log of jobs that used runtests.py for running test suites. The information is then highlighted
+# and organized in a nice way in the Jenkins page for the build in question.
+#
+# See the log-parser documentation for details.
+
+# Exceptions to errors (i.e. lines that would otherwise match an 'error' pattern):
+ok /standard error/
+ok /^\s*failures: \d+$/
+ok /^\s*insignificant failures: \d+$/
+ok /^__INSIGNIFICANT \(failure is tolerated\)/
+
+# Errors:
+error /^__EXIT CODE: 0*[^0e]+.*$/    # Non-zero exit code
+error /(?i)error/
+error /(?i)fail/
+
+# Start of individual test section:
+start /^__TEST: .+$/

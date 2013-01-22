@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/icons">
+    <file alias="oxygen/16x16/status/irc-channel-inactive.png">oxygen/16x16/status/irc-channel-inactive.png</file>
+    <file alias="oxygen/16x16/status/irc-channel-active.png">oxygen/16x16/status/irc-channel-active.png</file>
+  </qresource>
+</RCC>

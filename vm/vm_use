@@ -1,0 +1,91 @@
+#!/bin/bash
+#set -x
+set -o nounset # Same as set -u
+set -o errexit # Same as set -e
+
+ME=$(basename $0)
+VMUSERNAME=ubuntu
+
+usage ()
+{
+    set +u
+    [ "$1" != "" ] && echo -e "\n[FAILED]" $1 "\n"
+    set -u
+
+    cat <<EOF
+Usage: $ME name [memory [cpus [snapshot]]]
+
+ name      hostname of the virtual machine to use
+ memory    number of megabytes, defaults to 512
+ cpus      number of cpucores, defaults to 1
+ snapshot  name of snapshot to restore, defaults to Pristine
+
+- Restores virtual machine to given snapshot
+- Sets amount of memory and number of CPU cores to use
+- Starts the virtual machine
+
+Waits for ssh -o CheckHostIP=no ubuntu@VMNAME.local id to 
+return successfully.
+
+Virtual machine must be powered off before running this script.
+One option is to use the command:
+
+  vboxmanage controlvm VMNAME poweroff
+
+EOF
+    echo
+    exit 1
+}
+
+err ()
+{
+    echo "${ME}: ${1:-"Unknown error"}" 1>&2
+    exit 1
+}
+
+#
+# Validate arguments
+#
+[ $# == 0 ] && usage
+VMNAME=$1
+MEMORY=${2:-512}
+CPUS=${3:-1}
+SNAPSHOT=${4:-Pristine}
+#
+# Insert any parameter checking here
+#
+vboxmanage showvminfo $VMNAME >/dev/null 2>&1 \
+|| usage $1": VM not found"
+
+vboxmanage showvminfo --machinereadable "$VMNAME" \
+| grep VMState= |grep -q poweroff \
+|| err "VM $VMNAME must be powered off first!
+Use: vboxmanage controlvm $VMNAME poweroff"
+
+vboxmanage snapshot   $VMNAME restore "$SNAPSHOT" \
+|| usage "Could not restore $VMNAME to $SNAPSHOT"
+
+vboxmanage modifyvm   $VMNAME --memory $MEMORY --cpus $CPUS 
+
+for port in {6000..6050}; do 
+    netstat -t -l -n |grep -q $port || break
+done
+echo = VNC-port: $port
+
+echo = Waiting for vm to start in "screen"
+screen -dmS "$VMNAME:$port" vboxheadless -n -m $port -s $VMNAME
+
+result="not done"; tries_left=10; 
+while [ "$result" = "not done" -a $tries_left -gt 0 ]; do
+    sleep 1
+    tries_left=`expr \$tries_left - 1`
+    ssh -o CheckHostIP=no $VMUSERNAME@$VMNAME.local id \
+    > /dev/null 2>&1 && result="done"
+    [[ "$result" = "done" ]] || echo = waiting
+done
+echo = done
+echo = Use "screen -list" to view instances.
+echo = To shut down: vboxmanage controlvm $VMNAME poweroff
+
+[ "$result" = "done" ] || exit 1
+exit 0

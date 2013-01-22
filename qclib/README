@@ -1,0 +1,26 @@
+*** QC library (Qt Chat library) ***
+
+* The QC library is a simple chat system based on
+  QTcpSocket. Conversations are kept in a central database in order
+  for clients not to lose anything if they go offline for a period.
+
+* The example/ directory shows how to use the QC library. It contains the following apps:
+
+  - qcapp: A Qt app controlling the local chat window. This shows how
+           e.g. Diana would use the API.  The qcapp communicates with
+           the local chat server (qclserver).
+
+  - qcchat: A stand-alone chat client, typically used by
+            administrators. This shows the chat window and
+            communicates with a qccserver.
+
+  - qclserver: The local chat server. This shows a chat window and
+               communicates with a qccserver as well as one or more
+               local qcapps. At most one instance runs on a given
+               host.  A qcapp starts the instance if necessary.
+
+  - qccserver: The central chat server. This communicates with one or
+               more qclservers (and even qcchats), and stores
+               conversations in a database. Exactly one instance runs.
+
+* See INSTALL for how to compile the library and the example code.

@@ -1,0 +1,23 @@
+#!/bin/sh -xe
+name=precise64template2
+iso=ubuntu-12.04.1-server-amd64.iso
+
+dir=`vboxmanage list systemproperties|grep "Default machine folder"|cut -c34-`
+hdd="$dir/$name/$name.vdi"
+
+vboxmanage createvm --name $name --ostype Ubuntu_64 --register
+vboxmanage modifyvm $name --cpus  7
+vboxmanage modifyvm $name --nic1 hostonly
+vboxmanage modifyvm $name --hostonlyadapter1 vboxnet0
+vboxmanage modifyvm $name --nictype1 virtio
+vboxmanage modifyvm $name --memory 2048
+
+vboxmanage storagectl $name --name IDE  --add ide
+vboxmanage storagectl $name --name SATA --add sata --sataportcount 1
+vboxmanage -q createhd --filename "$hdd" --size 51200 --variant Standard
+vboxmanage storageattach $name --storagectl SATA --port 0 --device 0 \
+  --type hdd      --medium "$hdd"
+vboxmanage storageattach $name --storagectl IDE  --port 0 --device 0 \
+  --type dvddrive --medium "$iso"
+ 
+vboxmanage startvm $name --type gui

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# This script builds a Debian package of the WMS server.
+
+set -e # Exit on first failure
+set -x
+
+make debian_package
+mkdir artifacts
+mv *.deb artifacts

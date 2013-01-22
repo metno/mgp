@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# This script performs a smoke test of WMS/Diana.
-
-set -e # Exit on first failure
-
-cd $JENKINS_SCRIPTS_PATH/../wms_test
-./smoketest.py --schema capabilities_1.3.0.2.xsd

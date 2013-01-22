@@ -1,7 +1,11 @@
 #!/bin/sh
 
-# This script builds metlibs as a Debian package.
+# This script builds Debian packages of metlibs.
 
 set -e # Exit on first failure
 
 metno-debuild -b -us -uc # ### Add back -j7 option once we have resolved race condition related to omniidl
+
+# Keep artifacts inside the workspace, otherwise Jenkins won't find them
+mkdir artifacts
+mv ../metlibs-*.deb artifacts
