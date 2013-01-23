@@ -1,7 +1,7 @@
-// Example qclserver code.
+// qclserver
 
 #include <QtGui> // ### TODO: include relevant headers only
-#include "qc.h"
+#include "qcchat.h"
 
 class ChatWindow : public QWidget
 {
@@ -94,6 +94,7 @@ public:
             channelUsers_.insert(id, new QSet<QString>);
         }
 
+        updateWindowTitle();
         emit channelSwitch(currentChannelId());
     }
 
@@ -143,8 +144,8 @@ public:
             const int channelId = channelIds.at(i);
             if (channelUsers_.contains(channelId))
                 channelUsers_.value(channelId)->insert(u.at(i));
-            else
-                qDebug() << "ignoring user" << u.at(i) << "with invalid channel id:" << channelId;
+            // else
+            //     qDebug() << "ignoring user" << u.at(i) << "with invalid channel id:" << channelId;
         }
 
         updateUserTree();
@@ -288,6 +289,11 @@ private:
                 channelExpanded.value(root->child(i)->data(0, Qt::DisplayRole).toString().split(" ").first()));
     }
 
+    void updateWindowTitle()
+    {
+        setWindowTitle(QString("met.no chat - %1").arg(channelName_.value(currentChannelId())));
+    }
+
 private slots:
     void sendChatMessage()
     {
@@ -301,6 +307,7 @@ private slots:
     {
         const int channelId = currentChannelId();
         logStack_.setCurrentWidget(log_.value(channelId));
+        updateWindowTitle();
         emit channelSwitch(channelId);
     }
 
@@ -393,22 +400,17 @@ private slots:
 
     void localNotification(const QString &text, const QString &, int channelId)
     {
-        //qDebug() << "notification (from a local qcapp):" << text;
         schannel_->sendNotification(text, user_, channelId);
     }
 
     void centralChatMessage(const QString &text, const QString &user, int channelId, int timestamp)
     {
-        //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << text;
-        //qDebug() << "channel ID:" << channelId;
         window_->appendEvent(text, user, channelId, timestamp, CHATMESSAGE);
         window_->scrollToBottom();
     }
 
     void centralNotification(const QString &text, const QString &user, int channelId, int timestamp)
     {
-        //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << text;
-        //qDebug() << "channel ID:" << channelId;
         cchannels_->sendNotification(text, user, channelId, timestamp);
         window_->appendEvent(text, user, channelId, timestamp, NOTIFICATION);
         window_->scrollToBottom();
@@ -416,7 +418,6 @@ private slots:
 
     void centralChannelSwitch(qint64, int channelId, const QString &user)
     {
-        //qDebug() << "user" << user << "switched to channelId" << channelId;
         window_->handleCentralChannelSwitch(user, channelId);
     }
 
@@ -428,7 +429,6 @@ private slots:
 
     void history(const QStringList &h)
     {
-        //qDebug() << "history (from qccserver):" << h;
         window_->prependHistory(h);
     }
 
@@ -449,7 +449,6 @@ private slots:
 
     void localChatMessage(const QString &text, int channelId)
     {
-        //qDebug() << "chat message (from local window):" << text;
         schannel_->sendChatMessage(text, user_, channelId);
     }
 
@@ -459,32 +458,40 @@ private slots:
     }
 };
 
+static void printUsage()
+{
+    qDebug() << QString(
+        "usage: %1 --lport <local server port> --chost <central server host> --cport <central server port>")
+        .arg(qApp->arguments().first()).toLatin1().data();
+}
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    // extract information from environment
+    // extract command-line options
+    const QMap<QString, QString> options = getOptions(app.arguments());
     bool ok;
-    const quint16 qclport = qgetenv("QCLPORT").toUInt(&ok);
+    const quint16 lport = options.value("lport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract int from environment variable QCLPORT");
+        qDebug("failed to extract local server port");
+        printUsage();
         return 1;
     }
-    const QString qcchost = qgetenv("QCCHOST");
-    if (qcchost.isEmpty()) {
-        qDebug("failed to extract string from environment variable QCCHOST");
-        return 1;
+    const QString chost = options.value("chost");
+    if (chost.isEmpty()) {
+        qDebug("failed to extract central server host");
+          return 1;
     }
-    const quint16 qccport = qgetenv("QCCPORT").toUInt(&ok);
+    const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract int from environment variable QCCPORT");
+        qDebug("failed to extract central server port");
         return 1;
     }
 
     // listen for incoming qcapp connections
     QCClientChannels cchannels;
-    if (!cchannels.listen(qclport)) {
+    if (!cchannels.listen(lport)) {
         qDebug(
             "failed to listen for incoming qcapp connections: cchannels.listen() failed: %s",
             cchannels.lastError().toLatin1().data());
@@ -493,7 +500,7 @@ int main(int argc, char *argv[])
 
     // establish channel to qccserver
     QCServerChannel schannel;
-    if (!schannel.connectToServer(qcchost, qccport)) {
+    if (!schannel.connectToServer(chost, cport)) {
         qDebug(
             "failed to connect to qccserver: schannel.connectToServer() failed: %s",
             schannel.lastError().toLatin1().data());

@@ -1,7 +1,7 @@
 // Example qcapp code.
 
 #include <QtGui> // ### TODO: include relevant headers only
-#include "qc.h"
+#include "qcchat.h"
 
 class Window : public QWidget
 {
@@ -126,22 +126,28 @@ private slots:
     }
 };
 
+static void printUsage()
+{
+    qDebug() << QString("usage: %1 --lport <local server port>").arg(qApp->arguments().first()).toLatin1().data();
+}
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    // extract information environment
+    // extract command-line options
+    const QMap<QString, QString> options = getOptions(app.arguments());
     bool ok;
-    const quint16 port = qgetenv("QCLPORT").toUInt(&ok);
+    const quint16 lport = options.value("lport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract int from environment variable QCLPORT");
+        qDebug() << "failed to extract local server port";
+        printUsage();
         return 1;
     }
 
     // establish channel to qclserver
     QCServerChannel schannel;
-    if (!schannel.connectToServer("localhost", port)) {
+    if (!schannel.connectToServer("localhost", lport)) {
         qDebug("schannel.connectToServer() failed: %s", schannel.lastError().toLatin1().data());
         return 1;
     }

@@ -1,4 +1,4 @@
 SOURCES += main.cpp
-QCLIB_DIR = ../../qclib
+QCLIB_DIR = ../qclib
 include($$QCLIB_DIR/qclib.pri)
 TARGET = qclserver
