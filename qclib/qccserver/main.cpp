@@ -1,4 +1,4 @@
-// Example qccserver code (based on SQLite).
+// qccserver (using SQLite for database backend)
 
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QSqlQuery>

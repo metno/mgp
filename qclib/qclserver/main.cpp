@@ -1,4 +1,4 @@
-// Example qclserver code.
+// qclserver
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qcchat.h"
