@@ -459,32 +459,40 @@ private slots:
     }
 };
 
+static void printUsage()
+{
+    qDebug() << QString(
+        "usage: %1 --lport <local server port> --chost <central server host> --cport <central server port>")
+        .arg(qApp->arguments().first()).toLatin1().data();
+}
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    // extract information from environment
+    // extract command-line options
+    const QMap<QString, QString> options = getOptions(app.arguments());
     bool ok;
-    const quint16 qclport = qgetenv("QCLPORT").toUInt(&ok);
+    const quint16 lport = options.value("lport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract int from environment variable QCLPORT");
+        qDebug("failed to extract local server port");
+        printUsage();
         return 1;
     }
-    const QString qcchost = qgetenv("QCCHOST");
-    if (qcchost.isEmpty()) {
-        qDebug("failed to extract string from environment variable QCCHOST");
-        return 1;
+    const QString chost = options.value("chost");
+    if (chost.isEmpty()) {
+        qDebug("failed to extract central server host");
+          return 1;
     }
-    const quint16 qccport = qgetenv("QCCPORT").toUInt(&ok);
+    const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract int from environment variable QCCPORT");
+        qDebug("failed to extract central server port");
         return 1;
     }
 
     // listen for incoming qcapp connections
     QCClientChannels cchannels;
-    if (!cchannels.listen(qclport)) {
+    if (!cchannels.listen(lport)) {
         qDebug(
             "failed to listen for incoming qcapp connections: cchannels.listen() failed: %s",
             cchannels.lastError().toLatin1().data());
@@ -493,7 +501,7 @@ int main(int argc, char *argv[])
 
     // establish channel to qccserver
     QCServerChannel schannel;
-    if (!schannel.connectToServer(qcchost, qccport)) {
+    if (!schannel.connectToServer(chost, cport)) {
         qDebug(
             "failed to connect to qccserver: schannel.connectToServer() failed: %s",
             schannel.lastError().toLatin1().data());

@@ -8,6 +8,10 @@
 #define CHATMESSAGE 0
 #define NOTIFICATION 1
 
+// Returns a map of (option, value) pairs extracted from a flat list of command-line arguments.
+// (### keep this function somewhere else)
+QMap<QString, QString> getOptions(const QStringList &);
+
 // ### Warning: This class is not reentrant!
 class QCChannel : public QObject
 {

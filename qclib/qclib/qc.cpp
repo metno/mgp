@@ -1,5 +1,15 @@
 #include "qc.h"
 
+// ### keep this function somewhere else
+QMap<QString, QString> getOptions(const QStringList &args)
+{
+    QMap <QString, QString> options;
+    for (int i = 0; i < args.size(); ++i)
+        if ((args.at(i).indexOf("--") == 0) && (args.at(i).size() > 2))
+            options.insert(args.at(i).mid(2), (i < (args.size() - 1)) ? args.at(i + 1) : QString());
+    return options;
+}
+
 QCChannel::QCChannel(QTcpSocket *socket)
     : id_(nextId_++)
     , socket_(socket)

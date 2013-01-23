@@ -211,6 +211,12 @@ private slots:
     }
 };
 
+static void printUsage()
+{
+    qDebug() << QString(
+        "usage: %1 --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port>))")
+        .arg(qApp->arguments().first()).toLatin1().data();
+}
 
 int main(int argc, char *argv[])
 {
@@ -221,15 +227,16 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
 
     // extract information from environment
+    const QMap<QString, QString> options = getOptions(app.arguments());
     bool ok;
-    const QString dbfile = qgetenv("QCDBFILE");
+    const QString dbfile = options.value("dbfile");
     if (dbfile.isEmpty()) {
-        qDebug("failed to extract string from environment variable QCDBFILE");
+        qDebug("failed to extract database file name");
+        printUsage();
         return 1;
     }
-    const QString initdb = qgetenv("QCINITDB");
-    if (!initdb.isEmpty() && initdb != "0" && initdb.toLower() != "false" && initdb.toLower() != "no") {
-        // initialize DB and terminate
+    if (options.contains("initdb")) {
+        // initialize database and terminate
         if (QFile::exists(dbfile)) {
             qDebug() << QString("database file already exists: %1; please (re)move it first")
                 .arg(dbfile).toLatin1().data();
@@ -245,15 +252,16 @@ int main(int argc, char *argv[])
         qDebug() << "database file not found:" << dbfile.toLatin1().data();
         return 1;
     }
-    const quint16 qccport = qgetenv("QCCPORT").toUInt(&ok);
+    const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract int from environment variable QCCPORT");
+        qDebug("failed to extract central server port");
+        printUsage();
         return 1;
     }
 
     // listen for incoming qclserver connections
     QCClientChannels cchannels;
-    if (!cchannels.listen(qccport)) {
+    if (!cchannels.listen(cport)) {
         qDebug(
             "failed to listen for incoming qclserver connections: cchannels.listen() failed: %s",
             cchannels.lastError().toLatin1().data());
