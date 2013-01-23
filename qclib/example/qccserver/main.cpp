@@ -147,7 +147,6 @@ private:
 private slots:
     void chatMessage(const QString &text, const QString &user, int channelId)
     {
-        qDebug() << QString("chat message (from a qclserver; user: %1): %2").arg(user).arg(text).toLatin1().data();
         const int timestamp = QDateTime::currentDateTime().toTime_t();
         cchannels_->sendChatMessage(text, user, channelId, timestamp); // forward to all qclservers
         appendToDatabase(text, user, channelId, timestamp, CHATMESSAGE);
@@ -155,7 +154,6 @@ private slots:
 
     void notification(const QString &text, const QString &user, int channelId)
     {
-        qDebug() << QString("notification (from a qclserver; user: %1): %2").arg(user).arg(text).toLatin1().data();
         const int timestamp = QDateTime::currentDateTime().toTime_t();
         cchannels_->sendNotification(text, user, channelId, timestamp); // forward to all qclservers
         appendToDatabase(text, user, channelId, timestamp, NOTIFICATION);
@@ -163,8 +161,6 @@ private slots:
 
     void channelSwitch(qint64 qclserver, int channelId, const QString &)
     {
-        qDebug() << QString("channel switch (from a qclserver; channelId: %1; user: %2)")
-            .arg(channelId).arg(user_.value(qclserver)).toLatin1().data();
         channel_.insert(qclserver, channelId); // store new value
         cchannels_->sendChannelSwitch(channelId, user_.value(qclserver)); // forward to all qclservers
     }
@@ -172,8 +168,6 @@ private slots:
     void initialization(qint64 qclserver, const QVariantMap &msg)
     {
         const QString user(msg.value("user").toString());
-        qDebug() << QString("initialization (from qclserver channel %1); user: %2")
-            .arg(qclserver).arg(user_.value(qclserver)).toLatin1().data();
 
         if (user_.values().contains(user)) {
             qWarning("WARNING: user '%s' already joined; disconnecting", user.toLatin1().data());
@@ -206,7 +200,6 @@ private slots:
     {
         const QString user = user_.take(qclserver);
         channel_.remove(qclserver);
-        qDebug() << QString("user '%1' left").arg(user).toLatin1().data();
         cchannels_->sendUsers(user_.values(), channel_.values());
     }
 };

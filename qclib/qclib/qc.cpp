@@ -143,7 +143,7 @@ bool QCChannelServer::listen(const qint16 port)
         return false;
     }
     connect(&server_, SIGNAL(newConnection()), SLOT(newConnection()));
-    qDebug() << "accepting client connections on port" << port << "...";
+    // qDebug() << "accepting client connections on port" << port << "...";
     return true;
 }
 
@@ -457,7 +457,7 @@ void QCClientChannels::sendMessage(const QVariantMap &msg)
 
 void QCClientChannels::handleChannelConnected(QCChannel *channel)
 {
-    qDebug() << "new client connected:" << channel->peerInfo().toLatin1().data();
+    // qDebug() << "new client connected:" << channel->peerInfo().toLatin1().data();
     connect(
         channel, SIGNAL(messageArrived(qint64, const QVariantMap &)),
         SLOT(handleMessageArrived(qint64, const QVariantMap &)));

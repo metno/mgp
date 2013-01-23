@@ -143,8 +143,8 @@ public:
             const int channelId = channelIds.at(i);
             if (channelUsers_.contains(channelId))
                 channelUsers_.value(channelId)->insert(u.at(i));
-            else
-                qDebug() << "ignoring user" << u.at(i) << "with invalid channel id:" << channelId;
+            // else
+            //     qDebug() << "ignoring user" << u.at(i) << "with invalid channel id:" << channelId;
         }
 
         updateUserTree();
@@ -393,22 +393,17 @@ private slots:
 
     void localNotification(const QString &text, const QString &, int channelId)
     {
-        //qDebug() << "notification (from a local qcapp):" << text;
         schannel_->sendNotification(text, user_, channelId);
     }
 
     void centralChatMessage(const QString &text, const QString &user, int channelId, int timestamp)
     {
-        //qDebug() << "chat message (from qccserver) (timestamp:" << timestamp << "):" << text;
-        //qDebug() << "channel ID:" << channelId;
         window_->appendEvent(text, user, channelId, timestamp, CHATMESSAGE);
         window_->scrollToBottom();
     }
 
     void centralNotification(const QString &text, const QString &user, int channelId, int timestamp)
     {
-        //qDebug() << "notification (from qccserver) (timestamp:" << timestamp << "):" << text;
-        //qDebug() << "channel ID:" << channelId;
         cchannels_->sendNotification(text, user, channelId, timestamp);
         window_->appendEvent(text, user, channelId, timestamp, NOTIFICATION);
         window_->scrollToBottom();
@@ -416,7 +411,6 @@ private slots:
 
     void centralChannelSwitch(qint64, int channelId, const QString &user)
     {
-        //qDebug() << "user" << user << "switched to channelId" << channelId;
         window_->handleCentralChannelSwitch(user, channelId);
     }
 
@@ -428,7 +422,6 @@ private slots:
 
     void history(const QStringList &h)
     {
-        //qDebug() << "history (from qccserver):" << h;
         window_->prependHistory(h);
     }
 
@@ -449,7 +442,6 @@ private slots:
 
     void localChatMessage(const QString &text, int channelId)
     {
-        //qDebug() << "chat message (from local window):" << text;
         schannel_->sendChatMessage(text, user_, channelId);
     }
 
