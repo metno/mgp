@@ -13,6 +13,10 @@ DIRECTORY CONTENTS
 docs/
   Documentation about the architecture etc.
 
+qclib/
+
+  The core library.
+
 qcapp_example/
 
   An example Qt app controlling the local chat window and receiving
