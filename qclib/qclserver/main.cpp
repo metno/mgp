@@ -94,6 +94,7 @@ public:
             channelUsers_.insert(id, new QSet<QString>);
         }
 
+        updateWindowTitle();
         emit channelSwitch(currentChannelId());
     }
 
@@ -288,6 +289,11 @@ private:
                 channelExpanded.value(root->child(i)->data(0, Qt::DisplayRole).toString().split(" ").first()));
     }
 
+    void updateWindowTitle()
+    {
+        setWindowTitle(QString("met.no chat - %1").arg(channelName_.value(currentChannelId())));
+    }
+
 private slots:
     void sendChatMessage()
     {
@@ -301,6 +307,7 @@ private slots:
     {
         const int channelId = currentChannelId();
         logStack_.setCurrentWidget(log_.value(channelId));
+        updateWindowTitle();
         emit channelSwitch(channelId);
     }
 
