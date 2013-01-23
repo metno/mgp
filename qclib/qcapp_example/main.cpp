@@ -1,7 +1,7 @@
 // Example qcapp code.
 
 #include <QtGui> // ### TODO: include relevant headers only
-#include "qc.h"
+#include "qcchat.h"
 
 class Window : public QWidget
 {

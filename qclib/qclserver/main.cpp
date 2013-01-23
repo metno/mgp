@@ -1,7 +1,7 @@
 // Example qclserver code.
 
 #include <QtGui> // ### TODO: include relevant headers only
-#include "qc.h"
+#include "qcchat.h"
 
 class ChatWindow : public QWidget
 {

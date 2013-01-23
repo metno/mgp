@@ -3,7 +3,7 @@
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QSqlQuery>
 #include <QSqlError>
-#include "qc.h"
+#include "qcchat.h"
 
 static bool initDatabase(const QString &dbfile, QString *error)
 {

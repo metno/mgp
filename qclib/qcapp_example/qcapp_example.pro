@@ -1,5 +1,5 @@
 SOURCES += main.cpp
-QCLIB_DIR = ../../qclib
+QCLIB_DIR = ../qclib
 include($$QCLIB_DIR/qclib.pri)
-TARGET = qcapp
+TARGET = qcapp_example
 QT += gui
