@@ -190,11 +190,11 @@ private:
     QMap<int, QString> html_;
     QMap<int, QSet<QString> *> channelUsers_;
 
-    void closeEvent(QCloseEvent *event)
+    void closeEvent(QCloseEvent *e)
     {
         // prevent the close event from terminating the application
         hide();
-        event->ignore();
+        e->ignore();
     }
 
     void showEvent(QShowEvent *)
@@ -334,8 +334,8 @@ public:
         }
 
         connect(cchannels_, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
-        connect(cchannels_, SIGNAL(chatWindowShown()), window_, SLOT(show()));
-        connect(cchannels_, SIGNAL(chatWindowHidden()), window_, SLOT(hide()));
+        connect(cchannels_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
+        connect(cchannels_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
         connect(
             cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(localNotification(const QString &, const QString &, int)));
@@ -390,9 +390,9 @@ private slots:
 
         // inform about current chat window visibility
         if (window_->isVisible())
-            cchannels_->showChatWindow(qcapp);
+            cchannels_->sendShowChatWindow(qcapp);
         else
-            cchannels_->hideChatWindow(qcapp);
+            cchannels_->sendHideChatWindow(qcapp);
 
         // send available chat channels to this qcapp only
         cchannels_->sendChannels(chatChannels_, qcapp);
@@ -437,14 +437,34 @@ private slots:
         window_->setUsers(u, channelIds);
     }
 
+    void sendShowChatWindow()
+    {
+        cchannels_->sendShowChatWindow();
+    }
+
+    void sendHideChatWindow()
+    {
+        cchannels_->sendHideChatWindow();
+    }
+
     void showChatWindow()
     {
-        cchannels_->showChatWindow();
+        if (window_->isVisible())
+            // inform clients right after other events have been processed
+            QTimer::singleShot(0, this, SLOT(sendShowChatWindow()));
+        else
+            // inform clients when this slot is called again as a result of the window being shown
+            window_->show();
     }
 
     void hideChatWindow()
     {
-        cchannels_->hideChatWindow();
+        if (!window_->isVisible())
+            // inform clients right after other events have been processed
+            QTimer::singleShot(0, this, SLOT(sendHideChatWindow()));
+        else
+            // inform clients when this slot is called again as a result of the window being hidden
+            window_->hide();
     }
 
     void localChatMessage(const QString &text, int channelId)
@@ -509,7 +529,6 @@ int main(int argc, char *argv[])
 
     // create a chat window
     ChatWindow *window = new ChatWindow;
-    //window->show();
 
     // create object to handle interaction between qcapps, qccserver, and chat window
     Interactor interactor(&cchannels, &schannel, window);

@@ -35,7 +35,7 @@ QString QCBase::lastError() const
     return lastError_;
 }
 
-void QCBase::showChatWindow(qint64 qcapp)
+void QCBase::sendShowChatWindow(qint64 qcapp)
 {
     QVariantMap msg;
     msg.insert("type", ShowChatWin);
@@ -43,7 +43,7 @@ void QCBase::showChatWindow(qint64 qcapp)
     sendMessage(msg);
 }
 
-void QCBase::hideChatWindow(qint64 qcapp)
+void QCBase::sendHideChatWindow(qint64 qcapp)
 {
     QVariantMap msg;
     msg.insert("type", HideChatWin);
@@ -101,9 +101,9 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
         qFatal("failed to convert message type to int: %s", msg.value("type").toString().toLatin1().data());
     }
     if (type == ShowChatWin) {
-        emit chatWindowShown();
+        emit showChatWindow();
     } else if (type == HideChatWin) {
-        emit chatWindowHidden();
+        emit hideChatWindow();
     } else if (type == ChatMsg) {
         Q_ASSERT(msg.value("text").canConvert(QVariant::String));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
