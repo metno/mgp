@@ -9,6 +9,7 @@ class ChatWindow : public QWidget
 public:
     ChatWindow()
         : edit_(0)
+        , geometrySaveEnabled_(true)
     {
         cfgFName_ = QString("%1/.config/qcchat/qcchat.conf").arg(qgetenv("HOME").constData());
         QFileInfo finfo(cfgFName_);
@@ -61,7 +62,9 @@ public:
         usersLayout_->addWidget(userTree_);
 
         setLayout(layout1);
-        resize(1000, 400);
+
+        if (!restoreGeometry())
+            resize(1000, 400); // default if unable to restore from config file for some reason
     }
 
     void appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
@@ -203,9 +206,14 @@ private:
     QMap<int, QString> html_;
     QMap<int, QSet<QString> *> channelUsers_;
     QString cfgFName_;
+    bool geometrySaveEnabled_;
 
+    // Saves window geometry to config file.
     void saveGeometry()
     {
+        if (!geometrySaveEnabled_)
+            return;
+
         if (cfgFName_.isEmpty())
             return; // operation not possible for some reason (### we could recheck if things are working by now)
 
@@ -224,29 +232,45 @@ private:
         file.close();
     }
 
-    void restoreGeometry()
+    // Restores window geometry from config file. Returns true iff the operation succeeded.
+    bool restoreGeometry()
     {
+        if (!geometrySaveEnabled_)
+            return false; // let the active operation complete
+
         if (cfgFName_.isEmpty())
-            return; // operation not possible for some reason (### we could recheck if things are working by now)
+            return false; // operation not possible for some reason (### we could recheck if things are working by now)
 
         QFileInfo fileInfo(cfgFName_);
         if (!fileInfo.isFile())
-            return; // geometry not saved yet
+            return false; // geometry not saved yet
 
         QFile file(cfgFName_);
         // if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         if (!file.open(QIODevice::ReadOnly)) {
             qWarning("WARNING: failed to open config file for reading: %s", cfgFName_.toLatin1().data());
             cfgFName_.clear(); // indicate that a later save/restore operation is not possible
-            return;
+            return false;
         }
 
         const QByteArray ba = file.readAll();
         QDataStream dstream(ba);
         QRect geom;
         dstream >> geom;
+
+        // temporarily disable geometry saves (in particular those that would otherwise result
+        // from move and resize events generated for a visible window by the below setGeometry() call;
+        // the value of geometry() at those points tends to be unexpected; probably due to window manager
+        // peculiarities on X11)
+        if (geometrySaveEnabled_) {
+            geometrySaveEnabled_ = false;
+            QTimer::singleShot(100, this, SLOT(enableGeometrySave()));
+        }
+
         setGeometry(geom);
         file.close();
+
+        return true;
     }
 
     void closeEvent(QCloseEvent *e)
@@ -381,6 +405,11 @@ private slots:
         emit channelSwitch(channelId);
     }
 
+    void enableGeometrySave()
+    {
+        geometrySaveEnabled_ = true;
+    }
+
 signals:
     void windowShown();
     void windowHidden();
@@ -396,6 +425,7 @@ public:
         : cchannels_(cchannels)
         , schannel_(schannel)
         , window_(window)
+        , showingWindow_(false)
     {
         user_ = qgetenv("USER");
         if (user_.isEmpty()) {
@@ -426,8 +456,8 @@ public:
             schannel_, SIGNAL(users(const QStringList &, const QList<int> &)),
             SLOT(users(const QStringList &, const QList<int> &)));
 
-        connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
-        connect(window_, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
+        connect(window_, SIGNAL(windowShown()), SLOT(windowShown()));
+        connect(window_, SIGNAL(windowHidden()), SLOT(windowHidden()));
         connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
         connect(window_, SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
 
@@ -442,6 +472,7 @@ private:
     ChatWindow *window_;
     QString user_;
     QStringList chatChannels_; //  a.k.a. chat rooms
+    bool showingWindow_;
 
 private slots:
     void serverDisconnected()
@@ -517,24 +548,41 @@ private slots:
         cchannels_->sendHideChatWindow();
     }
 
-    void showChatWindow()
+    // invoked from window_->showEvent()
+    void windowShown()
     {
-        if (window_->isVisible())
-            // inform clients right after other events have been processed
-            QTimer::singleShot(0, this, SLOT(sendShowChatWindow()));
-        else
-            // inform clients when this slot is called again as a result of the window being shown
-            window_->show();
+        // inform clients right after other events have been processed
+        QTimer::singleShot(0, this, SLOT(sendShowChatWindow()));
+        showingWindow_ = false;
     }
 
+    // invoked from client request
+    void showChatWindow()
+    {
+        if (showingWindow_)
+            return; // let the active operation complete
+        showingWindow_ = true;
+
+        if (window_->isVisible()) {
+            window_->hide();
+            qApp->processEvents();
+            QTimer::singleShot(500, window_, SLOT(show()));
+        } else {
+            window_->show();
+        }
+    }
+
+    // invoked from window_->hideEvent()
+    void windowHidden()
+    {
+        // inform clients right after other events have been processed
+        QTimer::singleShot(0, this, SLOT(sendHideChatWindow()));
+    }
+
+    // invoked from client request
     void hideChatWindow()
     {
-        if (!window_->isVisible())
-            // inform clients right after other events have been processed
-            QTimer::singleShot(0, this, SLOT(sendHideChatWindow()));
-        else
-            // inform clients when this slot is called again as a result of the window being hidden
-            window_->hide();
+        window_->hide();
     }
 
     void localChatMessage(const QString &text, int channelId)
