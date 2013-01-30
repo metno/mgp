@@ -22,8 +22,8 @@ private:
     QString lastError_;
     virtual void sendMessage(const QVariantMap &) = 0;
 public slots:
-    void sendShowChatWindow(qint64 = -1);
-    void sendHideChatWindow(qint64 = -1);
+    void sendShowChatWindow();
+    void sendHideChatWindow();
     void sendChatMessage(const QString &, const QString &, int, int = -1);
     void sendNotification(const QString &, const QString & = QString(), int = -1, int = -1);
     void sendChannelSwitch(int, const QString & = QString());

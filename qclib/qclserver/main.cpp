@@ -491,9 +491,9 @@ private slots:
 
         // inform about current chat window visibility
         if (window_->isVisible())
-            cchannels_->sendShowChatWindow(qcapp);
+            cchannels_->sendShowChatWindow();
         else
-            cchannels_->sendHideChatWindow(qcapp);
+            cchannels_->sendHideChatWindow();
 
         // send available chat channels to this qcapp only
         cchannels_->sendChannels(chatChannels_, qcapp);
