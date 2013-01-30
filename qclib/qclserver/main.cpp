@@ -10,6 +10,19 @@ public:
     ChatWindow()
         : edit_(0)
     {
+        cfgFName_ = QString("%1/.config/qcchat/qcchat.conf").arg(qgetenv("HOME").constData());
+        QFileInfo finfo(cfgFName_);
+        QFileInfo dinfo(finfo.absolutePath());
+        if (!dinfo.isDir()) {
+            // config directory does not exist, so try to create it
+            // (### for now, assume it doesn't exist as a file - we could check for this)
+            QDir dir;
+            if (!dir.mkpath(finfo.absolutePath())) {
+                qWarning("WARNING: failed to create config directory: %s", finfo.absolutePath().toLatin1().data());
+                cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+            }
+        }
+
         QHBoxLayout *layout1 = new QHBoxLayout;
 
         QVBoxLayout *layout2 = new QVBoxLayout;
@@ -189,6 +202,52 @@ private:
     QLineEdit *edit_;
     QMap<int, QString> html_;
     QMap<int, QSet<QString> *> channelUsers_;
+    QString cfgFName_;
+
+    void saveGeometry()
+    {
+        if (cfgFName_.isEmpty())
+            return; // operation not possible for some reason (### we could recheck if things are working by now)
+
+        QFile file(cfgFName_);
+        // if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        if (!file.open(QIODevice::WriteOnly)) {
+            qWarning("WARNING: failed to open config file for writing: %s", cfgFName_.toLatin1().data());
+            cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+            return;
+        }
+
+        QByteArray ba;
+        QDataStream dstream(&ba, QIODevice::Append);
+        dstream << geometry();
+        file.write(ba);
+        file.close();
+    }
+
+    void restoreGeometry()
+    {
+        if (cfgFName_.isEmpty())
+            return; // operation not possible for some reason (### we could recheck if things are working by now)
+
+        QFileInfo fileInfo(cfgFName_);
+        if (!fileInfo.isFile())
+            return; // geometry not saved yet
+
+        QFile file(cfgFName_);
+        // if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning("WARNING: failed to open config file for reading: %s", cfgFName_.toLatin1().data());
+            cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+            return;
+        }
+
+        const QByteArray ba = file.readAll();
+        QDataStream dstream(ba);
+        QRect geom;
+        dstream >> geom;
+        setGeometry(geom);
+        file.close();
+    }
 
     void closeEvent(QCloseEvent *e)
     {
@@ -199,6 +258,7 @@ private:
 
     void showEvent(QShowEvent *)
     {
+        restoreGeometry();
         scrollToBottom();
         emit windowShown();
     }
@@ -206,6 +266,16 @@ private:
     void hideEvent(QHideEvent *)
     {
         emit windowHidden();
+    }
+
+    void moveEvent(QMoveEvent *)
+    {
+        saveGeometry();
+    }
+
+    void resizeEvent(QResizeEvent *)
+    {
+        saveGeometry();
     }
 
     // Returns a version of \a s where hyperlinks are embedded in HTML <a> tags.
