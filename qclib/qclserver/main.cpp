@@ -9,7 +9,21 @@ class ChatWindow : public QWidget
 public:
     ChatWindow()
         : edit_(0)
+        , geometrySaveEnabled_(true)
     {
+        cfgFName_ = QString("%1/.config/qcchat/qcchat.conf").arg(qgetenv("HOME").constData());
+        QFileInfo finfo(cfgFName_);
+        QFileInfo dinfo(finfo.absolutePath());
+        if (!dinfo.isDir()) {
+            // config directory does not exist, so try to create it
+            // (### for now, assume it doesn't exist as a file - we could check for this)
+            QDir dir;
+            if (!dir.mkpath(finfo.absolutePath())) {
+                qWarning("WARNING: failed to create config directory: %s", finfo.absolutePath().toLatin1().data());
+                cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+            }
+        }
+
         QHBoxLayout *layout1 = new QHBoxLayout;
 
         QVBoxLayout *layout2 = new QVBoxLayout;
@@ -48,7 +62,9 @@ public:
         usersLayout_->addWidget(userTree_);
 
         setLayout(layout1);
-        resize(1000, 400);
+
+        if (!restoreGeometry())
+            resize(1000, 400); // default if unable to restore from config file for some reason
     }
 
     void appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
@@ -189,16 +205,84 @@ private:
     QLineEdit *edit_;
     QMap<int, QString> html_;
     QMap<int, QSet<QString> *> channelUsers_;
+    QString cfgFName_;
+    bool geometrySaveEnabled_;
 
-    void closeEvent(QCloseEvent *event)
+    // Saves window geometry to config file.
+    void saveGeometry()
+    {
+        if (!geometrySaveEnabled_)
+            return;
+
+        if (cfgFName_.isEmpty())
+            return; // operation not possible for some reason (### we could recheck if things are working by now)
+
+        QFile file(cfgFName_);
+        // if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        if (!file.open(QIODevice::WriteOnly)) {
+            qWarning("WARNING: failed to open config file for writing: %s", cfgFName_.toLatin1().data());
+            cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+            return;
+        }
+
+        QByteArray ba;
+        QDataStream dstream(&ba, QIODevice::Append);
+        dstream << geometry();
+        file.write(ba);
+        file.close();
+    }
+
+    // Restores window geometry from config file. Returns true iff the operation succeeded.
+    bool restoreGeometry()
+    {
+        if (!geometrySaveEnabled_)
+            return false; // let the active operation complete
+
+        if (cfgFName_.isEmpty())
+            return false; // operation not possible for some reason (### we could recheck if things are working by now)
+
+        QFileInfo fileInfo(cfgFName_);
+        if (!fileInfo.isFile())
+            return false; // geometry not saved yet
+
+        QFile file(cfgFName_);
+        // if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning("WARNING: failed to open config file for reading: %s", cfgFName_.toLatin1().data());
+            cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+            return false;
+        }
+
+        const QByteArray ba = file.readAll();
+        QDataStream dstream(ba);
+        QRect geom;
+        dstream >> geom;
+
+        // temporarily disable geometry saves (in particular those that would otherwise result
+        // from move and resize events generated for a visible window by the below setGeometry() call;
+        // the value of geometry() at those points tends to be unexpected; probably due to window manager
+        // peculiarities on X11)
+        if (geometrySaveEnabled_) {
+            geometrySaveEnabled_ = false;
+            QTimer::singleShot(100, this, SLOT(enableGeometrySave()));
+        }
+
+        setGeometry(geom);
+        file.close();
+
+        return true;
+    }
+
+    void closeEvent(QCloseEvent *e)
     {
         // prevent the close event from terminating the application
         hide();
-        event->ignore();
+        e->ignore();
     }
 
     void showEvent(QShowEvent *)
     {
+        restoreGeometry();
         scrollToBottom();
         emit windowShown();
     }
@@ -206,6 +290,16 @@ private:
     void hideEvent(QHideEvent *)
     {
         emit windowHidden();
+    }
+
+    void moveEvent(QMoveEvent *)
+    {
+        saveGeometry();
+    }
+
+    void resizeEvent(QResizeEvent *)
+    {
+        saveGeometry();
     }
 
     // Returns a version of \a s where hyperlinks are embedded in HTML <a> tags.
@@ -311,6 +405,11 @@ private slots:
         emit channelSwitch(channelId);
     }
 
+    void enableGeometrySave()
+    {
+        geometrySaveEnabled_ = true;
+    }
+
 signals:
     void windowShown();
     void windowHidden();
@@ -326,6 +425,7 @@ public:
         : cchannels_(cchannels)
         , schannel_(schannel)
         , window_(window)
+        , showingWindow_(false)
     {
         user_ = qgetenv("USER");
         if (user_.isEmpty()) {
@@ -334,8 +434,8 @@ public:
         }
 
         connect(cchannels_, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
-        connect(cchannels_, SIGNAL(chatWindowShown()), window_, SLOT(show()));
-        connect(cchannels_, SIGNAL(chatWindowHidden()), window_, SLOT(hide()));
+        connect(cchannels_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
+        connect(cchannels_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
         connect(
             cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(localNotification(const QString &, const QString &, int)));
@@ -356,8 +456,8 @@ public:
             schannel_, SIGNAL(users(const QStringList &, const QList<int> &)),
             SLOT(users(const QStringList &, const QList<int> &)));
 
-        connect(window_, SIGNAL(windowShown()), SLOT(showChatWindow()));
-        connect(window_, SIGNAL(windowHidden()), SLOT(hideChatWindow()));
+        connect(window_, SIGNAL(windowShown()), SLOT(windowShown()));
+        connect(window_, SIGNAL(windowHidden()), SLOT(windowHidden()));
         connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
         connect(window_, SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
 
@@ -372,6 +472,7 @@ private:
     ChatWindow *window_;
     QString user_;
     QStringList chatChannels_; //  a.k.a. chat rooms
+    bool showingWindow_;
 
 private slots:
     void serverDisconnected()
@@ -390,9 +491,9 @@ private slots:
 
         // inform about current chat window visibility
         if (window_->isVisible())
-            cchannels_->showChatWindow(qcapp);
+            cchannels_->sendShowChatWindow();
         else
-            cchannels_->hideChatWindow(qcapp);
+            cchannels_->sendHideChatWindow();
 
         // send available chat channels to this qcapp only
         cchannels_->sendChannels(chatChannels_, qcapp);
@@ -437,14 +538,51 @@ private slots:
         window_->setUsers(u, channelIds);
     }
 
-    void showChatWindow()
+    void sendShowChatWindow()
     {
-        cchannels_->showChatWindow();
+        cchannels_->sendShowChatWindow();
     }
 
+    void sendHideChatWindow()
+    {
+        cchannels_->sendHideChatWindow();
+    }
+
+    // invoked from window_->showEvent()
+    void windowShown()
+    {
+        // inform clients right after other events have been processed
+        QTimer::singleShot(0, this, SLOT(sendShowChatWindow()));
+        showingWindow_ = false;
+    }
+
+    // invoked from client request
+    void showChatWindow()
+    {
+        if (showingWindow_)
+            return; // let the active operation complete
+        showingWindow_ = true;
+
+        if (window_->isVisible()) {
+            window_->hide();
+            qApp->processEvents();
+            QTimer::singleShot(500, window_, SLOT(show()));
+        } else {
+            window_->show();
+        }
+    }
+
+    // invoked from window_->hideEvent()
+    void windowHidden()
+    {
+        // inform clients right after other events have been processed
+        QTimer::singleShot(0, this, SLOT(sendHideChatWindow()));
+    }
+
+    // invoked from client request
     void hideChatWindow()
     {
-        cchannels_->hideChatWindow();
+        window_->hide();
     }
 
     void localChatMessage(const QString &text, int channelId)
@@ -509,7 +647,6 @@ int main(int argc, char *argv[])
 
     // create a chat window
     ChatWindow *window = new ChatWindow;
-    //window->show();
 
     // create object to handle interaction between qcapps, qccserver, and chat window
     Interactor interactor(&cchannels, &schannel, window);
