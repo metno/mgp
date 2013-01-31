@@ -194,6 +194,12 @@ public:
         return channelId_.value(channelCBox_->currentText());
     }
 
+    void setServerSysInfo(const QMap<QString, QString> &sysInfo)
+    {
+        serverSysInfo_ = sysInfo;
+        updateWindowTitle();
+    }
+
 private:
     QVBoxLayout *usersLayout_;
     QComboBox *channelCBox_;
@@ -207,6 +213,7 @@ private:
     QMap<int, QSet<QString> *> channelUsers_;
     QString cfgFName_;
     bool geometrySaveEnabled_;
+    QMap<QString, QString> serverSysInfo_;
 
     // Saves window geometry to config file.
     void saveGeometry()
@@ -385,7 +392,12 @@ private:
 
     void updateWindowTitle()
     {
-        setWindowTitle(QString("met.no chat - %1").arg(channelName_.value(currentChannelId())));
+        setWindowTitle(
+            QString("met.no chat - channel: %1; central server: %2.%3 (%4)")
+            .arg(channelName_.value(currentChannelId()))
+            .arg(serverSysInfo_.value("hostname"))
+            .arg(serverSysInfo_.value("domainname"))
+            .arg(serverSysInfo_.value("ipaddr")));
     }
 
 private slots:
@@ -440,6 +452,7 @@ public:
             cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(localNotification(const QString &, const QString &, int)));
 
+        connect(schannel_, SIGNAL(sysInfo(const QMap<QString, QString> &)), SLOT(serverSysInfo(const QMap<QString, QString> &)));
         connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
         connect(
             schannel_, SIGNAL(chatMessage(const QString &, const QString &, int, int)),
@@ -475,6 +488,11 @@ private:
     bool showingWindow_;
 
 private slots:
+    void serverSysInfo(const QMap<QString, QString> &sysInfo)
+    {
+        window_->setServerSysInfo(sysInfo);
+    }
+
     void serverDisconnected()
     {
         qWarning("WARNING: central server disconnected");

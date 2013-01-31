@@ -1,5 +1,22 @@
 #include "qcchat.h"
 
+static QMap<QString, QString> toStringStringMap(const QStringList &slist)
+{
+    QMap<QString, QString> ssmap;
+    Q_ASSERT(!(slist.size() % 2));
+    for (int i = 0; i < (slist.size() - 1); i += 2)
+        ssmap.insert(slist.at(i), slist.at(i + 1));
+    return ssmap;
+}
+
+static QStringList toStringList(const QMap<QString, QString> &ssmap)
+{
+    QStringList slist;
+    foreach (QString key, ssmap.keys())
+        slist << key << ssmap.value(key);
+    return slist;
+}
+
 static QList<int> toIntList(const QList<QVariant> &vlist)
 {
     QList<int> ilist;
@@ -33,6 +50,16 @@ void QCBase::setLastError(const QString &error)
 QString QCBase::lastError() const
 {
     return lastError_;
+}
+
+// Sends a 'sysinfo' message to a specific peer.
+void QCBase::sendSysInfo(const QMap<QString, QString> &sysInfo, qint64 peer)
+{
+    QVariantMap msg;
+    msg.insert("sysInfo", toStringList(sysInfo));
+    msg.insert("peer", peer);
+    msg.insert("type", SysInfo);
+    sendMessage(msg);
 }
 
 void QCBase::sendShowChatWindow()
@@ -98,7 +125,10 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
         qDebug() << "msg:" << msg;
         qFatal("failed to convert message type to int: %s", msg.value("type").toString().toLatin1().data());
     }
-    if (type == ShowChatWin) {
+    if (type == SysInfo) {
+        Q_ASSERT(msg.value("sysInfo").canConvert(QVariant::StringList));
+        emit sysInfo(toStringStringMap(msg.value("sysInfo").toStringList()));
+    } else if (type == ShowChatWin) {
         emit showChatWindow();
     } else if (type == HideChatWin) {
         emit hideChatWindow();
@@ -274,14 +304,14 @@ void QCClientChannels::sendUsers(const QStringList &users, const QList<int> &cha
     sendMessage(msg);
 }
 
-// Sends a message to all clients or to a specific client given in the field "client" (if set and >= 0).
+// Sends a message to all clients or to a specific client given in the field "peer" (if set and >= 0).
 void QCClientChannels::sendMessage(const QVariantMap &msg)
 {
     bool ok;
-    qint64 client = msg.value("client").toLongLong(&ok);
+    qint64 client = msg.value("peer").toLongLong(&ok);
     if (ok && (client >= 0)) {
         if (!channels_.contains(client)) {
-            qWarning("WARNING: QCClientChannels::sendMessages(): client %lld no longer connected", client);
+            qWarning("WARNING: QCClientChannels::sendMessage(): client %lld no longer connected", client);
             return;
         }
         channels_.value(client)->sendMessage(msg);

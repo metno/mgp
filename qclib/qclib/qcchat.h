@@ -15,13 +15,14 @@ public:
 protected:
     QCBase();
     enum MsgType {
-        ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, Channels, History, Users, ChannelSwitch
+        SysInfo, ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, Channels, History, Users, ChannelSwitch
     };
     void setLastError(const QString &);
 private:
     QString lastError_;
     virtual void sendMessage(const QVariantMap &) = 0;
 public slots:
+    void sendSysInfo(const QMap<QString, QString> &, qint64 = -1);
     void sendShowChatWindow();
     void sendHideChatWindow();
     void sendChatMessage(const QString &, const QString &, int, int = -1);
@@ -31,6 +32,7 @@ protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
 signals:
+    void sysInfo(const QMap<QString, QString> &);
     void showChatWindow();
     void hideChatWindow();
     void chatMessage(const QString &, const QString &, int, int);

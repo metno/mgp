@@ -51,6 +51,26 @@ static bool initDatabase(const QString &dbfile, QString *error)
     return true;
 }
 
+
+static QString getLocalIPAddress()
+{
+    QProcess p1;
+    QProcess p2;
+    p1.setStandardOutputProcess(&p2);
+    p1.start("ifconfig eth0");
+    p2.start("grep", QStringList() << "inet addr");
+    p1.waitForFinished(-1);
+    p2.waitForFinished(-1);
+    const QString line = p2.readAllStandardOutput();
+    QRegExp rx("inet addr:(\\d+\\.\\d+\\.\\d+\\.\\d+)");
+    if (rx.indexIn(line) == -1) {
+        qWarning("WARNING: no match for IP address: %s", line.toLatin1().data());
+        return QString();
+    }
+    return rx.cap(1);
+}
+
+
 class Interactor : public QObject
 {
     Q_OBJECT
@@ -177,6 +197,13 @@ private slots:
 
         user_.insert(qclserver, user);
         Q_ASSERT(!channel_.contains(qclserver));
+
+        // send general system info to this qclserver only
+        QMap<QString, QString> sysInfo;
+        sysInfo.insert("hostname", QHostInfo::localHostName());
+        sysInfo.insert("domainname", QHostInfo::localDomainName());
+        sysInfo.insert("ipaddr", getLocalIPAddress());
+        cchannels_->sendSysInfo(sysInfo, qclserver);
 
         // send available chat channels to this qclserver only
         QStringList c = getChannelsFromDatabase();
