@@ -23,6 +23,12 @@ qcapp_example/
   notifications. This shows how e.g. Diana would use the API. The
   qcapp communicates with the local chat server (qclserver).
 
+qcopenchatwin/
+
+  A program that first requests the local chat server (qclserver) to
+  open the chat window, and then terminates. This would typically be
+  invoked from a system menu and/or a global keyboard shortcut.
+
 qclserver/
 
    The local chat server. This shows a chat window and communicates

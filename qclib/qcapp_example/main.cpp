@@ -23,12 +23,12 @@ public:
 
         showButton_ = new QPushButton("show chat window");
         showButton_->setEnabled(false);
-        connect(showButton_, SIGNAL(clicked()), schannel_, SLOT(showChatWindow()));
+        connect(showButton_, SIGNAL(clicked()), schannel_, SLOT(sendShowChatWindow()));
         layout->addWidget(showButton_);
 
         hideButton_ = new QPushButton("hide chat window");
         hideButton_->setEnabled(false);
-        connect(hideButton_, SIGNAL(clicked()), schannel_, SLOT(hideChatWindow()));
+        connect(hideButton_, SIGNAL(clicked()), schannel_, SLOT(sendHideChatWindow()));
         layout->addWidget(hideButton_);
 
         QHBoxLayout *layout2 = new QHBoxLayout;
@@ -53,8 +53,8 @@ public:
 
         connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
         connect(schannel_, SIGNAL(channels(const QStringList &)), SLOT(channels(const QStringList &)));
-        connect(schannel_, SIGNAL(chatWindowShown()), SLOT(showChatWindow()));
-        connect(schannel_, SIGNAL(chatWindowHidden()), SLOT(hideChatWindow()));
+        connect(schannel_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
+        connect(schannel_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
         connect(
             schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(notification(const QString &, const QString &, int, int)));

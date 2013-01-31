@@ -35,19 +35,17 @@ QString QCBase::lastError() const
     return lastError_;
 }
 
-void QCBase::showChatWindow(qint64 qcapp)
+void QCBase::sendShowChatWindow()
 {
     QVariantMap msg;
     msg.insert("type", ShowChatWin);
-    msg.insert("client", qcapp);
     sendMessage(msg);
 }
 
-void QCBase::hideChatWindow(qint64 qcapp)
+void QCBase::sendHideChatWindow()
 {
     QVariantMap msg;
     msg.insert("type", HideChatWin);
-    msg.insert("client", qcapp);
     sendMessage(msg);
 }
 
@@ -101,9 +99,9 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
         qFatal("failed to convert message type to int: %s", msg.value("type").toString().toLatin1().data());
     }
     if (type == ShowChatWin) {
-        emit chatWindowShown();
+        emit showChatWindow();
     } else if (type == HideChatWin) {
-        emit chatWindowHidden();
+        emit hideChatWindow();
     } else if (type == ChatMsg) {
         Q_ASSERT(msg.value("text").canConvert(QVariant::String));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
@@ -232,38 +230,38 @@ bool QCClientChannels::listen(const qint16 port)
 }
 
 // Disconnects a client channel.
-void QCClientChannels::close(qint64 qclserver)
+void QCClientChannels::close(qint64 client)
 {
-    Q_ASSERT(channels_.contains(qclserver));
-    delete channels_.take(qclserver);
+    Q_ASSERT(channels_.contains(client));
+    delete channels_.take(client);
 }
 
-// Sends a 'channels' message to a specific qclserver client.
-void QCClientChannels::sendChannels(const QStringList &c, qint64 qclserver)
+// Sends a 'channels' message to a specific client.
+void QCClientChannels::sendChannels(const QStringList &c, qint64 client)
 {
-    if (!channels_.contains(qclserver)) {
-        qWarning("WARNING: QCClientChannels::sendChannels(): qclserver %lld no longer connected", qclserver);
+    if (!channels_.contains(client)) {
+        qWarning("WARNING: QCClientChannels::sendChannels(): client %lld no longer connected", client);
         return;
     }
 
     QVariantMap msg;
     msg.insert("type", Channels);
     msg.insert("channels", c);
-    channels_.value(qclserver)->sendMessage(msg);
+    channels_.value(client)->sendMessage(msg);
 }
 
-// Sends a 'history' message to a specific qclserver client.
-void QCClientChannels::sendHistory(const QStringList &h, qint64 qclserver)
+// Sends a 'history' message to a specific client.
+void QCClientChannels::sendHistory(const QStringList &h, qint64 client)
 {
-    if (!channels_.contains(qclserver)) {
-        qWarning("WARNING: QCClientChannels::sendHistory(): qclserver %lld no longer connected", qclserver);
+    if (!channels_.contains(client)) {
+        qWarning("WARNING: QCClientChannels::sendHistory(): client %lld no longer connected", client);
         return;
     }
 
     QVariantMap msg;
     msg.insert("type", History);
     msg.insert("history", h);
-    channels_.value(qclserver)->sendMessage(msg);
+    channels_.value(client)->sendMessage(msg);
 }
 
 // Sends a 'users' message to all clients.
