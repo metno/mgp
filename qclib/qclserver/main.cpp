@@ -8,8 +8,7 @@ class ChatWindow : public QWidget
     Q_OBJECT
 public:
     ChatWindow()
-        : edit_(0)
-        , geometrySaveEnabled_(true)
+        : geometrySaveEnabled_(true)
     {
         cfgFName_ = QString("%1/.config/qcchat/qcchat.conf").arg(qgetenv("HOME").constData());
         QFileInfo finfo(cfgFName_);
@@ -43,10 +42,14 @@ public:
         layout2->addLayout(&logStack_);
         connect(channelCBox_, SIGNAL(activated(int)), SLOT(handleChannelSwitch()));
 
+        QHBoxLayout *layout2_2 = new QHBoxLayout;
+        layout2->addLayout(layout2_2);
+        userLabel_ = new QLabel("(USER NOT SET)");
+        layout2_2->addWidget(userLabel_);
         edit_ = new QLineEdit;
         connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
         edit_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
-        layout2->addWidget(edit_);
+        layout2_2->addWidget(edit_);
 
         usersLayout_ = new QVBoxLayout;
         layout1->addLayout(usersLayout_);
@@ -112,6 +115,11 @@ public:
 
         updateWindowTitle();
         emit channelSwitch(currentChannelId());
+    }
+
+    void setUser(const QString &user)
+    {
+        userLabel_->setText(user);
     }
 
     // Prepends history (i.e. in front of any individual events that may have arrived
@@ -208,6 +216,7 @@ private:
     QTreeWidget *userTree_;
     QMap<int, QTextBrowser *>log_;
     QStackedLayout logStack_;
+    QLabel *userLabel_;
     QLineEdit *edit_;
     QMap<int, QString> html_;
     QMap<int, QSet<QString> *> channelUsers_;
@@ -477,6 +486,8 @@ public:
         QVariantMap msg;
         msg.insert("user", user_);
         schannel_->initialize(msg);
+
+        window_->setUser(user_);
     }
 
 private:
