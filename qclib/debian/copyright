@@ -1,0 +1,19 @@
+This package was debianized by David Boddie <david.boddie@met.no> on
+Thu, 31 Jan 2013 12:09:00 +0100.
+
+It was downloaded from <>
+
+Upstream Authors: 
+
+    Jo Asplin <joa@met.no>
+
+Copyright: 
+
+    Copyright (C) 2013 met.no
+
+
+License:
+
+
+The Debian packaging is (C) 2013 met.no and is licensed under the GPL;
+see `/usr/share/common-licenses/GPL'.

@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_install:
+	cd $(CURDIR)/qclib && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/qclib install
+	cd $(CURDIR)/qccserver && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/qccserver install
+	cd $(CURDIR)/qclserver && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/qclserver install
+	mkdir -p $(CURDIR)/debian/qclib-dev/usr/include
+	cp $(CURDIR)/qclib/qc*.h $(CURDIR)/debian/qclib-dev/usr/include
+

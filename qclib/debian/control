@@ -1,0 +1,35 @@
+Source: qclib
+Section: libs
+Priority: standard
+Maintainer: Jo Asplin <joa@met.no>
+Build-Depends: qt4-qmake, libqt4-dev
+Standards-Version: 3.8.3
+Homepage: http://diana.met.no
+
+Package: qccserver
+Architecture: any
+Section: net
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-sql (>= 4:4.8.3+dfsg-0ubuntu3), 
+Description: 
+ Central chat server for met.no applications.
+
+Package: qclserver
+Architecture: any
+Section: net
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqtgui4 (>= 4:4.8.3+dfsg-0ubuntu3)
+Description: 
+ Local chat server for met.no applications.
+
+Package: qclib
+Architecture: any
+Section: libs
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-network (>= 4:4.8.3+dfsg-0ubuntu3)
+Description:
+ Common functionality for met.no applications that use a chat server.
+
+Package: qclib-dev
+Architecture: any
+Section: libdevel
+Depends: ${shlibs:Depends}, ${misc:Depends}, qclib
+Description:
+ Development files for applications that use qclib.
