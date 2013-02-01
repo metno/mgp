@@ -3,6 +3,8 @@
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qcchat.h"
 
+static QSettings *settings = 0;
+
 class ChatWindow : public QWidget
 {
     Q_OBJECT
@@ -10,19 +12,6 @@ public:
     ChatWindow()
         : geometrySaveEnabled_(true)
     {
-        cfgFName_ = QString("%1/.config/qcchat/qcchat.conf").arg(qgetenv("HOME").constData());
-        QFileInfo finfo(cfgFName_);
-        QFileInfo dinfo(finfo.absolutePath());
-        if (!dinfo.isDir()) {
-            // config directory does not exist, so try to create it
-            // (### for now, assume it doesn't exist as a file - we could check for this)
-            QDir dir;
-            if (!dir.mkpath(finfo.absolutePath())) {
-                qWarning("WARNING: failed to create config directory: %s", finfo.absolutePath().toLatin1().data());
-                cfgFName_.clear(); // indicate that a later save/restore operation is not possible
-            }
-        }
-
         QHBoxLayout *layout1 = new QHBoxLayout;
 
         QVBoxLayout *layout2 = new QVBoxLayout;
@@ -220,59 +209,24 @@ private:
     QLineEdit *edit_;
     QMap<int, QString> html_;
     QMap<int, QSet<QString> *> channelUsers_;
-    QString cfgFName_;
     bool geometrySaveEnabled_;
     QMap<QString, QString> serverSysInfo_;
 
     // Saves window geometry to config file.
     void saveGeometry()
     {
-        if (!geometrySaveEnabled_)
+        if ((!geometrySaveEnabled_) || (settings->status() != QSettings::NoError))
             return;
-
-        if (cfgFName_.isEmpty())
-            return; // operation not possible for some reason (### we could recheck if things are working by now)
-
-        QFile file(cfgFName_);
-        // if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        if (!file.open(QIODevice::WriteOnly)) {
-            qWarning("WARNING: failed to open config file for writing: %s", cfgFName_.toLatin1().data());
-            cfgFName_.clear(); // indicate that a later save/restore operation is not possible
-            return;
-        }
-
-        QByteArray ba;
-        QDataStream dstream(&ba, QIODevice::Append);
-        dstream << geometry();
-        file.write(ba);
-        file.close();
+        settings->setValue("geometry", geometry());
+        settings->sync();
     }
 
     // Restores window geometry from config file. Returns true iff the operation succeeded.
     bool restoreGeometry()
     {
-        if (!geometrySaveEnabled_)
-            return false; // let the active operation complete
-
-        if (cfgFName_.isEmpty())
-            return false; // operation not possible for some reason (### we could recheck if things are working by now)
-
-        QFileInfo fileInfo(cfgFName_);
-        if (!fileInfo.isFile())
-            return false; // geometry not saved yet
-
-        QFile file(cfgFName_);
-        // if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        if (!file.open(QIODevice::ReadOnly)) {
-            qWarning("WARNING: failed to open config file for reading: %s", cfgFName_.toLatin1().data());
-            cfgFName_.clear(); // indicate that a later save/restore operation is not possible
+        if ((!geometrySaveEnabled_) || (settings->status() != QSettings::NoError) ||
+            (!settings->value("geometry").canConvert(QVariant::Rect)))
             return false;
-        }
-
-        const QByteArray ba = file.readAll();
-        QDataStream dstream(ba);
-        QRect geom;
-        dstream >> geom;
 
         // temporarily disable geometry saves (in particular those that would otherwise result
         // from move and resize events generated for a visible window by the below setGeometry() call;
@@ -283,9 +237,7 @@ private:
             QTimer::singleShot(100, this, SLOT(enableGeometrySave()));
         }
 
-        setGeometry(geom);
-        file.close();
-
+        setGeometry(settings->value("geometry").toRect());
         return true;
     }
 
@@ -655,6 +607,8 @@ int main(int argc, char *argv[])
         qDebug("failed to extract central server port");
         return 1;
     }
+
+    settings = new QSettings(QString("%1/.config/qcchat/qclserver.conf").arg(qgetenv("HOME").constData()), QSettings::NativeFormat);
 
     // listen for incoming qcapp connections
     QCClientChannels cchannels;
