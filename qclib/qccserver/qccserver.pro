@@ -1,6 +1,7 @@
 SOURCES += main.cpp
 QCLIB_DIR = ../qclib
-include($$QCLIB_DIR/qclib.pri)
+QCLIB_STATIC_DIR = ../qclib_static
+include($$QCLIB_STATIC_DIR/qclib_static.pri)
 TARGET = qccserver
 QT += sql
 

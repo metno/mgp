@@ -1,0 +1,5 @@
+INCLUDEPATH += $$QCLIB_DIR
+DEPENDPATH += $$QCLIB_DIR
+LIBS += -L$$QCLIB_STATIC_DIR -lqc
+QT += network
+CONFIG += debug

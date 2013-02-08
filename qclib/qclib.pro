@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS = qclib qccserver qclserver qcapp_example qcopenchatwin
+SUBDIRS = qclib qclib_static qccserver qclserver qcapp_example qcopenchatwin
 CONFIG += ordered
