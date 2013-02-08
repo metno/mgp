@@ -3,6 +3,8 @@
 
 #include "qc.h"
 
+namespace qclib {
+
 // Chat event types
 #define CHATMESSAGE 0
 #define NOTIFICATION 1
@@ -15,14 +17,13 @@ public:
 protected:
     QCBase();
     enum MsgType {
-        SysInfo, ShowChatWin, HideChatWin, ChatMsg, Notification, Initialization, Channels, History, Users, ChannelSwitch
+        Init, ShowChatWin, HideChatWin, ChatMsg, Notification, Channels, History, Users, ChannelSwitch
     };
     void setLastError(const QString &);
 private:
     QString lastError_;
     virtual void sendMessage(const QVariantMap &) = 0;
 public slots:
-    void sendSysInfo(const QMap<QString, QString> &, qint64 = -1);
     void sendShowChatWindow();
     void sendHideChatWindow();
     void sendChatMessage(const QString &, const QString &, int, int = -1);
@@ -32,28 +33,25 @@ protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
 signals:
-    void sysInfo(const QMap<QString, QString> &);
+    void init(const QVariantMap &, qint64);
     void showChatWindow();
     void hideChatWindow();
     void chatMessage(const QString &, const QString &, int, int);
     void notification(const QString &, const QString &, int, int);
-    void initialization(qint64, const QVariantMap &msg);
     void channels(const QStringList &);
     void history(const QStringList &);
     void users(const QStringList &, const QList<int> &);
-    void channelSwitch(qint64, int, const QString &);
+    void channelSwitch(int, const QString &, qint64);
 };
 
-// This class is instantiated in the client to handle the server channel.
 class QCServerChannel : public QCBase
 {
     Q_OBJECT
 public:
-    QCServerChannel();
-    bool connectToServer(const QString &, const quint16);
     bool isConnected() const;
-    void initialize(const QVariantMap &msg);
-private:
+    void sendInit(const QVariantMap &);
+protected:
+    QCServerChannel(QCChannel * = 0);
     QCChannel *channel_;
     virtual void sendMessage(const QVariantMap &);
 private slots:
@@ -62,20 +60,34 @@ signals:
     void serverDisconnected();
 };
 
-// This class is instantiated in the server to handle client channels.
+// This class is instantiated in a qcapp to handle communication with the qclserver.
+class QCLocalServerChannel : public QCServerChannel
+{
+    Q_OBJECT
+public:
+    QCLocalServerChannel();
+    bool connectToServer(const QString &, quint16);
+};
+
+// This class is instantiated in a qclserver to handle communication with the qccserver.
+class QCTcpServerChannel : public QCServerChannel
+{
+    Q_OBJECT
+public:
+    QCTcpServerChannel();
+    bool connectToServer(const QString &, const quint16);
+};
+
 class QCClientChannels : public QCBase
 {
     Q_OBJECT
 public:
     QCClientChannels();
     virtual ~QCClientChannels();
-    bool listen(const qint16);
-    void close(qint64);
-    void sendChannels(const QStringList &, qint64);
-    void sendHistory(const QStringList &, qint64);
+    void sendInit(const QVariantMap &, qint64);
     void sendUsers(const QStringList &, const QList<int> &);
-private:
-    QCChannelServer server_;
+    void close(qint64);
+protected:
     QMap<qint64, QCChannel *> channels_;
     virtual void sendMessage(const QVariantMap &);
 private slots:
@@ -85,5 +97,31 @@ signals:
     void clientConnected(qint64);
     void clientDisconnected(qint64);
 };
+
+// This class is instantiated in the qclserver to handle communication with qcapps.
+class QCLocalClientChannels : public QCClientChannels
+{
+    Q_OBJECT
+public:
+    QCLocalClientChannels();
+    bool listen();
+private:
+    QCLocalChannelServer server_;
+signals:
+    void serverFileChanged(const QString &);
+};
+
+// This class is instantiated in the qccserver to handle communication with qclservers.
+class QCTcpClientChannels : public QCClientChannels
+{
+    Q_OBJECT
+public:
+    QCTcpClientChannels();
+    bool listen(const qint16);
+private:
+    QCTcpChannelServer server_;
+};
+
+} // namespace qclib
 
 #endif // QCCHAT_H

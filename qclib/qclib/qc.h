@@ -4,38 +4,63 @@
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QtNetwork> // ### TODO: include relevant headers only
 
-// Returns a map of (option, value) pairs extracted from a flat list of command-line arguments.
-QMap<QString, QString> getOptions(const QStringList &);
+namespace qclib {
 
-// ### Warning: This class is not reentrant!
+// This class handles basic transfer of QVariantMap messages between two peers.
 class QCChannel : public QObject
 {
     Q_OBJECT
 public:
-    QCChannel(QTcpSocket * = 0);
-    virtual ~QCChannel();
+    virtual ~QCChannel() {}
     qint64 id() const { return id_; }
-    QString peerInfo() const { return peerInfo_; }
-    bool connectToServer(const QString &, const quint16);
-    void close();
-    bool isConnected() const;
     void sendMessage(const QVariantMap &);
     QString lastError() const;
+    virtual bool isConnected() const = 0;
+protected:
+    QCChannel(QIODevice * = 0);
+    void initSocket();
+    void setLastError(const QString &);
+    QIODevice *socket_;
 private:
     qint64 id_;
     static qint64 nextId_;
     QByteArray msgbuf_;
-    QTcpSocket *socket_;
-    QString peerInfo_;
     QString lastError_;
-    void initSocket();
-    void setLastError(const QString &);
 signals:
     void error(const QString &);
     void socketDisconnected();
     void messageArrived(qint64, const QVariantMap &);
 private slots:
     void readyRead();
+};
+
+class QCLocalChannel : public QCChannel
+{
+    Q_OBJECT
+public:
+    QCLocalChannel(QLocalSocket * = 0);
+    virtual ~QCLocalChannel();
+    bool connectToServer(const QString &);
+    virtual bool isConnected() const;
+private:
+    void initSocket();
+private slots:
+    void handleSocketError(QLocalSocket::LocalSocketError);
+};
+
+class QCTcpChannel : public QCChannel
+{
+    Q_OBJECT
+public:
+    QCTcpChannel(QTcpSocket * = 0);
+    virtual ~QCTcpChannel();
+    QString peerInfo() const { return peerInfo_; }
+    bool connectToServer(const QString &, const quint16);
+    virtual bool isConnected() const;
+private:
+    QString peerInfo_;
+    void initSocket();
+private slots:
     void handleSocketError(QAbstractSocket::SocketError);
 };
 
@@ -44,16 +69,42 @@ class QCChannelServer : public QObject
     Q_OBJECT
 public:
     QCChannelServer();
-    bool listen(const qint16 port);
+    virtual ~QCChannelServer() {}
     QString lastError() const;
-private:
-    QTcpServer server_;
+protected:
     void setLastError(const QString &);
     QString lastError_;
-private slots:
-    void newConnection();
 signals:
     void channelConnected(QCChannel *);
 };
+
+class QCLocalChannelServer : public QCChannelServer
+{
+    Q_OBJECT
+public:
+    QCLocalChannelServer();
+    virtual ~QCLocalChannelServer();
+    bool listen();
+private:
+    QLocalServer server_;
+    QFileSystemWatcher fileSysWatcher_;
+private slots:
+    void newConnection();
+signals:
+    void serverFileChanged(const QString &);
+};
+
+class QCTcpChannelServer : public QCChannelServer
+{
+    Q_OBJECT
+public:
+    bool listen(quint16);
+private:
+    QTcpServer server_;
+private slots:
+    void newConnection();
+};
+
+} // namespace qclib
 
 #endif // QC_H

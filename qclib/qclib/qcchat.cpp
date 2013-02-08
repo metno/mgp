@@ -1,21 +1,7 @@
 #include "qcchat.h"
+#include "qcglobal.h"
 
-static QMap<QString, QString> toStringStringMap(const QStringList &slist)
-{
-    QMap<QString, QString> ssmap;
-    Q_ASSERT(!(slist.size() % 2));
-    for (int i = 0; i < (slist.size() - 1); i += 2)
-        ssmap.insert(slist.at(i), slist.at(i + 1));
-    return ssmap;
-}
-
-static QStringList toStringList(const QMap<QString, QString> &ssmap)
-{
-    QStringList slist;
-    foreach (QString key, ssmap.keys())
-        slist << key << ssmap.value(key);
-    return slist;
-}
+namespace qclib {
 
 static QList<int> toIntList(const QList<QVariant> &vlist)
 {
@@ -38,7 +24,7 @@ static QList<QVariant> toVariantList(const QList<int> &ilist)
 }
 
 QCBase::QCBase()
-    : lastError_("<not set yet>")
+    : lastError_("<no last error string set yet>")
 {
 }
 
@@ -50,16 +36,6 @@ void QCBase::setLastError(const QString &error)
 QString QCBase::lastError() const
 {
     return lastError_;
-}
-
-// Sends a 'sysinfo' message to a specific peer.
-void QCBase::sendSysInfo(const QMap<QString, QString> &sysInfo, qint64 peer)
-{
-    QVariantMap msg;
-    msg.insert("sysInfo", toStringList(sysInfo));
-    msg.insert("peer", peer);
-    msg.insert("type", SysInfo);
-    sendMessage(msg);
 }
 
 void QCBase::sendShowChatWindow()
@@ -81,38 +57,38 @@ static QString truncateText(const QString &text)
     const int maxSize = 1024;
     if (text.size() <= maxSize)
         return text;
-    qWarning("text too long (%d chars); truncating to %d chars", text.size(), maxSize);
+    qWarning("WARNING: text too long (%d chars); truncating to %d chars", text.size(), maxSize);
     return text.left(maxSize);
 }
 
 void QCBase::sendChatMessage(const QString &text, const QString &user, int channelId, int timestamp)
 {
     QVariantMap msg;
+    msg.insert("type", ChatMsg);
     msg.insert("text", truncateText(text));
     msg.insert("user", user);
     msg.insert("channelId", channelId);
     msg.insert("timestamp", timestamp);
-    msg.insert("type", ChatMsg);
     sendMessage(msg);
 }
 
 void QCBase::sendNotification(const QString &text, const QString &user, int channelId, int timestamp)
 {
     QVariantMap msg;
+    msg.insert("type", Notification);
     msg.insert("text", truncateText(text));
     msg.insert("user", user);
     msg.insert("channelId", channelId);
     msg.insert("timestamp", timestamp);
-    msg.insert("type", Notification);
     sendMessage(msg);
 }
 
 void QCBase::sendChannelSwitch(int channelId, const QString &user)
 {
     QVariantMap msg;
+    msg.insert("type", ChannelSwitch);
     msg.insert("channelId", channelId);
     msg.insert("user", user);
-    msg.insert("type", ChannelSwitch);
     sendMessage(msg);
 }
 
@@ -123,11 +99,10 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
     const MsgType type = static_cast<MsgType>(msg.value("type").toInt(&ok));
     if (!ok) {
         qDebug() << "msg:" << msg;
-        qFatal("failed to convert message type to int: %s", msg.value("type").toString().toLatin1().data());
+        qFatal("ERROR: failed to convert message type to int: %s", msg.value("type").toString().toLatin1().data());
     }
-    if (type == SysInfo) {
-        Q_ASSERT(msg.value("sysInfo").canConvert(QVariant::StringList));
-        emit sysInfo(toStringStringMap(msg.value("sysInfo").toStringList()));
+    if (type == Init) {
+        emit init(msg, peerId);
     } else if (type == ShowChatWin) {
         emit showChatWindow();
     } else if (type == HideChatWin) {
@@ -148,14 +123,6 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
         emit notification(
             msg.value("text").toString(), msg.value("user").toString(), msg.value("channelId").toInt(),
             msg.value("timestamp").toInt());
-    } else if (type == Initialization) {
-        emit initialization(peerId, msg);
-    } else if (type == Channels) {
-        Q_ASSERT(msg.value("channels").canConvert(QVariant::StringList));
-        emit channels(msg.value("channels").toStringList());
-    } else if (type == History) {
-        Q_ASSERT(msg.value("history").canConvert(QVariant::StringList));
-        emit history(msg.value("history").toStringList());
     } else if (type == Users) {
         Q_ASSERT(msg.value("users").canConvert(QVariant::StringList));
         Q_ASSERT(msg.value("channelIds").canConvert(QVariant::VariantList));
@@ -163,7 +130,7 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
     } else if (type == ChannelSwitch) {
         Q_ASSERT(msg.value("channelId").canConvert(QVariant::Int));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
-        emit channelSwitch(peerId, msg.value("channelId").toInt(), msg.value("user").toString());
+        emit channelSwitch(msg.value("channelId").toInt(), msg.value("user").toString(), peerId);
     } else {
         qFatal("invalid message type: %d", type);
     }
@@ -175,46 +142,14 @@ void QCBase::handleChannelError(const QString &msg)
     lastError_ = msg;
 }
 
-
-QCServerChannel::QCServerChannel()
-    : channel_(0)
+QCServerChannel::QCServerChannel(QCChannel *channel)
+    : channel_(channel)
 {
-}
-
-bool QCServerChannel::connectToServer(const QString &host, const quint16 port)
-{
-    if (isConnected()) {
-        setLastError("channel already connected, please disconnect first");
-        return false;
-    }
-
-    if (channel_)
-        delete channel_;
-    channel_ = new QCChannel;
-
-    if (!channel_->connectToServer(host, port)) {
-        setLastError(channel_->lastError());
-        return false;
-    }
-    connect(
-        channel_, SIGNAL(messageArrived(qint64, const QVariantMap &)),
-        SLOT(handleMessageArrived(qint64, const QVariantMap &)));
-    connect(channel_, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
-    connect(channel_, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
-    return true;
 }
 
 bool QCServerChannel::isConnected() const
 {
     return channel_ && channel_->isConnected();
-}
-
-// Initializes communication.
-void QCServerChannel::initialize(const QVariantMap &msg_)
-{
-    QVariantMap msg(msg_);
-    msg.insert("type", Initialization);
-    sendMessage(msg);
 }
 
 // Sends a message to the server.
@@ -229,6 +164,14 @@ void QCServerChannel::sendMessage(const QVariantMap &msg)
     channel_->sendMessage(msg);
 }
 
+// Sends an init message to the server.
+void QCServerChannel::sendInit(const QVariantMap &msg_)
+{
+    QVariantMap msg(msg_);
+    msg.insert("type", Init);
+    sendMessage(msg);
+}
+
 void QCServerChannel::handleChannelDisconnected()
 {
     Q_ASSERT(channel_);
@@ -236,6 +179,145 @@ void QCServerChannel::handleChannelDisconnected()
     channel_->deleteLater();
     channel_ = 0;
     emit serverDisconnected();
+}
+
+QCLocalServerChannel::QCLocalServerChannel()
+    : QCServerChannel(new QCLocalChannel)
+{
+}
+
+static bool processExists(qint64 pid)
+{
+    QProcess process;
+    process.start(QString("/bin/ps -p %1 -o pid=").arg(pid));
+    if (!process.waitForFinished(-1))
+        qFatal("ERROR: failed to run /bin/ps, error code: %d", process.error());
+    bool ok;
+    QString stdout = process.readAllStandardOutput();
+    const qint64 pid_ = stdout.toLongLong(&ok);
+    Q_ASSERT((!ok) || (pid_ == pid));
+    Q_UNUSED(pid_);
+    return ok;
+}
+
+// Connects to a qclserver, starting a new one if necessary. A new qclserver is passed
+// \a chost and \a cport.
+// Returns true iff the connection attempt was successful.
+bool QCLocalServerChannel::connectToServer(const QString &chost, quint16 cport)
+{
+    if (isConnected()) {
+        setLastError("channel already connected, please disconnect first");
+        return false;
+    }
+
+    for (int mainIter = 0; mainIter < 2; ++mainIter) { // we should be able to reach a decision within 2 iterations
+
+        bool localStart = false; // whether we started a qclserver ourselves
+
+        QString serverPath;
+        qint64 pid = 0;
+
+        if (!localServerFileExists(&serverPath, &pid)) {
+            // start a qclserver
+            QString args = QString("--chost %1 --cport %2").arg(chost).arg(cport);
+            const QString workingDir = QDir::homePath(); // ### FOR NOW
+            qint64 startpid;
+            if (!QProcess::startDetached("qclserver", args.split(" "), workingDir, &startpid)) {
+                qWarning("WARNING: failed to start qclserver for user %s", qgetenv("USER").data());
+                return false;
+            } else {
+                qDebug("started qclserver for user %s; pid = %lld", qgetenv("USER").data(), startpid);
+            }
+
+            localStart = true;
+
+            // as long as the new qclserver is running, wait a while for the server file to appear
+            const int ntries = 10; // timeout = 10 secs
+            int i;
+            for (i = 0; i < ntries; ++i) {
+                if (!processExists(startpid)) {
+                    const char *msg = "new qclserver terminated prematurely";
+                    qWarning("WARNING: %s", msg);
+                    setLastError(msg);
+                    return false;
+                }
+                if (localServerFileExists(&serverPath, &pid)) {
+                    Q_ASSERT(pid == startpid);
+                    break;
+                }
+                sleep(1);
+            }
+            if (i == ntries) {
+                const char *msg = "new qclserver failed to create server file";
+                qWarning("WARNING: %s", msg);
+                setLastError(msg);
+                return false;
+            }
+        }
+
+        Q_ASSERT(!serverPath.isEmpty());
+
+        if (channel_)
+            delete channel_;
+        QCLocalChannel *lchannel = new QCLocalChannel;
+        channel_ = lchannel;
+
+        if (!lchannel->connectToServer(serverPath)) {
+            if (localStart) {
+                qWarning("WARNING: failed to connect to locally started qclserver");
+                return false;
+            }
+            // at this point, we assume that the server file is obsolete and needs
+            // to be removed before we try _once_ again
+            qDebug() << "removing presumably obsolete server file:" << serverPath;
+            if (!QLocalServer::removeServer(serverPath)) {
+                qWarning("WARNING: failed to remove server file");
+                return false;
+            }
+        } else {
+            // successful connection
+            connect(
+                lchannel, SIGNAL(messageArrived(qint64, const QVariantMap &)),
+                SLOT(handleMessageArrived(qint64, const QVariantMap &)));
+            connect(lchannel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+            connect(lchannel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
+            return true;
+        }
+    }
+
+    qWarning("WARNING: unable to connect to a qclserver within two main iterations");
+    return false;
+}
+
+QCTcpServerChannel::QCTcpServerChannel()
+    : QCServerChannel(new QCTcpChannel)
+{
+}
+
+// Connects to a qccserver running at \a host and listening on \a port.
+// Returns true iff the connection attempt was successful.
+bool QCTcpServerChannel::connectToServer(const QString &host, const quint16 port)
+{
+    if (isConnected()) {
+        setLastError("channel already connected, please disconnect first");
+        return false;
+    }
+
+    if (channel_)
+        delete channel_;
+    QCTcpChannel * tchannel = new QCTcpChannel;
+    channel_ = tchannel;
+
+    if (!tchannel->connectToServer(host, port)) {
+        setLastError(tchannel->lastError());
+        return false;
+    }
+    connect(
+        tchannel, SIGNAL(messageArrived(qint64, const QVariantMap &)),
+        SLOT(handleMessageArrived(qint64, const QVariantMap &)));
+    connect(tchannel, SIGNAL(error(const QString &)), SLOT(handleChannelError(const QString &)));
+    connect(tchannel, SIGNAL(socketDisconnected()), SLOT(handleChannelDisconnected()));
+    return true;
 }
 
 QCClientChannels::QCClientChannels()
@@ -249,49 +331,13 @@ QCClientChannels::~QCClientChannels()
         delete channel;
 }
 
-bool QCClientChannels::listen(const qint16 port)
+// Sends an init message to the given client.
+void QCClientChannels::sendInit(const QVariantMap &msg_, qint64 client)
 {
-    if (!server_.listen(port)) {
-        setLastError(QString("server_.listen() failed: %1").arg(server_.lastError()));
-        return false;
-    }
-    QObject::connect(&server_, SIGNAL(channelConnected(QCChannel *)), SLOT(handleChannelConnected(QCChannel *)));
-    return true;
-}
-
-// Disconnects a client channel.
-void QCClientChannels::close(qint64 client)
-{
-    Q_ASSERT(channels_.contains(client));
-    delete channels_.take(client);
-}
-
-// Sends a 'channels' message to a specific client.
-void QCClientChannels::sendChannels(const QStringList &c, qint64 client)
-{
-    if (!channels_.contains(client)) {
-        qWarning("WARNING: QCClientChannels::sendChannels(): client %lld no longer connected", client);
-        return;
-    }
-
-    QVariantMap msg;
-    msg.insert("type", Channels);
-    msg.insert("channels", c);
-    channels_.value(client)->sendMessage(msg);
-}
-
-// Sends a 'history' message to a specific client.
-void QCClientChannels::sendHistory(const QStringList &h, qint64 client)
-{
-    if (!channels_.contains(client)) {
-        qWarning("WARNING: QCClientChannels::sendHistory(): client %lld no longer connected", client);
-        return;
-    }
-
-    QVariantMap msg;
-    msg.insert("type", History);
-    msg.insert("history", h);
-    channels_.value(client)->sendMessage(msg);
+    QVariantMap msg(msg_);
+    msg.insert("type", Init);
+    msg.insert("peer", client);
+    sendMessage(msg);
 }
 
 // Sends a 'users' message to all clients.
@@ -302,6 +348,13 @@ void QCClientChannels::sendUsers(const QStringList &users, const QList<int> &cha
     msg.insert("users", users);
     msg.insert("channelIds", toVariantList(channelIds));
     sendMessage(msg);
+}
+
+// Disconnects a client channel.
+void QCClientChannels::close(qint64 client)
+{
+    Q_ASSERT(channels_.contains(client));
+    delete channels_.take(client);
 }
 
 // Sends a message to all clients or to a specific client given in the field "peer" (if set and >= 0).
@@ -339,6 +392,37 @@ void QCClientChannels::handleChannelDisconnected()
     // qDebug() << "client disconnected:" << channel->peerInfo().toLatin1().data();
     const qint64 id = channel->id();
     channels_.remove(id);
-    channel->deleteLater(); // ### or 'delete channel' directly?
     emit clientDisconnected(id);
+    channel->deleteLater(); // ### or 'delete channel' directly?
 }
+
+QCLocalClientChannels::QCLocalClientChannels()
+{
+    connect(&server_, SIGNAL(serverFileChanged(const QString &)), SIGNAL(serverFileChanged(const QString &)));
+}
+
+bool QCLocalClientChannels::listen()
+{
+    if (!server_.listen()) {
+        setLastError(QString("QCLocalClientChannels::listen(): listen() failed: %1").arg(server_.lastError()));
+        return false;
+    }
+    connect(&server_, SIGNAL(channelConnected(QCChannel *)), SLOT(handleChannelConnected(QCChannel *)));
+    return true;
+}
+
+QCTcpClientChannels::QCTcpClientChannels()
+{
+}
+
+bool QCTcpClientChannels::listen(const qint16 port)
+{
+    if (!server_.listen(port)) {
+        setLastError(QString("QCTcpClientChannels::listen(): listen() failed: %1").arg(server_.lastError()));
+        return false;
+    }
+    connect(&server_, SIGNAL(channelConnected(QCChannel *)), SLOT(handleChannelConnected(QCChannel *)));
+    return true;
+}
+
+} // namespace qclib

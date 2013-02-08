@@ -1,26 +1,25 @@
 #include "qc.h"
+#include "qcglobal.h"
 
-QMap<QString, QString> getOptions(const QStringList &args)
+namespace qclib {
+
+static QString createLocalServerPath()
 {
-    QMap <QString, QString> options;
-    for (int i = 0; i < args.size(); ++i)
-        if ((args.at(i).indexOf("--") == 0) && (args.at(i).size() > 2))
-            options.insert(args.at(i).mid(2), (i < (args.size() - 1)) ? args.at(i + 1) : QString());
-    return options;
+    return QString("/tmp/qclserver_%1_%2").arg(qgetenv("USER").data()).arg(qApp->applicationPid());
 }
 
-QCChannel::QCChannel(QTcpSocket *socket)
-    : id_(nextId_++)
-    , socket_(socket)
-    , lastError_("<not set yet>")
+QCChannel::QCChannel(QIODevice *socket)
+    : socket_(socket)
+    , id_(nextId_++)
+    , lastError_("<no last error string set yet>")
 {
-    if (socket_)
-        initSocket();
 }
 
-QCChannel::~QCChannel()
+void QCChannel::initSocket()
 {
-    delete socket_;
+    Q_ASSERT(socket_);
+    connect(socket_, SIGNAL(disconnected()), SIGNAL(socketDisconnected()));
+    connect(socket_, SIGNAL(readyRead()), SLOT(readyRead()));
 }
 
 QString QCChannel::lastError() const
@@ -33,51 +32,10 @@ void QCChannel::setLastError(const QString &lastError_)
     this->lastError_ = lastError_;
 }
 
-void QCChannel::initSocket()
-{
-    Q_ASSERT(socket);
-    connect(
-        socket_, SIGNAL(error(QAbstractSocket::SocketError)),
-        SLOT(handleSocketError(QAbstractSocket::SocketError)));
-    connect(socket_, SIGNAL(disconnected()), SIGNAL(socketDisconnected()));
-    connect(socket_, SIGNAL(readyRead()), SLOT(readyRead()));
-    Q_ASSERT(!socket_->peerAddress().isNull());
-    Q_ASSERT(socket_->peerPort() != 0);
-    peerInfo_ = QString("%1:%2")
-        .arg(QHostInfo::fromName(socket_->peerAddress().toString()).hostName())
-        .arg(socket_->peerPort());
-}
-
-// Connects the channel to a server on \a host listening on \a port.
-bool QCChannel::connectToServer(const QString &host, const quint16 port)
-{
-    if (socket_) {
-        setLastError("socket already connected, please disconnect first");
-        return false;
-    }
-
-    socket_ = new QTcpSocket;
-    socket_->connectToHost(host, port);
-    if (!socket_->waitForConnected(-1)) {
-        setLastError(QString("waitForConnected() failed: %1").arg(socket_->errorString()));
-        delete socket_;
-        socket_ = 0;
-        return false;
-    }
-
-    initSocket();
-    return true;
-}
-
-bool QCChannel::isConnected() const
-{
-    return socket_ != 0;
-}
-
 // Sends the variant map \a msg as a message on the channel.
 void QCChannel::sendMessage(const QVariantMap &msg)
 {
-    if (!socket_) {
+    if (!isConnected()) {
         const char *emsg = "socket not connected";
         qWarning("WARNING: %s", emsg);
         setLastError(emsg);
@@ -118,33 +76,132 @@ void QCChannel::readyRead()
         QVariantMap msg;
         dstream >> msg;
 
-        //qDebug() << "msg arrived:" << msg;
+        // qDebug() << "msg arrived:" << msg;
         emit messageArrived(id(), msg);
     }
 }
 
-void QCChannel::handleSocketError(QAbstractSocket::SocketError e)
+qint64 QCChannel::nextId_ = 0;
+
+QCLocalChannel::QCLocalChannel(QLocalSocket * socket)
+    : QCChannel(socket)
+{
+    if (socket_)
+        initSocket();
+}
+
+QCLocalChannel::~QCLocalChannel()
+{
+    if (socket_)
+        delete socket_;
+}
+
+bool QCLocalChannel::connectToServer(const QString &serverPath)
+{
+    if (socket_) {
+        setLastError("socket already connected, please disconnect first");
+        return false;
+    }
+
+    QLocalSocket *lsocket = new QLocalSocket;
+    socket_ = lsocket;
+    lsocket->connectToServer(serverPath);
+    if (!lsocket->waitForConnected(-1)) {
+        setLastError(QString("waitForConnected() failed: %1").arg(socket_->errorString()));
+        delete socket_;
+        socket_ = 0;
+        return false;
+    }
+
+    initSocket();
+    return true;
+}
+
+void QCLocalChannel::initSocket()
+{
+    QLocalSocket *lsocket = qobject_cast<QLocalSocket *>(socket_);
+    Q_ASSERT(lsocket);
+    connect(
+        lsocket, SIGNAL(error(QLocalSocket::LocalSocketError)),
+        SLOT(handleSocketError(QLocalSocket::LocalSocketError)));
+    QCChannel::initSocket();
+}
+
+bool QCLocalChannel::isConnected() const
+{
+    return socket_ != 0;
+}
+
+void QCLocalChannel::handleSocketError(QLocalSocket::LocalSocketError e)
+{
+    if (e != QLocalSocket::PeerClosedError) // for now, don't consider this an error
+        emit error(socket_->errorString());
+}
+
+QCTcpChannel::QCTcpChannel(QTcpSocket *socket)
+    : QCChannel(socket)
+{
+    if (socket_)
+        initSocket();
+}
+
+QCTcpChannel::~QCTcpChannel()
+{
+    if (socket_)
+        delete socket_;
+}
+
+// Connects the channel to a server on \a host listening on \a port.
+bool QCTcpChannel::connectToServer(const QString &host, const quint16 port)
+{
+    if (socket_) {
+        setLastError("socket already connected, please disconnect first");
+        return false;
+    }
+
+    QTcpSocket *tsocket = new QTcpSocket;
+    socket_ = tsocket;
+    tsocket->connectToHost(host, port);
+    if (!tsocket->waitForConnected(-1)) {
+        setLastError(QString("waitForConnected() failed: %1").arg(socket_->errorString()));
+        delete socket_;
+        socket_ = 0;
+        return false;
+    }
+
+    initSocket();
+    return true;
+}
+
+void QCTcpChannel::initSocket()
+{
+    QTcpSocket *tsocket = qobject_cast<QTcpSocket *>(socket_);
+    Q_ASSERT(tsocket);
+    connect(
+        tsocket, SIGNAL(error(QAbstractSocket::SocketError)),
+        SLOT(handleSocketError(QAbstractSocket::SocketError)));
+    QCChannel::initSocket();
+    Q_ASSERT(!tsocket->peerAddress().isNull());
+    Q_ASSERT(tsocket->peerPort() != 0);
+    peerInfo_ = QString("%1:%2")
+        .arg(QHostInfo::fromName(tsocket->peerAddress().toString()).hostName())
+        .arg(tsocket->peerPort());
+}
+
+bool QCTcpChannel::isConnected() const
+{
+    return socket_ != 0;
+}
+
+void QCTcpChannel::handleSocketError(QAbstractSocket::SocketError e)
 {
     if (e != QAbstractSocket::RemoteHostClosedError) // for now, don't consider this an error
         emit error(socket_->errorString());
 }
 
-qint64 QCChannel::nextId_ = 0;
-
 QCChannelServer::QCChannelServer()
-    : lastError_("<not set yet>")
+    : lastError_("<no last error string set yet>")
 {
-}
-
-bool QCChannelServer::listen(const qint16 port)
-{
-    if (!server_.listen(QHostAddress::Any, port)) {
-        setLastError(QString("listen() failed: %1").arg(server_.errorString()));
-        return false;
-    }
-    connect(&server_, SIGNAL(newConnection()), SLOT(newConnection()));
-    // qDebug() << "accepting client connections on port" << port << "...";
-    return true;
 }
 
 QString QCChannelServer::lastError() const
@@ -157,7 +214,69 @@ void QCChannelServer::setLastError(const QString &lastError_)
     this->lastError_ = lastError_;
 }
 
-void QCChannelServer::newConnection()
+QCLocalChannelServer::QCLocalChannelServer()
 {
-    emit channelConnected(new QCChannel(server_.nextPendingConnection()));
+    connect(&fileSysWatcher_, SIGNAL(fileChanged(const QString &)), SIGNAL(serverFileChanged(const QString &)));
 }
+
+QCLocalChannelServer::~QCLocalChannelServer()
+{
+    const QString serverPath = server_.fullServerName();
+    if (!QLocalServer::removeServer(serverPath))
+        qWarning("WARNING: failed to remove server file upon cleanup: %s", serverPath.toLatin1().data());
+    else
+        qDebug() << "removed server file:" << serverPath;
+}
+
+bool QCLocalChannelServer::listen()
+{
+    QString serverPath;
+
+    if (localServerFileExists(&serverPath)) {
+        setLastError(QString("QCLocalChannelServer::listen(): server file already exists: %1").arg(serverPath));
+        return false;
+    }
+
+    if (!fileSysWatcher_.files().empty()) {
+        setLastError(
+            QString("QCLocalChannelServer::listen(): file system watcher already watching %1 other server file(s): %2 ...")
+            .arg(fileSysWatcher_.files().size()).arg(fileSysWatcher_.files().first()));
+        return false;
+    }
+
+    serverPath = createLocalServerPath();
+
+    if (!server_.listen(serverPath)) {
+        setLastError(QString("QCLocalChannelServer::listen(): listen() failed: %1").arg(server_.errorString()));
+        return false;
+    }
+
+    fileSysWatcher_.addPath(serverPath);
+    connect(&server_, SIGNAL(newConnection()), SLOT(newConnection()));
+    // qDebug() << "accepting client connections on path" << serverPath << "...";
+
+    return true;
+}
+
+void QCLocalChannelServer::newConnection()
+{
+    emit channelConnected(new QCLocalChannel(server_.nextPendingConnection()));
+}
+
+bool QCTcpChannelServer::listen(quint16 port)
+{
+    if (!server_.listen(QHostAddress::Any, port)) {
+        setLastError(QString("QCTcpChannelServer::listen(): listen() failed: %1").arg(server_.errorString()));
+        return false;
+    }
+    connect(&server_, SIGNAL(newConnection()), SLOT(newConnection()));
+    // qDebug() << "accepting client connections on port" << port << "...";
+    return true;
+}
+
+void QCTcpChannelServer::newConnection()
+{
+    emit channelConnected(new QCTcpChannel(server_.nextPendingConnection()));
+}
+
+} // namespace qclib

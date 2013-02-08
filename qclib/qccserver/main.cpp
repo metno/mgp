@@ -4,6 +4,9 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include "qcchat.h"
+#include "qcglobal.h"
+
+using namespace qclib;
 
 static bool initDatabase(const QString &dbfile, QString *error)
 {
@@ -75,7 +78,7 @@ class Interactor : public QObject
 {
     Q_OBJECT
 public:
-    Interactor(QCClientChannels *cchannels, QSqlDatabase *db)
+    Interactor(QCTcpClientChannels *cchannels, QSqlDatabase *db)
         : cchannels_(cchannels)
         , db_(db)
     {
@@ -86,16 +89,16 @@ public:
             cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(notification(const QString &, const QString &, int)));
         connect(
-            cchannels_, SIGNAL(channelSwitch(qint64, int, const QString &)),
-            SLOT(channelSwitch(qint64, int, const QString &)));
+            cchannels_, SIGNAL(channelSwitch(int, const QString &, qint64)),
+            SLOT(channelSwitch(int, const QString &, qint64)));
         connect(
-            cchannels_, SIGNAL(initialization(qint64, const QVariantMap &)),
-            SLOT(initialization(qint64, const QVariantMap &)));
+            cchannels_, SIGNAL(init(const QVariantMap &, qint64)),
+            SLOT(init(const QVariantMap &, qint64)));
         connect(cchannels_, SIGNAL(clientDisconnected(qint64)), SLOT(clientDisconnected(qint64)));
     }
 
 private:
-    QCClientChannels *cchannels_; // qclserver channels
+    QCTcpClientChannels *cchannels_; // qclserver channels
     QSqlDatabase *db_;
     QMap<qint64, QString> user_;
     QMap<qint64, int> channel_; // current chat channel (a.k.a. chat room)
@@ -179,13 +182,13 @@ private slots:
         appendToDatabase(text, user, channelId, timestamp, NOTIFICATION);
     }
 
-    void channelSwitch(qint64 qclserver, int channelId, const QString &)
+    void channelSwitch(int channelId, const QString &, qint64 qclserver)
     {
         channel_.insert(qclserver, channelId); // store new value
         cchannels_->sendChannelSwitch(channelId, user_.value(qclserver)); // forward to all qclservers
     }
 
-    void initialization(qint64 qclserver, const QVariantMap &msg)
+    void init(const QVariantMap &msg, qint64 qclserver)
     {
         const QString user(msg.value("user").toString());
 
@@ -198,16 +201,17 @@ private slots:
         user_.insert(qclserver, user);
         Q_ASSERT(!channel_.contains(qclserver));
 
-        // send general system info to this qclserver only
-        QMap<QString, QString> sysInfo;
-        sysInfo.insert("hostname", QHostInfo::localHostName());
-        sysInfo.insert("domainname", QHostInfo::localDomainName());
-        sysInfo.insert("ipaddr", getLocalIPAddress());
-        cchannels_->sendSysInfo(sysInfo, qclserver);
-
-        // send available chat channels to this qclserver only
-        QStringList c = getChannelsFromDatabase();
-        cchannels_->sendChannels(c, qclserver);
+        // send init message to this qccserver only
+        QVariantMap msg2;
+        // ... general system info
+        msg2.insert("hostname", QHostInfo::localHostName());
+        msg2.insert("domainname", QHostInfo::localDomainName());
+        msg2.insert("ipaddr", getLocalIPAddress());
+        // ... available chat channels
+        msg2.insert("channels", getChannelsFromDatabase());
+        // ... history
+        msg2.insert("history", getHistoryFromDatabase());
+        cchannels_->sendInit(msg2, qclserver);
 
         // inform all qclservers about users and their current channels
         QStringList users;
@@ -217,10 +221,6 @@ private slots:
             channels.append(channel_.contains(qclserver) ? channel_.value(qclserver) : -1);
         }
         cchannels_->sendUsers(users, channels);
-
-        // send history to this qclserver only
-        QStringList h = getHistoryFromDatabase();
-        cchannels_->sendHistory(h, qclserver);
     }
 
     void clientDisconnected(qint64 qclserver)
@@ -279,8 +279,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // listen for incoming qclserver connections
-    QCClientChannels cchannels;
+    // listen for incoming qclserver connections, and allow connections associated with any user
+    QCTcpClientChannels cchannels;
     if (!cchannels.listen(cport)) {
         qDebug(
             "failed to listen for incoming qclserver connections: cchannels.listen() failed: %s",

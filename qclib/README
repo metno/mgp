@@ -2,7 +2,7 @@
 
 OVERVIEW
 
-The QC library is a simple chat system based on
+The QC library is a simple chat system based on QLocalSocket and
 QTcpSocket. Conversations are kept in a central SQLite database in
 order for clients not to lose anything if they go offline for a
 period.
@@ -19,26 +19,47 @@ qclib/
 
 qcapp_example/
 
-  An example Qt app controlling the local chat window and receiving
-  notifications. This shows how e.g. Diana would use the API. The
-  qcapp communicates with the local chat server (qclserver).
+  An example local client app controlling the local chat window and
+  receiving notifications. This shows how e.g. Diana would use the
+  API. The qcapp communicates with the local chat server for this user
+  (qclserver).
+
+  A local chat server for this user will be started automatically if
+  one is not running already.
 
 qcopenchatwin/
 
-  A program that first requests the local chat server (qclserver) to
-  open the chat window, and then terminates. This would typically be
-  invoked from a system menu and/or a global keyboard shortcut.
+  A local client app that first requests the local chat server for
+  this user (qclserver) to open the chat window, and then
+  terminates. This would typically be invoked from a system menu
+  and/or a global keyboard shortcut.
+
+  A local chat server for this user will be started automatically if
+  one is not running already.
 
 qclserver/
 
-   The local chat server. This shows a chat window and communicates
-   with a qccserver as well as one or more local qcapps.
+   The local chat server for a particular user (extracted from the
+   USER environment variable). This shows a chat window and
+   communicates with a central chat server (qccserver, using
+   QTcpSocket) as well as with one or more local client apps (using
+   QLocalSocket).
+
+   NOTE: On a given client host, at most one qclserver will be
+   running per user. It is not possible to start a second qclserver
+   for the same user.
+
+   NOTE: The local chat server terminates once the central chat server
+   disconnects or if the initial connection attempt fails. In that
+   case it is typically restarted automatically from a local client
+   app (like the ones above) once the central server has been
+   (re)started manually.
 
 qccserver/
 
   The central chat server. This communicates with one or more
-  qclservers and stores conversations in a local SQLite database
-  file.
+  qclservers (using QTcpSocket) and stores conversations in a local
+  SQLite database file.
 
 
 INSTALLATION
@@ -58,41 +79,42 @@ USE CASE 1: Create an empty database file.
 
       qccserver --dbfile /disk1/test.db --initdb
 
-  Any existing file must be manually removed for the command to succeed.
+  The command fails if the file already exists.
+  REMEDY: (Re)move the file and try again.
 
 
-USE CASE 2: Start the central server.
+USE CASE 2: Start the central chat server.
 
-  To start a central server using database file /disk1/test.db and
-  accepting local server connections on port 1105, log on to the
+  To start a central chat server using database file /disk1/test.db
+  and accepting local server connections on port 1105, log on to the
   central host and issue the following command:
 
       qccserver --dbfile /disk1/test.db --cport 1105
 
   The command fails if another process is already accepting
   connections on port 1105.
+  REMEDY: Use a different port number or stop the existing
+  process. (NOTE: The latter action may be the only alternative if the
+  port number is hard-coded in clients!)
 
 
-USE CASE 3: Start the local server.
+USE CASE 3: Start a qcapp_example (or other client apps, like qcopenchatwin).
 
-  To start a local server that
-  1: connects to a central server running on 'chost' and accepts local
-     server connections on port 1105, and
-  2: accepts qcapp connections on port 1104,
-  log on to the local host and issue the following command:
+  To start a qcapp_example associated with a central chat server that
+  runs on dev-vm075 and accepts connections on port 1105, log on to
+  the local host and issue the following command:
 
-      qclserver --chost chost --cport 1105 --lport 1104
+      qcapp_example --chost dev-vm075 --cport 1105
 
-  The command fails if either
-  1: no central server running on 'chost' accepts local server connections on port 1105, or
-  2: another process is already accepting connections on port 1104
+  The command fails if:
 
+  - A local chat server for this user is currently running, but not
+    connected to a central chat server on the given host/port.
+    REMEDY: Try again after either 1) stopping the local chat server
+    for this user, or 2) passing the appropriate host/port
+    combination on the command line.
 
-USE CASE 4: Start the qcapp_example.
-
-  To start a qcapp_example that connects to a local server that accepts connections on port 1104,
-  log on to the local host and issue the following command:
-
-      qcapp_example --lport 1104
-
-  The command fails if no local server accepts connections on port 1104.
+  - No central chat server is currently running on the given
+    host/port. (Starting a local chat server won't be possible in this
+    case.)
+    REMEDY: Start the central chat server and try again.

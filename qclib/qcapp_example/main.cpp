@@ -2,13 +2,20 @@
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qcchat.h"
+#include "qcglobal.h"
+
+using namespace qclib;
 
 class Window : public QWidget
 {
     Q_OBJECT
+#define TIMEOUT 3000 // server init timeout in milliseconds
 public:
-    Window(QCServerChannel *schannel)
+    Window(QCLocalServerChannel *schannel, const QString &chost, quint16 cport)
         : schannel_(schannel)
+        , chost_(chost)
+        , cport_(cport)
+        , initialized_(false)
         , showButton_(0)
         , hideButton_(0)
         , channelCBox_(0)
@@ -51,17 +58,16 @@ public:
         setLayout(layout);
         setMinimumWidth(600);
 
-        connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
-        connect(schannel_, SIGNAL(channels(const QStringList &)), SLOT(channels(const QStringList &)));
-        connect(schannel_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
-        connect(schannel_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
-        connect(
-            schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
-            SLOT(notification(const QString &, const QString &, int, int)));
+        // await init message or timeout
+        connect(schannel, SIGNAL(init(const QVariantMap &, qint64)), SLOT(init(const QVariantMap &)));
+        QTimer::singleShot(TIMEOUT, this, SLOT(serverInitTimeout()));
     }
 
 private:
-    QCServerChannel *schannel_;
+    QCLocalServerChannel *schannel_;
+    QString chost_;
+    quint16 cport_;
+    bool initialized_;
     QPushButton *showButton_;
     QPushButton *hideButton_;
     QComboBox *channelCBox_;
@@ -88,23 +94,58 @@ private:
     }
 
 private slots:
+    void serverInitTimeout()
+    {
+        if (!initialized_) {
+            qDebug("ERROR: no response from server within %d milliseconds; terminating", TIMEOUT);
+            qApp->exit(1);
+        } else {
+            // qDebug("already initialized");
+        }
+    }
+
+    void init(const QVariantMap &msg)
+    {
+        initialized_ = true;
+
+        if (msg.value("chost").toString() != chost_) {
+            qDebug(
+                "ERROR: central host mismatch: %s != %s", msg.value("chost").toString().toLatin1().data(),
+                chost_.toLatin1().data());
+            qApp->exit(1);
+            return;
+        }
+        bool ok;
+        const quint16 cport = msg.value("cport").toInt(&ok);
+        if (!ok) {
+            qDebug("ERROR: central port not an integer");
+            qApp->exit(1);
+            return;
+        }
+        if (cport != cport_) {
+            qDebug("ERROR: central port mismatch: %d != %d",  cport, cport_);
+            qApp->exit(1);
+            return;
+        }
+
+        // chost and cport both match so, so enter normal operation
+        setChannels(msg.value("channels").toStringList());
+        if (msg.value("windowshown").toBool())
+            showChatWindow();
+        else
+            hideChatWindow();
+        connect(schannel_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
+        connect(schannel_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
+        connect(
+            schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
+            SLOT(notification(const QString &, const QString &, int, int)));
+        connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
+    }
+
     void sendNotification()
     {
         const int channelId = channelId_.value(channelCBox_->currentText());
         schannel_->sendNotification(notifyEdit_->text(), QString(), channelId);
-    }
-
-    void serverDisconnected()
-    {
-        showButton_->setEnabled(false);
-        hideButton_->setEnabled(false);
-        channelCBox_->setEnabled(false);
-        notifyEdit_->setEnabled(false);
-    }
-
-    void channels(const QStringList &chatChannels)
-    {
-        setChannels(chatChannels);
     }
 
     void showChatWindow()
@@ -124,11 +165,21 @@ private slots:
         qDebug() << QString("notification (user %1, channel %2, timestamp %3): %4")
             .arg(user).arg(channelId).arg(timestamp).arg(text).toLatin1().data();
     }
+
+    void serverDisconnected()
+    {
+        showButton_->setEnabled(false);
+        hideButton_->setEnabled(false);
+        channelCBox_->setEnabled(false);
+        notifyEdit_->setEnabled(false);
+    }
 };
 
 static void printUsage()
 {
-    qDebug() << QString("usage: %1 --lport <local server port>").arg(qApp->arguments().first()).toLatin1().data();
+    qDebug() << QString(
+        "usage: %1 --chost <central server host> --cport <central server port>")
+        .arg(qApp->arguments().first()).toLatin1().data();
 }
 
 int main(int argc, char *argv[])
@@ -137,23 +188,29 @@ int main(int argc, char *argv[])
 
     // extract command-line options
     const QMap<QString, QString> options = getOptions(app.arguments());
+    const QString chost = options.value("chost");
+    if (chost.isEmpty()) {
+        qDebug("failed to extract central server host");
+        printUsage();
+        return 1;
+    }
     bool ok;
-    const quint16 lport = options.value("lport").toUInt(&ok);
+    const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
-        qDebug() << "failed to extract local server port";
+        qDebug("failed to extract central server port");
         printUsage();
         return 1;
     }
 
     // establish channel to qclserver
-    QCServerChannel schannel;
-    if (!schannel.connectToServer("localhost", lport)) {
+    QCLocalServerChannel schannel;
+    if (!schannel.connectToServer(chost, cport)) {
         qDebug("schannel.connectToServer() failed: %s", schannel.lastError().toLatin1().data());
         return 1;
     }
 
     // create a dummy app window
-    Window window(&schannel);
+    Window window(&schannel, chost, cport);
     window.show();
     return app.exec();
 }

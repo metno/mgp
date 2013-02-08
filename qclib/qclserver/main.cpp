@@ -2,6 +2,10 @@
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "qcchat.h"
+#include "qcglobal.h"
+#include <csignal>
+
+using namespace qclib;
 
 static QSettings *settings = 0;
 
@@ -130,7 +134,16 @@ public:
             const int timestamp = rx.cap(3).toInt();
             const int type = rx.cap(4).toInt();
             const QString text = rx.cap(5);
-            events[channelId] << formatEvent(text, user, timestamp, type);
+            if (channelName_.contains(channelId)) {
+                events[channelId] << formatEvent(text, user, timestamp, type);
+            } else {
+                QString msg =
+                    QString("WARNING: prependHistory(): skipping event with invalid channelId: %1 not in")
+                    .arg(channelId);
+                foreach (int cid, channelName_.keys())
+                    msg.append(QString(" %1").arg(cid));
+                qWarning("%s", msg.toLatin1().data());
+            }
         }
 
         foreach (int channelId, events.keys()) {
@@ -191,9 +204,11 @@ public:
         return channelId_.value(channelCBox_->currentText());
     }
 
-    void setServerSysInfo(const QMap<QString, QString> &sysInfo)
+    void setServerSysInfo(const QString &hostname, const QString &domainname, const QString &ipaddr)
     {
-        serverSysInfo_ = sysInfo;
+        serverSysInfo_.insert("hostname", hostname);
+        serverSysInfo_.insert("domainname", domainname);
+        serverSysInfo_.insert("ipaddr", ipaddr);
         updateWindowTitle();
     }
 
@@ -203,7 +218,7 @@ private:
     QMap<QString, int> channelId_;
     QMap<int, QString> channelName_;
     QTreeWidget *userTree_;
-    QMap<int, QTextBrowser *>log_;
+    QMap<int, QTextBrowser *> log_;
     QStackedLayout logStack_;
     QLabel *userLabel_;
     QLineEdit *edit_;
@@ -284,7 +299,7 @@ private:
 
     static QString formatEvent(const QString &text, const QString &user, int timestamp, int type)
     {
-        QString userTdStyle("style=\"padding-left:20px\"");
+        QString userTdStyle("style=\"padding-left:40px\"");
         QString textTdStyle("style=\"padding-left:2px\"");
         QString s("<tr>");
         s += QString("<td><span style=\"color:%1\">[%2]</span></td>").arg("#888").arg(toTimeString(timestamp));
@@ -354,8 +369,9 @@ private:
     void updateWindowTitle()
     {
         setWindowTitle(
-            QString("met.no chat - channel: %1; central server: %2.%3 (%4)")
+            QString("met.no chat - channel: %1; user: %2; central server: %3.%4 (%5)")
             .arg(channelName_.value(currentChannelId()))
+            .arg(userLabel_->text())
             .arg(serverSysInfo_.value("hostname"))
             .arg(serverSysInfo_.value("domainname"))
             .arg(serverSysInfo_.value("ipaddr")));
@@ -394,90 +410,114 @@ class Interactor : public QObject
 {
     Q_OBJECT
 public:
-    Interactor(QCClientChannels *cchannels, QCServerChannel *schannel, ChatWindow *window)
-        : cchannels_(cchannels)
-        , schannel_(schannel)
-        , window_(window)
+    Interactor(const QString &user, const QString &chost, quint16 cport)
+        : user_(user)
+        , chost_(chost)
+        , cport_(cport)
         , showingWindow_(false)
     {
-        user_ = qgetenv("USER");
-        if (user_.isEmpty()) {
-            qWarning("failed to extract string from environment variable USER; using '<unknown>'");
-            user_ = QString("<unknown>");
+        cchannels_.reset(new QCLocalClientChannels);
+        schannel_.reset(new QCTcpServerChannel);
+        window_.reset(new ChatWindow);
+    }
+
+    bool initialize()
+    {
+        // initialize interaction with chat window
+        connect(window_.data(), SIGNAL(windowShown()), SLOT(windowShown()));
+        connect(window_.data(), SIGNAL(windowHidden()), SLOT(windowHidden()));
+        connect(window_.data(), SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
+        connect(window_.data(), SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
+        window_->setUser(user_);
+
+        // initialize interaction with qcapps
+        connect(cchannels_.data(), SIGNAL(serverFileChanged(const QString &)), SLOT(serverFileChanged(const QString &)));
+        connect(cchannels_.data(), SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
+        connect(cchannels_.data(), SIGNAL(showChatWindow()), SLOT(showChatWindow()));
+        connect(cchannels_.data(), SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
+        connect(
+            cchannels_.data(), SIGNAL(notification(const QString &, const QString &, int, int)),
+            SLOT(localNotification(const QString &, const QString &, int)));
+        if (!cchannels_->listen()) {
+            qDebug("failed to create listen path: %s", cchannels_->lastError().toLatin1().data());
+            return false;
         }
 
-        connect(cchannels_, SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
-        connect(cchannels_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
-        connect(cchannels_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
+        // initialize interaction with qccserver
+        connect(schannel_.data(), SIGNAL(init(const QVariantMap &, qint64)), SLOT(init(const QVariantMap &)));
+        connect(schannel_.data(), SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
         connect(
-            cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
-            SLOT(localNotification(const QString &, const QString &, int)));
-
-        connect(schannel_, SIGNAL(sysInfo(const QMap<QString, QString> &)), SLOT(serverSysInfo(const QMap<QString, QString> &)));
-        connect(schannel_, SIGNAL(serverDisconnected()), SLOT(serverDisconnected()));
-        connect(
-            schannel_, SIGNAL(chatMessage(const QString &, const QString &, int, int)),
+            schannel_.data(), SIGNAL(chatMessage(const QString &, const QString &, int, int)),
             SLOT(centralChatMessage(const QString &, const QString &, int, int)));
         connect(
-            schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
+            schannel_.data(), SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(centralNotification(const QString &, const QString &, int, int)));
         connect(
-            schannel_, SIGNAL(channelSwitch(qint64, int, const QString &)),
-            SLOT(centralChannelSwitch(qint64, int, const QString &)));
-        connect(schannel_, SIGNAL(channels(const QStringList &)), SLOT(channels(const QStringList &)));
-        connect(schannel_, SIGNAL(history(const QStringList &)), SLOT(history(const QStringList &)));
+            schannel_.data(), SIGNAL(channelSwitch(int, const QString &, qint64)),
+            SLOT(centralChannelSwitch(int, const QString &)));
         connect(
-            schannel_, SIGNAL(users(const QStringList &, const QList<int> &)),
+            schannel_.data(), SIGNAL(users(const QStringList &, const QList<int> &)),
             SLOT(users(const QStringList &, const QList<int> &)));
-
-        connect(window_, SIGNAL(windowShown()), SLOT(windowShown()));
-        connect(window_, SIGNAL(windowHidden()), SLOT(windowHidden()));
-        connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
-        connect(window_, SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
-
+        if (!schannel_->connectToServer(chost_, cport_)) {
+            qDebug(
+                "ERROR: failed to connect to qccserver: connectToServer() failed: %s",
+                schannel_->lastError().toLatin1().data());
+            return false;
+        }
         QVariantMap msg;
         msg.insert("user", user_);
-        schannel_->initialize(msg);
+        schannel_->sendInit(msg);
 
-        window_->setUser(user_);
+        return true;
     }
 
 private:
-    QCClientChannels *cchannels_; // qcapp channels
-    QCServerChannel *schannel_; // qccserver channel
-    ChatWindow *window_;
     QString user_;
+    QString chost_;
+    quint16 cport_;
+    QScopedPointer<QCLocalClientChannels> cchannels_; // qcapp channels
+    QScopedPointer<QCTcpServerChannel> schannel_; // qccserver channel
+    QScopedPointer<ChatWindow> window_;
     QStringList chatChannels_; //  a.k.a. chat rooms
     bool showingWindow_;
 
 private slots:
-    void serverSysInfo(const QMap<QString, QString> &sysInfo)
+    void init(const QVariantMap &msg)
     {
-        window_->setServerSysInfo(sysInfo);
+        window_->setServerSysInfo(
+            msg.value("hostname").toString(), msg.value("domainname").toString(), msg.value("ipaddr").toString());
+        chatChannels_ = msg.value("channels").toStringList();
+        window_->setChannels(chatChannels_);
+        window_->prependHistory(msg.value("history").toStringList());
     }
 
     void serverDisconnected()
     {
-        qWarning("WARNING: central server disconnected");
+        qWarning("ERROR: central server disconnected");
+        qApp->exit(1);
+    }
+
+    void serverFileChanged(const QString &serverPath)
+    {
+        qWarning("ERROR: local server file modified or (re)moved: %s", serverPath.toLatin1().data());
         qApp->exit(1);
     }
 
     void clientConnected(qint64 qcapp)
     {
         if (!schannel_->isConnected()) {
-            qWarning("WARNING: central server not connected; disconnecting");
+            qWarning("WARNING: central server not connected; disconnecting client");
             cchannels_->close(qcapp);
             return;
         }
 
-        // inform about current chat window visibility
-        if (window_->isVisible())
-            cchannels_->sendShowChatWindow();
-        else
-            cchannels_->sendHideChatWindow();
-
-        // send available chat channels to this qcapp only
-        cchannels_->sendChannels(chatChannels_, qcapp);
+        // send init message to this qcapp only
+        QVariantMap msg;
+        msg.insert("chost", chost_);
+        msg.insert("cport", cport_);
+        msg.insert("channels", chatChannels_);
+        msg.insert("windowshown", window_->isVisible());
+        cchannels_->sendInit(msg, qcapp);
     }
 
     void localNotification(const QString &text, const QString &, int channelId)
@@ -498,20 +538,9 @@ private slots:
         window_->scrollToBottom();
     }
 
-    void centralChannelSwitch(qint64, int channelId, const QString &user)
+    void centralChannelSwitch(int channelId, const QString &user)
     {
         window_->handleCentralChannelSwitch(user, channelId);
-    }
-
-    void channels(const QStringList &chatChannels)
-    {
-        window_->setChannels(chatChannels);
-        chatChannels_ = chatChannels;
-    }
-
-    void history(const QStringList &h)
-    {
-        window_->prependHistory(h);
     }
 
     void users(const QStringList &u, const QList<int> &channelIds)
@@ -547,7 +576,7 @@ private slots:
         if (window_->isVisible()) {
             window_->hide();
             qApp->processEvents();
-            QTimer::singleShot(500, window_, SLOT(show()));
+            QTimer::singleShot(500, window_.data(), SLOT(show()));
         } else {
             window_->show();
         }
@@ -580,59 +609,68 @@ private slots:
 static void printUsage()
 {
     qDebug() << QString(
-        "usage: %1 --lport <local server port> --chost <central server host> --cport <central server port>")
+        "usage: %1 --chost <central server host> --cport <central server port>")
         .arg(qApp->arguments().first()).toLatin1().data();
 }
 
+struct CleanExit {
+    CleanExit() {
+        signal(SIGQUIT, &CleanExit::exitQt);
+        signal(SIGINT, &CleanExit::exitQt);
+        signal(SIGTERM, &CleanExit::exitQt);
+        // signal(SIGBREAK, &CleanExit::exitQt);
+        // ### TODO: Add more signals to cover all relevant reasons for termination
+        // ...
+    }
+
+    static void exitQt(int sig) {
+        Q_UNUSED(sig);
+        QCoreApplication::exit(0);
+    }
+};
+
+class ExitHandler : public QObject
+{
+    Q_OBJECT
+public slots:
+    void cleanup()
+    {
+        // do cleanup actions here
+    }
+};
+
 int main(int argc, char *argv[])
 {
+    CleanExit cleanExit;
     QApplication app(argc, argv);
+    ExitHandler exitHandler;
+    QObject::connect(&app, SIGNAL(aboutToQuit()), &exitHandler, SLOT(cleanup()));
 
     // extract command-line options
     const QMap<QString, QString> options = getOptions(app.arguments());
-    bool ok;
-    const quint16 lport = options.value("lport").toUInt(&ok);
-    if (!ok) {
-        qDebug("failed to extract local server port");
-        printUsage();
-        return 1;
-    }
     const QString chost = options.value("chost");
     if (chost.isEmpty()) {
         qDebug("failed to extract central server host");
-          return 1;
+        printUsage();
+        return 1;
     }
+    bool ok;
     const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
         qDebug("failed to extract central server port");
+        printUsage();
         return 1;
     }
 
+    // create global settings object for this $USER (assuming 1-1 correspondence between $USER and $HOME)
     settings = new QSettings(QString("%1/.config/qcchat/qclserver.conf").arg(qgetenv("HOME").constData()), QSettings::NativeFormat);
 
-    // listen for incoming qcapp connections
-    QCClientChannels cchannels;
-    if (!cchannels.listen(lport)) {
-        qDebug(
-            "failed to listen for incoming qcapp connections: cchannels.listen() failed: %s",
-            cchannels.lastError().toLatin1().data());
-        return 1;
-    }
-
-    // establish channel to qccserver
-    QCServerChannel schannel;
-    if (!schannel.connectToServer(chost, cport)) {
-        qDebug(
-            "failed to connect to qccserver: schannel.connectToServer() failed: %s",
-            schannel.lastError().toLatin1().data());
-        return 1;
-    }
-
-    // create a chat window
-    ChatWindow *window = new ChatWindow;
-
     // create object to handle interaction between qcapps, qccserver, and chat window
-    Interactor interactor(&cchannels, &schannel, window);
+    Interactor interactor(qgetenv("USER").constData(), chost, cport);
+    if (!interactor.initialize()) {
+        qDebug() << "failed to initialize interactor";
+        return 1;
+    }
 
     return app.exec();
 }
