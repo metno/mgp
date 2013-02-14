@@ -5,8 +5,40 @@
 #include <QSqlError>
 #include "qcchat.h"
 #include "qcglobal.h"
+#include "log4cpp/Category.hh"
+#include "log4cpp/Appender.hh"
+#include "log4cpp/FileAppender.hh"
+#include "log4cpp/Layout.hh"
+#include "log4cpp/PatternLayout.hh"
+#include "log4cpp/Priority.hh"
 
 using namespace qclib;
+
+class Logger
+{
+public:
+    Logger()
+        : root_(log4cpp::Category::getRoot())
+    {
+        // arrange for logging via syslog to /var/log/qccserver.log
+        //log4cpp::Appender *appender = new log4cpp::SyslogAppender(...);
+        // ### FOR NOW:
+        log4cpp::Appender *appender = new log4cpp::FileAppender("default", "/tmp/qccserver.log");
+
+        log4cpp::PatternLayout *ptnLayout = new log4cpp::PatternLayout;
+        ptnLayout->setConversionPattern("[%d{%Y %b %d %H:%M:%S}] %6p  %m%n");
+        appender->setLayout(ptnLayout);
+        root_.setPriority(log4cpp::Priority::INFO);
+        root_.addAppender(appender);
+    }
+    void logInfo(   const QString &msg) const { root_.info( msg.toLatin1().data()); }
+    void logWarning(const QString &msg) const { root_.warn( msg.toLatin1().data()); }
+    void logError(  const QString &msg) const { root_.error(msg.toLatin1().data()); }
+private:
+    log4cpp::Category& root_;
+};
+
+static QScopedPointer<Logger> logger;
 
 static bool initDatabase(const QString &dbfile, QString *error)
 {
@@ -67,7 +99,7 @@ static QString getLocalIPAddress()
     const QString line = p2.readAllStandardOutput();
     QRegExp rx("inet addr:(\\d+\\.\\d+\\.\\d+\\.\\d+)");
     if (rx.indexIn(line) == -1) {
-        qWarning("WARNING: no match for IP address: %s", line.toLatin1().data());
+        logger->logWarning(QString("no match for IP address: %1").arg(line.toLatin1().data()));
         return QString();
     }
     return rx.cap(1);
@@ -119,9 +151,10 @@ private:
             .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(channelId).arg(timestamp).arg(type);
         db_->transaction();
         if (!query->exec(query_s))
-            qWarning(
-                "WARNING: query '%s' failed: %s",
-                query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
+            logger->logWarning(
+                QString("query '%1' failed: %2")
+                .arg(query_s.toLatin1().data())
+                .arg(query->lastError().text().trimmed().toLatin1().data()));
         db_->commit();
     }
 
@@ -133,9 +166,10 @@ private:
         QString query_s = QString("SELECT id, name, description FROM channel;");
         QStringList c;
         if (!query->exec(query_s)) {
-            qWarning(
-                "WARNING: query '%s' failed: %s",
-                query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
+            logger->logWarning(
+                QString("query '%s' failed: %s")
+                .arg(query_s.toLatin1().data())
+                .arg(query->lastError().text().trimmed().toLatin1().data()));
         } else while (query->next()) {
              const int id = query->value(0).toInt();
              const QString name = query->value(1).toString();
@@ -153,9 +187,10 @@ private:
         QString query_s = QString("SELECT text, user, channelId, timestamp, type FROM log ORDER BY timestamp;");
         QStringList h;
         if (!query->exec(query_s)) {
-            qWarning(
-                "WARNING: query '%s' failed: %s",
-                query_s.toLatin1().data(), query->lastError().text().trimmed().toLatin1().data());
+            logger->logWarning(
+                QString("query '%s' failed: %s")
+                .arg(query_s.toLatin1().data())
+                .arg(query->lastError().text().trimmed().toLatin1().data()));
         } else while (query->next()) {
              const QString text = query->value(0).toString();
              const QString user = query->value(1).toString();
@@ -193,7 +228,7 @@ private slots:
         const QString user(msg.value("user").toString());
 
         if (user_.values().contains(user)) {
-            qWarning("WARNING: user '%s' already joined; disconnecting", user.toLatin1().data());
+            logger->logWarning(QString("user '%1' already joined; disconnecting").arg(user.toLatin1().data()));
             cchannels_->close(qclserver);
             return;
         }
@@ -233,13 +268,15 @@ private slots:
 
 static void printUsage()
 {
-    qDebug() << QString(
-        "usage: %1 --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port>))")
-        .arg(qApp->arguments().first()).toLatin1().data();
+    logger->logError(
+        QString("usage: %1 --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port>))")
+        .arg(qApp->arguments().first()).toLatin1().data());
 }
 
 int main(int argc, char *argv[])
 {
+    logger.reset(new Logger); // set up logging
+
     // the following enables support for unicode chars (like 'æ') in
     // SQL INSERT statements etc.
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
@@ -251,30 +288,31 @@ int main(int argc, char *argv[])
     bool ok;
     const QString dbfile = options.value("dbfile");
     if (dbfile.isEmpty()) {
-        qDebug("failed to extract database file name");
+        logger->logError("failed to extract database file name");
         printUsage();
         return 1;
     }
     if (options.contains("initdb")) {
         // initialize database and terminate
         if (QFile::exists(dbfile)) {
-            qDebug() << QString("database file already exists: %1; please (re)move it first")
-                .arg(dbfile).toLatin1().data();
+            logger->logError(
+                QString("database file already exists: %1; please (re)move it first")
+                .arg(dbfile).toLatin1().data());
             return 1;
         }
         QString error;
         if (!initDatabase(dbfile, &error)) {
-            qDebug() << "failed to initialize new database:" << error.toLatin1().data();
+            logger->logError(QString("failed to initialize new database: %1").arg(error.toLatin1().data()));
             return 1;
         }
         return 0;
     } else if (!QFile::exists(dbfile)) {
-        qDebug() << "database file not found:" << dbfile.toLatin1().data();
+        logger->logError(QString("database file not found: %1").arg(dbfile.toLatin1().data()));
         return 1;
     }
     const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract central server port");
+        logger->logError("failed to extract central server port");
         printUsage();
         return 1;
     }
@@ -282,9 +320,9 @@ int main(int argc, char *argv[])
     // listen for incoming qclserver connections, and allow connections associated with any user
     QCTcpClientChannels cchannels;
     if (!cchannels.listen(cport)) {
-        qDebug(
-            "failed to listen for incoming qclserver connections: cchannels.listen() failed: %s",
-            cchannels.lastError().toLatin1().data());
+        logger->logError(
+            QString("failed to listen for incoming qclserver connections: cchannels.listen() failed: %1")
+            .arg(cchannels.lastError().toLatin1().data()));
         return 1;
     }
 
@@ -292,13 +330,15 @@ int main(int argc, char *argv[])
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(dbfile);
     if (!db.open()) {
-        qDebug() << "failed to open database:" << dbfile;
+        logger->logError(QString("failed to open database: %1").arg(dbfile));
         return 1;
     }
 
     // create object to handle interaction between qclservers and the database
     Interactor interactor(&cchannels, &db);
 
+    logger->logInfo(
+        QString("server started at %1").arg(QDateTime::currentDateTime().toString("yyyy MMM dd hh:mm:ss")));
     return app.exec();
 }
 
