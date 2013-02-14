@@ -269,13 +269,53 @@ private slots:
 static void printUsage()
 {
     logger->logError(
-        QString("usage: %1 --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port>))")
+        QString("usage: %1 [--daemon] --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port>))")
         .arg(qApp->arguments().first()).toLatin1().data());
+}
+
+static void daemonize()
+{
+    pid_t pid, sid; // our process ID and session ID
+
+    pid = fork(); // fork off parent process
+    if (pid < 0)
+        exit(1); // fork() failed
+    if (pid > 0)
+        exit(0); // exit parent
+
+    // at this point we're the child
+
+    umask(0); // provide full access to generated files (in particular log files)
+
+    logger.reset(new Logger); // set up logging
+
+    sid = setsid(); // create new SID for the child
+    if (sid < 0) {
+        logger->logError("setsid() failed");
+        exit(1);
+    }
+
+    // change current working directory
+    if ((chdir("/")) < 0) {
+        logger->logError("chdir(\"/\") failed");
+        exit(1);
+    }
+
+    // close standard file descriptors
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 }
 
 int main(int argc, char *argv[])
 {
-    logger.reset(new Logger); // set up logging
+    const QMap<QString, QString> options = getOptions(argc, argv);
+
+    // check if we should run as a daemon
+    if (options.contains("daemon"))
+        daemonize(); // turn process into a daemon (including setting up logging)
+    else
+        logger.reset(new Logger); // set up logging
 
     // the following enables support for unicode chars (like 'æ') in
     // SQL INSERT statements etc.
@@ -283,8 +323,7 @@ int main(int argc, char *argv[])
 
     QCoreApplication app(argc, argv);
 
-    // extract information from environment
-    const QMap<QString, QString> options = getOptions(app.arguments());
+    // extract other input arguments
     bool ok;
     const QString dbfile = options.value("dbfile");
     if (dbfile.isEmpty()) {

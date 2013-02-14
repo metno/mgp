@@ -14,6 +14,13 @@ QMap<QString, QString> getOptions(const QStringList &args)
             options.insert(args.at(i).mid(2), (i < (args.size() - 1)) ? args.at(i + 1) : QString());
     return options;
 }
+QMap<QString, QString> getOptions(int argc, char *argv[])
+{
+    QStringList args;
+    for (int i = 1; i < argc; ++i)
+        args.append(argv[i]);
+    return getOptions(args);
+}
 
 // Returns true iff a local server file of the form '/tmp/qclserver_USER_PID' exists.
 // If such a file exists, \a path \a and pid (if non-null) are set to the absolute path and the PID
