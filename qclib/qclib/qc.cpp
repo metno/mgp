@@ -1,5 +1,4 @@
 #include "qc.h"
-#include "qcglobal.h"
 
 namespace qclib {
 

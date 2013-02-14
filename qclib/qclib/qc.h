@@ -3,6 +3,7 @@
 
 #include <QtCore> // ### TODO: include relevant headers only
 #include <QtNetwork> // ### TODO: include relevant headers only
+#include "qcglobal.h"
 
 namespace qclib {
 

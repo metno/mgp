@@ -66,7 +66,7 @@ public:
     void appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
     {
         if (channelId < 0) {
-            qWarning("WARNING: appendEvent(): ignoring event with channel id < 0 for now");
+            Logger::instance().logWarning("appendEvent(): ignoring event with channel id < 0 for now");
             return;
         }
 
@@ -84,8 +84,11 @@ public:
         QListIterator<QString> it(chatChannels);
         while (it.hasNext()) {
             QString item = it.next();
-            if (rx.indexIn(item) == -1)
-                qFatal("setChannels(): regexp mismatch: %s", item.toLatin1().data());
+            if (rx.indexIn(item) == -1) {
+                Logger::instance().logError(QString("setChannels(): regexp mismatch: %1").arg(item.toLatin1().data()));
+                qApp->exit(1);
+                return;
+            }
             const int id = rx.cap(1).toInt();
             const QString name = rx.cap(2);
             //const QString descr = rx.cap(3); unused for now
@@ -127,8 +130,11 @@ public:
         QListIterator<QString> it(h);
         while (it.hasNext()) {
             QString item = it.next();
-            if (rx.indexIn(item) == -1)
-                qFatal("prependHistory(): regexp mismatch: %s", item.toLatin1().data());
+            if (rx.indexIn(item) == -1) {
+                Logger::instance().logError(QString("prependHistory(): regexp mismatch: %1").arg(item.toLatin1().data()));
+                qApp->exit(1);
+                return;
+            }
             const QString user = rx.cap(1);
             const int channelId = rx.cap(2).toInt();
             const int timestamp = rx.cap(3).toInt();
@@ -138,11 +144,11 @@ public:
                 events[channelId] << formatEvent(text, user, timestamp, type);
             } else {
                 QString msg =
-                    QString("WARNING: prependHistory(): skipping event with invalid channelId: %1 not in")
+                    QString("prependHistory(): skipping event with invalid channelId: %1 not in")
                     .arg(channelId);
                 foreach (int cid, channelName_.keys())
                     msg.append(QString(" %1").arg(cid));
-                qWarning("%s", msg.toLatin1().data());
+                Logger::instance().logWarning(msg);
             }
         }
 
@@ -153,7 +159,7 @@ public:
                     events.value(channelId).join(""));
                 log_[channelId]->setHtml(html_.value(channelId));
             } else {
-                qWarning("WARNING: prependHistory(): ignoring events with channelId < 0 for now");
+                Logger::instance().logWarning("prependHistory(): ignoring events with channelId < 0 for now");
             }
         }
     }
@@ -305,14 +311,17 @@ private:
         s += QString("<td><span style=\"color:%1\">[%2]</span></td>").arg("#888").arg(toTimeString(timestamp));
         s += QString("<td align=\"right\" %1><span style=\"color:%2\">&lt;%3&gt;</span></td>")
             .arg(userTdStyle).arg("#000").arg(user);
-        if (type == CHATMESSAGE)
+        if (type == CHATMESSAGE) {
             s += QString("<td %1><span style=\"color:black\">%2</span></td>")
                 .arg(textTdStyle).arg(toAnchorTagged(text));
-        else if (type == NOTIFICATION)
+        } else if (type == NOTIFICATION) {
             s += QString("<td %1><span style=\"color:%2\">%3</span></td>")
                 .arg(textTdStyle).arg("#916409").arg(toAnchorTagged(text));
-        else
-            qFatal("invalid type: %d", type);
+        } else {
+            Logger::instance().logError(QString("invalid type: %1").arg(type));
+            qApp->exit(1);
+            return QString();
+        }
         s += "</tr>";
 
         return s;
@@ -439,7 +448,8 @@ public:
             cchannels_.data(), SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(localNotification(const QString &, const QString &, int)));
         if (!cchannels_->listen()) {
-            qDebug("failed to create listen path: %s", cchannels_->lastError().toLatin1().data());
+            Logger::instance().logError(
+                QString("failed to create listen path: %1").arg(cchannels_->lastError().toLatin1().data()));
             return false;
         }
 
@@ -459,9 +469,9 @@ public:
             schannel_.data(), SIGNAL(users(const QStringList &, const QList<int> &)),
             SLOT(users(const QStringList &, const QList<int> &)));
         if (!schannel_->connectToServer(chost_, cport_)) {
-            qDebug(
-                "ERROR: failed to connect to qccserver: connectToServer() failed: %s",
-                schannel_->lastError().toLatin1().data());
+            Logger::instance().logError(
+                QString("failed to connect to qccserver: connectToServer() failed: %1")
+                .arg(schannel_->lastError().toLatin1().data()));
             return false;
         }
         QVariantMap msg;
@@ -493,20 +503,21 @@ private slots:
 
     void serverDisconnected()
     {
-        qWarning("ERROR: central server disconnected");
+        Logger::instance().logWarning("central server disconnected");
         qApp->exit(1);
     }
 
     void serverFileChanged(const QString &serverPath)
     {
-        qWarning("ERROR: local server file modified or (re)moved: %s", serverPath.toLatin1().data());
+        Logger::instance().logError(
+            QString("local server file modified or (re)moved: %1").arg(serverPath.toLatin1().data()));
         qApp->exit(1);
     }
 
     void clientConnected(qint64 qcapp)
     {
         if (!schannel_->isConnected()) {
-            qWarning("WARNING: central server not connected; disconnecting client");
+            Logger::instance().logWarning("central server not connected; disconnecting client");
             cchannels_->close(qcapp);
             return;
         }
@@ -608,9 +619,9 @@ private slots:
 
 static void printUsage()
 {
-    qDebug() << QString(
-        "usage: %1 --chost <central server host> --cport <central server port>")
-        .arg(qApp->arguments().first()).toLatin1().data();
+    Logger::instance().logError(
+        QString("usage: %1 --chost <central server host> --cport <central server port>")
+        .arg(qApp->arguments().first()).toLatin1().data());
 }
 
 struct CleanExit {
@@ -641,6 +652,7 @@ public slots:
 
 int main(int argc, char *argv[])
 {
+    Logger::instance().initialize("/tmp/qclserver.log");
     CleanExit cleanExit;
     QApplication app(argc, argv);
     ExitHandler exitHandler;
@@ -650,25 +662,26 @@ int main(int argc, char *argv[])
     const QMap<QString, QString> options = getOptions(app.arguments());
     const QString chost = options.value("chost");
     if (chost.isEmpty()) {
-        qDebug("failed to extract central server host");
+        Logger::instance().logError("failed to extract central server host");
         printUsage();
         return 1;
     }
     bool ok;
     const quint16 cport = options.value("cport").toUInt(&ok);
     if (!ok) {
-        qDebug("failed to extract central server port");
+        Logger::instance().logError("failed to extract central server port");
         printUsage();
         return 1;
     }
 
     // create global settings object for this $USER (assuming 1-1 correspondence between $USER and $HOME)
-    settings = new QSettings(QString("%1/.config/qcchat/qclserver.conf").arg(qgetenv("HOME").constData()), QSettings::NativeFormat);
+    settings = new QSettings(
+        QString("%1/.config/qcchat/qclserver.conf").arg(qgetenv("HOME").constData()), QSettings::NativeFormat);
 
     // create object to handle interaction between qcapps, qccserver, and chat window
     Interactor interactor(qgetenv("USER").constData(), chost, cport);
     if (!interactor.initialize()) {
-        qDebug() << "failed to initialize interactor";
+        Logger::instance().logError("failed to initialize interactor");
         return 1;
     }
 
