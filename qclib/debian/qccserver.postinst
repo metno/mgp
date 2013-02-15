@@ -10,11 +10,8 @@ description     "QC central server"
 author          "Jo Asplin <joa@met.no>"
 
 start on runlevel [35]
-
-expect fork
-
+expect fork # the server calls fork(2) only once
 exec /usr/bin/qccserver --daemon --dbfile /var/lib/qc/qc.db --cport 1105
-
 EOF
 
 # start server
