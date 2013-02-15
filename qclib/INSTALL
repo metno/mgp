@@ -1,2 +1,9 @@
+Building directly:
+
 qmake
 make
+
+
+Building Debian package:
+
+debuild -b -uc -us
