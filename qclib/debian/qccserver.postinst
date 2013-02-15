@@ -1,0 +1,22 @@
+#!/bin/sh -e
+
+# create job config file for upstart so that server starts on reboot
+cat << 'EOF' > /etc/init/qccserver.conf
+# qccserver - QC central server
+#
+# This task runs the QC central server 
+
+description     "QC central server"
+author          "Jo Asplin <joa@met.no>"
+
+start on runlevel [35]
+
+expect fork
+
+task
+exec /usr/bin/qccserver --daemon --dbfile /var/lib/qc/qc.db --cport 1105
+
+EOF
+
+# start server
+start qccserver

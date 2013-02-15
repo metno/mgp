@@ -1,0 +1,7 @@
+#!/bin/sh -e
+
+# stop server
+stop qccserver
+
+# remove job config file
+rm /etc/init/qccserver.conf
