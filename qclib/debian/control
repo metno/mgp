@@ -33,3 +33,10 @@ Section: libdevel
 Depends: ${shlibs:Depends}, ${misc:Depends}, qclib
 Description:
  Development files for applications that use qclib.
+
+Package: qcopenchatwin
+Architecture: any
+Section: net
+Depends: ${shlibs:Depends}, ${misc:Depends}, qclserver
+Description:
+ Program to open the local chat window for the current user, starting a qclserver if necessary.

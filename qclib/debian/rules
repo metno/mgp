@@ -9,4 +9,4 @@ override_dh_install:
 	cd $(CURDIR)/qclserver && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/qclserver install
 	mkdir -p $(CURDIR)/debian/qclib-dev/usr/include
 	cp $(CURDIR)/qclib/qc*.h $(CURDIR)/debian/qclib-dev/usr/include
-
+	cd $(CURDIR)/qcopenchatwin && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/qcopenchatwin install
