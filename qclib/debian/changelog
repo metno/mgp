@@ -1,6 +1,12 @@
+qclib (0.1.0-1) unstable; urgency=low
+
+  * Created package for qcopenchatwin.
+  * Added maintainer scripts.
+
+ -- Jo Asplin <jo.asplin@met.no>  Fri, 15 Feb 2013 12:58:00 +0100
+
 qclib (0.1.0-0) unstable; urgency=low
 
   * Created packages for qclib, qccserver and qclserver.
 
  -- David Boddie <david.boddie@met.no>  Thu, 31 Jan 2013 12:26:00 +0100
-
