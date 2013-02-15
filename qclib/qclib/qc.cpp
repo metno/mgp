@@ -36,7 +36,7 @@ void QCChannel::sendMessage(const QVariantMap &msg)
 {
     if (!isConnected()) {
         const char *emsg = "socket not connected";
-        qWarning("WARNING: %s", emsg);
+        qWarning("WARNING: %s", emsg); // ### log via log4cpp instead!
         setLastError(emsg);
         return;
     }
@@ -55,7 +55,7 @@ void QCChannel::sendMessage(const QVariantMap &msg)
 void QCChannel::readyRead()
 {
     if (socket_->bytesAvailable() == 0) {
-        qDebug() << "WARNING: readyRead() called with no bytes available";
+        qWarning("WARNING: readyRead() called with no bytes available"); // ### Log via log4cpp instead!
         return;
     }
 
@@ -222,9 +222,10 @@ QCLocalChannelServer::~QCLocalChannelServer()
 {
     const QString serverPath = server_.fullServerName();
     if (!QLocalServer::removeServer(serverPath))
+        // ### log via log4cpp instead!
         qWarning("WARNING: failed to remove server file upon cleanup: %s", serverPath.toLatin1().data());
     else
-        qDebug() << "removed server file:" << serverPath;
+        ; // qDebug() << "removed server file:" << serverPath;
 }
 
 bool QCLocalChannelServer::listen()
