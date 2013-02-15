@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Metno Chat Client
+GenericName=Chat Client
+Comment=Chat-klient for meteorologiske applikasjoner
+Exec=qcopenchatwin --chost dev-vm075 --cport 1105
+Icon=qcopenchatwin
+MimeType=;
+ServiceTypes=
+Terminal=false
+Type=Application
+Categories=Science;Meteorologisk
