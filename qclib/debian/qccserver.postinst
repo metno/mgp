@@ -13,7 +13,6 @@ start on runlevel [35]
 
 expect fork
 
-task
 exec /usr/bin/qccserver --daemon --dbfile /var/lib/qc/qc.db --cport 1105
 
 EOF
