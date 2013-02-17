@@ -1,6 +1,6 @@
 // qcopenchatwin
 
-#include <QtCore> // ### TODO: include relevant headers only
+#include <QtGui> // ### TODO: include relevant headers only
 #include "qcchat.h"
 #include "qcglobal.h"
 
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 {
     Logger::instance().initialize("/tmp/qcopenchatwin.log");
 
-    QCoreApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     // extract command-line options
     const QMap<QString, QString> options = getOptions(app.arguments());
@@ -106,7 +106,13 @@ int main(int argc, char *argv[])
     QCLocalServerChannel schannel;
     if (!schannel.connectToServer(chost, cport)) {
         Logger::instance().logError(
-            QString("schannel.connectToServer() failed: %1").arg(schannel.lastError().toLatin1().data()));
+            QString("schannel.connectToServer() failed: %1. "
+                "Central server at %2:%3 is probably down.")
+            .arg(schannel.lastError().toLatin1().data())
+            .arg(chost).arg(cport));
+        QMessageBox::critical(
+            0, "Metno Chat Client ERROR",
+            QString("Failed to open chat window.\nCentral server at %1:%2 is probably down.").arg(chost).arg(cport));
         return 1;
     }
 
