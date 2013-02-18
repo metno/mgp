@@ -80,9 +80,10 @@ class Interactor : public QObject
 {
     Q_OBJECT
 public:
-    Interactor(QCTcpClientChannels *cchannels, QSqlDatabase *db)
+    Interactor(QCTcpClientChannels *cchannels, QSqlDatabase *db, int maxagesecs)
         : cchannels_(cchannels)
         , db_(db)
+        , maxagesecs_(maxagesecs)
     {
         connect(
             cchannels_, SIGNAL(chatMessage(const QString &, const QString &, int, int)),
@@ -104,6 +105,7 @@ private:
     QSqlDatabase *db_;
     QMap<qint64, QString> user_;
     QMap<qint64, int> channel_; // current chat channel (a.k.a. chat room)
+    int maxagesecs_; // max age (in secs) for database events (older events are removed)
 
     // Returns a version of \a s with quotes escaped (to reduce possibility of SQL injection etc.).
     static QString escapeQuotes(const QString &s)
@@ -111,14 +113,11 @@ private:
         return QString(s).replace(QRegExp("(')"), "''");
     }
 
-    void appendToDatabase(const QString &text, const QString &user, int channelId, int timestamp, int type)
+    void execTransaction(const QString &query_s)
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
         QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
-        QString query_s = QString(
-            "INSERT INTO log (text, user, channelId, timestamp, type) VALUES ('%1', '%2', %3, %4, %5);")
-            .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(channelId).arg(timestamp).arg(type);
         db_->transaction();
         if (!query->exec(query_s))
             Logger::instance().logWarning(
@@ -126,6 +125,27 @@ private:
                 .arg(query_s.toLatin1().data())
                 .arg(query->lastError().text().trimmed().toLatin1().data()));
         db_->commit();
+    }
+
+    // Deletes events (chat messages and notifications) older than a certain age from the database.
+    // This limits the growth of the database.
+    void deleteOldEvents()
+    {
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        const int oldTimestamp = QDateTime::currentDateTime().toTime_t() - maxagesecs_;
+        execTransaction(QString("DELETE FROM log WHERE timestamp < %1;").arg(oldTimestamp));
+    }
+
+    void appendToDatabase(const QString &text, const QString &user, int channelId, int timestamp, int type)
+    {
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        execTransaction(
+            QString(
+            "INSERT INTO log (text, user, channelId, timestamp, type) VALUES ('%1', '%2', %3, %4, %5);")
+            .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(channelId).arg(timestamp).arg(type));
+        deleteOldEvents();
     }
 
     QStringList getChannelsFromDatabase()
@@ -239,7 +259,9 @@ private slots:
 static void printUsage()
 {
     Logger::instance().logError(
-        QString("usage: %1 [--daemon] --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port>))")
+        QString(
+            "usage: %1 [--daemon] --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port> "
+            "--maxage <max # of days to keep chat events>))")
         .arg(qApp->arguments().first()).toLatin1().data());
 }
 
@@ -324,6 +346,17 @@ int main(int argc, char *argv[])
         printUsage();
         return 1;
     }
+    const int maxagedays = options.value("maxage").toInt(&ok);
+    if (!ok) {
+        Logger::instance().logError("failed to extract maxage as integer");
+        printUsage();
+        return 1;
+    }
+    if (maxagedays < 0) {
+        Logger::instance().logError("maxage cannot be a negative value");
+        printUsage();
+        return 1;
+    }
 
     // listen for incoming qclserver connections, and allow connections associated with any user
     QCTcpClientChannels cchannels;
@@ -343,7 +376,7 @@ int main(int argc, char *argv[])
     }
 
     // create object to handle interaction between qclservers and the database
-    Interactor interactor(&cchannels, &db);
+    Interactor interactor(&cchannels, &db, maxagedays * 24 * 60 * 60);
 
     Logger::instance().logInfo(
         QString("server started at %1").arg(QDateTime::currentDateTime().toString("yyyy MMM dd hh:mm:ss")));

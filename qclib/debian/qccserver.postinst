@@ -11,7 +11,7 @@ author          "Jo Asplin <joa@met.no>"
 
 start on runlevel [23]
 expect fork # the server calls fork(2) only once
-exec /usr/bin/qccserver --daemon --dbfile /var/lib/qc/qc.db --cport 1105
+exec /usr/bin/qccserver --daemon --dbfile /var/lib/qc/qc.db --cport 1105 --maxage 30
 EOF
 
 # start server
