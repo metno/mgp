@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Metno Chat Client
-GenericName=Chat Client
+Name=MetChat
+GenericName=Chat-klient
 Comment=Chat-klient for meteorologiske applikasjoner
-Exec=qcopenchatwin --chost dev-vm075 --cport 1105
-Icon=qcopenchatwin
+Exec=metchat --chost dev-vm075 --cport 1105
+Icon=metchat
 MimeType=;
 ServiceTypes=
 Terminal=false
