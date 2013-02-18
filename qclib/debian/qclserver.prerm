@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+# stop server (if any)
+killall qclserver
