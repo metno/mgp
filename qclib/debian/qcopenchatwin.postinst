@@ -1,3 +1,3 @@
 #!/bin/sh -e
 
-ln -s qcopenchatwin /usr/bin/metchat
+ln -sf qcopenchatwin /usr/bin/metchat

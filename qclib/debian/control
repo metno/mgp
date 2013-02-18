@@ -9,21 +9,21 @@ Homepage: http://diana.met.no
 Package: qccserver
 Architecture: any
 Section: net
-Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-sql (>= 4:4.8.3+dfsg-0ubuntu3), 
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-sql (>= 4:4.8.1-0ubuntu4.4), 
 Description: Central chat server for met.no applications.
  Full description to be done.
 
 Package: qclserver
 Architecture: any
 Section: net
-Depends: ${shlibs:Depends}, ${misc:Depends}, libqtgui4 (>= 4:4.8.3+dfsg-0ubuntu3)
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqtgui4 (>= 4:4.8.1-0ubuntu4.4)
 Description: Local chat server for met.no applications.
  Full description to be done.
 
 Package: qclib
 Architecture: any
 Section: libs
-Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-network (>= 4:4.8.3+dfsg-0ubuntu3)
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-network (>= 4:4.8.1-0ubuntu4.4)
 Description: Common functionality for met.no applications that use a chat server.
  Full description to be done.
 

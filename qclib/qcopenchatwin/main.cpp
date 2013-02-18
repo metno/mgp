@@ -91,6 +91,8 @@ int main(int argc, char *argv[])
     const QString chost = options.value("chost");
     if (chost.isEmpty()) {
         Logger::instance().logError("failed to extract central server host");
+        for (int i = 0; i < argc; ++i)
+            Logger::instance().logInfo(QString("argv[%1]: >%2<").arg(i).arg(argv[i]));
         printUsage();
         return 1;
     }
@@ -111,7 +113,7 @@ int main(int argc, char *argv[])
             .arg(schannel.lastError().toLatin1().data())
             .arg(chost).arg(cport));
         QMessageBox::critical(
-            0, "Metno Chat Client ERROR",
+            0, "MetChat ERROR",
             QString("Failed to open chat window.\nCentral server at %1:%2 is probably down.").arg(chost).arg(cport));
         return 1;
     }

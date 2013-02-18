@@ -1,3 +1,15 @@
+qclib (0.1.0-3) unstable; urgency=low
+
+  * Test.
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 18 Feb 2013 14:11:00 +0100
+
+qclib (0.1.0-2) unstable; urgency=low
+
+  * Added desktop launcher.
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 18 Feb 2013 13:47:00 +0100
+
 qclib (0.1.0-1) unstable; urgency=low
 
   * Created package for qcopenchatwin.
