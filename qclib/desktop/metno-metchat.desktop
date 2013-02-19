@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=MetChat
-GenericName=Chat-klient
+GenericName=MetChat
 Comment=Chat-klient for meteorologiske applikasjoner
 Exec=metchat
 Icon=metchat

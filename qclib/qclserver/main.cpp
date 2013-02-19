@@ -378,7 +378,7 @@ private:
     void updateWindowTitle()
     {
         setWindowTitle(
-            QString("met.no chat - channel: %1; user: %2; central server: %3.%4 (%5)")
+            QString("MetChat - channel: %1; user: %2; central server: %3.%4 (%5)")
             .arg(channelName_.value(currentChannelId()))
             .arg(userLabel_->text())
             .arg(serverSysInfo_.value("hostname"))
