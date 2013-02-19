@@ -61,6 +61,8 @@ public:
 
         if (!restoreGeometry())
             resize(1000, 400); // default if unable to restore from config file for some reason
+
+        setWindowIcon(QIcon("/usr/share/pixmaps/metchat.png"));
     }
 
     void appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
