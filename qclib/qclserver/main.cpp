@@ -617,11 +617,15 @@ private slots:
     }
 };
 
-static void printUsage()
+static void printUsage(bool toLogger = true)
 {
-    Logger::instance().logError(
-        QString("usage: %1 --chost <central server host> --cport <central server port>")
-        .arg(qApp->arguments().first()).toLatin1().data());
+    const QString s = QString(
+        "usage: %1 --help | (--chost <central server host> --cport <central server port>)")
+        .arg(qApp->arguments().first().toLatin1().data());
+    if (toLogger)
+        Logger::instance().logError(s);
+    else
+        qDebug() << s.toLatin1().data();
 }
 
 struct CleanExit {
@@ -660,6 +664,10 @@ int main(int argc, char *argv[])
 
     // extract command-line options
     const QMap<QString, QString> options = getOptions(app.arguments());
+    if (options.contains("help")) {
+        printUsage(false);
+        return 0;
+    }
     const QString chost = options.value("chost");
     if (chost.isEmpty()) {
         Logger::instance().logError("failed to extract central server host");

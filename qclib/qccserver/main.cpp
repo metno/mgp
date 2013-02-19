@@ -256,13 +256,16 @@ private slots:
     }
 };
 
-static void printUsage()
+static void printUsage(const QString &appName = QString(), bool toLogger = true)
 {
-    Logger::instance().logError(
-        QString(
-            "usage: %1 [--daemon] --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port> "
-            "--maxage <max # of days to keep chat events>))")
-        .arg(qApp->arguments().first()).toLatin1().data());
+    const QString s = QString(
+        "usage: %1 [--daemon] --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port> "
+        "--maxage <max # of days to keep chat events>))")
+        .arg((!appName.isEmpty() ? appName : qApp->applicationName()).toLatin1().data());
+    if (toLogger)
+        Logger::instance().logError(s);
+    else
+        qDebug() << s.toLatin1().data();
 }
 
 // Turns process into a daemon.
@@ -303,6 +306,10 @@ int main(int argc, char *argv[])
     Logger::instance().initialize("/tmp/qccserver.log");
 
     const QMap<QString, QString> options = getOptions(argc, argv);
+    if (options.contains("help")) {
+        printUsage(argv[0], false);
+        return 0;
+    }
 
     // check if we should run as a daemon
     if (options.contains("daemon"))
