@@ -2,7 +2,7 @@
 Name=MetChat
 GenericName=Chat-klient
 Comment=Chat-klient for meteorologiske applikasjoner
-Exec=metchat --chost dev-vm075 --cport 1105
+Exec=metchat
 Icon=metchat
 MimeType=;
 ServiceTypes=

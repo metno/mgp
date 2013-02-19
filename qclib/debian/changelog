@@ -1,3 +1,15 @@
+qclib (0.1.0-7) unstable; urgency=low
+
+  * Test.
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 19 Feb 2013 09:42:00 +0100
+
+qclib (0.1.0-6) unstable; urgency=low
+
+  * Use metchat.met.no:1105 as default central server address.
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 19 Feb 2013 09:26:00 +0100
+
 qclib (0.1.0-5) unstable; urgency=low
 
   * Test.

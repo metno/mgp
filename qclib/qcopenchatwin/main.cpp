@@ -76,7 +76,9 @@ private slots:
 static void printUsage()
 {
     Logger::instance().logError(
-        QString("usage: %1 --chost <central server host> --cport <central server port>")
+        QString(
+            "usage: %1 --help | ([--chost <central server host> (default: metchat.met.no)] "
+            "[--cport <central server port> (default: 1105)])")
         .arg(qApp->arguments().first().toLatin1().data()));
 }
 
@@ -88,20 +90,25 @@ int main(int argc, char *argv[])
 
     // extract command-line options
     const QMap<QString, QString> options = getOptions(app.arguments());
-    const QString chost = options.value("chost");
-    if (chost.isEmpty()) {
-        Logger::instance().logError("failed to extract central server host");
-        for (int i = 0; i < argc; ++i)
-            Logger::instance().logInfo(QString("argv[%1]: >%2<").arg(i).arg(argv[i]));
+    if (options.contains("help")) {
         printUsage();
-        return 1;
+        return 0;
     }
-    bool ok;
-    const quint16 cport = options.value("cport").toUInt(&ok);
-    if (!ok) {
-        Logger::instance().logError("failed to extract central server port");
-        printUsage();
-        return 1;
+    QString chost = options.value("chost");
+    if (chost.isEmpty())
+        chost = "metchat.met.no";
+    const QString cport_s = options.value("cport");
+    quint16 cport;
+    if (cport_s.isEmpty())
+        cport = 1105;
+    else {
+        bool ok;
+        cport = cport_s.toUInt(&ok);
+        if (!ok) {
+            Logger::instance().logError(
+                QString("failed to extract central server port as unsigned integer: %1").arg(cport_s));
+            return 1;
+        }
     }
 
     // establish channel to qclserver
