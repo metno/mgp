@@ -16,51 +16,64 @@ public:
     ChatWindow()
         : geometrySaveEnabled_(true)
     {
-        QHBoxLayout *layout1 = new QHBoxLayout;
+        // --- BEGIN main layout and splitter ------------------------------------
+        QHBoxLayout *mainLayout = new QHBoxLayout;
+        mainLayout->setContentsMargins(0, 0, 0, 0);
 
-        QVBoxLayout *layout2 = new QVBoxLayout;
-        layout1->addLayout(layout2);
+        QSplitter *splitter = new QSplitter;
+        QWidget *leftWidget = new QWidget;
+        QWidget *rightWidget = new QWidget;
+        splitter->addWidget(leftWidget);
+        splitter->addWidget(rightWidget);
+        mainLayout->addWidget(splitter);
+        // --- END main layout and splitter ------------------------------------
 
-        QHBoxLayout *layout2_1 = new QHBoxLayout;
-        layout2->addLayout(layout2_1);
+        // --- BEGIN left part of splitter ------------------------------------
+        QVBoxLayout *leftLayout = new QVBoxLayout;
+        leftLayout->setContentsMargins(11, 11, 0, 11);
+        leftWidget->setLayout(leftLayout);
+
+        QHBoxLayout *leftLayout_sub1 = new QHBoxLayout;
+        leftLayout->addLayout(leftLayout_sub1);
         channelCBox_ = new QComboBox;
         channelCBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        layout2_1->addWidget(channelCBox_);
-        QLabel *label1 = new QLabel;
-        // QLabel *label1 = new QLabel("CHAT WINDOW MOCKUP");
-        // label1->setStyleSheet("QLabel { background-color : yellow; color : black; }");
-        label1->setAlignment(Qt::AlignCenter);
-        layout2_1->addWidget(label1);
+        leftLayout_sub1->addWidget(channelCBox_);
+        leftLayout_sub1->setAlignment(channelCBox_, Qt::AlignLeft);
 
-        layout2->addLayout(&logStack_);
+        leftLayout->addLayout(&logStack_);
         connect(channelCBox_, SIGNAL(activated(int)), SLOT(handleChannelSwitch()));
 
-        QHBoxLayout *layout2_2 = new QHBoxLayout;
-        layout2->addLayout(layout2_2);
+        QHBoxLayout *leftLayout_sub2 = new QHBoxLayout;
+        leftLayout->addLayout(leftLayout_sub2);
         userLabel_ = new QLabel("(USER NOT SET)");
-        layout2_2->addWidget(userLabel_);
+        leftLayout_sub2->addWidget(userLabel_);
         edit_ = new QLineEdit;
         connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
         edit_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
-        layout2_2->addWidget(edit_);
+        leftLayout_sub2->addWidget(edit_);
+        // --- END left part of splitter ------------------------------------
 
-        usersLayout_ = new QVBoxLayout;
-        layout1->addLayout(usersLayout_);
-        QLabel *label2 = new QLabel("Users");
-        label2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        //label2->setStyleSheet("QLabel { background-color : cyan; color : black; }");
-        label2->setAlignment(Qt::AlignLeft);
-        usersLayout_->addWidget(label2);
+        // --- BEGIN right part of splitter ------------------------------------
+        QVBoxLayout *rightLayout = new QVBoxLayout;
+        rightLayout->setContentsMargins(0, 11, 11, 11);
+        rightWidget->setLayout(rightLayout);
+
+        QLabel *usersLabel = new QLabel("Users");
+        usersLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        //usersLabel->setStyleSheet("QLabel { background-color : cyan; color : black; }");
+        usersLabel->setAlignment(Qt::AlignLeft);
+        rightLayout->addWidget(usersLabel);
         userTree_ = new QTreeWidget;
-        userTree_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-        userTree_->setFixedWidth(120);
+        userTree_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
         userTree_->header()->close();
-        usersLayout_->addWidget(userTree_);
+        rightLayout->addWidget(userTree_);
+        // --- END right part of splitter ------------------------------------
 
-        setLayout(layout1);
+        setLayout(mainLayout);
 
         if (!restoreGeometry())
-            resize(1000, 400); // default if unable to restore from config file for some reason
+            resize(900, 350); // default if unable to restore from config file for some reason
+        splitter->setSizes(QList<int>() << 750 << 150);
 
         setWindowIcon(QIcon("/usr/share/pixmaps/metchat.png"));
     }
@@ -221,7 +234,6 @@ public:
     }
 
 private:
-    QVBoxLayout *usersLayout_;
     QComboBox *channelCBox_;
     QMap<QString, int> channelId_;
     QMap<int, QString> channelName_;
@@ -686,7 +698,7 @@ int main(int argc, char *argv[])
 
     // create global settings object for this $USER (assuming 1-1 correspondence between $USER and $HOME)
     settings = new QSettings(
-        QString("%1/.config/qcchat/qclserver.conf").arg(qgetenv("HOME").constData()), QSettings::NativeFormat);
+        QString("%1/.config/metchat/qclserver.conf").arg(qgetenv("HOME").constData()), QSettings::NativeFormat);
 
     // create object to handle interaction between qcapps, qccserver, and chat window
     Interactor interactor(qgetenv("USER").constData(), chost, cport);
