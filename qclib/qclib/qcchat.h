@@ -17,7 +17,7 @@ public:
 protected:
     QCBase();
     enum MsgType {
-        Init, ShowChatWin, HideChatWin, ChatMsg, Notification, Channels, History, Users, ChannelSwitch
+        Init, ShowChatWin, HideChatWin, ChatMsg, Notification, Channels, History, Users, ChannelSwitch, FullNameChange
     };
     void setLastError(const QString &);
 private:
@@ -29,6 +29,7 @@ public slots:
     void sendChatMessage(const QString &, const QString &, int, int = -1);
     void sendNotification(const QString &, const QString & = QString(), int = -1, int = -1);
     void sendChannelSwitch(int, const QString & = QString());
+    void sendFullNameChange(const QString &, const QString & = QString());
 protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
     void handleChannelError(const QString &);
@@ -42,6 +43,7 @@ signals:
     void history(const QStringList &);
     void users(const QStringList &, const QList<int> &);
     void channelSwitch(int, const QString &, qint64);
+    void fullNameChange(const QString &, const QString &, qint64);
 };
 
 class QCServerChannel : public QCBase

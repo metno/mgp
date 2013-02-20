@@ -40,7 +40,7 @@ static bool initDatabase(const QString &dbfile, QString *error)
     ok = query.exec("INSERT INTO channel(name, description) VALUES ('flyvær', '<beskrivelse av flyvær-kanalen>');");
     Q_ASSERT(ok);
 
-    // log
+    // log (i.e. timestamped chat events such as normal chat messages, notifications etc.)
     ok = query.exec(
         "CREATE TABLE log(id INTEGER PRIMARY KEY AUTOINCREMENT"
         ", text TEXT NOT NULL"
@@ -48,6 +48,15 @@ static bool initDatabase(const QString &dbfile, QString *error)
         ", channelId INTEGER REFERENCES channel(id) NOT NULL"
         ", timestamp INTEGER NOT NULL"
         ", type INTEGER NOT NULL);");
+    Q_ASSERT(ok);
+
+    // fullname (i.e. the full (real) names of users)
+    ok = query.exec(
+        "CREATE TABLE fullname(id INTEGER PRIMARY KEY AUTOINCREMENT"
+        ", user TEXT NOT NULL"
+        ", fullname TEXT NOT NULL"
+        ", UNIQUE(user)"
+        ", UNIQUE(fullname));");
     Q_ASSERT(ok);
 
     // *** Create indexes ***
@@ -95,6 +104,9 @@ public:
             cchannels_, SIGNAL(channelSwitch(int, const QString &, qint64)),
             SLOT(channelSwitch(int, const QString &, qint64)));
         connect(
+            cchannels_, SIGNAL(fullNameChange(const QString &, const QString &, qint64)),
+            SLOT(fullNameChange(const QString &, const QString &, qint64)));
+        connect(
             cchannels_, SIGNAL(init(const QVariantMap &, qint64)),
             SLOT(init(const QVariantMap &, qint64)));
         connect(cchannels_, SIGNAL(clientDisconnected(qint64)), SLOT(clientDisconnected(qint64)));
@@ -113,7 +125,7 @@ private:
         return QString(s).replace(QRegExp("(')"), "''");
     }
 
-    void execTransaction(const QString &query_s)
+    void db_execTransaction(const QString &query_s)
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
@@ -129,23 +141,35 @@ private:
 
     // Deletes events (chat messages and notifications) older than a certain age from the database.
     // This limits the growth of the database.
-    void deleteOldEvents()
+    void db_deleteOldEvents()
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
         const int oldTimestamp = QDateTime::currentDateTime().toTime_t() - maxagesecs_;
-        execTransaction(QString("DELETE FROM log WHERE timestamp < %1;").arg(oldTimestamp));
+        db_execTransaction(QString("DELETE FROM log WHERE timestamp < %1;").arg(oldTimestamp));
     }
 
-    void appendToDatabase(const QString &text, const QString &user, int channelId, int timestamp, int type)
+    void db_appendLogEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
     {
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
-        execTransaction(
+        db_execTransaction(
             QString(
             "INSERT INTO log (text, user, channelId, timestamp, type) VALUES ('%1', '%2', %3, %4, %5);")
             .arg(escapeQuotes(text)).arg(escapeQuotes(user)).arg(channelId).arg(timestamp).arg(type));
-        deleteOldEvents();
+        db_deleteOldEvents();
+    }
+
+    void db_setFullName(const QString &user, const QString &fullName)
+    {
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        Q_ASSERT(!user.isEmpty());
+        Q_ASSERT(!fullName.isEmpty());
+        db_execTransaction(
+            QString(
+            "INSERT OR REPLACE INTO fullname (user, fullname) VALUES ('%1', '%2');")
+            .arg(escapeQuotes(user)).arg(escapeQuotes(fullName)));
     }
 
     QStringList getChannelsFromDatabase()
@@ -167,6 +191,26 @@ private:
              c << QString("%1 %2 %3").arg(id).arg(name).arg(descr);
         }
         return c;
+    }
+
+    QStringList getFullNamesFromDatabase()
+    {
+        Q_ASSERT(db_);
+        Q_ASSERT(db_->isOpen());
+        QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
+        QString query_s = QString("SELECT user, fullname FROM fullname;");
+        QStringList f;
+        if (!query->exec(query_s)) {
+            Logger::instance().logWarning(
+                QString("query '%s' failed: %s")
+                .arg(query_s.toLatin1().data())
+                .arg(query->lastError().text().trimmed().toLatin1().data()));
+        } else while (query->next()) {
+             const QString user = query->value(0).toString();
+             const QString fullName = query->value(1).toString();
+             f << QString("%1 %2").arg(user).arg(fullName);
+        }
+        return f;
     }
 
     QStringList getHistoryFromDatabase()
@@ -197,20 +241,26 @@ private slots:
     {
         const int timestamp = QDateTime::currentDateTime().toTime_t();
         cchannels_->sendChatMessage(text, user, channelId, timestamp); // forward to all qclservers
-        appendToDatabase(text, user, channelId, timestamp, CHATMESSAGE);
+        db_appendLogEvent(text, user, channelId, timestamp, CHATMESSAGE);
     }
 
     void notification(const QString &text, const QString &user, int channelId)
     {
         const int timestamp = QDateTime::currentDateTime().toTime_t();
         cchannels_->sendNotification(text, user, channelId, timestamp); // forward to all qclservers
-        appendToDatabase(text, user, channelId, timestamp, NOTIFICATION);
+        db_appendLogEvent(text, user, channelId, timestamp, NOTIFICATION);
     }
 
     void channelSwitch(int channelId, const QString &, qint64 qclserver)
     {
         channel_.insert(qclserver, channelId); // store new value
         cchannels_->sendChannelSwitch(channelId, user_.value(qclserver)); // forward to all qclservers
+    }
+
+    void fullNameChange(const QString &fullName, const QString &, qint64 qclserver)
+    {
+        db_setFullName(user_.value(qclserver), fullName);
+        cchannels_->sendFullNameChange(fullName, user_.value(qclserver)); // forward to all qclservers
     }
 
     void init(const QVariantMap &msg, qint64 qclserver)
@@ -234,8 +284,11 @@ private slots:
         msg2.insert("ipaddr", getLocalIPAddress());
         // ... available chat channels
         msg2.insert("channels", getChannelsFromDatabase());
+        // ... full names
+        msg2.insert("fullnames", getFullNamesFromDatabase());
         // ... history
         msg2.insert("history", getHistoryFromDatabase());
+        //
         cchannels_->sendInit(msg2, qclserver);
 
         // inform all qclservers about users and their current channels

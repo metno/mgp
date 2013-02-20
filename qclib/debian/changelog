@@ -1,3 +1,9 @@
+qclib (0.1.6-1) unstable; urgency=low
+
+  * Added display and modification of full names.
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 19 Feb 2013 15:18:00 +0100
+
 qclib (0.1.5-1) unstable; urgency=low
 
   * Modified icon.

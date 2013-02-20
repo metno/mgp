@@ -9,6 +9,23 @@ using namespace qclib;
 
 static QSettings *settings = 0;
 
+class HoverableTextBrowser : public QTextBrowser
+{
+    Q_OBJECT
+public:
+    HoverableTextBrowser()
+    {
+        setMouseTracking(true);
+    }
+private:
+    virtual void mouseMoveEvent(QMouseEvent *event)
+    {
+        emit hover(event);
+    }
+signals:
+    void hover(QMouseEvent *);
+};
+
 class ChatWindow : public QWidget
 {
     Q_OBJECT
@@ -46,6 +63,7 @@ public:
         QHBoxLayout *leftLayout_sub2 = new QHBoxLayout;
         leftLayout->addLayout(leftLayout_sub2);
         userLabel_ = new QLabel("(USER NOT SET)");
+        userLabel_->installEventFilter(this);
         leftLayout_sub2->addWidget(userLabel_);
         edit_ = new QLineEdit;
         connect(edit_, SIGNAL(returnPressed()), SLOT(sendChatMessage()));
@@ -113,11 +131,13 @@ public:
 
             html_.insert(id, "<table></table>");
 
-            QTextBrowser *tb = new QTextBrowser;
+            //QTextBrowser *tb = new QTextBrowser;
+            HoverableTextBrowser *tb = new HoverableTextBrowser;
             tb->setHtml(html_.value(id));
             tb->setReadOnly(true);
             tb->setOpenExternalLinks(true);
             tb->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+            connect(tb, SIGNAL(hover(QMouseEvent *)), SLOT(hover(QMouseEvent *)));
             log_.insert(id, tb);
             logStack_.addWidget(tb);
 
@@ -126,6 +146,25 @@ public:
 
         updateWindowTitle();
         emit channelSwitch(currentChannelId());
+    }
+
+    // Sets the full user names.
+    void setFullNames(const QStringList &fullNames)
+    {
+        userFullName_.clear();
+        QRegExp rx("^(\\S+)\\s+(.*)$");
+        QListIterator<QString> it(fullNames);
+        while (it.hasNext()) {
+            QString item = it.next();
+            if (rx.indexIn(item) == -1) {
+                Logger::instance().logError(QString("setFullNames(): regexp mismatch: %1").arg(item.toLatin1().data()));
+                qApp->exit(1);
+                return;
+            }
+            const QString user = rx.cap(1);
+            const QString fullName = rx.cap(2);
+            userFullName_.insert(user, fullName);
+        }
     }
 
     void setUser(const QString &user)
@@ -213,6 +252,12 @@ public:
         updateUserTree();
     }
 
+    // Handles a user changing full name.
+    void handleCentralFullNameChange(const QString &user, const QString &fullName)
+    {
+        userFullName_.insert(user, fullName);
+    }
+
     void scrollToBottom()
     {
         QTextBrowser *currTB = qobject_cast<QTextBrowser *>(logStack_.currentWidget());
@@ -246,6 +291,7 @@ private:
     QMap<int, QSet<QString> *> channelUsers_;
     bool geometrySaveEnabled_;
     QMap<QString, QString> serverSysInfo_;
+    QMap<QString, QString> userFullName_;
 
     // Saves window geometry to config file.
     void saveGeometry()
@@ -303,6 +349,32 @@ private:
     void resizeEvent(QResizeEvent *)
     {
         saveGeometry();
+    }
+
+    virtual void mouseMoveEvent(QMouseEvent *)
+    {
+    }
+
+    bool eventFilter(QObject *obj, QEvent *event)
+    {
+        // double-clicking the user label allows for changing the full name of this user
+        if (obj == userLabel_) {
+            if (event->type() == QEvent::MouseButtonDblClick) {
+                bool ok;
+                const QString fullName = QInputDialog::getText(
+                    this, "MetChat - Change full name", "New full name:", QLineEdit::Normal,
+                    userFullName_.value(userLabel_->text()), &ok);
+                if (ok && !fullName.isEmpty())
+                    emit fullNameChange(fullName);
+                return true;
+            } else if (event->type() == QEvent::Enter) {
+                QToolTip::showText(
+                    QCursor::pos(),
+                    QString("Full name: %1\nDouble-click to change").arg(userFullName_.value(userLabel_->text())));
+            }
+        }
+
+        return false;
     }
 
     // Returns a version of \a s where hyperlinks are embedded in HTML <a> tags.
@@ -422,11 +494,37 @@ private slots:
         geometrySaveEnabled_ = true;
     }
 
+    void hover(QMouseEvent *)
+    {
+        QTextBrowser *tb = qobject_cast<QTextBrowser *>(sender());
+        Q_ASSERT(tb);
+
+        const QPoint scrollBarPos(
+            tb->horizontalScrollBar() ? tb->horizontalScrollBar()->sliderPosition() : 0,
+            tb->verticalScrollBar() ? tb->verticalScrollBar()->sliderPosition() : 0);
+        const QPoint cursorPos = tb->viewport()->mapFromGlobal(QCursor::pos()) + scrollBarPos;
+        const int textPos =
+            tb->document()->documentLayout()->hitTest(cursorPos, Qt::ExactHit);
+
+        QString text = tb->document()->findBlock(textPos).text();
+        QString candUser; // candidate user name
+        if ((text.size() > 2) && (text.at(0) == '<') && (text.at(text.size() - 1) == '>'))
+            candUser = text.mid(1, text.size() - 2); // strip away '<' and '>'
+        else
+            candUser = text;
+
+        if (userFullName_.contains(candUser))
+            QToolTip::showText(QCursor::pos(), userFullName_.value(candUser));
+        else
+            QToolTip::hideText();
+    }
+
 signals:
     void windowShown();
     void windowHidden();
     void chatMessage(const QString &, int);
     void channelSwitch(int);
+    void fullNameChange(const QString &);
 };
 
 class Interactor : public QObject
@@ -451,6 +549,7 @@ public:
         connect(window_.data(), SIGNAL(windowHidden()), SLOT(windowHidden()));
         connect(window_.data(), SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
         connect(window_.data(), SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
+        connect(window_.data(), SIGNAL(fullNameChange(const QString &)), SLOT(handleFullNameChange(const QString &)));
         window_->setUser(user_);
 
         // initialize interaction with qcapps
@@ -479,6 +578,9 @@ public:
         connect(
             schannel_.data(), SIGNAL(channelSwitch(int, const QString &, qint64)),
             SLOT(centralChannelSwitch(int, const QString &)));
+        connect(
+            schannel_.data(), SIGNAL(fullNameChange(const QString &, const QString &, qint64)),
+            SLOT(centralFullNameChange(const QString &, const QString &)));
         connect(
             schannel_.data(), SIGNAL(users(const QStringList &, const QList<int> &)),
             SLOT(users(const QStringList &, const QList<int> &)));
@@ -512,6 +614,7 @@ private slots:
             msg.value("hostname").toString(), msg.value("domainname").toString(), msg.value("ipaddr").toString());
         chatChannels_ = msg.value("channels").toStringList();
         window_->setChannels(chatChannels_);
+        window_->setFullNames(msg.value("fullnames").toStringList());
         window_->prependHistory(msg.value("history").toStringList());
     }
 
@@ -566,6 +669,11 @@ private slots:
     void centralChannelSwitch(int channelId, const QString &user)
     {
         window_->handleCentralChannelSwitch(user, channelId);
+    }
+
+    void centralFullNameChange(const QString &fullName, const QString &user)
+    {
+        window_->handleCentralFullNameChange(user, fullName);
     }
 
     void users(const QStringList &u, const QList<int> &channelIds)
@@ -628,6 +736,11 @@ private slots:
     void handleChannelSwitch(int channelId)
     {
         schannel_->sendChannelSwitch(channelId);
+    }
+
+    void handleFullNameChange(const QString &fullName)
+    {
+        schannel_->sendFullNameChange(fullName);
     }
 };
 

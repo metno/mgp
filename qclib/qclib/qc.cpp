@@ -224,8 +224,6 @@ QCLocalChannelServer::~QCLocalChannelServer()
     if (!QLocalServer::removeServer(serverPath))
         // ### log via log4cpp instead!
         qWarning("WARNING: failed to remove server file upon cleanup: %s", serverPath.toLatin1().data());
-    else
-        ; // qDebug() << "removed server file:" << serverPath;
 }
 
 bool QCLocalChannelServer::listen()

@@ -92,6 +92,15 @@ void QCBase::sendChannelSwitch(int channelId, const QString &user)
     sendMessage(msg);
 }
 
+void QCBase::sendFullNameChange(const QString &fullName, const QString &user)
+{
+    QVariantMap msg;
+    msg.insert("type", FullNameChange);
+    msg.insert("fullName", fullName);
+    msg.insert("user", user);
+    sendMessage(msg);
+}
+
 void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
 {
     Q_ASSERT(!msg.contains("type"));
@@ -131,6 +140,10 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
         Q_ASSERT(msg.value("channelId").canConvert(QVariant::Int));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
         emit channelSwitch(msg.value("channelId").toInt(), msg.value("user").toString(), peerId);
+    } else if (type == FullNameChange) {
+        Q_ASSERT(msg.value("fullName").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("user").canConvert(QVariant::String));
+        emit fullNameChange(msg.value("fullName").toString(), msg.value("user").toString(), peerId);
     } else {
         qFatal("invalid message type: %d", type);
     }
