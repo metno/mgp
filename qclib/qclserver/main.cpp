@@ -83,7 +83,7 @@ public:
         rightLayout->addWidget(usersLabel);
         userTree_ = new QTreeWidget;
         userTree_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
-        userTree_->setColumnCount(2);
+        userTree_->setColumnCount(3);
         userTree_->header()->close();
         // NOTE: for efficiency reasons, QTreeView::resizeColumnToContents() only applies to expanded items, so we
         // need to resize only when items get expanded:
@@ -145,7 +145,7 @@ public:
             log_.insert(id, tb);
             logStack_.addWidget(tb);
 
-            channelUsers_.insert(id, new QSet<QString>);
+            channelUsers_.insert(id, new QSet<QPair<QString, QString> >);
         }
 
         updateWindowTitle();
@@ -222,10 +222,11 @@ public:
         }
     }
 
-    // Sets connected users and their current channels.
-    void setUsers(const QStringList &u, const QList<int> &channelIds)
+    // Sets connected users, their IP-addresses, and their current channels.
+    void setUsers(const QStringList &u, const QStringList &ipaddrs, const QList<int> &channelIds)
     {
         Q_ASSERT(!u.isEmpty()); // the local user should be present at least
+        Q_ASSERT(u.size() == ipaddrs.size());
         Q_ASSERT(u.size() == channelIds.size());
 
         foreach (int channelId, channelUsers_.keys())
@@ -233,25 +234,32 @@ public:
         for (int i = 0; i < u.size(); ++i) {
             const int channelId = channelIds.at(i);
             if (channelUsers_.contains(channelId))
-                channelUsers_.value(channelId)->insert(u.at(i));
-            // else
-            //     qDebug() << "ignoring user" << u.at(i) << "with invalid channel id:" << channelId;
+                channelUsers_.value(channelId)->insert(qMakePair(u.at(i), ipaddrs.at(i)));
         }
 
         updateUserTree();
     }
 
     // Handles a user switching to a channel.
-    void handleCentralChannelSwitch(const QString &user, int channelId)
+    void handleCentralChannelSwitch(const QString &user, const QString &ipaddr, int channelId)
     {
-        Q_ASSERT(channelUsers_.contains(channelId));
+        if (!channelUsers_.contains(channelId)) {
+            Logger::instance().logError(QString("handleCentralChannelSwitch(): channel ID not found: %1").arg(channelId));
+            qApp->exit(1);
+            return;
+        }
 
         // remove user from its current channel (if any)
-        foreach (QSet<QString> *users, channelUsers_.values())
-            users->remove(user);
+        // foreach ((QSet<QPair<QString, QString> > *users), channelUsers_.values())
+        //     users->remove(qMakePair(user, ipaddr));
+        for (int i = 0; i < channelUsers_.values().size(); ++i) {
+            QSet<QPair<QString, QString> > *users = channelUsers_.values().at(i);
+            users->remove(qMakePair(user, ipaddr));
+        }
+
 
         // associate user with its current channel
-        channelUsers_.value(channelId)->insert(user);
+        channelUsers_.value(channelId)->insert(qMakePair(user, ipaddr));
 
         updateUserTree();
     }
@@ -299,7 +307,8 @@ private:
     QLabel *userLabel_;
     QLineEdit *edit_;
     QMap<int, QString> html_;
-    QMap<int, QSet<QString> *> channelUsers_;
+    // (user, IP-address)-combinations associated with each chat channel:
+    QMap<int, QSet<QPair<QString, QString> > *> channelUsers_;
     bool geometrySaveEnabled_;
     QMap<QString, QString> serverSysInfo_;
     QMap<QString, QString> userFullName_;
@@ -455,17 +464,28 @@ private:
             // create channel branch
             QTreeWidgetItem *channelItem = new QTreeWidgetItem;
             root->addChild(channelItem);
-            QStringList channelUsers = channelUsers_.value(channelId)->values();
+            //QStringList channelUsers = channelUsers_.value(channelId)->values();
+            QList<QPair<QString, QString> > channelUsers = channelUsers_.value(channelId)->values();
             channelItem->setData(0, Qt::DisplayRole, QString("%1 (%2)").arg(channelName).arg(channelUsers.size()));
-            foreach (QString user, channelUsers) {
+//            foreach (QPair<QString, QString> userInfo, channelUsers) {
+            for (int i = 0; i < channelUsers.size(); ++i) {
+                const QPair<QString, QString> userInfo = channelUsers.at(i);
                 // insert user in this channel branch
+                const QString user = userInfo.first;
+                const QString ipaddr = userInfo.second;
                 QTreeWidgetItem *userItem = new QTreeWidgetItem;
+                //
                 userItem->setData(0, Qt::DisplayRole, user);
                 userItem->setForeground(0, QColor("#000"));
-                userItem->setToolTip(0, userFullName_.value(user));
+                userItem->setToolTip(0, QString("%1\n%2").arg(userFullName_.value(user)).arg(ipaddr));
+                //
                 if (!userFullName_.value(user).isEmpty())
-                    userItem->setData(1, Qt::DisplayRole, QString("(%1)").arg(userFullName_.value(user)));
+                    userItem->setData(1, Qt::DisplayRole, QString("%1").arg(userFullName_.value(user)));
                 userItem->setForeground(1, QColor("#888"));
+                //
+                userItem->setData(2, Qt::DisplayRole, ipaddr);
+                userItem->setForeground(2, QColor("#888"));
+                //
                 channelItem->addChild(userItem);
             }
         }
@@ -538,6 +558,7 @@ private slots:
     {
         userTree_->resizeColumnToContents(0);
         userTree_->resizeColumnToContents(1);
+        userTree_->resizeColumnToContents(2);
     }
 
 signals:
@@ -597,8 +618,8 @@ public:
             schannel_.data(), SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(centralNotification(const QString &, const QString &, int, int)));
         connect(
-            schannel_.data(), SIGNAL(channelSwitch(int, const QString &, qint64)),
-            SLOT(centralChannelSwitch(int, const QString &)));
+            schannel_.data(), SIGNAL(channelSwitch(int, const QString &, const QString &, qint64)),
+            SLOT(centralChannelSwitch(int, const QString &, const QString &)));
         connect(
             schannel_.data(), SIGNAL(fullNameChange(const QString &, const QString &, qint64)),
             SLOT(centralFullNameChange(const QString &, const QString &)));
@@ -606,8 +627,8 @@ public:
             schannel_.data(), SIGNAL(errorMessage(const QString &, qint64)),
             SLOT(centralErrorMessage(const QString &)));
         connect(
-            schannel_.data(), SIGNAL(users(const QStringList &, const QList<int> &)),
-            SLOT(users(const QStringList &, const QList<int> &)));
+            schannel_.data(), SIGNAL(users(const QStringList &, const QStringList &, const QList<int> &)),
+            SLOT(users(const QStringList &, const QStringList &, const QList<int> &)));
         if (!schannel_->connectToServer(chost_, cport_)) {
             Logger::instance().logError(
                 QString("failed to connect to qccserver: connectToServer() failed: %1")
@@ -616,6 +637,13 @@ public:
         }
         QVariantMap msg;
         msg.insert("user", user_);
+        bool ok;
+        const QString ipaddr = getLocalIPAddress(&ok);
+        if (!ok) {
+            Logger::instance().logError(QString("failed to get local IP address: %1").arg(ipaddr.toLatin1().data()));
+            return false;
+        }
+        msg.insert("ipaddr", ipaddr);
         schannel_->sendInit(msg);
 
         return true;
@@ -690,9 +718,9 @@ private slots:
         window_->scrollToBottom();
     }
 
-    void centralChannelSwitch(int channelId, const QString &user)
+    void centralChannelSwitch(int channelId, const QString &user, const QString &ipaddr)
     {
-        window_->handleCentralChannelSwitch(user, channelId);
+        window_->handleCentralChannelSwitch(user, ipaddr, channelId);
     }
 
     void centralFullNameChange(const QString &fullName, const QString &user)
@@ -705,9 +733,9 @@ private slots:
         window_->handleCentralErrorMessage(msg);
     }
 
-    void users(const QStringList &u, const QList<int> &channelIds)
+    void users(const QStringList &u, const QStringList &ipaddrs, const QList<int> &channelIds)
     {
-        window_->setUsers(u, channelIds);
+        window_->setUsers(u, ipaddrs, channelIds);
     }
 
     void sendShowChatWindow()

@@ -29,7 +29,7 @@ public slots:
     void sendHideChatWindow();
     void sendChatMessage(const QString &, const QString &, int, int = -1);
     void sendNotification(const QString &, const QString & = QString(), int = -1, int = -1);
-    void sendChannelSwitch(int, const QString & = QString());
+    void sendChannelSwitch(int, const QString & = QString(), const QString & = QString());
     void sendFullNameChange(const QString &, const QString & = QString());
 protected slots:
     void handleMessageArrived(qint64, const QVariantMap &);
@@ -42,8 +42,8 @@ signals:
     void notification(const QString &, const QString &, int, int);
     void channels(const QStringList &);
     void history(const QStringList &);
-    void users(const QStringList &, const QList<int> &);
-    void channelSwitch(int, const QString &, qint64);
+    void users(const QStringList &, const QStringList &, const QList<int> &);
+    void channelSwitch(int, const QString &, const QString &, qint64);
     void fullNameChange(const QString &, const QString &, qint64);
     void errorMessage(const QString &, qint64);
 };
@@ -89,7 +89,7 @@ public:
     QCClientChannels();
     virtual ~QCClientChannels();
     void sendInit(const QVariantMap &, qint64);
-    void sendUsers(const QStringList &, const QList<int> &);
+    void sendUsers(const QStringList &, const QStringList &, const QList<int> &);
     void sendErrorMessage(const QString &, qint64);
     void close(qint64);
 protected:

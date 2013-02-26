@@ -12,7 +12,8 @@
 QCLIB_BEGIN_NAMESPACE
 
 QMap<QString, QString> getOptions(const QStringList &);
-QMap<QString, QString> getOptions(int argc, char *argv[]);
+QMap<QString, QString> getOptions(int, char *[]);
+QString getLocalIPAddress(bool *);
 bool localServerFileExists(QString *, qint64 * = 0);
 
 class Logger

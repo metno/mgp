@@ -66,25 +66,6 @@ static bool initDatabase(const QString &dbfile, QString *error)
 }
 
 
-static QString getLocalIPAddress()
-{
-    QProcess p1;
-    QProcess p2;
-    p1.setStandardOutputProcess(&p2);
-    p1.start("ifconfig eth0");
-    p2.start("grep", QStringList() << "inet addr");
-    p1.waitForFinished(-1);
-    p2.waitForFinished(-1);
-    const QString line = p2.readAllStandardOutput();
-    QRegExp rx("inet addr:(\\d+\\.\\d+\\.\\d+\\.\\d+)");
-    if (rx.indexIn(line) == -1) {
-        Logger::instance().logWarning(QString("no match for IP address: %1").arg(line.toLatin1().data()));
-        return QString();
-    }
-    return rx.cap(1);
-}
-
-
 class Interactor : public QObject
 {
     Q_OBJECT
@@ -101,8 +82,8 @@ public:
             cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(notification(const QString &, const QString &, int)));
         connect(
-            cchannels_, SIGNAL(channelSwitch(int, const QString &, qint64)),
-            SLOT(channelSwitch(int, const QString &, qint64)));
+            cchannels_, SIGNAL(channelSwitch(int, const QString &, const QString &, qint64)),
+            SLOT(channelSwitch(int, const QString &, const QString &, qint64)));
         connect(
             cchannels_, SIGNAL(fullNameChange(const QString &, const QString &, qint64)),
             SLOT(fullNameChange(const QString &, const QString &, qint64)));
@@ -115,8 +96,9 @@ public:
 private:
     QCTcpClientChannels *cchannels_; // qclserver channels
     QSqlDatabase *db_;
-    QMap<qint64, QString> user_;
-    QMap<qint64, int> channel_; // current chat channel (a.k.a. chat room)
+    QMap<qint64, QString> user_; // user associated with a qclserver
+    QMap<qint64, QString> ipaddr_; // IP-address associated with a qclserver
+    QMap<qint64, int> channel_; // current chat channel (a.k.a. chat room) associated with a qclserver
     int maxagesecs_; // max age (in secs) for database events (older events are removed)
 
     // Returns a version of \a s with quotes escaped (to reduce possibility of SQL injection etc.).
@@ -275,10 +257,11 @@ private slots:
         db_appendLogEvent(text, user, channelId, timestamp, NOTIFICATION);
     }
 
-    void channelSwitch(int channelId, const QString &, qint64 qclserver)
+    void channelSwitch(int channelId, const QString &, const QString &, qint64 qclserver)
     {
         channel_.insert(qclserver, channelId); // store new value
-        cchannels_->sendChannelSwitch(channelId, user_.value(qclserver)); // forward to all qclservers
+        cchannels_->sendChannelSwitch(
+            channelId, user_.value(qclserver), ipaddr_.value(qclserver)); // forward to all qclservers
     }
 
     void fullNameChange(const QString &fullName, const QString &, qint64 qclserver)
@@ -295,25 +278,31 @@ private slots:
                 QString("Full name '%1' already taken by user '%2'.").arg(fullName).arg(currUser), qclserver);
     }
 
+    // Handles init message from a qclserver.
     void init(const QVariantMap &msg, qint64 qclserver)
     {
-        const QString user(msg.value("user").toString());
-
-        if (user_.values().contains(user)) {
-            Logger::instance().logWarning(QString("user '%1' already joined; disconnecting").arg(user.toLatin1().data()));
-            cchannels_->close(qclserver);
-            return;
-        }
-
-        user_.insert(qclserver, user);
+        Q_ASSERT(!user_.contains(qclserver));
+        Q_ASSERT(!ipaddr_.contains(qclserver));
         Q_ASSERT(!channel_.contains(qclserver));
+
+        user_.insert(qclserver, msg.value("user").toString());
+        const QString ipaddr = msg.value("ipaddr").toString();
+        ipaddr_.insert(
+            qclserver, ipaddr.isEmpty() ? QString("(IP-address not found; qclserver ID: %1)").arg(qclserver) : ipaddr);
 
         // send init message to this qclserver only
         QVariantMap msg2;
         // ... general system info
         msg2.insert("hostname", QHostInfo::localHostName());
         msg2.insert("domainname", QHostInfo::localDomainName());
-        msg2.insert("ipaddr", getLocalIPAddress());
+        bool ok;
+        const QString ipaddr2 = getLocalIPAddress(&ok);
+        if (ok) {
+            msg2.insert("ipaddr", ipaddr2);
+        } else {
+            msg2.insert("ipaddr", "");
+            Logger::instance().logError(QString("failed to get local IP address: %1").arg(ipaddr2.toLatin1().data()));
+        }
         // ... available chat channels
         msg2.insert("channels", getChannelsFromDatabase());
         // ... full names
@@ -323,28 +312,31 @@ private slots:
         //
         cchannels_->sendInit(msg2, qclserver);
 
-        // inform all qclservers about users and their current channels
+        // inform all qclservers about users, their IP-addresses, and their current channels
         QStringList users;
+        QStringList ipaddrs;
         QList<int> channels;
         foreach (qint64 qclserver, user_.keys()) {
             users.append(user_.value(qclserver));
+            ipaddrs.append(ipaddr_.value(qclserver));
             channels.append(channel_.contains(qclserver) ? channel_.value(qclserver) : -1);
         }
-        cchannels_->sendUsers(users, channels);
+        cchannels_->sendUsers(users, ipaddrs, channels);
     }
 
     void clientDisconnected(qint64 qclserver)
     {
-        const QString user = user_.take(qclserver);
+        user_.remove(qclserver);
+        ipaddr_.remove(qclserver);
         channel_.remove(qclserver);
-        cchannels_->sendUsers(user_.values(), channel_.values());
+        cchannels_->sendUsers(user_.values(), ipaddr_.values(), channel_.values());
     }
 };
 
 static void printUsage(const QString &appName = QString(), bool toLogger = true)
 {
     const QString s = QString(
-        "usage: %1 [--daemon] --dbfile <SQLite dtaabase file> (--initdb | (--cport <central server port> "
+        "usage: %1 [--daemon] --dbfile <SQLite database file> (--initdb | (--cport <central server port> "
         "--maxage <max # of days to keep chat events>))")
         .arg((!appName.isEmpty() ? appName : qApp->applicationName()).toLatin1().data());
     if (toLogger)

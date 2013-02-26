@@ -2,6 +2,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QRegExp>
+#include <QProcess>
 #include "log4cpp/Category.hh"
 #include "log4cpp/Appender.hh"
 #include "log4cpp/FileAppender.hh"
@@ -26,6 +27,28 @@ QMap<QString, QString> getOptions(int argc, char *argv[]) // convenience wrapper
     for (int i = 1; i < argc; ++i)
         args.append(argv[i]);
     return getOptions(args);
+}
+
+// Returns the local IP address and sets \a ok to true upon success. Otherwise returns an error message and sets
+// \a ok to false.
+QString getLocalIPAddress(bool *ok)
+{
+    QProcess p1;
+    QProcess p2;
+    p1.setStandardOutputProcess(&p2);
+    p1.start("ifconfig eth0");
+    p2.start("grep", QStringList() << "inet addr");
+    p1.waitForFinished(-1);
+    p2.waitForFinished(-1);
+    const QString line = p2.readAllStandardOutput();
+    QRegExp rx("inet addr:(\\d+\\.\\d+\\.\\d+\\.\\d+)");
+    if (rx.indexIn(line) == -1) {
+//        Logger::instance().logWarning();
+        *ok = false;
+        return QString("no match for IP address: %1").arg(line.toLatin1().data());
+    }
+    *ok = true;
+    return rx.cap(1);
 }
 
 // Returns true iff a local server file of the form '/tmp/qclserver_USER_PID' exists.
