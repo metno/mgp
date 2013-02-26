@@ -1,4 +1,5 @@
-SOURCES += main.cpp
+SOURCES += main.cpp interactor.cpp
+HEADERS += interactor.h
 QCLIB_DIR = ../qclib
 QCLIB_STATIC_DIR = ../qclib_static
 include($$QCLIB_STATIC_DIR/qclib_static.pri)
