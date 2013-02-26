@@ -160,16 +160,40 @@ private:
         db_deleteOldEvents();
     }
 
-    void db_setFullName(const QString &user, const QString &fullName)
+    // Updates the full name of a user if not already taken by another user. Returns the user associated with the
+    // full name after the operation, or an empty string if an error occurred.
+    QString db_setFullName(const QString &user, const QString &fullName)
     {
+        Q_ASSERT(!user.isEmpty());
+        //Q_ASSERT(!fullName.isEmpty());
         Q_ASSERT(db_);
         Q_ASSERT(db_->isOpen());
-        Q_ASSERT(!user.isEmpty());
-        Q_ASSERT(!fullName.isEmpty());
+
+        // check if the non-empty full name already exists for a different user
+        if (!fullName.trimmed().isEmpty()) {
+            QScopedPointer<QSqlQuery> query(new QSqlQuery(*db_));
+            QString query_s =
+                QString("SELECT user FROM fullname WHERE user != '%1' AND trim(lower(fullname)) = '%2';")
+                .arg(user).arg(fullName.toLower().trimmed());
+            if (!query->exec(query_s)) {
+                Logger::instance().logWarning(
+                    QString("query '%s' failed: %s")
+                    .arg(query_s.toLatin1().data())
+                    .arg(query->lastError().text().trimmed().toLatin1().data()));
+                return QString();
+            } else if (query->next()) {
+                // full name in use for a different user
+                return query->value(0).toString();
+            }
+        }
+
+        // update the full name for this user
         db_execTransaction(
             QString(
             "INSERT OR REPLACE INTO fullname (user, fullname) VALUES ('%1', '%2');")
-            .arg(escapeQuotes(user)).arg(escapeQuotes(fullName)));
+            .arg(escapeQuotes(user)).arg(escapeQuotes(fullName.trimmed())));
+
+        return user;
     }
 
     QStringList getChannelsFromDatabase()
@@ -185,11 +209,11 @@ private:
                 .arg(query_s.toLatin1().data())
                 .arg(query->lastError().text().trimmed().toLatin1().data()));
         } else while (query->next()) {
-             const int id = query->value(0).toInt();
-             const QString name = query->value(1).toString();
-             const QString descr = query->value(2).toString();
-             c << QString("%1 %2 %3").arg(id).arg(name).arg(descr);
-        }
+                const int id = query->value(0).toInt();
+                const QString name = query->value(1).toString();
+                const QString descr = query->value(2).toString();
+                c << QString("%1 %2 %3").arg(id).arg(name).arg(descr);
+            }
         return c;
     }
 
@@ -259,8 +283,16 @@ private slots:
 
     void fullNameChange(const QString &fullName, const QString &, qint64 qclserver)
     {
-        db_setFullName(user_.value(qclserver), fullName);
-        cchannels_->sendFullNameChange(fullName, user_.value(qclserver)); // forward to all qclservers
+        const QString user = user_.value(qclserver);
+        const QString currUser = db_setFullName(user, fullName);
+        if (currUser.isEmpty())
+            return; // an error occurred
+        if (currUser == user)
+            cchannels_->sendFullNameChange(fullName, user); // forward successful update to all qclservers
+        else
+            // report conflict to this qclserver only
+            cchannels_->sendErrorMessage(
+                QString("Full name '%1' already taken by user '%2'.").arg(fullName).arg(currUser), qclserver);
     }
 
     void init(const QVariantMap &msg, qint64 qclserver)
@@ -276,7 +308,7 @@ private slots:
         user_.insert(qclserver, user);
         Q_ASSERT(!channel_.contains(qclserver));
 
-        // send init message to this qccserver only
+        // send init message to this qclserver only
         QVariantMap msg2;
         // ... general system info
         msg2.insert("hostname", QHostInfo::localHostName());

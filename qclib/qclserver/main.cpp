@@ -83,7 +83,11 @@ public:
         rightLayout->addWidget(usersLabel);
         userTree_ = new QTreeWidget;
         userTree_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+        userTree_->setColumnCount(2);
         userTree_->header()->close();
+        // NOTE: for efficiency reasons, QTreeView::resizeColumnToContents() only applies to expanded items, so we
+        // need to resize only when items get expanded:
+        connect(userTree_, SIGNAL(itemExpanded(QTreeWidgetItem *)), SLOT(resizeUserTreeColumns()));
         rightLayout->addWidget(userTree_);
         // --- END right part of splitter ------------------------------------
 
@@ -256,6 +260,13 @@ public:
     void handleCentralFullNameChange(const QString &user, const QString &fullName)
     {
         userFullName_.insert(user, fullName);
+        updateUserTree();
+    }
+
+    // Handles an error message from the central server.
+    void handleCentralErrorMessage(const QString &msg)
+    {
+        QMessageBox::warning(0, "MetChat ERROR", msg);
     }
 
     void scrollToBottom()
@@ -364,8 +375,8 @@ private:
                 const QString fullName = QInputDialog::getText(
                     this, "MetChat - Change full name", "New full name:", QLineEdit::Normal,
                     userFullName_.value(userLabel_->text()), &ok);
-                if (ok && !fullName.isEmpty())
-                    emit fullNameChange(fullName);
+                if (ok)
+                    emit fullNameChange(fullName.trimmed());
                 return true;
             } else if (event->type() == QEvent::Enter) {
                 QToolTip::showText(
@@ -450,12 +461,16 @@ private:
                 // insert user in this channel branch
                 QTreeWidgetItem *userItem = new QTreeWidgetItem;
                 userItem->setData(0, Qt::DisplayRole, user);
-                userItem->setForeground(0, QColor("#888"));
+                userItem->setForeground(0, QColor("#000"));
+                userItem->setToolTip(0, userFullName_.value(user));
+                if (!userFullName_.value(user).isEmpty())
+                    userItem->setData(1, Qt::DisplayRole, QString("(%1)").arg(userFullName_.value(user)));
+                userItem->setForeground(1, QColor("#888"));
                 channelItem->addChild(userItem);
             }
         }
 
-        // save 'expanded' state
+        // restore 'expanded' state
         for (int i = 0; i < root->childCount(); ++i)
             root->child(i)->setExpanded(
                 channelExpanded.value(root->child(i)->data(0, Qt::DisplayRole).toString().split(" ").first()));
@@ -517,6 +532,12 @@ private slots:
             QToolTip::showText(QCursor::pos(), userFullName_.value(candUser));
         else
             QToolTip::hideText();
+    }
+
+    void resizeUserTreeColumns()
+    {
+        userTree_->resizeColumnToContents(0);
+        userTree_->resizeColumnToContents(1);
     }
 
 signals:
@@ -581,6 +602,9 @@ public:
         connect(
             schannel_.data(), SIGNAL(fullNameChange(const QString &, const QString &, qint64)),
             SLOT(centralFullNameChange(const QString &, const QString &)));
+        connect(
+            schannel_.data(), SIGNAL(errorMessage(const QString &, qint64)),
+            SLOT(centralErrorMessage(const QString &)));
         connect(
             schannel_.data(), SIGNAL(users(const QStringList &, const QList<int> &)),
             SLOT(users(const QStringList &, const QList<int> &)));
@@ -674,6 +698,11 @@ private slots:
     void centralFullNameChange(const QString &fullName, const QString &user)
     {
         window_->handleCentralFullNameChange(user, fullName);
+    }
+
+    void centralErrorMessage(const QString &msg)
+    {
+        window_->handleCentralErrorMessage(msg);
     }
 
     void users(const QStringList &u, const QList<int> &channelIds)

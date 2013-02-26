@@ -144,6 +144,9 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
         Q_ASSERT(msg.value("fullName").canConvert(QVariant::String));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
         emit fullNameChange(msg.value("fullName").toString(), msg.value("user").toString(), peerId);
+    } else if (type == ErrorMessage) {
+        Q_ASSERT(msg.value("message").canConvert(QVariant::String));
+        emit errorMessage(msg.value("message").toString(), peerId);
     } else {
         qFatal("invalid message type: %d", type);
     }
@@ -360,6 +363,16 @@ void QCClientChannels::sendUsers(const QStringList &users, const QList<int> &cha
     msg.insert("type", Users);
     msg.insert("users", users);
     msg.insert("channelIds", toVariantList(channelIds));
+    sendMessage(msg);
+}
+
+// Sends an error message to the given client.
+void QCClientChannels::sendErrorMessage(const QString &message, qint64 client)
+{
+    QVariantMap msg;
+    msg.insert("type", ErrorMessage);
+    msg.insert("message", message);
+    msg.insert("peer", client);
     sendMessage(msg);
 }
 
