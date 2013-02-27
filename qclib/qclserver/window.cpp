@@ -408,8 +408,6 @@ bool ChatWindow::eventFilter(QObject *obj, QEvent *event)
 
 void ChatWindow::updateUserTree()
 {
-    // foreach (int channelId, channelUsers_.keys())
-    //     qDebug() << "users in channel" << channelId << ":" << *(channelUsers_.value(channelId));
     QTreeWidgetItem *root = userTree_->invisibleRootItem();
 
     // save 'expanded' state
@@ -432,7 +430,6 @@ void ChatWindow::updateUserTree()
         //QStringList channelUsers = channelUsers_.value(channelId)->values();
         QList<QPair<QString, QString> > channelUsers = channelUsers_.value(channelId)->values();
         channelItem->setData(0, Qt::DisplayRole, QString("%1 (%2)").arg(channelName).arg(channelUsers.size()));
-//            foreach (QPair<QString, QString> userInfo, channelUsers) {
         for (int i = 0; i < channelUsers.size(); ++i) {
             const QPair<QString, QString> userInfo = channelUsers.at(i);
             // insert user in this channel branch
@@ -453,6 +450,7 @@ void ChatWindow::updateUserTree()
             //
             channelItem->addChild(userItem);
         }
+        channelItem->sortChildren(0, Qt::AscendingOrder);
     }
 
     // restore 'expanded' state
