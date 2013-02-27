@@ -85,6 +85,9 @@ ChatWindow::ChatWindow()
     channelCBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     leftLayout_sub1->addWidget(channelCBox_);
     leftLayout_sub1->setAlignment(channelCBox_, Qt::AlignLeft);
+    channelDescrLabel_ = new QLabel;
+    channelDescrLabel_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
+    leftLayout_sub1->addWidget(channelDescrLabel_);
 
     leftLayout->addLayout(&logStack_);
     connect(channelCBox_, SIGNAL(activated(int)), SLOT(handleChannelSwitch()));
@@ -153,10 +156,11 @@ void ChatWindow::setChannels(const QStringList &chatChannels)
         }
         const int id = rx.cap(1).toInt();
         const QString name = rx.cap(2);
-        //const QString descr = rx.cap(3); unused for now
+        const QString descr = rx.cap(3);
         channelCBox_->addItem(name);
         channelId_.insert(name, id);
         channelName_.insert(id, name);
+        channelDescr_.insert(id, descr);
 
         html_.insert(id, "<table></table>");
 
@@ -174,6 +178,7 @@ void ChatWindow::setChannels(const QStringList &chatChannels)
     }
 
     updateWindowTitle();
+    channelDescrLabel_->setText(channelDescr_.value(currentChannelId()));
     emit channelSwitch(currentChannelId());
 }
 
@@ -440,6 +445,7 @@ void ChatWindow::handleChannelSwitch()
     const int channelId = currentChannelId();
     logStack_.setCurrentWidget(log_.value(channelId));
     updateWindowTitle();
+    channelDescrLabel_->setText(channelDescr_.value(channelId));
     emit channelSwitch(channelId);
 }
 

@@ -34,8 +34,10 @@ public:
     void setServerSysInfo(const QString &, const QString &, const QString &);
 private:
     QComboBox *channelCBox_;
+    QLabel *channelDescrLabel_;
     QMap<QString, int> channelId_;
     QMap<int, QString> channelName_;
+    QMap<int, QString> channelDescr_;
     QTreeWidget *userTree_;
     QMap<int, QTextBrowser *> log_;
     QStackedLayout logStack_;
