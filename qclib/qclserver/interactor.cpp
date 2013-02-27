@@ -8,17 +8,18 @@ Interactor::Interactor(const QString &user, const QString &chost, quint16 cport)
 {
     cchannels_.reset(new QCLocalClientChannels);
     schannel_.reset(new QCTcpServerChannel);
-    window_.reset(new ChatWindow);
+    window_ = new ChatWindow;
+    mainWindow_.reset(new ChatMainWindow(window_));
 }
 
 bool Interactor::initialize()
 {
     // initialize interaction with chat window
-    connect(window_.data(), SIGNAL(windowShown()), SLOT(windowShown()));
-    connect(window_.data(), SIGNAL(windowHidden()), SLOT(windowHidden()));
-    connect(window_.data(), SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
-    connect(window_.data(), SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
-    connect(window_.data(), SIGNAL(fullNameChange(const QString &)), SLOT(handleFullNameChange(const QString &)));
+    connect(mainWindow_.data(), SIGNAL(windowShown()), SLOT(windowShown()));
+    connect(mainWindow_.data(), SIGNAL(windowHidden()), SLOT(windowHidden()));
+    connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
+    connect(window_, SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
+    connect(window_, SIGNAL(fullNameChange(const QString &)), SLOT(handleFullNameChange(const QString &)));
     window_->setUser(user_);
 
     // initialize interaction with qcapps
@@ -179,12 +180,12 @@ void Interactor::showChatWindow()
         return; // let the active operation complete
     showingWindow_ = true;
 
-    if (window_->isVisible()) {
-        window_->hide();
+    if (mainWindow_->isVisible()) {
+        mainWindow_->hide();
         qApp->processEvents();
-        QTimer::singleShot(500, window_.data(), SLOT(show()));
+        QTimer::singleShot(500, mainWindow_.data(), SLOT(show()));
     } else {
-        window_->show();
+        mainWindow_->show();
     }
 }
 
@@ -198,7 +199,7 @@ void Interactor::windowHidden()
 // invoked from client request
 void Interactor::hideChatWindow()
 {
-    window_->hide();
+    mainWindow_->hide();
 }
 
 void Interactor::localChatMessage(const QString &text, int channelId)

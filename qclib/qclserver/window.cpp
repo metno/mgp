@@ -61,7 +61,6 @@ static void deleteTree(QTreeWidgetItem *root)
 }
 
 ChatWindow::ChatWindow()
-    : geometrySaveEnabled_(true)
 {
     // --- BEGIN main layout and splitter ------------------------------------
     QHBoxLayout *mainLayout = new QHBoxLayout;
@@ -123,11 +122,7 @@ ChatWindow::ChatWindow()
 
     setLayout(mainLayout);
 
-    if (!restoreGeometry())
-        resize(900, 350); // default if unable to restore from config file for some reason
     splitter->setSizes(QList<int>() << 750 << 150);
-
-    setWindowIcon(QIcon("/usr/share/pixmaps/metchat.png"));
 }
 
 void ChatWindow::appendEvent(const QString &text, const QString &user, int channelId, int timestamp, int type)
@@ -326,64 +321,6 @@ void ChatWindow::setServerSysInfo(const QString &hostname, const QString &domain
     updateWindowTitle();
 }
 
-// Saves window geometry to config file.
-void ChatWindow::saveGeometry()
-{
-    if ((!geometrySaveEnabled_) || (settings->status() != QSettings::NoError))
-        return;
-    settings->setValue("geometry", geometry());
-    settings->sync();
-}
-
-// Restores window geometry from config file. Returns true iff the operation succeeded.
-bool ChatWindow::restoreGeometry()
-{
-    if ((!geometrySaveEnabled_) || (settings->status() != QSettings::NoError) ||
-        (!settings->value("geometry").canConvert(QVariant::Rect)))
-        return false;
-
-    // temporarily disable geometry saves (in particular those that would otherwise result
-    // from move and resize events generated for a visible window by the below setGeometry() call;
-    // the value of geometry() at those points tends to be unexpected; probably due to window manager
-    // peculiarities on X11)
-    if (geometrySaveEnabled_) {
-        geometrySaveEnabled_ = false;
-        QTimer::singleShot(100, this, SLOT(enableGeometrySave()));
-    }
-
-    setGeometry(settings->value("geometry").toRect());
-    return true;
-}
-
-void ChatWindow::closeEvent(QCloseEvent *e)
-{
-    // prevent the close event from terminating the application
-    hide();
-    e->ignore();
-}
-
-void ChatWindow::showEvent(QShowEvent *)
-{
-    restoreGeometry();
-    scrollToBottom();
-    emit windowShown();
-}
-
-void ChatWindow::hideEvent(QHideEvent *)
-{
-    emit windowHidden();
-}
-
-void ChatWindow::moveEvent(QMoveEvent *)
-{
-    saveGeometry();
-}
-
-void ChatWindow::resizeEvent(QResizeEvent *)
-{
-    saveGeometry();
-}
-
 bool ChatWindow::eventFilter(QObject *obj, QEvent *event)
 {
     // double-clicking the user label allows for changing the full name of this user
@@ -461,7 +398,7 @@ void ChatWindow::updateUserTree()
 
 void ChatWindow::updateWindowTitle()
 {
-    setWindowTitle(
+    window()->setWindowTitle(
         QString("MetChat - channel: %1; user: %2; central server: %3.%4 (%5)")
         .arg(channelName_.value(currentChannelId()))
         .arg(userLabel_->text())
@@ -484,11 +421,6 @@ void ChatWindow::handleChannelSwitch()
     logStack_.setCurrentWidget(log_.value(channelId));
     updateWindowTitle();
     emit channelSwitch(channelId);
-}
-
-void ChatWindow::enableGeometrySave()
-{
-    geometrySaveEnabled_ = true;
 }
 
 void ChatWindow::hover(QMouseEvent *)
@@ -521,4 +453,76 @@ void ChatWindow::resizeUserTreeColumns()
     userTree_->resizeColumnToContents(0);
     userTree_->resizeColumnToContents(1);
     userTree_->resizeColumnToContents(2);
+}
+
+ChatMainWindow::ChatMainWindow(ChatWindow *window)
+    : geometrySaveEnabled_(true)
+{
+    setCentralWidget(window);
+    setWindowIcon(QIcon("/usr/share/pixmaps/metchat.png"));
+    if (!restoreGeometry())
+        resize(900, 350); // default if unable to restore from config file for some reason
+}
+
+// Saves main window geometry to config file.
+void ChatMainWindow::saveGeometry()
+{
+    if ((!geometrySaveEnabled_) || (settings->status() != QSettings::NoError))
+        return;
+    settings->setValue("geometry", geometry());
+    settings->sync();
+}
+
+// Restores main window geometry from config file. Returns true iff the operation succeeded.
+bool ChatMainWindow::restoreGeometry()
+{
+    if ((!geometrySaveEnabled_) || (settings->status() != QSettings::NoError) ||
+        (!settings->value("geometry").canConvert(QVariant::Rect)))
+        return false;
+
+    // temporarily disable geometry saves (in particular those that would otherwise result
+    // from move and resize events generated for a visible window by the below setGeometry() call;
+    // the value of geometry() at those points tends to be unexpected; probably due to window manager
+    // peculiarities on X11)
+    if (geometrySaveEnabled_) {
+        geometrySaveEnabled_ = false;
+        QTimer::singleShot(100, this, SLOT(enableGeometrySave()));
+    }
+
+    setGeometry(settings->value("geometry").toRect());
+    return true;
+}
+
+void ChatMainWindow::closeEvent(QCloseEvent *e)
+{
+    // prevent the close event from terminating the application
+    hide();
+    e->ignore();
+}
+
+void ChatMainWindow::showEvent(QShowEvent *)
+{
+    restoreGeometry();
+    qobject_cast<ChatWindow *>(centralWidget())->scrollToBottom();
+    emit windowShown();
+}
+
+void ChatMainWindow::hideEvent(QHideEvent *)
+{
+    emit windowHidden();
+}
+
+void ChatMainWindow::moveEvent(QMoveEvent *)
+{
+    saveGeometry();
+}
+
+void ChatMainWindow::resizeEvent(QResizeEvent *)
+{
+    saveGeometry();
+}
+
+void ChatMainWindow::enableGeometrySave()
+{
+    geometrySaveEnabled_ = true;
 }

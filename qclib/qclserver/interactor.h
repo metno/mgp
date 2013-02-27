@@ -20,7 +20,8 @@ private:
     quint16 cport_;
     QScopedPointer<QCLocalClientChannels> cchannels_; // qcapp channels
     QScopedPointer<QCTcpServerChannel> schannel_; // qccserver channel
-    QScopedPointer<ChatWindow> window_;
+    QScopedPointer<ChatMainWindow> mainWindow_;
+    ChatWindow *window_;
     QStringList chatChannels_; //  a.k.a. chat rooms
     bool showingWindow_;
 private slots:

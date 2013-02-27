@@ -43,10 +43,30 @@ private:
     QMap<int, QString> html_;
     // (user, IP-address)-combinations associated with each chat channel:
     QMap<int, QSet<QPair<QString, QString> > *> channelUsers_;
-    bool geometrySaveEnabled_;
     QMap<QString, QString> serverSysInfo_;
     QMap<QString, QString> userFullName_;
 
+    bool eventFilter(QObject *, QEvent *);
+    void updateUserTree();
+    void updateWindowTitle();
+private slots:
+    void sendChatMessage();
+    void handleChannelSwitch();
+    void hover(QMouseEvent *);
+    void resizeUserTreeColumns();
+signals:
+    void chatMessage(const QString &, int);
+    void channelSwitch(int);
+    void fullNameChange(const QString &);
+};
+
+class ChatMainWindow : public QMainWindow
+{
+    Q_OBJECT
+public:
+    ChatMainWindow(ChatWindow *);
+private:
+    bool geometrySaveEnabled_;
     void saveGeometry();
     bool restoreGeometry();
     void closeEvent(QCloseEvent *);
@@ -54,21 +74,11 @@ private:
     void hideEvent(QHideEvent *);
     void moveEvent(QMoveEvent *);
     void resizeEvent(QResizeEvent *);
-    bool eventFilter(QObject *, QEvent *);
-    void updateUserTree();
-    void updateWindowTitle();
 private slots:
-    void sendChatMessage();
-    void handleChannelSwitch();
     void enableGeometrySave();
-    void hover(QMouseEvent *);
-    void resizeUserTreeColumns();
 signals:
     void windowShown();
     void windowHidden();
-    void chatMessage(const QString &, int);
-    void channelSwitch(int);
-    void fullNameChange(const QString &);
 };
 
 #endif // WINDOW_H
