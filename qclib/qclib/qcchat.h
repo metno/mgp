@@ -17,7 +17,7 @@ public:
 protected:
     QCBase();
     enum MsgType {
-        Init, ShowChatWin, HideChatWin, ChatMsg, Notification, Channels, History, Users, ChannelSwitch, FullNameChange,
+        Init, WindowVisibility, ChatMsg, Notification, Channels, History, Users, ChannelSwitch, FullNameChange,
         ErrorMessage
     };
     void setLastError(const QString &);
@@ -25,10 +25,11 @@ private:
     QString lastError_;
     virtual void sendMessage(const QVariantMap &) = 0;
 public slots:
-    void sendShowChatWindow();
-    void sendHideChatWindow();
     void sendChatMessage(const QString &, const QString &, int, int = -1);
     void sendNotification(const QString &, const QString & = QString(), int = -1, int = -1);
+    void sendWindowVisibility(bool, const QString & = QString(), const QString & = QString());
+    void sendShowWindow() { sendWindowVisibility(true); }
+    void sendHideWindow() { sendWindowVisibility(false); }
     void sendChannelSwitch(int, const QString & = QString(), const QString & = QString());
     void sendFullNameChange(const QString &, const QString & = QString());
 protected slots:
@@ -36,13 +37,12 @@ protected slots:
     void handleChannelError(const QString &);
 signals:
     void init(const QVariantMap &, qint64);
-    void showChatWindow();
-    void hideChatWindow();
     void chatMessage(const QString &, const QString &, int, int);
     void notification(const QString &, const QString &, int, int);
     void channels(const QStringList &);
     void history(const QStringList &);
-    void users(const QStringList &, const QStringList &, const QList<int> &);
+    void users(const QStringList &, const QStringList &, const QList<bool> &, const QList<int> &);
+    void windowVisibility(bool, const QString &, const QString &, qint64);
     void channelSwitch(int, const QString &, const QString &, qint64);
     void fullNameChange(const QString &, const QString &, qint64);
     void errorMessage(const QString &, qint64);
@@ -89,7 +89,7 @@ public:
     QCClientChannels();
     virtual ~QCClientChannels();
     void sendInit(const QVariantMap &, qint64);
-    void sendUsers(const QStringList &, const QStringList &, const QList<int> &);
+    void sendUsers(const QStringList &, const QStringList &, const QList<bool> &, const QList<int> &);
     void sendErrorMessage(const QString &, qint64);
     void close(qint64);
 protected:

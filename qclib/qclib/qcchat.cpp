@@ -3,23 +3,24 @@
 
 namespace qclib {
 
-static QList<int> toIntList(const QList<QVariant> &vlist)
+template <typename T>
+static QList<T> fromVariantList(const QList<QVariant> &vlist)
 {
-    QList<int> ilist;
-    bool ok;
+    QList<T> ilist;
     foreach (QVariant v, vlist) {
-        const int i = v.toInt(&ok);
-        Q_ASSERT(ok);
-        ilist.append(i);
+        Q_ASSERT(v.canConvert<T>());
+        const T t = v.value<T>();
+        ilist.append(t);
     }
     return ilist;
 }
 
-static QList<QVariant> toVariantList(const QList<int> &ilist)
+template <typename T>
+static QList<QVariant> toVariantList(const QList<T> &tlist)
 {
     QList<QVariant> vlist;
-    foreach (int i, ilist)
-        vlist.append(i);
+    foreach (T t, tlist)
+        vlist.append(t);
     return vlist;
 }
 
@@ -36,20 +37,6 @@ void QCBase::setLastError(const QString &error)
 QString QCBase::lastError() const
 {
     return lastError_;
-}
-
-void QCBase::sendShowChatWindow()
-{
-    QVariantMap msg;
-    msg.insert("type", ShowChatWin);
-    sendMessage(msg);
-}
-
-void QCBase::sendHideChatWindow()
-{
-    QVariantMap msg;
-    msg.insert("type", HideChatWin);
-    sendMessage(msg);
 }
 
 static QString truncateText(const QString &text)
@@ -83,6 +70,16 @@ void QCBase::sendNotification(const QString &text, const QString &user, int chan
     sendMessage(msg);
 }
 
+void QCBase::sendWindowVisibility(bool visible, const QString &user, const QString &ipaddr)
+{
+    QVariantMap msg;
+    msg.insert("type", WindowVisibility);
+    msg.insert("visible", visible);
+    msg.insert("user", user);
+    msg.insert("ipaddr", ipaddr);
+    sendMessage(msg);
+}
+
 void QCBase::sendChannelSwitch(int channelId, const QString &user, const QString &ipaddr)
 {
     QVariantMap msg;
@@ -113,10 +110,6 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
     }
     if (type == Init) {
         emit init(msg, peerId);
-    } else if (type == ShowChatWin) {
-        emit showChatWindow();
-    } else if (type == HideChatWin) {
-        emit hideChatWindow();
     } else if (type == ChatMsg) {
         Q_ASSERT(msg.value("text").canConvert(QVariant::String));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
@@ -136,10 +129,18 @@ void QCBase::handleMessageArrived(qint64 peerId, const QVariantMap &msg)
     } else if (type == Users) {
         Q_ASSERT(msg.value("users").canConvert(QVariant::StringList));
         Q_ASSERT(msg.value("ipaddrs").canConvert(QVariant::StringList));
+        Q_ASSERT(msg.value("winVis").canConvert(QVariant::VariantList));
         Q_ASSERT(msg.value("channelIds").canConvert(QVariant::VariantList));
         emit users(
             msg.value("users").toStringList(), msg.value("ipaddrs").toStringList(),
-            toIntList(msg.value("channelIds").toList()));
+            fromVariantList<bool>(msg.value("winVis").toList()),
+            fromVariantList<int>(msg.value("channelIds").toList()));
+    } else if (type == WindowVisibility) {
+        Q_ASSERT(msg.value("visible").canConvert(QVariant::Bool));
+        Q_ASSERT(msg.value("user").canConvert(QVariant::String));
+        Q_ASSERT(msg.value("ipaddr").canConvert(QVariant::String));
+        emit windowVisibility(
+            msg.value("visible").toBool(), msg.value("user").toString(), msg.value("ipaddr").toString(), peerId);
     } else if (type == ChannelSwitch) {
         Q_ASSERT(msg.value("channelId").canConvert(QVariant::Int));
         Q_ASSERT(msg.value("user").canConvert(QVariant::String));
@@ -363,13 +364,15 @@ void QCClientChannels::sendInit(const QVariantMap &msg_, qint64 client)
 }
 
 // Sends a 'users' message to all clients.
-void QCClientChannels::sendUsers(const QStringList &users, const QStringList &ipaddrs, const QList<int> &channelIds)
+void QCClientChannels::sendUsers(
+    const QStringList &users, const QStringList &ipaddrs, const QList<bool> &winVis, const QList<int> &channelIds)
 {
     QVariantMap msg;
     msg.insert("type", Users);
     msg.insert("users", users);
     msg.insert("ipaddrs", ipaddrs);
-    msg.insert("channelIds", toVariantList(channelIds));
+    msg.insert("winVis", toVariantList<bool>(winVis));
+    msg.insert("channelIds", toVariantList<int>(channelIds));
     sendMessage(msg);
 }
 

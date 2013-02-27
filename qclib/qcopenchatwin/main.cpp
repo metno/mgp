@@ -49,19 +49,25 @@ private slots:
             return;
         }
 
-        // chost and cport both match so request chat window to be shown if necessary
-        if (!msg.value("windowshown").toBool()) {
-            connect(schannel_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
-            schannel_->sendShowChatWindow();
+        // chost and cport both match so request chat window to become visible if necessary
+        if (!msg.value("windowvisible").toBool()) {
+            connect(
+                schannel_, SIGNAL(windowVisibility(bool, const QString &, const QString &, qint64)),
+                SLOT(windowVisibility(bool)));
+            schannel_->sendShowWindow();
         } else {
-            //Logger::instance().logInfo("window already shown; terminating normally");
+            //Logger::instance().logInfo("window already visible; terminating normally");
             qApp->exit(0);
         }
     }
 
-    void showChatWindow()
+    void windowVisibility(bool visible)
     {
-        //Logger::instance().logInfo("window shown by our request; terminating normally");
+        if (!visible) {
+            // Logger::instance().logError("ERROR: expected visible == true");
+        } else {
+            // Logger::instance().logInfo("window shown by our request; terminating normally");
+        }
         qApp->exit(0);
     }
 

@@ -18,6 +18,7 @@ private:
     QSqlDatabase *db_;
     QMap<qint64, QString> user_; // user associated with a qclserver
     QMap<qint64, QString> ipaddr_; // IP-address associated with a qclserver
+    QMap<qint64, bool> winVisible_; // current chat window visibility associated with a qclserver
     QMap<qint64, int> channel_; // current chat channel (a.k.a. chat room) associated with a qclserver
     int maxagesecs_; // max age (in secs) for database events (older events are removed)
 
@@ -31,6 +32,7 @@ private:
 private slots:
     void chatMessage(const QString &, const QString &, int);
     void notification(const QString &, const QString &, int);
+    void windowVisibility(bool, const QString &, const QString &, qint64);
     void channelSwitch(int, const QString &, const QString &, qint64);
     void fullNameChange(const QString &, const QString &, qint64);
     void init(const QVariantMap &, qint64);

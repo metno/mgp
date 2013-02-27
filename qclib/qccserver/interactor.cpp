@@ -21,6 +21,9 @@ Interactor::Interactor(QCTcpClientChannels *cchannels, QSqlDatabase *db, int max
         cchannels_, SIGNAL(notification(const QString &, const QString &, int, int)),
         SLOT(notification(const QString &, const QString &, int)));
     connect(
+        cchannels, SIGNAL(windowVisibility(bool, const QString &, const QString &, qint64)),
+        SLOT(windowVisibility(bool, const QString &, const QString &, qint64)));
+    connect(
         cchannels_, SIGNAL(channelSwitch(int, const QString &, const QString &, qint64)),
         SLOT(channelSwitch(int, const QString &, const QString &, qint64)));
     connect(
@@ -187,6 +190,13 @@ void Interactor::notification(const QString &text, const QString &user, int chan
     db_appendLogEvent(text, user, channelId, timestamp, NOTIFICATION);
 }
 
+void Interactor::windowVisibility(bool visible, const QString &, const QString &, qint64 qclserver)
+{
+    winVisible_.insert(qclserver, visible); // store new value
+    cchannels_->sendWindowVisibility(
+        visible, user_.value(qclserver), ipaddr_.value(qclserver)); // forward to all qclservers
+}
+
 void Interactor::channelSwitch(int channelId, const QString &, const QString &, qint64 qclserver)
 {
     channel_.insert(qclserver, channelId); // store new value
@@ -213,6 +223,7 @@ void Interactor::init(const QVariantMap &msg, qint64 qclserver)
 {
     Q_ASSERT(!user_.contains(qclserver));
     Q_ASSERT(!ipaddr_.contains(qclserver));
+    Q_ASSERT(!winVisible_.contains(qclserver));
     Q_ASSERT(!channel_.contains(qclserver));
 
     user_.insert(qclserver, msg.value("user").toString());
@@ -242,22 +253,25 @@ void Interactor::init(const QVariantMap &msg, qint64 qclserver)
     //
     cchannels_->sendInit(msg2, qclserver);
 
-    // inform all qclservers about users, their IP-addresses, and their current channels
+    // inform all qclservers about users, their IP-addresses, current window visibilities, and current channels
     QStringList users;
     QStringList ipaddrs;
+    QList<bool> winVis;
     QList<int> channels;
     foreach (qint64 qclserver, user_.keys()) {
         users.append(user_.value(qclserver));
         ipaddrs.append(ipaddr_.value(qclserver));
+        winVis.append(winVisible_.contains(qclserver) && winVisible_.value(qclserver));
         channels.append(channel_.contains(qclserver) ? channel_.value(qclserver) : -1);
     }
-    cchannels_->sendUsers(users, ipaddrs, channels);
+    cchannels_->sendUsers(users, ipaddrs, winVis, channels);
 }
 
 void Interactor::clientDisconnected(qint64 qclserver)
 {
     user_.remove(qclserver);
     ipaddr_.remove(qclserver);
+    winVisible_.remove(qclserver);
     channel_.remove(qclserver);
-    cchannels_->sendUsers(user_.values(), ipaddr_.values(), channel_.values());
+    cchannels_->sendUsers(user_.values(), ipaddr_.values(), winVisible_.values(), channel_.values());
 }

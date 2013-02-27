@@ -15,8 +15,7 @@ Interactor::Interactor(const QString &user, const QString &chost, quint16 cport)
 bool Interactor::initialize()
 {
     // initialize interaction with chat window
-    connect(mainWindow_.data(), SIGNAL(windowShown()), SLOT(windowShown()));
-    connect(mainWindow_.data(), SIGNAL(windowHidden()), SLOT(windowHidden()));
+    connect(mainWindow_.data(), SIGNAL(windowVisibility(bool)), SLOT(windowVisibility(bool)));
     connect(window_, SIGNAL(chatMessage(const QString &, int)), SLOT(localChatMessage(const QString &, int)));
     connect(window_, SIGNAL(channelSwitch(int)), SLOT(handleChannelSwitch(int)));
     connect(window_, SIGNAL(fullNameChange(const QString &)), SLOT(handleFullNameChange(const QString &)));
@@ -25,8 +24,9 @@ bool Interactor::initialize()
     // initialize interaction with qcapps
     connect(cchannels_.data(), SIGNAL(serverFileChanged(const QString &)), SLOT(serverFileChanged(const QString &)));
     connect(cchannels_.data(), SIGNAL(clientConnected(qint64)), SLOT(clientConnected(qint64)));
-    connect(cchannels_.data(), SIGNAL(showChatWindow()), SLOT(showChatWindow()));
-    connect(cchannels_.data(), SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
+    connect(
+        cchannels_.data(), SIGNAL(windowVisibility(bool, const QString &, const QString &, qint64)),
+        SLOT(clientWindowVisibility(bool)));
     connect(
         cchannels_.data(), SIGNAL(notification(const QString &, const QString &, int, int)),
         SLOT(localNotification(const QString &, const QString &, int)));
@@ -46,6 +46,9 @@ bool Interactor::initialize()
         schannel_.data(), SIGNAL(notification(const QString &, const QString &, int, int)),
         SLOT(centralNotification(const QString &, const QString &, int, int)));
     connect(
+        schannel_.data(), SIGNAL(windowVisibility(bool, const QString &, const QString &, qint64)),
+        SLOT(centralWindowVisibility(bool, const QString &, const QString &)));
+    connect(
         schannel_.data(), SIGNAL(channelSwitch(int, const QString &, const QString &, qint64)),
         SLOT(centralChannelSwitch(int, const QString &, const QString &)));
     connect(
@@ -55,8 +58,9 @@ bool Interactor::initialize()
         schannel_.data(), SIGNAL(errorMessage(const QString &, qint64)),
         SLOT(centralErrorMessage(const QString &)));
     connect(
-        schannel_.data(), SIGNAL(users(const QStringList &, const QStringList &, const QList<int> &)),
-        SLOT(users(const QStringList &, const QStringList &, const QList<int> &)));
+        schannel_.data(),
+        SIGNAL(users(const QStringList &, const QStringList &, const QList<bool> &, const QList<int> &)),
+        SLOT(users(const QStringList &, const QStringList &, const QList<bool> &, const QList<int> &)));
     if (!schannel_->connectToServer(chost_, cport_)) {
         Logger::instance().logError(
             QString("failed to connect to qccserver: connectToServer() failed: %1")
@@ -113,7 +117,7 @@ void Interactor::clientConnected(qint64 qcapp)
     msg.insert("chost", chost_);
     msg.insert("cport", cport_);
     msg.insert("channels", chatChannels_);
-    msg.insert("windowshown", window_->isVisible());
+    msg.insert("windowvisible", window_->isVisible());
     cchannels_->sendInit(msg, qcapp);
 }
 
@@ -135,6 +139,11 @@ void Interactor::centralNotification(const QString &text, const QString &user, i
     window_->scrollToBottom();
 }
 
+void Interactor::centralWindowVisibility(bool visible, const QString &user, const QString &ipaddr)
+{
+    window_->handleCentralWindowVisibility(user, ipaddr, visible);
+}
+
 void Interactor::centralChannelSwitch(int channelId, const QString &user, const QString &ipaddr)
 {
     window_->handleCentralChannelSwitch(user, ipaddr, channelId);
@@ -150,56 +159,54 @@ void Interactor::centralErrorMessage(const QString &msg)
     window_->handleCentralErrorMessage(msg);
 }
 
-void Interactor::users(const QStringList &u, const QStringList &ipaddrs, const QList<int> &channelIds)
+void Interactor::users(
+    const QStringList &u, const QStringList &ipaddrs, const QList<bool> &winVis, const QList<int> &channelIds)
 {
-    window_->setUsers(u, ipaddrs, channelIds);
+    window_->setUsers(u, ipaddrs, winVis, channelIds);
 }
 
 void Interactor::sendShowChatWindow()
 {
-    cchannels_->sendShowChatWindow();
+    cchannels_->sendShowWindow();
+    schannel_->sendShowWindow();
 }
 
 void Interactor::sendHideChatWindow()
 {
-    cchannels_->sendHideChatWindow();
+    cchannels_->sendHideWindow();
+    schannel_->sendHideWindow();
 }
 
-// invoked from window_->showEvent()
-void Interactor::windowShown()
+// invoked from main window's showEvent() or hideEvent()
+void Interactor::windowVisibility(bool visible)
 {
-    // inform clients right after other events have been processed
-    QTimer::singleShot(0, this, SLOT(sendShowChatWindow()));
-    showingWindow_ = false;
-}
-
-// invoked from client request
-void Interactor::showChatWindow()
-{
-    if (showingWindow_)
-        return; // let the active operation complete
-    showingWindow_ = true;
-
-    if (mainWindow_->isVisible()) {
-        mainWindow_->hide();
-        qApp->processEvents();
-        QTimer::singleShot(500, mainWindow_.data(), SLOT(show()));
+    // inform others right after other events have been processed
+    if (visible) {
+        QTimer::singleShot(0, this, SLOT(sendShowChatWindow()));
+        showingWindow_ = false;
     } else {
-        mainWindow_->show();
+        QTimer::singleShot(0, this, SLOT(sendHideChatWindow()));
     }
 }
 
-// invoked from window_->hideEvent()
-void Interactor::windowHidden()
-{
-    // inform clients right after other events have been processed
-    QTimer::singleShot(0, this, SLOT(sendHideChatWindow()));
-}
-
 // invoked from client request
-void Interactor::hideChatWindow()
+void Interactor::clientWindowVisibility(bool visible)
 {
-    mainWindow_->hide();
+    if (visible) {
+        if (showingWindow_)
+            return; // let the active operation complete
+        showingWindow_ = true;
+
+        if (mainWindow_->isVisible()) {
+            mainWindow_->hide();
+            qApp->processEvents();
+            QTimer::singleShot(500, mainWindow_.data(), SLOT(show()));
+        } else {
+            mainWindow_->show();
+        }
+    } else {
+        mainWindow_->hide();
+    }
 }
 
 void Interactor::localChatMessage(const QString &text, int channelId)

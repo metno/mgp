@@ -30,12 +30,12 @@ public:
 
         showButton_ = new QPushButton("show chat window");
         showButton_->setEnabled(false);
-        connect(showButton_, SIGNAL(clicked()), schannel_, SLOT(sendShowChatWindow()));
+        connect(showButton_, SIGNAL(clicked()), schannel_, SLOT(sendShowWindow()));
         layout->addWidget(showButton_);
 
         hideButton_ = new QPushButton("hide chat window");
         hideButton_->setEnabled(false);
-        connect(hideButton_, SIGNAL(clicked()), schannel_, SLOT(sendHideChatWindow()));
+        connect(hideButton_, SIGNAL(clicked()), schannel_, SLOT(sendHideWindow()));
         layout->addWidget(hideButton_);
 
         QHBoxLayout *layout2 = new QHBoxLayout;
@@ -130,12 +130,10 @@ private slots:
 
         // chost and cport both match so, so enter normal operation
         setChannels(msg.value("channels").toStringList());
-        if (msg.value("windowshown").toBool())
-            showChatWindow();
-        else
-            hideChatWindow();
-        connect(schannel_, SIGNAL(showChatWindow()), SLOT(showChatWindow()));
-        connect(schannel_, SIGNAL(hideChatWindow()), SLOT(hideChatWindow()));
+        windowVisibility(msg.value("windowvisible").toBool());
+        connect(
+            schannel_, SIGNAL(windowVisibility(bool, const QString &, const QString &, qint64)),
+            SLOT(windowVisibility(bool)));
         connect(
             schannel_, SIGNAL(notification(const QString &, const QString &, int, int)),
             SLOT(notification(const QString &, const QString &, int, int)));
@@ -148,16 +146,10 @@ private slots:
         schannel_->sendNotification(notifyEdit_->text(), QString(), channelId);
     }
 
-    void showChatWindow()
+    void windowVisibility(bool visible)
     {
-        showButton_->setEnabled(false);
-        hideButton_->setEnabled(true);
-    }
-
-    void hideChatWindow()
-    {
-        showButton_->setEnabled(true);
-        hideButton_->setEnabled(false);
+        showButton_->setEnabled(!visible);
+        hideButton_->setEnabled(visible);
     }
 
     void notification(const QString &text, const QString &user, int channelId, int timestamp)

@@ -247,21 +247,33 @@ void ChatWindow::prependHistory(const QStringList &h)
     }
 }
 
-// Sets connected users, their IP-addresses, and their current channels.
-void ChatWindow::setUsers(const QStringList &u, const QStringList &ipaddrs, const QList<int> &channelIds)
+// Sets connected users, their IP-addresses, current window visibilities, and current channels.
+void ChatWindow::setUsers(
+    const QStringList &u, const QStringList &ipaddrs, const QList<bool> &winVis, const QList<int> &channelIds)
 {
     Q_ASSERT(!u.isEmpty()); // the local user should be present at least
     Q_ASSERT(u.size() == ipaddrs.size());
+    Q_ASSERT(u.size() == winVis.size());
     Q_ASSERT(u.size() == channelIds.size());
 
     foreach (int channelId, channelUsers_.keys())
         channelUsers_.value(channelId)->clear();
+    winVisible_.clear();
     for (int i = 0; i < u.size(); ++i) {
         const int channelId = channelIds.at(i);
+        const QPair<QString, QString> userKey = qMakePair(u.at(i), ipaddrs.at(i));
         if (channelUsers_.contains(channelId))
-            channelUsers_.value(channelId)->insert(qMakePair(u.at(i), ipaddrs.at(i)));
+            channelUsers_.value(channelId)->insert(userKey);
+        winVisible_.insert(userKey, winVis.at(i));
     }
 
+    updateUserTree();
+}
+
+// Handles a user opening or closing the chat window.
+void ChatWindow::handleCentralWindowVisibility(const QString &user, const QString &ipaddr, bool visible)
+{
+    winVisible_.insert(qMakePair(user, ipaddr), visible);
     updateUserTree();
 }
 
@@ -275,8 +287,6 @@ void ChatWindow::handleCentralChannelSwitch(const QString &user, const QString &
     }
 
     // remove user from its current channel (if any)
-    // foreach ((QSet<QPair<QString, QString> > *users), channelUsers_.values())
-    //     users->remove(qMakePair(user, ipaddr));
     for (int i = 0; i < channelUsers_.values().size(); ++i) {
         QSet<QPair<QString, QString> > *users = channelUsers_.values().at(i);
         users->remove(qMakePair(user, ipaddr));
@@ -377,11 +387,16 @@ void ChatWindow::updateUserTree()
             // insert user in this channel branch
             const QString user = userInfo.first;
             const QString ipaddr = userInfo.second;
+            const bool winOpen = winVisible_.value(qMakePair(user, ipaddr)); 
             QTreeWidgetItem *userItem = new QTreeWidgetItem;
             //
             userItem->setData(0, Qt::DisplayRole, user);
-            userItem->setForeground(0, QColor("#000"));
-            userItem->setToolTip(0, QString("%1\n%2").arg(userFullName_.value(user)).arg(ipaddr));
+            userItem->setForeground(0, winOpen ? QColor("#000") : QColor("#888"));
+            const QString toolTip = QString("%1\n%2\nchat window %3")
+                .arg(userFullName_.value(user)).arg(ipaddr).arg(winOpen ? "open" : "closed");
+            userItem->setToolTip(0, toolTip);
+            userItem->setToolTip(1, toolTip);
+            userItem->setToolTip(2, toolTip);
             //
             if (!userFullName_.value(user).isEmpty())
                 userItem->setData(1, Qt::DisplayRole, QString("%1").arg(userFullName_.value(user)));
@@ -528,12 +543,12 @@ void ChatMainWindow::showEvent(QShowEvent *)
 {
     restoreGeometry();
     qobject_cast<ChatWindow *>(centralWidget())->scrollToBottom();
-    emit windowShown();
+    emit windowVisibility(true);
 }
 
 void ChatMainWindow::hideEvent(QHideEvent *)
 {
-    emit windowHidden();
+    emit windowVisibility(false);
 }
 
 void ChatMainWindow::moveEvent(QMoveEvent *)

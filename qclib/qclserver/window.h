@@ -24,7 +24,8 @@ public:
     void setFullNames(const QStringList &);
     void setUser(const QString &);
     void prependHistory(const QStringList &);
-    void setUsers(const QStringList &, const QStringList &, const QList<int> &);
+    void setUsers(const QStringList &, const QStringList &, const QList<bool> &, const QList<int> &);
+    void handleCentralWindowVisibility(const QString &, const QString &, bool);
     void handleCentralChannelSwitch(const QString &, const QString &, int);
     void handleCentralFullNameChange(const QString &, const QString &);
     void handleCentralErrorMessage(const QString &);
@@ -45,6 +46,7 @@ private:
     QMap<int, QSet<QPair<QString, QString> > *> channelUsers_;
     QMap<QString, QString> serverSysInfo_;
     QMap<QString, QString> userFullName_;
+    QMap<QPair<QString, QString>, bool> winVisible_; // window visibility for each (user, IP-address)-combination
 
     bool eventFilter(QObject *, QEvent *);
     void updateUserTree();
@@ -80,8 +82,7 @@ private slots:
     void enableGeometrySave();
     void showAbout();
 signals:
-    void windowShown();
-    void windowHidden();
+    void windowVisibility(bool);
 };
 
 #endif // WINDOW_H
