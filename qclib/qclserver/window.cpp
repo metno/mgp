@@ -321,17 +321,22 @@ void ChatWindow::setServerSysInfo(const QString &hostname, const QString &domain
     updateWindowTitle();
 }
 
+void ChatWindow::openFullNameDialog()
+{
+    bool ok;
+    const QString fullName = QInputDialog::getText(
+        this, "MetChat - Change full name", "New full name:", QLineEdit::Normal,
+        userFullName_.value(userLabel_->text()), &ok);
+    if (ok)
+        emit fullNameChange(fullName.trimmed());
+}
+
 bool ChatWindow::eventFilter(QObject *obj, QEvent *event)
 {
     // double-clicking the user label allows for changing the full name of this user
     if (obj == userLabel_) {
         if (event->type() == QEvent::MouseButtonDblClick) {
-            bool ok;
-            const QString fullName = QInputDialog::getText(
-                this, "MetChat - Change full name", "New full name:", QLineEdit::Normal,
-                userFullName_.value(userLabel_->text()), &ok);
-            if (ok)
-                emit fullNameChange(fullName.trimmed());
+            openFullNameDialog();
             return true;
         } else if (event->type() == QEvent::Enter) {
             QToolTip::showText(
@@ -459,6 +464,25 @@ ChatMainWindow::ChatMainWindow(ChatWindow *window)
     : geometrySaveEnabled_(true)
 {
     setCentralWidget(window);
+
+    QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
+    QAction *quit = new QAction(tr("&Quit"), this);
+    quit->setShortcut(QKeySequence(tr("Ctrl+Q")));
+    fileMenu->addAction(quit);
+    connect(quit, SIGNAL(triggered()), this, SLOT(close()));
+
+    QMenu *optionsMenu = menuBar()->addMenu(tr("&Options"));
+    QAction *setFullName = new QAction(tr("Set &full name"), this);
+    setFullName->setShortcut(QKeySequence(tr("Ctrl+F")));
+    optionsMenu->addAction(setFullName);
+    connect(
+        setFullName, SIGNAL(triggered()), qobject_cast<ChatWindow *>(centralWidget()), SLOT(openFullNameDialog()));
+
+    QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
+    QAction *about = new QAction(tr("About"), this);
+    helpMenu->addAction(about);
+    connect(about, SIGNAL(triggered()), this, SLOT(showAbout()));
+
     setWindowIcon(QIcon("/usr/share/pixmaps/metchat.png"));
     if (!restoreGeometry())
         resize(900, 350); // default if unable to restore from config file for some reason
@@ -525,4 +549,18 @@ void ChatMainWindow::resizeEvent(QResizeEvent *)
 void ChatMainWindow::enableGeometrySave()
 {
     geometrySaveEnabled_ = true;
+}
+
+void ChatMainWindow::showAbout()
+{
+    QMessageBox mbox;
+    mbox.setIconPixmap(windowIcon().pixmap(QSize(64, 64)));
+    mbox.setTextFormat(Qt::RichText);
+    mbox.setWindowTitle(QString("%1 MetChat").arg(tr("About")));
+    mbox.setText(
+        "MetChat: Chat for meteorologiske applikasjoner"
+        "<br />Versjon: 0.0.0"
+        "<br /><br />"
+        "<a href=\"http://met.no\">Mer informasjon</a>");
+    mbox.exec();
 }

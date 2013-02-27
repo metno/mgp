@@ -49,6 +49,8 @@ private:
     bool eventFilter(QObject *, QEvent *);
     void updateUserTree();
     void updateWindowTitle();
+public slots:
+    void openFullNameDialog();
 private slots:
     void sendChatMessage();
     void handleChannelSwitch();
@@ -76,6 +78,7 @@ private:
     void resizeEvent(QResizeEvent *);
 private slots:
     void enableGeometrySave();
+    void showAbout();
 signals:
     void windowShown();
     void windowHidden();
