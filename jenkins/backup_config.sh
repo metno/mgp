@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-# This script copies all */config.xml files under /var/lib/jenkins/jobs on a remote (or local) Jenkins
+# This script copies the main config.xml file and all config.xml files under /var/lib/jenkins/jobs on a remote (or local) Jenkins
 # installation to a local directory timestamped with the current date.
 
 USAGE=`cat <<EOF
@@ -18,6 +18,10 @@ destbasedir=$1
 srcuserhost=$2
 #destdir=$destbasedir/backup_`date +%Y-%m-%d_%H-%M-%S`
 
-echo -n 'rsync ... '
+echo -n 'rsync main config file ... '
+rsync -a $srcuserhost/var/lib/jenkins/config.xml $destbasedir
+echo 'done'
+
+echo -n 'rsync config files under jobs/ ... '
 rsync -a $srcuserhost/var/lib/jenkins/jobs --include='*/' --include='*/config.xml' --exclude='*' $destbasedir
 echo 'done'
