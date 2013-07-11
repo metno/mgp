@@ -125,6 +125,11 @@ public:
         connect(button1, SIGNAL(clicked()), this, SLOT(addRectangle()));
         leftLayout->addWidget(button1);
 
+        QPushButton *button1_2 = new QPushButton("create rectangle\n(manual placement)");
+        button1_2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(button1_2, SIGNAL(clicked()), this, SLOT(addRectangleManually()));
+        leftLayout->addWidget(button1_2);
+
         QPushButton *button2 = new QPushButton("create polygon");
         button2->setEnabled(false); // for now
         button2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
@@ -209,6 +214,12 @@ private slots:
     void addRectangle()
     {
         editItemMgr_->addItem(new Rectangle);
+        editItemMgr_->repaint();
+    }
+
+    void addRectangleManually()
+    {
+        editItemMgr_->addItem(new Rectangle); // request this to be a focus item ... 2 B DONE!
         editItemMgr_->repaint();
     }
 
