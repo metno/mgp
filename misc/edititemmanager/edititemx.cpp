@@ -111,7 +111,7 @@ void EditItemX::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUnd
     Q_UNUSED(event); 
     Q_ASSERT(repaintNeeded);
     Q_ASSERT(undoCommands);
-    if (moving_ && (geometry() != preMoveGeometry()))
+    if ((moving_ || resizing_) && (geometry() != preMoveGeometry()))
         undoCommands->append(new SetGeometryCommand(this, preMoveGeometry(), geometry()));
 
     moving_ = resizing_ = false;
