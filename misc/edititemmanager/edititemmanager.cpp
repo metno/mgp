@@ -1,6 +1,18 @@
 #include "edititemmanager.h"
 #include "edititembase.h"
 
+static QString undoCommandText(int nadded, int nremoved, int nmodified)
+{
+    QString s;
+    if (nadded > 0)
+        s += QString("add %1 item%2").arg(nadded).arg((nadded != 1) ? "s" : "");
+    if (nremoved > 0)
+        s += QString("%1remove %2 item%3").arg(s.isEmpty() ? "" : ", ").arg(nremoved).arg((nremoved != 1) ? "s" : "");
+    if (nmodified > 0)
+        s += QString("%1modify %2 item%3").arg(s.isEmpty() ? "" : ", ").arg(nmodified).arg((nmodified != 1) ? "s" : "");
+    return s;
+}
+
 class AddOrRemoveItemsCommand : public QUndoCommand
 {
 public:
@@ -15,7 +27,8 @@ private:
 
 AddOrRemoveItemsCommand::AddOrRemoveItemsCommand(
     EditItemManager *eim, const QSet<EditItemBase *> &addedItems, const QSet<EditItemBase *> &removedItems)
-    : eim_(eim)
+    : QUndoCommand(undoCommandText(addedItems.size(), removedItems.size(), 0))
+    , eim_(eim)
     , addedItems_(addedItems)
     , removedItems_(removedItems)
 {}
@@ -78,6 +91,11 @@ void EditItemManager::removeItems(const QSet<EditItemBase *> &items)
 {
     foreach (EditItemBase *item, items)
         removeItem(item);
+}
+
+QUndoStack * EditItemManager::undoStack()
+{
+    return &undoStack_;
 }
 
 void EditItemManager::mousePress(QMouseEvent *event)
@@ -143,7 +161,7 @@ void EditItemManager::mousePress(QMouseEvent *event)
     const bool modifiedItems = !undoCommands.empty();
     if (addedOrRemovedItems || modifiedItems)  {
         // combine the aggregated effect of the operation into one undo command
-        undoStack_.beginMacro("update according to mouse press");
+        undoStack_.beginMacro(undoCommandText(addedItems.size(), removedItems.size(), undoCommands.size()));
         skipRepaint_ = true; // temporarily prevent redo() calls from repainting
         if (addedOrRemovedItems) {
             // push sub-command representing aggregated adding/removal of items
@@ -176,7 +194,7 @@ void EditItemManager::mouseRelease(QMouseEvent *event)
     const bool modifiedItems = !undoCommands.empty();
     if (modifiedItems) {
         // combine the aggregated effect of the operation into one undo command
-        undoStack_.beginMacro("update according to mouse release");
+        undoStack_.beginMacro(undoCommandText(0, 0, undoCommands.size()));
         skipRepaint_ = true; // temporarily prevent redo() calls from repainting
         // push sub-commands representing individual item modifications
         foreach (QUndoCommand *undoCmd, undoCommands)
@@ -270,7 +288,7 @@ void EditItemManager::keyPress(QKeyEvent *event)
     const bool modifiedItems = !undoCommands.empty();
     if (addedOrRemovedItems || modifiedItems)  {
         // combine the aggregated effect of the operation into one undo command
-        undoStack_.beginMacro("update according to key press");
+        undoStack_.beginMacro(undoCommandText(addedItems.size(), removedItems.size(), undoCommands.size()));
         skipRepaint_ = true; // temporarily prevent redo() calls from repainting
         if (addedOrRemovedItems) {
             // push sub-command representing aggregated adding/removal of items

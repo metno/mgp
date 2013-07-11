@@ -116,7 +116,7 @@ public:
     Window(EditItemManager *editItemMgr)
         : editItemMgr_(editItemMgr)
     {
-        QHBoxLayout *layout = new QHBoxLayout;
+        QHBoxLayout *topLayout = new QHBoxLayout;
 
         QVBoxLayout *leftLayout = new QVBoxLayout;
 
@@ -135,28 +135,58 @@ public:
         button3->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
         leftLayout->addWidget(button3);
 
-        undoButton_ = new QPushButton("undo");
-        undoButton_->setEnabled(false);
-        undoButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        connect(undoButton_, SIGNAL(clicked()), editItemMgr_, SLOT(undo()));
-        leftLayout->addWidget(undoButton_);
-
-        redoButton_ = new QPushButton("redo");
-        redoButton_->setEnabled(false);
-        redoButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        connect(redoButton_, SIGNAL(clicked()), editItemMgr_, SLOT(redo()));
-        leftLayout->addWidget(redoButton_);
-
         leftLayout->addStretch();
-        layout->addLayout(leftLayout);
+        topLayout->addLayout(leftLayout);
 
         QVBoxLayout *rightLayout = new QVBoxLayout;
         Canvas *canvas = new Canvas;
         canvas->show();
         rightLayout->addWidget(canvas);
-        layout->addLayout(rightLayout);
+        topLayout->addLayout(rightLayout);
 
-        setLayout(layout);
+        //---------------------------------------------------------------------------
+
+        QHBoxLayout *layout2 = new QHBoxLayout;
+
+        undoButton_ = new QPushButton("undo");
+        undoButton_->setEnabled(false);
+        undoButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(undoButton_, SIGNAL(clicked()), editItemMgr_, SLOT(undo()));
+        layout2->addWidget(undoButton_);
+
+        redoButton_ = new QPushButton("redo");
+        redoButton_->setEnabled(false);
+        redoButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(redoButton_, SIGNAL(clicked()), editItemMgr_, SLOT(redo()));
+        layout2->addWidget(redoButton_);
+
+        layout2->addStretch();
+
+        QUndoView *undoView = new QUndoView(editItemMgr_->undoStack());
+
+        QVBoxLayout *bottomLayout = new QVBoxLayout;
+        bottomLayout->addLayout(layout2);
+        bottomLayout->addWidget(undoView);
+
+        //---------------------------------------------------------------------------
+
+        QVBoxLayout *mainLayout = new QVBoxLayout;
+        //mainLayout->setContentsMargins(0, 0, 0, 0);
+
+        QSplitter *splitter = new QSplitter(Qt::Vertical);
+
+        QWidget *topWidget = new QWidget;
+        topWidget->setLayout(topLayout);
+        splitter->addWidget(topWidget);
+
+        QWidget *bottomWidget = new QWidget;
+        bottomWidget->setLayout(bottomLayout);
+        splitter->addWidget(bottomWidget);
+
+        splitter->setSizes(QList<int>() << 600 << 300);
+
+        mainLayout->addWidget(splitter);
+        setLayout(mainLayout);
 
         connect(canvas, SIGNAL(mousePressed(QMouseEvent *)), editItemMgr, SLOT(mousePress(QMouseEvent *)));
         connect(canvas, SIGNAL(mouseReleased(QMouseEvent *)), editItemMgr, SLOT(mouseRelease(QMouseEvent *)));
@@ -198,7 +228,7 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     Window window(new EditItemManager);
-    window.resize(800, 600);
+    window.resize(800, 900);
     window.show();
     return app.exec();
 }

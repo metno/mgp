@@ -13,6 +13,7 @@ public:
     EditItemManager();
     void addItem(EditItemBase *);
     void removeItem(EditItemBase *);
+    QUndoStack *undoStack();
 public slots:
     void mousePress(QMouseEvent *);
     void mouseRelease(QMouseEvent *);
