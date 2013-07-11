@@ -2,7 +2,7 @@
 #include <QtOpenGL>
 
 #include "edititemmanager.h"
-#include "edititemx.h"
+#include "rectangle.h"
 
 class Canvas : public QGLWidget
 {
@@ -120,9 +120,9 @@ public:
 
         QVBoxLayout *leftLayout = new QVBoxLayout;
 
-        QPushButton *button1 = new QPushButton("create rectangle");
+        QPushButton *button1 = new QPushButton("create rectangle\n(automatic placement)");
         button1->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        connect(button1, SIGNAL(clicked()), this, SLOT(addItemType1()));
+        connect(button1, SIGNAL(clicked()), this, SLOT(addRectangle()));
         leftLayout->addWidget(button1);
 
         QPushButton *button2 = new QPushButton("create polygon");
@@ -206,9 +206,9 @@ private:
     QPushButton *redoButton_;
 
 private slots:
-    void addItemType1()
+    void addRectangle()
     {
-        editItemMgr_->addItem(new EditItemX);
+        editItemMgr_->addItem(new Rectangle);
         editItemMgr_->repaint();
     }
 

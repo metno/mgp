@@ -1,12 +1,12 @@
 #include <QtOpenGL>
-#include "edititemx.h"
+#include "rectangle.h"
 
 class SetGeometryCommand : public QUndoCommand
 {
 public:
-    SetGeometryCommand(EditItemX *, const QRect &, const QRect &);
+    SetGeometryCommand(Rectangle *, const QRect &, const QRect &);
 private:
-    EditItemX *item_;
+    Rectangle *item_;
     QRect oldGeometry_;
     QRect newGeometry_;
     virtual void undo();
@@ -14,7 +14,7 @@ private:
 };
 
 SetGeometryCommand::SetGeometryCommand(
-    EditItemX *item, const QRect &oldGeometry, const QRect &newGeometry)
+    Rectangle *item, const QRect &oldGeometry, const QRect &newGeometry)
     : item_(item)
     , oldGeometry_(oldGeometry)
     , newGeometry_(newGeometry)
@@ -32,7 +32,7 @@ void SetGeometryCommand::redo()
     item_->repaint();
 }
 
-EditItemX::EditItemX()
+Rectangle::Rectangle()
     : rect_(QRect(20, 20, 100, 100))
     , moving_(false)
     , resizing_(false)
@@ -48,25 +48,25 @@ EditItemX::EditItemX()
     color_.setBlue(64 + 128 * (float(qrand()) / RAND_MAX));
 }
 
-EditItemX::~EditItemX()
+Rectangle::~Rectangle()
 {
     delete remove_;
     delete contextMenu_;
 }
 
-bool EditItemX::hit(const QPoint &pos, bool selected) const
+bool Rectangle::hit(const QPoint &pos, bool selected) const
 {
     return rect_.contains(pos) || (selected && (hitControlPoint(pos) >= 0));
 }
 
-bool EditItemX::hit(const QRect &bbox) const
+bool Rectangle::hit(const QRect &bbox) const
 {
-    // qDebug() << "EditItemX::hit(QRect) ... (not implemented)";
+    // qDebug() << "Rectangle::hit(QRect) ... (not implemented)";
     Q_UNUSED(bbox);
     return false; // for now
 }
 
-void EditItemX::mousePress(
+void Rectangle::mousePress(
     QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items, bool *multiItemOp)
 {
     Q_ASSERT(undoCommands);
@@ -106,7 +106,7 @@ void EditItemX::mousePress(
     }
 }
 
-void EditItemX::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands)
+void Rectangle::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands)
 {
     Q_UNUSED(event); 
     Q_ASSERT(repaintNeeded);
@@ -118,7 +118,7 @@ void EditItemX::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUnd
     *repaintNeeded = false;
 }
 
-void EditItemX::mouseMove(QMouseEvent *event, bool *repaintNeeded)
+void Rectangle::mouseMove(QMouseEvent *event, bool *repaintNeeded)
 {
     if (moving_) {
         move(event->pos());
@@ -129,13 +129,13 @@ void EditItemX::mouseMove(QMouseEvent *event, bool *repaintNeeded)
     }
 }
 
-void EditItemX::mouseHover(QMouseEvent *event, bool *repaintNeeded)
+void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
 {
     Q_UNUSED(event);
     Q_UNUSED(repaintNeeded);
 }
 
-void EditItemX::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
+void Rectangle::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
 {
     Q_UNUSED(undoCommands); // not used, since the key press currently doesn't modify this item
     // (it may mark it for removal, but adding and removing items is handled on the outside)
@@ -149,13 +149,13 @@ void EditItemX::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoComma
     }
 }
 
-void EditItemX::keyRelease(QKeyEvent *event, bool *repaintNeeded)
+void Rectangle::keyRelease(QKeyEvent *event, bool *repaintNeeded)
 {
     Q_UNUSED(event);
     Q_UNUSED(repaintNeeded);
 }
 
-void EditItemX::draw(DrawModes modes)
+void Rectangle::draw(DrawModes modes)
 {
     // draw the basic item
     glBegin(GL_POLYGON);
@@ -177,7 +177,7 @@ void EditItemX::draw(DrawModes modes)
 
 // Returns the index (0..3) of the control point hit by \a pos, or -1 if no
 // control point was hit.
-int EditItemX::hitControlPoint(const QPoint &pos) const
+int Rectangle::hitControlPoint(const QPoint &pos) const
 {
     for (int i = 0; i < controlPoints_.size(); ++i)
         if (controlPoints_.at(i).contains(pos))
@@ -185,14 +185,14 @@ int EditItemX::hitControlPoint(const QPoint &pos) const
     return -1;
 }
 
-void EditItemX::move(const QPoint &pos)
+void Rectangle::move(const QPoint &pos)
 {
     const QPoint delta = pos - baseMousePos_;
     rect_.moveTo(baseTopLeftPos_ + delta);
     updateControlPoints();
 }
 
-void EditItemX::resize(const QPoint &pos)
+void Rectangle::resize(const QPoint &pos)
 {
     const QPoint delta = pos - baseMousePos_;
     switch (currCtrlPointIndex_) {
@@ -204,7 +204,7 @@ void EditItemX::resize(const QPoint &pos)
     updateControlPoints();
 }
 
-void EditItemX::updateControlPoints()
+void Rectangle::updateControlPoints()
 {
     controlPoints_.clear();
     QList<QPoint> corners = QList<QPoint>()
@@ -217,7 +217,7 @@ void EditItemX::updateControlPoints()
         controlPoints_.append(QRect(c.x() - size_2, c.y() - size_2, size, size));
 }
 
-void EditItemX::drawControlPoints()
+void Rectangle::drawControlPoints()
 {
     glColor3ub(0, 0, 0);
     foreach (QRect c, controlPoints_) {
@@ -230,7 +230,7 @@ void EditItemX::drawControlPoints()
     }
 }
 
-void EditItemX::drawHoverHighlighting()
+void Rectangle::drawHoverHighlighting()
 {
     const int pad = 2;
     glColor3ub(255, 0, 0);
@@ -242,7 +242,7 @@ void EditItemX::drawHoverHighlighting()
     glEnd();
 }
 
-void EditItemX::remove(bool *repaintNeeded, QSet<EditItemBase *> *items)
+void Rectangle::remove(bool *repaintNeeded, QSet<EditItemBase *> *items)
 {
     Q_ASSERT(items);
     Q_ASSERT(items->contains(this));
@@ -258,8 +258,8 @@ void EditItemX::remove(bool *repaintNeeded, QSet<EditItemBase *> *items)
     *repaintNeeded = true;
 }
 
-// Splits all items of type EditItemX in two, including this item.
-void EditItemX::split(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
+// Splits all items of type Rectangle in two, including this item.
+void Rectangle::split(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
 {
     Q_UNUSED(repaintNeeded); // no need to set this (item state changes implies adding new items which causes a repaint in itself)
     Q_ASSERT(undoCommands);
@@ -268,11 +268,11 @@ void EditItemX::split(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, 
 
     QSet<EditItemBase *> addedItems;
     foreach (EditItemBase *item, *items) {
-        EditItemX *itemx;
-        if ((itemx = qobject_cast<EditItemX *>(item))) {
+        Rectangle *itemx;
+        if ((itemx = qobject_cast<Rectangle *>(item))) {
             // split itemx in two by
             // ... creating a new item
-            EditItemX *addedItem = new EditItemX();
+            Rectangle *addedItem = new Rectangle();
             addedItem->setGeometry(itemx->lowerHalf());
             addedItems.insert(addedItem);
 
@@ -287,10 +287,10 @@ void EditItemX::split(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, 
    }
 }
 
-// Merges items of type EditItemX into one by
-//   1) resizing this item to the bounding box of all items of type EditItemX, and
-//   2) removing all items of type EditItemX but this item
-void EditItemX::merge(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
+// Merges items of type Rectangle into one by
+//   1) resizing this item to the bounding box of all items of type Rectangle, and
+//   2) removing all items of type Rectangle but this item
+void Rectangle::merge(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
 {
     Q_UNUSED(repaintNeeded); // no need to set this (item state changes implies removing items which causes a repaint in itself)
     Q_ASSERT(undoCommands);
@@ -298,16 +298,16 @@ void EditItemX::merge(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, 
     Q_ASSERT(items->contains(this));
 
     // find all items of the same type as this item (excluding this item)
-    QList<EditItemX *> mergeItems;
+    QList<Rectangle *> mergeItems;
     foreach (EditItemBase *item, *items) {
-        EditItemX *itemx;
-        if ((itemx = qobject_cast<EditItemX *>(item)) && (itemx != this))
+        Rectangle *itemx;
+        if ((itemx = qobject_cast<Rectangle *>(item)) && (itemx != this))
             mergeItems.append(itemx);
     }
     if (!mergeItems.empty()) {
         QRect boundingBox = geometry();
         // expand the bounding box gradually, removing each contributing item along the way
-        foreach (EditItemX *item, mergeItems) {
+        foreach (Rectangle *item, mergeItems) {
             boundingBox = boundingBox.united(item->geometry());
             items->remove(item);
         }
@@ -317,20 +317,20 @@ void EditItemX::merge(bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, 
     }
 }
 
-void EditItemX::setGeometry(const QRect &r)
+void Rectangle::setGeometry(const QRect &r)
 {
     rect_ = r;
     updateControlPoints();
 }
 
-QRect EditItemX::upperHalf() const
+QRect Rectangle::upperHalf() const
 {
     QRect r = rect_;
     r.setBottom((r.top() + r.bottom()) / 2);
     return r;
 }
 
-QRect EditItemX::lowerHalf() const
+QRect Rectangle::lowerHalf() const
 {
     QRect r = rect_;
     r.setTop((r.top() + r.bottom()) / 2);

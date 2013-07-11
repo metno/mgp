@@ -1,16 +1,16 @@
-#ifndef EDITITEMX_H
-#define EDITITEMX_H
+#ifndef RECTANGLE_H
+#define RECTANGLE_H
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "edititembase.h"
 
-class EditItemX : public EditItemBase
+class Rectangle : public EditItemBase
 {
     Q_OBJECT
     friend class SetGeometryCommand;
 public:
-    EditItemX();
-    virtual ~EditItemX();
+    Rectangle();
+    virtual ~Rectangle();
 private:
     virtual bool hit(const QPoint &, bool) const;
     virtual bool hit(const QRect &) const;
@@ -57,4 +57,4 @@ private:
     QColor color_;
 };
 
-#endif // EDITITEMX_H
+#endif // RECTANGLE_H

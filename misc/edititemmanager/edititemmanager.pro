@@ -4,8 +4,8 @@ DEPENDPATH += .
 INCLUDEPATH += .
 
 # Input
-SOURCES += main.cpp edititemmanager.cpp edititembase.cpp edititemx.cpp
-HEADERS += edititemmanager.h edititembase.h edititemx.h
+SOURCES += main.cpp edititemmanager.cpp edititembase.cpp rectangle.cpp
+HEADERS += edititemmanager.h edititembase.h rectangle.h
 
 QT += opengl
 CONFIG += debug
