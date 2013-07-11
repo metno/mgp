@@ -144,9 +144,9 @@ public:
         topLayout->addLayout(leftLayout);
 
         QVBoxLayout *rightLayout = new QVBoxLayout;
-        Canvas *canvas = new Canvas;
-        canvas->show();
-        rightLayout->addWidget(canvas);
+        canvas_ = new Canvas;
+        canvas_->show();
+        rightLayout->addWidget(canvas_);
         topLayout->addLayout(rightLayout);
 
         //---------------------------------------------------------------------------
@@ -193,19 +193,21 @@ public:
         mainLayout->addWidget(splitter);
         setLayout(mainLayout);
 
-        connect(canvas, SIGNAL(mousePressed(QMouseEvent *)), editItemMgr, SLOT(mousePress(QMouseEvent *)));
-        connect(canvas, SIGNAL(mouseReleased(QMouseEvent *)), editItemMgr, SLOT(mouseRelease(QMouseEvent *)));
-        connect(canvas, SIGNAL(mouseMoved(QMouseEvent *)), editItemMgr, SLOT(mouseMove(QMouseEvent *)));
-        connect(canvas, SIGNAL(keyPressed(QKeyEvent *)), editItemMgr, SLOT(keyPress(QKeyEvent *)));
-        connect(canvas, SIGNAL(keyReleased(QKeyEvent *)), editItemMgr, SLOT(keyRelease(QKeyEvent *)));
-        connect(canvas, SIGNAL(paint()), editItemMgr, SLOT(draw()));
-        connect(editItemMgr, SIGNAL(paintDone()), canvas, SLOT(doSwapBuffers()));
-        connect(editItemMgr, SIGNAL(repaintNeeded()), canvas, SLOT(doRepaint()));
+        connect(canvas_, SIGNAL(mousePressed(QMouseEvent *)), editItemMgr, SLOT(mousePress(QMouseEvent *)));
+        connect(canvas_, SIGNAL(mouseReleased(QMouseEvent *)), editItemMgr, SLOT(mouseRelease(QMouseEvent *)));
+        connect(canvas_, SIGNAL(mouseMoved(QMouseEvent *)), editItemMgr, SLOT(mouseMove(QMouseEvent *)));
+        connect(canvas_, SIGNAL(keyPressed(QKeyEvent *)), editItemMgr, SLOT(keyPress(QKeyEvent *)));
+        connect(canvas_, SIGNAL(keyReleased(QKeyEvent *)), editItemMgr, SLOT(keyRelease(QKeyEvent *)));
+        connect(canvas_, SIGNAL(paint()), editItemMgr, SLOT(draw()));
+        connect(editItemMgr, SIGNAL(paintDone()), canvas_, SLOT(doSwapBuffers()));
+        connect(editItemMgr, SIGNAL(repaintNeeded()), canvas_, SLOT(doRepaint()));
         connect(editItemMgr, SIGNAL(canUndoChanged(bool)), this, SLOT(handleCanUndoChanged(bool)));
         connect(editItemMgr, SIGNAL(canRedoChanged(bool)), this, SLOT(handleCanRedoChanged(bool)));
+        connect(editItemMgr, SIGNAL(incompleteEditing(bool)), this, SLOT(handleIncompleteEditing(bool)));
     }
 
 private:
+    Canvas *canvas_;
     EditItemManager *editItemMgr_;
     QPushButton *undoButton_;
     QPushButton *redoButton_;
@@ -219,7 +221,7 @@ private slots:
 
     void addRectangleManually()
     {
-        editItemMgr_->addItem(new Rectangle); // request this to be a focus item ... 2 B DONE!
+        editItemMgr_->addItem(new Rectangle, true);
         editItemMgr_->repaint();
     }
 
@@ -231,6 +233,16 @@ private slots:
     void handleCanRedoChanged(bool canRedo)
     {
         redoButton_->setEnabled(canRedo);
+    }
+
+    void handleIncompleteEditing(bool incomplete)
+    {
+        if (incomplete) {
+            setCursor(Qt::CrossCursor);
+            canvas_->setFocus();
+        } else {
+            unsetCursor();
+        }
     }
 };
 

@@ -1,6 +1,8 @@
 #include "edititembase.h"
 
-EditItemBase::EditItemBase() : id_(nextId()) {}
+EditItemBase::EditItemBase()
+    : id_(nextId())
+{}
 
 int EditItemBase::id() const { return id_; }
 

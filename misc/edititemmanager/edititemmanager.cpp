@@ -49,6 +49,7 @@ void AddOrRemoveItemsCommand::redo()
 
 EditItemManager::EditItemManager()
     : hoverItem_(0)
+    , incompleteItem_(0)
     , repaintNeeded_(false)
     , skipRepaint_(false)
 {
@@ -56,14 +57,25 @@ EditItemManager::EditItemManager()
     connect(&undoStack_, SIGNAL(canRedoChanged(bool)), this, SIGNAL(canRedoChanged(bool)));
 }
 
-void EditItemManager::addItem(EditItemBase *item)
+// Adds an item to the scene. \a incomplete indicates whether the item is in the process of being manually placed.
+void EditItemManager::addItem(EditItemBase *item, bool incomplete)
 {
-    // create undo command
-    QSet<EditItemBase *> addedItems;
-    addedItems.insert(item);
-    QSet<EditItemBase *> removedItems;
-    AddOrRemoveItemsCommand *arCmd = new AddOrRemoveItemsCommand(this, addedItems, removedItems);
-    undoStack_.push(arCmd);
+    if (incomplete) {
+        // set this item as the incomplete item
+        if (incompleteItem_) {
+            // issue warning?
+        }
+        incompleteItem_ = item;
+        emit incompleteEditing(true);
+    } else {
+        // create undo command
+        QSet<EditItemBase *> addedItems;
+        addedItems.insert(item);
+        QSet<EditItemBase *> removedItems;
+        AddOrRemoveItemsCommand *arCmd = new AddOrRemoveItemsCommand(this, addedItems, removedItems);
+        undoStack_.push(arCmd);
+    }
+
     repaint();
 }
 
@@ -100,6 +112,11 @@ QUndoStack * EditItemManager::undoStack()
 
 void EditItemManager::mousePress(QMouseEvent *event)
 {
+    if (incompleteItem_) {
+        incompleteMousePress(event);
+        return;
+    }
+
     const QList<EditItemBase *> hitItems = findHitItems(event->pos());
     EditItemBase *hitItem = // consider only this item to be hit
         hitItems.empty()
@@ -181,8 +198,34 @@ void EditItemManager::mousePress(QMouseEvent *event)
         repaint();
 }
 
+// Handles a mouse press event for an item in the process of being completed.
+void EditItemManager::incompleteMousePress(QMouseEvent *event)
+{
+    Q_ASSERT(incompleteItem_);
+    bool rpn = false;
+    bool complete = false;
+    bool aborted = false;
+    incompleteItem_->incompleteMousePress(event, &rpn, &complete, &aborted);
+    if (aborted) {
+        delete incompleteItem_; // or leave it to someone else?
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else if (complete) {
+        addItem(incompleteItem_);
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else if (rpn) {
+        repaint();
+    }
+}
+
 void EditItemManager::mouseRelease(QMouseEvent *event)
 {
+    if (incompleteItem_) {
+        incompleteMouseRelease(event);
+        return;
+    }
+
     repaintNeeded_ = false;
 
     QList<QUndoCommand *> undoCommands;
@@ -208,8 +251,34 @@ void EditItemManager::mouseRelease(QMouseEvent *event)
         repaint();
 }
 
+// Handles a mouse release event for an item in the process of being completed.
+void EditItemManager::incompleteMouseRelease(QMouseEvent *event)
+{
+    Q_ASSERT(incompleteItem_);
+    bool rpn = false;
+    bool complete = false;
+    bool aborted = false;
+    incompleteItem_->incompleteMouseRelease(event, &rpn, &complete, &aborted);
+    if (aborted) {
+        delete incompleteItem_; // or leave it to someone else?
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else if (complete) {
+        addItem(incompleteItem_);
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else if (rpn) {
+        repaint();
+    }
+}
+
 void EditItemManager::mouseMove(QMouseEvent *event)
 {
+    if (incompleteItem_) {
+        incompleteMouseMove(event);
+        return;
+    }
+
     // Check if the event is part of a multi-select operation using a rubberband-rectangle.
     // In that case, the event should only be used to update the selection (and tell items to redraw themselves as
     // approproate), and NOT be passed on through the mouseMove() functions of the selected items ... 2 B DONE!
@@ -220,15 +289,16 @@ void EditItemManager::mouseMove(QMouseEvent *event)
     hoverItem_ = 0;
     const bool hover = !event->buttons();
     if (hover) {
-
         const QList<EditItemBase *> hitItems = findHitItems(event->pos());
         if (!hitItems.empty()) {
             // consider only the topmost item that was hit ... 2 B DONE
             // for now, consider only the first that was found
             hoverItem_ = hitItems.first();
-
+            
             // send mouse hover event to the hover item
-            hoverItem_->mouseHover(event, &repaintNeeded_);
+            bool rpn = false;
+            hoverItem_->mouseHover(event, &rpn);
+            if (rpn) repaintNeeded_ = true;
         } else {
             // ignore hovering outside any item
         }
@@ -237,12 +307,31 @@ void EditItemManager::mouseMove(QMouseEvent *event)
         foreach (EditItemBase *item, selItems_) {
             bool rpn = false;
             item->mouseMove(event, &rpn);
-            if (rpn)
-                repaintNeeded_ = true;
+            if (rpn) repaintNeeded_ = true;
         }
     }
 
     if (repaintNeeded_ || (hoverItem_ != origHoverItem))
+        repaint();
+}
+
+// Handles a mouse move event for an item in the process of being completed.
+void EditItemManager::incompleteMouseMove(QMouseEvent *event)
+{
+    Q_ASSERT(incompleteItem_);
+
+    const bool hover = !event->buttons();
+    if (hover) {
+        bool rpn = false;
+        incompleteItem_->incompleteMouseHover(event, &rpn);
+        if (rpn) repaintNeeded_ = true;
+    } else {
+        bool rpn = false;
+        incompleteItem_->incompleteMouseMove(event, &rpn);
+        if (rpn) repaintNeeded_ = true;
+    }
+
+    if (repaintNeeded_)
         repaint();
 }
 
@@ -256,6 +345,11 @@ static EditItemBase *idToItem(const QSet<EditItemBase *> &items, int id)
 
 void EditItemManager::keyPress(QKeyEvent *event)
 {
+    if (incompleteItem_) {
+        incompleteKeyPress(event);
+        return;
+    }
+
     repaintNeeded_ = false;
 
     QSet<int> origSelIds; // IDs of the originally selected items
@@ -309,8 +403,34 @@ void EditItemManager::keyPress(QKeyEvent *event)
         repaint();
 }
 
+// Handles a key press event for an item in the process of being completed.
+void EditItemManager::incompleteKeyPress(QKeyEvent *event)
+{
+    Q_ASSERT(incompleteItem_);
+    bool rpn = false;
+    bool complete = false;
+    bool aborted = false;
+    incompleteItem_->incompleteKeyPress(event, &rpn, &complete, &aborted);
+    if (aborted) {
+        delete incompleteItem_; // or leave it to someone else?
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else if (complete) {
+        addItem(incompleteItem_);
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else if (rpn) {
+        repaint();
+    }
+}
+
 void EditItemManager::keyRelease(QKeyEvent *event)
 {
+    if (incompleteItem_) {
+        incompleteKeyRelease(event);
+        return;
+    }
+
     bool rpNeeded = false; // whether at least one item needs to be repainted after processing the event
 
     // send to selected items
@@ -325,6 +445,16 @@ void EditItemManager::keyRelease(QKeyEvent *event)
         emit repaintNeeded();
 }
 
+// Handles a key release event for an item in the process of being completed.
+void EditItemManager::incompleteKeyRelease(QKeyEvent *event)
+{
+    Q_ASSERT(incompleteItem_);
+    bool rpn = false;
+    incompleteItem_->incompleteKeyRelease(event, &rpn);
+    if (rpn)
+        repaint();
+}
+
 void EditItemManager::draw()
 {
     foreach (EditItemBase *item, items_) {
@@ -333,7 +463,7 @@ void EditItemManager::draw()
             modes |= EditItemBase::Selected;
         if (item == hoverItem_)
             modes |= EditItemBase::Hovered;
-        item->draw(modes);
+        item->draw(modes, item == incompleteItem_);
     }
     emit paintDone();
 }

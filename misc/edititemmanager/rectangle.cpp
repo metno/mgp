@@ -106,16 +106,37 @@ void Rectangle::mousePress(
     }
 }
 
+// Handles a mouse press event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
+{
+    Q_UNUSED(repaintNeeded); // no need to set this (item state change implies setting *complete to true which causes a repaint in itself)
+    Q_UNUSED(aborted);
+    if (event->button() == Qt::LeftButton) {
+        rect_.moveTopLeft(event->pos());
+        rect_.setSize(QSize(50, 50));
+        updateControlPoints();
+        *complete = true;
+    }
+}
+
 void Rectangle::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands)
 {
     Q_UNUSED(event); 
-    Q_ASSERT(repaintNeeded);
+    Q_UNUSED(repaintNeeded); // no need to set this
     Q_ASSERT(undoCommands);
     if ((moving_ || resizing_) && (geometry() != preMoveGeometry()))
         undoCommands->append(new SetGeometryCommand(this, preMoveGeometry(), geometry()));
 
     moving_ = resizing_ = false;
-    *repaintNeeded = false;
+}
+
+// Handles a mouse release event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::incompleteMouseRelease(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+    Q_UNUSED(complete);
+    Q_UNUSED(aborted);
 }
 
 void Rectangle::mouseMove(QMouseEvent *event, bool *repaintNeeded)
@@ -129,7 +150,21 @@ void Rectangle::mouseMove(QMouseEvent *event, bool *repaintNeeded)
     }
 }
 
+// Handles a mouse move event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::incompleteMouseMove(QMouseEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
 void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
+// Handles a mouse hover event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::incompleteMouseHover(QMouseEvent *event, bool *repaintNeeded)
 {
     Q_UNUSED(event);
     Q_UNUSED(repaintNeeded);
@@ -137,16 +172,23 @@ void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
 
 void Rectangle::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
 {
+    Q_UNUSED(repaintNeeded); // no need to set this
     Q_UNUSED(undoCommands); // not used, since the key press currently doesn't modify this item
     // (it may mark it for removal, but adding and removing items is handled on the outside)
 
-    if (items) {
-        if ((event->key() == Qt::Key_Backspace) || (event->key() == Qt::Key_Delete)) {
-            Q_ASSERT(items->contains(this));
-            items->remove(this);
-            *repaintNeeded = true;
-        }
+    if (items && ((event->key() == Qt::Key_Backspace) || (event->key() == Qt::Key_Delete))) {
+        Q_ASSERT(items->contains(this));
+        items->remove(this);
     }
+}
+
+// Handles a key press event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::incompleteKeyPress(QKeyEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
+{
+    Q_UNUSED(repaintNeeded);
+    Q_UNUSED(complete);
+    if (event->key() == Qt::Key_Escape)
+        *aborted = true;
 }
 
 void Rectangle::keyRelease(QKeyEvent *event, bool *repaintNeeded)
@@ -155,7 +197,14 @@ void Rectangle::keyRelease(QKeyEvent *event, bool *repaintNeeded)
     Q_UNUSED(repaintNeeded);
 }
 
-void Rectangle::draw(DrawModes modes)
+// Handles a key release event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::incompleteKeyRelease(QKeyEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
+void Rectangle::draw(DrawModes modes, bool incomplete)
 {
     // draw the basic item
     glBegin(GL_POLYGON);
@@ -172,7 +221,7 @@ void Rectangle::draw(DrawModes modes)
 
     // draw highlighting if we're hovered
     if (modes & Hovered)
-        drawHoverHighlighting();
+        drawHoverHighlighting(incomplete);
 }
 
 // Returns the index (0..3) of the control point hit by \a pos, or -1 if no
@@ -230,10 +279,13 @@ void Rectangle::drawControlPoints()
     }
 }
 
-void Rectangle::drawHoverHighlighting()
+void Rectangle::drawHoverHighlighting(bool incomplete)
 {
     const int pad = 2;
-    glColor3ub(255, 0, 0);
+    if (incomplete)
+        glColor3ub(0, 200, 0);
+    else
+        glColor3ub(255, 0, 0);
     glBegin(GL_POLYGON);
     glVertex2i(rect_.left() - pad,  rect_.bottom() + pad);
     glVertex2i(rect_.right() + pad, rect_.bottom() + pad);

@@ -11,7 +11,7 @@ class EditItemManager : public QObject
     friend class AddOrRemoveItemsCommand;
 public:
     EditItemManager();
-    void addItem(EditItemBase *);
+    void addItem(EditItemBase *, bool = false);
     void removeItem(EditItemBase *);
     QUndoStack *undoStack();
 public slots:
@@ -29,10 +29,12 @@ signals:
     void repaintNeeded();
     void canUndoChanged(bool);
     void canRedoChanged(bool);
+    void incompleteEditing(bool);
 private:
     QSet<EditItemBase *> items_;
     QSet<EditItemBase *> selItems_;
     EditItemBase *hoverItem_;
+    EditItemBase *incompleteItem_; // item in the process of being completed (e.g. having its control points manually placed)
     bool repaintNeeded_;
     bool skipRepaint_;
     QUndoStack undoStack_;
@@ -40,6 +42,11 @@ private:
     void addItems(const QSet<EditItemBase *> &);
     void removeItems(const QSet<EditItemBase *> &);
     QList<EditItemBase *> findHitItems(const QPoint &) const;
+    void incompleteMousePress(QMouseEvent *);
+    void incompleteMouseRelease(QMouseEvent *);
+    void incompleteMouseMove(QMouseEvent *);
+    void incompleteKeyPress(QKeyEvent *);
+    void incompleteKeyRelease(QKeyEvent *);
 };
 
 #endif // EDITITEMMANAGER_H

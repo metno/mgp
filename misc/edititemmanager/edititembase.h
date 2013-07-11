@@ -35,17 +35,28 @@ public:
     virtual void mousePress(
         QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands,
         QSet<EditItemBase *> *items = 0, bool *multiItemOp = 0) = 0;
+    // Handles a mouse press event for an item in the process of being completed.
+    //
+    // \a complete is set to true iff the item is in a complete state upon returning from the function.
+    //
+    // \a aborted is set to true iff completing the item should be cancelled.
+    virtual void incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted) = 0;
 
-    // Handles a mouse release event (see documentation for mousePress()).
+    // Handles other mouse events (see documentation for mousePress() and incompleteMousePress()).
     virtual void mouseRelease(QMouseEvent *, bool *, QList<QUndoCommand *> *) = 0;
+    virtual void incompleteMouseRelease(QMouseEvent *, bool *, bool *, bool *) = 0;
     virtual void mouseMove(QMouseEvent *, bool *) = 0;
+    virtual void incompleteMouseMove(QMouseEvent *, bool *) = 0;
     virtual void mouseHover(QMouseEvent *, bool *) = 0;
+    virtual void incompleteMouseHover(QMouseEvent *, bool *) = 0;
 
-    // Handles a key press event (see documentation for mousePress()).
+    // Handles a key events (see documentation for mousePress() and incompleteMousePress()).
     virtual void keyPress(QKeyEvent *, bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> * = 0) = 0;
+    virtual void incompleteKeyPress(QKeyEvent *, bool *, bool *, bool *) = 0;
     virtual void keyRelease(QKeyEvent *, bool *) = 0;
+    virtual void incompleteKeyRelease(QKeyEvent *, bool *) = 0;
 
-    virtual void draw(DrawModes) = 0;
+    virtual void draw(DrawModes, bool) = 0;
 
     int id() const;
 
