@@ -65,10 +65,9 @@ bool MultiLine::hit(const QPoint &pos, bool selected) const
     return ((points_.size() >= 2) && (distance(pos) < proximityTolerance)) || (selected && (hitControlPoint(pos) >= 0));
 }
 
-bool MultiLine::hit(const QRect &bbox) const
+bool MultiLine::hit(const QRect &rect) const
 {
-    // qDebug() << "Rectangle::hit(QRect) ... (not implemented)";
-    Q_UNUSED(bbox);
+    Q_UNUSED(rect);
     return false; // for now
 }
 
@@ -107,20 +106,6 @@ void MultiLine::mousePress(
     }
 }
 
-// Handles a mouse press event when this item is incomplete, i.e. still in the process of being manually placed.
-void MultiLine::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
-{
-    Q_UNUSED(complete);
-    Q_UNUSED(aborted);
-    if (event->button() != Qt::LeftButton)
-        return;
-    if (!placementPos_)
-        placementPos_ = new QPoint(event->pos());
-    points_.append(QPoint(event->pos()));
-    updateControlPoints();
-    *repaintNeeded = true;
-}
-
 void MultiLine::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands)
 {
     Q_UNUSED(event); 
@@ -129,15 +114,6 @@ void MultiLine::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUnd
     if ((moving_ || resizing_) && (geometry() != baseGeometry()))
         undoCommands->append(new SetGeometryCommand(this, baseGeometry(), geometry()));
     moving_ = resizing_ = false;
-}
-
-// Handles a mouse release event when this item is incomplete, i.e. still in the process of being manually placed.
-void MultiLine::incompleteMouseRelease(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
-{
-    Q_UNUSED(event);
-    Q_UNUSED(repaintNeeded);
-    Q_UNUSED(complete);
-    Q_UNUSED(aborted);
 }
 
 void MultiLine::mouseMove(QMouseEvent *event, bool *repaintNeeded)
@@ -151,13 +127,6 @@ void MultiLine::mouseMove(QMouseEvent *event, bool *repaintNeeded)
     }
 }
 
-// Handles a mouse move event when this item is incomplete, i.e. still in the process of being manually placed.
-void MultiLine::incompleteMouseMove(QMouseEvent *event, bool *repaintNeeded)
-{
-    Q_UNUSED(event);
-    Q_UNUSED(repaintNeeded);
-}
-
 void MultiLine::mouseHover(QMouseEvent *event, bool *repaintNeeded)
 {
     const int origHoveredCtrlPointIndex = hoveredCtrlPointIndex_;
@@ -166,13 +135,10 @@ void MultiLine::mouseHover(QMouseEvent *event, bool *repaintNeeded)
         *repaintNeeded = true;
 }
 
-// Handles a mouse hover event when this item is incomplete, i.e. still in the process of being manually placed.
-void MultiLine::incompleteMouseHover(QMouseEvent *event, bool *repaintNeeded)
+void MultiLine::mouseDoubleClick(QMouseEvent *event, bool *repaintNeeded)
 {
-    if (placementPos_) {
-        *placementPos_ = event->pos();
-        *repaintNeeded = true;
-    }
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
 }
 
 void MultiLine::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
@@ -187,13 +153,74 @@ void MultiLine::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoComma
     }
 }
 
-// Handles a key press event when this item is incomplete, i.e. still in the process of being manually placed.
+void MultiLine::keyRelease(QKeyEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
+void MultiLine::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
+{
+    Q_UNUSED(complete);
+    Q_UNUSED(aborted);
+    if (event->button() != Qt::LeftButton)
+        return;
+    if (!placementPos_)
+        placementPos_ = new QPoint(event->pos());
+    points_.append(QPoint(event->pos()));
+    updateControlPoints();
+    *repaintNeeded = true;
+}
+
+void MultiLine::incompleteMouseRelease(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+    Q_UNUSED(complete);
+    Q_UNUSED(aborted);
+}
+
+void MultiLine::incompleteMouseMove(QMouseEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
+void MultiLine::incompleteMouseHover(QMouseEvent *event, bool *repaintNeeded)
+{
+    if (placementPos_) {
+        *placementPos_ = event->pos();
+        *repaintNeeded = true;
+    }
+}
+
+void MultiLine::incompleteMouseDoubleClick(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+
+    if (event->button() != Qt::LeftButton)
+        return;
+
+    Q_ASSERT(points_.size() >= 1); // the corresponding mouse press must have added a point
+
+    Q_ASSERT(placementPos_);
+    delete placementPos_;
+    placementPos_ = 0;
+
+    if (points_.size() >= 2) {
+        *complete = true; // causes repaint
+    } else {
+        *aborted = true; // not a complete multiline
+        *repaintNeeded = true;
+    }
+}
+
 void MultiLine::incompleteKeyPress(QKeyEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
 {
     Q_UNUSED(repaintNeeded);
     Q_UNUSED(complete);
     if (placementPos_ && ((event->key() == Qt::Key_Return) || (event->key() == Qt::Key_Enter))) {
-        // ### a double click should have the same effect (todo: support double click event in EditItemBase)
         if (points_.size() >= 2) {
             *complete = true; // causes repaint
         } else {
@@ -212,13 +239,6 @@ void MultiLine::incompleteKeyPress(QKeyEvent *event, bool *repaintNeeded, bool *
     }
 }
 
-void MultiLine::keyRelease(QKeyEvent *event, bool *repaintNeeded)
-{
-    Q_UNUSED(event);
-    Q_UNUSED(repaintNeeded);
-}
-
-// Handles a key release event when this item is incomplete, i.e. still in the process of being manually placed.
 void MultiLine::incompleteKeyRelease(QKeyEvent *event, bool *repaintNeeded)
 {
     Q_UNUSED(event);
@@ -315,7 +335,6 @@ void MultiLine::drawHoverHighlighting(bool incomplete)
         glColor3ub(255, 0, 0);
 
     if (hoveredCtrlPointIndex_ >= 0) {
-        qDebug() << "hover highlighting control point" << hoveredCtrlPointIndex_ << "...";
         // highlight a control point
         const QRect *r = &controlPoints_.at(hoveredCtrlPointIndex_);
         glPushAttrib(GL_LINE_BIT);

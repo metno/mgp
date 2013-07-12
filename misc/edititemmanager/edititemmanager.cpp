@@ -343,6 +343,38 @@ void EditItemManager::incompleteMouseMove(QMouseEvent *event)
         repaint();
 }
 
+void EditItemManager::mouseDoubleClick(QMouseEvent *event)
+{
+    if (incompleteItem_) {
+        incompleteMouseDoubleClick(event);
+        return;
+    }
+
+    // do nothing for now
+}
+
+void EditItemManager::incompleteMouseDoubleClick(QMouseEvent *event)
+{
+    Q_ASSERT(incompleteItem_);
+    bool rpn = false;
+    bool complete = false;
+    bool aborted = false;
+    incompleteItem_->incompleteMouseDoubleClick(event, &rpn, &complete, &aborted);
+    if (complete) {
+        addItem(incompleteItem_); // causes repaint
+        incompleteItem_ = 0;
+        emit incompleteEditing(false);
+    } else {
+        if (aborted) {
+            delete incompleteItem_; // or leave it to someone else?
+            incompleteItem_ = 0;
+            emit incompleteEditing(false);
+        }
+        if (rpn)
+            repaint();
+    }
+}
+
 static EditItemBase *idToItem(const QSet<EditItemBase *> &items, int id)
 {
     foreach (EditItemBase *item, items)

@@ -18,6 +18,7 @@ public slots:
     void mousePress(QMouseEvent *);
     void mouseRelease(QMouseEvent *);
     void mouseMove(QMouseEvent *);
+    void mouseDoubleClick(QMouseEvent *);
     void keyPress(QKeyEvent *);
     void keyRelease(QKeyEvent *);
     void draw();
@@ -45,6 +46,7 @@ private:
     void incompleteMousePress(QMouseEvent *);
     void incompleteMouseRelease(QMouseEvent *);
     void incompleteMouseMove(QMouseEvent *);
+    void incompleteMouseDoubleClick(QMouseEvent *);
     void incompleteKeyPress(QKeyEvent *);
     void incompleteKeyRelease(QKeyEvent *);
 };

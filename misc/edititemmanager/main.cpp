@@ -57,17 +57,27 @@ private:
         QMouseEvent fe = flippedYPos(event);
         emit mousePressed(&fe);
     }
+
     void mouseReleaseEvent(QMouseEvent *event)
     {
         QMouseEvent fe = flippedYPos(event);
         emit mouseReleased(&fe);
     }
+
     void mouseMoveEvent(QMouseEvent *event)
     {
         QMouseEvent fe = flippedYPos(event);
         emit mouseMoved(&fe);
     }
+
+    void mouseDoubleClickEvent(QMouseEvent *event)
+    {
+        QMouseEvent fe = flippedYPos(event);
+        emit mouseDoubleClicked(&fe);
+    }
+
     void keyPressEvent(QKeyEvent *event) { emit keyPressed(event); }
+
     void keyReleaseEvent(QKeyEvent *event) { emit keyReleased(event); }
 
     void focusInEvent(QFocusEvent *)
@@ -88,6 +98,7 @@ signals:
     void mousePressed(QMouseEvent *);
     void mouseReleased(QMouseEvent *);
     void mouseMoved(QMouseEvent *);
+    void mouseDoubleClicked(QMouseEvent *);
     void keyPressed(QKeyEvent *);
     void keyReleased(QKeyEvent *);
     void paint();
@@ -207,6 +218,7 @@ public:
         connect(canvas_, SIGNAL(mousePressed(QMouseEvent *)), editItemMgr, SLOT(mousePress(QMouseEvent *)));
         connect(canvas_, SIGNAL(mouseReleased(QMouseEvent *)), editItemMgr, SLOT(mouseRelease(QMouseEvent *)));
         connect(canvas_, SIGNAL(mouseMoved(QMouseEvent *)), editItemMgr, SLOT(mouseMove(QMouseEvent *)));
+        connect(canvas_, SIGNAL(mouseDoubleClicked(QMouseEvent *)), editItemMgr, SLOT(mouseDoubleClick(QMouseEvent *)));
         connect(canvas_, SIGNAL(keyPressed(QKeyEvent *)), editItemMgr, SLOT(keyPress(QKeyEvent *)));
         connect(canvas_, SIGNAL(keyReleased(QKeyEvent *)), editItemMgr, SLOT(keyRelease(QKeyEvent *)));
         connect(canvas_, SIGNAL(paint()), editItemMgr, SLOT(draw()));

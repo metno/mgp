@@ -66,10 +66,9 @@ bool Rectangle::hit(const QPoint &pos, bool selected) const
     return rect_.contains(pos) || (selected && (hitControlPoint(pos) >= 0));
 }
 
-bool Rectangle::hit(const QRect &bbox) const
+bool Rectangle::hit(const QRect &rect) const
 {
-    // qDebug() << "Rectangle::hit(QRect) ... (not implemented)";
-    Q_UNUSED(bbox);
+    Q_UNUSED(rect);
     return false; // for now
 }
 
@@ -108,7 +107,60 @@ void Rectangle::mousePress(
     }
 }
 
-// Handles a mouse press event when this item is incomplete, i.e. still in the process of being manually placed.
+void Rectangle::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands)
+{
+    Q_UNUSED(event); 
+    Q_UNUSED(repaintNeeded); // no need to set this
+    Q_ASSERT(undoCommands);
+    if ((moving_ || resizing_) && (geometry() != baseGeometry()))
+        undoCommands->append(new SetGeometryCommand(this, baseGeometry(), geometry()));
+
+    moving_ = resizing_ = false;
+}
+
+void Rectangle::mouseMove(QMouseEvent *event, bool *repaintNeeded)
+{
+    if (moving_) {
+        move(event->pos());
+        *repaintNeeded = true;
+    } else if (resizing_) {
+        resize(event->pos());
+        *repaintNeeded = true;
+    }
+}
+
+void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
+{
+    const int origHoveredCtrlPointIndex = hoveredCtrlPointIndex_;
+    hoveredCtrlPointIndex_ = hitControlPoint(event->pos());
+    if (hoveredCtrlPointIndex_ != origHoveredCtrlPointIndex)
+        *repaintNeeded = true;
+}
+
+void Rectangle::mouseDoubleClick(QMouseEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
+void Rectangle::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
+{
+    Q_UNUSED(repaintNeeded); // no need to set this
+    Q_UNUSED(undoCommands); // not used, since the key press currently doesn't modify this item
+    // (it may mark it for removal, but adding and removing items is handled on the outside)
+
+    if (items && ((event->key() == Qt::Key_Backspace) || (event->key() == Qt::Key_Delete))) {
+        Q_ASSERT(items->contains(this));
+        items->remove(this);
+    }
+}
+
+void Rectangle::keyRelease(QKeyEvent *event, bool *repaintNeeded)
+{
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+}
+
 void Rectangle::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
 {
     Q_UNUSED(repaintNeeded); // no need to set this (item state change implies setting *complete to true which causes a repaint in itself)
@@ -133,18 +185,6 @@ void Rectangle::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bo
     }
 }
 
-void Rectangle::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands)
-{
-    Q_UNUSED(event); 
-    Q_UNUSED(repaintNeeded); // no need to set this
-    Q_ASSERT(undoCommands);
-    if ((moving_ || resizing_) && (geometry() != baseGeometry()))
-        undoCommands->append(new SetGeometryCommand(this, baseGeometry(), geometry()));
-
-    moving_ = resizing_ = false;
-}
-
-// Handles a mouse release event when this item is incomplete, i.e. still in the process of being manually placed.
 void Rectangle::incompleteMouseRelease(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
 {
     Q_UNUSED(event);
@@ -153,33 +193,12 @@ void Rectangle::incompleteMouseRelease(QMouseEvent *event, bool *repaintNeeded, 
     Q_UNUSED(aborted);
 }
 
-void Rectangle::mouseMove(QMouseEvent *event, bool *repaintNeeded)
-{
-    if (moving_) {
-        move(event->pos());
-        *repaintNeeded = true;
-    } else if (resizing_) {
-        resize(event->pos());
-        *repaintNeeded = true;
-    }
-}
-
-// Handles a mouse move event when this item is incomplete, i.e. still in the process of being manually placed.
 void Rectangle::incompleteMouseMove(QMouseEvent *event, bool *repaintNeeded)
 {
     Q_UNUSED(event);
     Q_UNUSED(repaintNeeded);
 }
 
-void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
-{
-    const int origHoveredCtrlPointIndex = hoveredCtrlPointIndex_;
-    hoveredCtrlPointIndex_ = hitControlPoint(event->pos());
-    if (hoveredCtrlPointIndex_ != origHoveredCtrlPointIndex)
-        *repaintNeeded = true;
-}
-
-// Handles a mouse hover event when this item is incomplete, i.e. still in the process of being manually placed.
 void Rectangle::incompleteMouseHover(QMouseEvent *event, bool *repaintNeeded)
 {
     if ((placementMode_ == Resize) && placementPos1_) {
@@ -190,19 +209,14 @@ void Rectangle::incompleteMouseHover(QMouseEvent *event, bool *repaintNeeded)
     }
 }
 
-void Rectangle::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
+void Rectangle::incompleteMouseDoubleClick(QMouseEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
 {
-    Q_UNUSED(repaintNeeded); // no need to set this
-    Q_UNUSED(undoCommands); // not used, since the key press currently doesn't modify this item
-    // (it may mark it for removal, but adding and removing items is handled on the outside)
-
-    if (items && ((event->key() == Qt::Key_Backspace) || (event->key() == Qt::Key_Delete))) {
-        Q_ASSERT(items->contains(this));
-        items->remove(this);
-    }
+    Q_UNUSED(event);
+    Q_UNUSED(repaintNeeded);
+    Q_UNUSED(complete);
+    Q_UNUSED(aborted);
 }
 
-// Handles a key press event when this item is incomplete, i.e. still in the process of being manually placed.
 void Rectangle::incompleteKeyPress(QKeyEvent *event, bool *repaintNeeded, bool *complete, bool *aborted)
 {
     Q_UNUSED(repaintNeeded);
@@ -217,13 +231,6 @@ void Rectangle::incompleteKeyPress(QKeyEvent *event, bool *repaintNeeded, bool *
     }
 }
 
-void Rectangle::keyRelease(QKeyEvent *event, bool *repaintNeeded)
-{
-    Q_UNUSED(event);
-    Q_UNUSED(repaintNeeded);
-}
-
-// Handles a key release event when this item is incomplete, i.e. still in the process of being manually placed.
 void Rectangle::incompleteKeyRelease(QKeyEvent *event, bool *repaintNeeded)
 {
     Q_UNUSED(event);

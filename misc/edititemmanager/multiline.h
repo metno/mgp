@@ -16,19 +16,25 @@ public:
 private:
     virtual bool hit(const QPoint &, bool) const;
     virtual bool hit(const QRect &) const;
+
     virtual void mousePress(QMouseEvent *, bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *, bool *);
-    virtual void incompleteMousePress(QMouseEvent *, bool *, bool *, bool *);
     virtual void mouseRelease(QMouseEvent *, bool *, QList<QUndoCommand *> *);
-    virtual void incompleteMouseRelease(QMouseEvent *, bool *, bool *, bool *);
     virtual void mouseMove(QMouseEvent *, bool *);
-    virtual void incompleteMouseMove(QMouseEvent *, bool *);
     virtual void mouseHover(QMouseEvent *, bool *);
-    virtual void incompleteMouseHover(QMouseEvent *, bool *);
+    virtual void mouseDoubleClick(QMouseEvent *, bool *);
     virtual void keyPress(QKeyEvent *, bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
-    virtual void incompleteKeyPress(QKeyEvent *, bool *, bool *, bool *);
     virtual void keyRelease(QKeyEvent *, bool *);
+
+    virtual void incompleteMousePress(QMouseEvent *, bool *, bool *, bool *);
+    virtual void incompleteMouseRelease(QMouseEvent *, bool *, bool *, bool *);
+    virtual void incompleteMouseMove(QMouseEvent *, bool *);
+    virtual void incompleteMouseHover(QMouseEvent *, bool *);
+    virtual void incompleteMouseDoubleClick(QMouseEvent *, bool *, bool *, bool *);
+    virtual void incompleteKeyPress(QKeyEvent *, bool *, bool *, bool *);
     virtual void incompleteKeyRelease(QKeyEvent *, bool *);
+
     virtual void draw(DrawModes, bool);
+
     int hitControlPoint(const QPoint &) const;
     void move(const QPoint &);
     void resize(const QPoint &);
