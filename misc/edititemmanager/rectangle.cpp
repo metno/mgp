@@ -32,12 +32,14 @@ void SetGeometryCommand::redo()
     item_->repaint();
 }
 
-Rectangle::Rectangle()
+Rectangle::Rectangle(PlacementMode placementMode)
     : rect_(QRect(20, 20, 100, 100))
+    , placementMode_(placementMode)
     , moving_(false)
     , resizing_(false)
     , pressedCtrlPointIndex_(-1)
     , hoveredCtrlPointIndex_(-1)
+    , placementPos1_(0)
     , remove_(new QAction("Remove", 0))
     , split_(new QAction("Split", 0))
     , merge_(new QAction("Merge", 0))
@@ -112,11 +114,23 @@ void Rectangle::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bo
 {
     Q_UNUSED(repaintNeeded); // no need to set this (item state change implies setting *complete to true which causes a repaint in itself)
     Q_UNUSED(aborted);
-    if (event->button() == Qt::LeftButton) {
+    if (event->button() != Qt::LeftButton)
+        return;
+
+    if (placementMode_ == Instant) {
         rect_.moveTopLeft(event->pos());
         rect_.setSize(QSize(50, 50));
         updateControlPoints();
         *complete = true;
+    } else {
+        Q_ASSERT(placementMode_ == Resize);
+        if (placementPos1_ == 0) {
+            placementPos1_ = new QPoint(event->pos());
+        } else {
+            *complete = true;
+            delete placementPos1_;
+            placementPos1_ = 0;
+        }
     }
 }
 
@@ -169,8 +183,12 @@ void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
 // Handles a mouse hover event when this item is incomplete, i.e. still in the process of being manually placed.
 void Rectangle::incompleteMouseHover(QMouseEvent *event, bool *repaintNeeded)
 {
-    Q_UNUSED(event);
-    Q_UNUSED(repaintNeeded);
+    if ((placementMode_ == Resize) && placementPos1_) {
+        rect_.setTopLeft(*placementPos1_);
+        rect_.setBottomRight(event->pos());
+        updateControlPoints();
+        *repaintNeeded = true;
+    }
 }
 
 void Rectangle::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoCommand *> *undoCommands, QSet<EditItemBase *> *items)
@@ -190,8 +208,14 @@ void Rectangle::incompleteKeyPress(QKeyEvent *event, bool *repaintNeeded, bool *
 {
     Q_UNUSED(repaintNeeded);
     Q_UNUSED(complete);
-    if (event->key() == Qt::Key_Escape)
+    if (event->key() == Qt::Key_Escape) {
         *aborted = true;
+        if (placementPos1_) {
+            delete placementPos1_;
+            placementPos1_ = 0;
+            *repaintNeeded = true;
+        }
+    }
 }
 
 void Rectangle::keyRelease(QKeyEvent *event, bool *repaintNeeded)
@@ -209,8 +233,8 @@ void Rectangle::incompleteKeyRelease(QKeyEvent *event, bool *repaintNeeded)
 
 void Rectangle::draw(DrawModes modes, bool incomplete)
 {
-    if (incomplete)
-        return; // don't draw anything while we're in the process of being manually placed
+    if (incomplete && ((placementMode_ == Instant) || ((placementMode_ == Resize) && (placementPos1_ == 0))))
+        return;
 
     // draw the basic item
     glBegin(GL_POLYGON);

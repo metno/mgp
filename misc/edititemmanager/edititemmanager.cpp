@@ -415,16 +415,18 @@ void EditItemManager::incompleteKeyPress(QKeyEvent *event)
     bool complete = false;
     bool aborted = false;
     incompleteItem_->incompleteKeyPress(event, &rpn, &complete, &aborted);
-    if (aborted) {
-        delete incompleteItem_; // or leave it to someone else?
+    if (complete) {
+        addItem(incompleteItem_); // causes repaint
         incompleteItem_ = 0;
         emit incompleteEditing(false);
-    } else if (complete) {
-        addItem(incompleteItem_);
-        incompleteItem_ = 0;
-        emit incompleteEditing(false);
-    } else if (rpn) {
-        repaint();
+    } else {
+        if (aborted) {
+            delete incompleteItem_; // or leave it to someone else?
+            incompleteItem_ = 0;
+            emit incompleteEditing(false);
+        }
+        if (rpn)
+            repaint();
     }
 }
 

@@ -9,7 +9,8 @@ class Rectangle : public EditItemBase
     Q_OBJECT
     friend class SetGeometryCommand;
 public:
-    Rectangle();
+    enum PlacementMode { Instant = 0, Resize = 1 };
+    Rectangle(PlacementMode = Instant);
     virtual ~Rectangle();
 private:
     virtual bool hit(const QPoint &, bool) const;
@@ -46,6 +47,7 @@ private:
     QList<QRect> controlPoints_;
     QRect preMoveRect_;
 
+    bool placementMode_;
     bool moving_;
     bool resizing_;
     QPoint baseMousePos_;
@@ -55,6 +57,9 @@ private:
     QPoint baseTopRightPos_;
     int pressedCtrlPointIndex_;
     int hoveredCtrlPointIndex_;
+
+    QPoint *placementPos1_;
+    QPoint *placementPos2_;
 
     QAction *remove_;
     QAction *split_;

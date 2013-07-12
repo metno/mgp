@@ -130,6 +130,11 @@ public:
         connect(button1_2, SIGNAL(clicked()), this, SLOT(addRectangleManually()));
         leftLayout->addWidget(button1_2);
 
+        QPushButton *button1_3 = new QPushButton("create rectangle\n(manual placement w/resize)");
+        button1_3->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(button1_3, SIGNAL(clicked()), this, SLOT(addRectangleManuallyWithResize()));
+        leftLayout->addWidget(button1_3);
+
         QPushButton *button2 = new QPushButton("create polygon");
         button2->setEnabled(false); // for now
         button2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
@@ -222,6 +227,12 @@ private slots:
     void addRectangleManually()
     {
         editItemMgr_->addItem(new Rectangle, true);
+        editItemMgr_->repaint();
+    }
+
+    void addRectangleManuallyWithResize()
+    {
+        editItemMgr_->addItem(new Rectangle(Rectangle::Resize), true);
         editItemMgr_->repaint();
     }
 
