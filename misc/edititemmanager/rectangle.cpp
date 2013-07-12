@@ -294,14 +294,15 @@ void Rectangle::drawHoverHighlighting(bool incomplete)
         glColor3ub(255, 0, 0);
 
     const QRect *r = (hoveredCtrlPointIndex_ >= 0) ? &controlPoints_.at(hoveredCtrlPointIndex_) : &rect_;
+    glPushAttrib(GL_LINE_BIT);
     glLineWidth(2);
-
     glBegin(GL_LINE_LOOP);
     glVertex3i(r->left() - pad,  r->bottom() + pad, 1);
     glVertex3i(r->right() + pad, r->bottom() + pad, 1);
     glVertex3i(r->right() + pad, r->top() - pad, 1);
     glVertex3i(r->left() - pad,  r->top() - pad, 1);
     glEnd();
+    glPopAttrib();
 }
 
 void Rectangle::remove(bool *repaintNeeded, QSet<EditItemBase *> *items)
