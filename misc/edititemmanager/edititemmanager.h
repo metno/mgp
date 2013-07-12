@@ -11,9 +11,14 @@ class EditItemManager : public QObject
     friend class AddOrRemoveItemsCommand;
 public:
     EditItemManager();
-    void addItem(EditItemBase *, bool = false);
-    void removeItem(EditItemBase *);
+
+    // Registers a new item with the manager.
+    // \a incomplete is true iff the item is considered in the process of being completed (i.e. during manual placement of a new item).
+    void addItem(EditItemBase *item, bool incomplete = false);
+
+    // Returns the undo stack.
     QUndoStack *undoStack();
+
 public slots:
     void mousePress(QMouseEvent *);
     void mouseRelease(QMouseEvent *);
@@ -41,6 +46,7 @@ private:
     QUndoStack undoStack_;
     void addItem_(EditItemBase *);
     void addItems(const QSet<EditItemBase *> &);
+    void removeItem(EditItemBase *item);
     void removeItems(const QSet<EditItemBase *> &);
     QList<EditItemBase *> findHitItems(const QPoint &) const;
     void incompleteMousePress(QMouseEvent *);
