@@ -3,6 +3,7 @@
 
 #include "edititemmanager.h"
 #include "rectangle.h"
+#include "multiline.h"
 
 class Canvas : public QGLWidget
 {
@@ -135,15 +136,20 @@ public:
         connect(button1_3, SIGNAL(clicked()), this, SLOT(addRectangleManuallyWithResize()));
         leftLayout->addWidget(button1_3);
 
-        QPushButton *button2 = new QPushButton("create polygon");
-        button2->setEnabled(false); // for now
+        QPushButton *button2 = new QPushButton("create multiline\n(manual placement)");
         button2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(button2, SIGNAL(clicked()), this, SLOT(addMultiLineManually()));
         leftLayout->addWidget(button2);
 
-        QPushButton *button3 = new QPushButton("create polygon cutter");
+        QPushButton *button3 = new QPushButton("create polygon");
         button3->setEnabled(false); // for now
         button3->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
         leftLayout->addWidget(button3);
+
+        QPushButton *button4 = new QPushButton("create polygon cutter");
+        button4->setEnabled(false); // for now
+        button4->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        leftLayout->addWidget(button4);
 
         leftLayout->addStretch();
         topLayout->addLayout(leftLayout);
@@ -220,19 +226,25 @@ private:
 private slots:
     void addRectangle()
     {
-        editItemMgr_->addItem(new Rectangle);
+        editItemMgr_->addItem(new EditItem_Rectangle::Rectangle);
         editItemMgr_->repaint();
     }
 
     void addRectangleManually()
     {
-        editItemMgr_->addItem(new Rectangle, true);
+        editItemMgr_->addItem(new EditItem_Rectangle::Rectangle, true);
         editItemMgr_->repaint();
     }
 
     void addRectangleManuallyWithResize()
     {
-        editItemMgr_->addItem(new Rectangle(Rectangle::Resize), true);
+        editItemMgr_->addItem(new EditItem_Rectangle::Rectangle(EditItem_Rectangle::Rectangle::Resize), true);
+        editItemMgr_->repaint();
+    }
+
+    void addMultiLineManually()
+    {
+        editItemMgr_->addItem(new EditItem_MultiLine::MultiLine, true);
         editItemMgr_->repaint();
     }
 

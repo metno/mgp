@@ -206,16 +206,18 @@ void EditItemManager::incompleteMousePress(QMouseEvent *event)
     bool complete = false;
     bool aborted = false;
     incompleteItem_->incompleteMousePress(event, &rpn, &complete, &aborted);
-    if (aborted) {
-        delete incompleteItem_; // or leave it to someone else?
+    if (complete) {
+        addItem(incompleteItem_); // causes repaint
         incompleteItem_ = 0;
         emit incompleteEditing(false);
-    } else if (complete) {
-        addItem(incompleteItem_);
-        incompleteItem_ = 0;
-        emit incompleteEditing(false);
-    } else if (rpn) {
-        repaint();
+    } else {
+        if (aborted) {
+            delete incompleteItem_; // or leave it to someone else?
+            incompleteItem_ = 0;
+            emit incompleteEditing(false);
+        }
+        if (rpn)
+            repaint();
     }
 }
 
@@ -259,16 +261,18 @@ void EditItemManager::incompleteMouseRelease(QMouseEvent *event)
     bool complete = false;
     bool aborted = false;
     incompleteItem_->incompleteMouseRelease(event, &rpn, &complete, &aborted);
-    if (aborted) {
-        delete incompleteItem_; // or leave it to someone else?
+    if (complete) {
+        addItem(incompleteItem_); // causes repaint
         incompleteItem_ = 0;
         emit incompleteEditing(false);
-    } else if (complete) {
-        addItem(incompleteItem_);
-        incompleteItem_ = 0;
-        emit incompleteEditing(false);
-    } else if (rpn) {
-        repaint();
+    } else {
+        if (aborted) {
+            delete incompleteItem_; // or leave it to someone else?
+            incompleteItem_ = 0;
+            emit incompleteEditing(false);
+        }
+        if (rpn)
+            repaint();
     }
 }
 

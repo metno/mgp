@@ -1,6 +1,8 @@
 #include <QtOpenGL>
 #include "rectangle.h"
 
+namespace EditItem_Rectangle {
+
 class SetGeometryCommand : public QUndoCommand
 {
 public:
@@ -54,6 +56,8 @@ Rectangle::Rectangle(PlacementMode placementMode)
 Rectangle::~Rectangle()
 {
     delete remove_;
+    delete split_;
+    delete merge_;
     delete contextMenu_;
 }
 
@@ -78,13 +82,8 @@ void Rectangle::mousePress(
         pressedCtrlPointIndex_ = hitControlPoint(event->pos());
         resizing_ = (pressedCtrlPointIndex_ >= 0);
         moving_ = !resizing_;
-        if (moving_)
-            preMoveRect_ = rect_;
+        baseRect_ = rect_;
         baseMousePos_ = event->pos();
-        baseBottomLeftPos_ = rect_.bottomLeft();
-        baseBottomRightPos_ = rect_.bottomRight();
-        baseTopLeftPos_ = rect_.topLeft();
-        baseTopRightPos_ = rect_.topRight();
 
         if (multiItemOp)
             *multiItemOp = moving_; // i.e. a move operation would apply to all selected items
@@ -121,13 +120,13 @@ void Rectangle::incompleteMousePress(QMouseEvent *event, bool *repaintNeeded, bo
         rect_.moveTopLeft(event->pos());
         rect_.setSize(QSize(50, 50));
         updateControlPoints();
-        *complete = true;
+        *complete = true; // causes repaint
     } else {
         Q_ASSERT(placementMode_ == Resize);
         if (placementPos1_ == 0) {
             placementPos1_ = new QPoint(event->pos());
         } else {
-            *complete = true;
+            *complete = true; // causes repaint
             delete placementPos1_;
             placementPos1_ = 0;
         }
@@ -139,8 +138,8 @@ void Rectangle::mouseRelease(QMouseEvent *event, bool *repaintNeeded, QList<QUnd
     Q_UNUSED(event); 
     Q_UNUSED(repaintNeeded); // no need to set this
     Q_ASSERT(undoCommands);
-    if ((moving_ || resizing_) && (geometry() != preMoveGeometry()))
-        undoCommands->append(new SetGeometryCommand(this, preMoveGeometry(), geometry()));
+    if ((moving_ || resizing_) && (geometry() != baseGeometry()))
+        undoCommands->append(new SetGeometryCommand(this, baseGeometry(), geometry()));
 
     moving_ = resizing_ = false;
 }
@@ -267,7 +266,7 @@ int Rectangle::hitControlPoint(const QPoint &pos) const
 void Rectangle::move(const QPoint &pos)
 {
     const QPoint delta = pos - baseMousePos_;
-    rect_.moveTo(baseTopLeftPos_ + delta);
+    rect_.moveTo(baseRect_.topLeft() + delta);
     updateControlPoints();
 }
 
@@ -275,10 +274,10 @@ void Rectangle::resize(const QPoint &pos)
 {
     const QPoint delta = pos - baseMousePos_;
     switch (pressedCtrlPointIndex_) {
-    case 0: rect_.setBottomLeft(  baseBottomLeftPos_ + delta); break;
-    case 1: rect_.setBottomRight(baseBottomRightPos_ + delta); break;
-    case 2: rect_.setTopLeft(        baseTopLeftPos_ + delta); break;
-    case 3: rect_.setTopRight(      baseTopRightPos_ + delta); break;
+    case 0: rect_.setBottomLeft(  baseRect_.bottomLeft() + delta); break;
+    case 1: rect_.setBottomRight(baseRect_.bottomRight() + delta); break;
+    case 2: rect_.setTopLeft(        baseRect_.topLeft() + delta); break;
+    case 3: rect_.setTopRight(      baseRect_.topRight() + delta); break;
     }
     updateControlPoints();
 }
@@ -423,3 +422,5 @@ QRect Rectangle::lowerHalf() const
     r.setTop((r.top() + r.bottom()) / 2);
     return r;
 }
+
+} // namespace EditItem_Rectangle

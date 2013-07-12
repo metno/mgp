@@ -1,19 +1,18 @@
-#ifndef RECTANGLE_H
-#define RECTANGLE_H
+#ifndef MULTILINE_H
+#define MULTILINE_H
 
 #include <QtGui> // ### TODO: include relevant headers only
 #include "edititembase.h"
 
-namespace EditItem_Rectangle {
+namespace EditItem_MultiLine {
 
-class Rectangle : public EditItemBase
+class MultiLine : public EditItemBase
 {
     Q_OBJECT
     friend class SetGeometryCommand;
 public:
-    enum PlacementMode { Instant = 0, Resize = 1 };
-    Rectangle(PlacementMode = Instant);
-    virtual ~Rectangle();
+    MultiLine();
+    virtual ~MultiLine();
 private:
     virtual bool hit(const QPoint &, bool) const;
     virtual bool hit(const QRect &) const;
@@ -39,24 +38,24 @@ private:
     void remove(bool *, QSet<EditItemBase *> *);
     void split(bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
     void merge(bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
-    QRect geometry() const { return rect_; }
-    void setGeometry(const QRect &);
-    QRect baseGeometry() const { return baseRect_; }
-    QRect upperHalf() const;
-    QRect lowerHalf() const;
+    QList<QPoint> geometry() const { return points_; }
+    void setGeometry(const QList<QPoint> &);
+    QList<QPoint> baseGeometry() const { return basePoints_; }
+    QList<QPoint> firstSegment(int) const; // the arg is a control point index
+    QList<QPoint> secondSegment(int) const; // ditto
+    qreal distance(const QPoint &) const;
 
-    QRect rect_;
+    QList<QPoint> points_;
     QList<QRect> controlPoints_;
-    QRect baseRect_;
+    QList<QPoint> basePoints_;
 
-    bool placementMode_;
     bool moving_;
     bool resizing_;
     QPoint baseMousePos_;
     int pressedCtrlPointIndex_;
     int hoveredCtrlPointIndex_;
 
-    QPoint *placementPos1_;
+    QPoint *placementPos_;
 
     QAction *remove_;
     QAction *split_;
@@ -66,6 +65,6 @@ private:
     QColor color_;
 };
 
-} // namespace EditItem_Rectangle
+} // namespace EditItem_MultiLine
 
-#endif // RECTANGLE_H
+#endif // MULTILINE_H
