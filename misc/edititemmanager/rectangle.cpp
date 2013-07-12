@@ -206,6 +206,9 @@ void Rectangle::incompleteKeyRelease(QKeyEvent *event, bool *repaintNeeded)
 
 void Rectangle::draw(DrawModes modes, bool incomplete)
 {
+    if (incomplete)
+        return; // don't draw anything while we're in the process of being manually placed
+
     // draw the basic item
     glBegin(GL_POLYGON);
     glColor3ub(color_.red(), color_.green(), color_.blue());

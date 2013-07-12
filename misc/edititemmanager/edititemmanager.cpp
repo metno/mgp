@@ -320,18 +320,22 @@ void EditItemManager::incompleteMouseMove(QMouseEvent *event)
 {
     Q_ASSERT(incompleteItem_);
 
+    const EditItemBase *origHoverItem = hoverItem_;
+    hoverItem_ = 0;
     const bool hover = !event->buttons();
     if (hover) {
         bool rpn = false;
         incompleteItem_->incompleteMouseHover(event, &rpn);
         if (rpn) repaintNeeded_ = true;
+        if (incompleteItem_->hit(event->pos(), false))
+            hoverItem_ = incompleteItem_;
     } else {
         bool rpn = false;
         incompleteItem_->incompleteMouseMove(event, &rpn);
         if (rpn) repaintNeeded_ = true;
     }
 
-    if (repaintNeeded_)
+    if (repaintNeeded_ || (hoverItem_ != origHoverItem))
         repaint();
 }
 
@@ -457,14 +461,17 @@ void EditItemManager::incompleteKeyRelease(QKeyEvent *event)
 
 void EditItemManager::draw()
 {
+    Q_ASSERT(!items_.contains(incompleteItem_));
     foreach (EditItemBase *item, items_) {
         EditItemBase::DrawModes modes = EditItemBase::Normal; // ### always set, so redundant?
         if (selItems_.contains(item))
             modes |= EditItemBase::Selected;
         if (item == hoverItem_)
             modes |= EditItemBase::Hovered;
-        item->draw(modes, item == incompleteItem_);
+        item->draw(modes, false);
     }
+    if (incompleteItem_) // note that only complete items may be selected
+        incompleteItem_->draw((incompleteItem_ == hoverItem_) ? EditItemBase::Hovered : EditItemBase::Normal, true);
     emit paintDone();
 }
 
