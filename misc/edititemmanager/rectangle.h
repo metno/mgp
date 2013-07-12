@@ -53,7 +53,8 @@ private:
     QPoint baseBottomRightPos_;
     QPoint baseTopLeftPos_;
     QPoint baseTopRightPos_;
-    int currCtrlPointIndex_;
+    int pressedCtrlPointIndex_;
+    int hoveredCtrlPointIndex_;
 
     QAction *remove_;
     QAction *split_;

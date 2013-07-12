@@ -36,7 +36,8 @@ Rectangle::Rectangle()
     : rect_(QRect(20, 20, 100, 100))
     , moving_(false)
     , resizing_(false)
-    , currCtrlPointIndex_(-1)
+    , pressedCtrlPointIndex_(-1)
+    , hoveredCtrlPointIndex_(-1)
     , remove_(new QAction("Remove", 0))
     , split_(new QAction("Split", 0))
     , merge_(new QAction("Merge", 0))
@@ -72,8 +73,8 @@ void Rectangle::mousePress(
     Q_ASSERT(undoCommands);
 
     if (event->button() == Qt::LeftButton) {
-        currCtrlPointIndex_ = hitControlPoint(event->pos());
-        resizing_ = (currCtrlPointIndex_ >= 0);
+        pressedCtrlPointIndex_ = hitControlPoint(event->pos());
+        resizing_ = (pressedCtrlPointIndex_ >= 0);
         moving_ = !resizing_;
         if (moving_)
             preMoveRect_ = rect_;
@@ -159,8 +160,10 @@ void Rectangle::incompleteMouseMove(QMouseEvent *event, bool *repaintNeeded)
 
 void Rectangle::mouseHover(QMouseEvent *event, bool *repaintNeeded)
 {
-    Q_UNUSED(event);
-    Q_UNUSED(repaintNeeded);
+    const int origHoveredCtrlPointIndex = hoveredCtrlPointIndex_;
+    hoveredCtrlPointIndex_ = hitControlPoint(event->pos());
+    if (hoveredCtrlPointIndex_ != origHoveredCtrlPointIndex)
+        *repaintNeeded = true;
 }
 
 // Handles a mouse hover event when this item is incomplete, i.e. still in the process of being manually placed.
@@ -247,7 +250,7 @@ void Rectangle::move(const QPoint &pos)
 void Rectangle::resize(const QPoint &pos)
 {
     const QPoint delta = pos - baseMousePos_;
-    switch (currCtrlPointIndex_) {
+    switch (pressedCtrlPointIndex_) {
     case 0: rect_.setBottomLeft(  baseBottomLeftPos_ + delta); break;
     case 1: rect_.setBottomRight(baseBottomRightPos_ + delta); break;
     case 2: rect_.setTopLeft(        baseTopLeftPos_ + delta); break;
@@ -284,16 +287,20 @@ void Rectangle::drawControlPoints()
 
 void Rectangle::drawHoverHighlighting(bool incomplete)
 {
-    const int pad = 2;
+    const int pad = 1;
     if (incomplete)
         glColor3ub(0, 200, 0);
     else
         glColor3ub(255, 0, 0);
-    glBegin(GL_POLYGON);
-    glVertex2i(rect_.left() - pad,  rect_.bottom() + pad);
-    glVertex2i(rect_.right() + pad, rect_.bottom() + pad);
-    glVertex2i(rect_.right() + pad, rect_.top() - pad);
-    glVertex2i(rect_.left() - pad,  rect_.top() - pad);
+
+    const QRect *r = (hoveredCtrlPointIndex_ >= 0) ? &controlPoints_.at(hoveredCtrlPointIndex_) : &rect_;
+    glLineWidth(2);
+
+    glBegin(GL_LINE_LOOP);
+    glVertex3i(r->left() - pad,  r->bottom() + pad, 1);
+    glVertex3i(r->right() + pad, r->bottom() + pad, 1);
+    glVertex3i(r->right() + pad, r->top() - pad, 1);
+    glVertex3i(r->left() - pad,  r->top() - pad, 1);
     glEnd();
 }
 
