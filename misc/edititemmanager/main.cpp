@@ -229,7 +229,7 @@ public:
         connect(canvas_, SIGNAL(mouseReleased(QMouseEvent *)), editItemMgr, SLOT(mouseRelease(QMouseEvent *)));
         connect(canvas_, SIGNAL(mouseMoved(QMouseEvent *)), editItemMgr, SLOT(mouseMove(QMouseEvent *)));
         connect(canvas_, SIGNAL(mouseDoubleClicked(QMouseEvent *)), editItemMgr, SLOT(mouseDoubleClick(QMouseEvent *)));
-        connect(canvas_, SIGNAL(keyPressed(QKeyEvent *)), editItemMgr, SLOT(keyPress(QKeyEvent *)));
+        connect(canvas_, SIGNAL(keyPressed(QKeyEvent *)), this, SLOT(keyPress(QKeyEvent *))); // needs to intercept Ctrl-V
         connect(canvas_, SIGNAL(keyReleased(QKeyEvent *)), editItemMgr, SLOT(keyRelease(QKeyEvent *)));
         connect(canvas_, SIGNAL(paint()), editItemMgr, SLOT(draw()));
         connect(editItemMgr, SIGNAL(paintDone()), canvas_, SLOT(doSwapBuffers()));
@@ -270,9 +270,40 @@ private slots:
         editItemMgr_->repaint();
     }
 
+    void keyPress(QKeyEvent *event)
+    {
+        if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_V))
+            pasteFromClipboard();
+        else
+            // ### hm ... maybe first check if editItemMgr_ acted upon the event, and _then_ check for Ctrl-V ?
+            // ### the keyPress() function could e.g. return true iff the event was acted upon, or event->isAccepted()
+            // ### could be checked after the function call
+            editItemMgr_->keyPress(event);
+    }
+
     void pasteFromClipboard()
     {
-        editItemMgr_->pasteFromClipboard();
+        const QClipboard *clipboard = QApplication::clipboard();
+        const QMimeData *mimeData = clipboard->mimeData();
+
+        if (mimeData->formats().contains("test/rectItems")) {
+            QByteArray data = mimeData->data("test/rectItems");
+            QDataStream dstream(data);
+            QVariantMap msg;
+            dstream >> msg;
+    //            qDebug() << "msg:" << msg;
+            const QVariantList rectItems = msg.value("rectItems").toList();
+            foreach (QVariant rectItem, rectItems) {
+                QVariantMap itemProps = rectItem.toMap();
+                const QRect rect = itemProps.value("rect").toRect();
+                const QColor color = itemProps.value("color").value<QColor>();
+    //                qDebug() << "rect:" << rect << ", color:" << color;
+                editItemMgr_->addItem(new EditItem_Rectangle::Rectangle(rect, color));
+                editItemMgr_->repaint();
+            }
+        } else {
+            qDebug() << "MIME type \"test/rectItems\" not supported; supported types:" << mimeData->formats();
+        }
     }
 
     void handleCanUndoChanged(bool canUndo)
