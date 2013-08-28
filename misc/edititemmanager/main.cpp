@@ -167,15 +167,6 @@ public:
         cblabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
         leftLayout->addWidget(cblabel);
 
-        cbTextEdit_ = new QTextEdit;
-        cbTextEdit_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        leftLayout->addWidget(cbTextEdit_);
-
-        QPushButton *button5 = new QPushButton("copy to clipboard");
-        button5->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        connect(button5, SIGNAL(clicked()), this, SLOT(copyToClipboard()));
-        leftLayout->addWidget(button5);
-
         QPushButton *button6 = new QPushButton("paste from clipboard");
         button6->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
         connect(button6, SIGNAL(clicked()), this, SLOT(pasteFromClipboard()));
@@ -253,7 +244,6 @@ private:
     EditItemManager *editItemMgr_;
     QPushButton *undoButton_;
     QPushButton *redoButton_;
-    QTextEdit *cbTextEdit_;
 
 private slots:
     void addRectangle()
@@ -280,28 +270,28 @@ private slots:
         editItemMgr_->repaint();
     }
 
-    void copyToClipboard()
-    {
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setText(cbTextEdit_->toPlainText());
-    }
-
     void pasteFromClipboard()
     {
         const QClipboard *clipboard = QApplication::clipboard();
         const QMimeData *mimeData = clipboard->mimeData();
 
-        if (mimeData->hasImage()) {
-            qDebug() << "mimeData->hasImage() ...";
-            const QPixmap pixmap = qvariant_cast<QPixmap>(mimeData->imageData());
-        } else if (mimeData->hasHtml()) {
-            qDebug() << "mimeData->hasHtml() ...";
-            const QString html = mimeData->html();
-            qDebug() << "   html:" << html;
-        } else if (mimeData->hasText()) {
-            cbTextEdit_->setPlainText(mimeData->text());
+        if (mimeData->formats().contains("test/rectItems")) {
+            QByteArray data = mimeData->data("test/rectItems");
+            QDataStream dstream(data);
+            QVariantMap msg;
+            dstream >> msg;
+//            qDebug() << "msg:" << msg;
+            const QVariantList rectItems = msg.value("rectItems").toList();
+            foreach (QVariant rectItem, rectItems) {
+                QVariantMap itemProps = rectItem.toMap();
+                const QRect rect = itemProps.value("rect").toRect();
+                const QColor color = itemProps.value("color").value<QColor>();
+//                qDebug() << "rect:" << rect << ", color:" << color;
+                editItemMgr_->addItem(new EditItem_Rectangle::Rectangle(rect, color));
+                editItemMgr_->repaint();
+            }
         } else {
-            qDebug() << "supported formats:" << mimeData->formats();
+            qDebug() << "MIME type \"test/rectItems\" not supported; supported types:" << mimeData->formats();
         }
     }
     void handleCanUndoChanged(bool canUndo)

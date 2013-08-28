@@ -37,24 +37,39 @@ void SetGeometryCommand::redo()
 Rectangle::Rectangle(PlacementMode placementMode)
     : rect_(QRect(20, 20, 100, 100))
     , placementMode_(placementMode)
-    , moving_(false)
-    , resizing_(false)
-    , pressedCtrlPointIndex_(-1)
-    , hoveredCtrlPointIndex_(-1)
-    , placementPos1_(0)
-    , remove_(new QAction("Remove", 0))
-    , split_(new QAction("Split", 0))
-    , merge_(new QAction("Merge", 0))
-    , contextMenu_(new QMenu)
 {
-    updateControlPoints();
     color_.setRed(64 + 128 * (float(qrand()) / RAND_MAX));
     color_.setGreen(64 + 128 * (float(qrand()) / RAND_MAX));
     color_.setBlue(64 + 128 * (float(qrand()) / RAND_MAX));
+    init();
+}
+
+Rectangle::Rectangle(QRect rect, QColor color)
+    : rect_(rect)
+    , placementMode_(Instant) // does it matter?
+    , color_(color)
+{
+    init();
+}
+
+void Rectangle::init()
+{
+   moving_ = false;
+   resizing_ = false;
+   pressedCtrlPointIndex_ = -1;
+   hoveredCtrlPointIndex_ = -1;
+   placementPos1_ = 0;
+   copy_ = new QAction("Copy", 0);
+   remove_ = new QAction("Remove", 0);
+   split_ = new QAction("Split", 0);
+   merge_ = new QAction("Merge", 0);
+   contextMenu_ = new QMenu;
+   updateControlPoints();
 }
 
 Rectangle::~Rectangle()
 {
+    delete copy_;
     delete remove_;
     delete split_;
     delete merge_;
@@ -91,12 +106,15 @@ void Rectangle::mousePress(
         if (items) {
             // open a context menu and perform the selected action
             contextMenu_->clear();
+            contextMenu_->addAction(copy_);
             contextMenu_->addAction(remove_);
             contextMenu_->addAction(split_);
             if (items->size() > 1)
                 contextMenu_->addAction(merge_);
-            QAction *action = contextMenu_->exec(event->globalPos(), remove_);
-            if (action == remove_) {
+            QAction *action = contextMenu_->exec(event->globalPos(), copy_);
+            if (action == copy_) {
+                copy(items);
+            } else if (action == remove_) {
                 remove(repaintNeeded, items);
             } else if (action == split_) {
                 split(repaintNeeded, undoCommands, items); // undoCommands passed here since this operation may modify the internal state of this item
@@ -333,6 +351,35 @@ void Rectangle::drawHoverHighlighting(bool incomplete)
     glVertex3i(r->left() - pad,  r->top() - pad, 1);
     glEnd();
     glPopAttrib();
+}
+
+void Rectangle::copy(QSet<EditItemBase *> *items)
+{
+    Q_ASSERT(items);
+    Q_ASSERT(items->contains(this));
+
+    QVariantList rectItems; // ### only copy rectangle items for now
+
+    foreach (EditItemBase *item, *items) {
+        Rectangle *itemx;
+        if ((itemx = qobject_cast<Rectangle *>(item))) {
+            QVariantMap itemProps;
+            itemProps.insert("rect", itemx->rect_);
+            itemProps.insert("color", itemx->color_);
+            rectItems.append(itemProps);
+        }
+    }
+
+    QVariantMap msg;
+    msg.insert("rectItems", rectItems);
+
+    QByteArray data;
+    QDataStream dstream(&data, QIODevice::Append);
+    dstream << msg;
+
+    QMimeData *mimeData = new QMimeData;
+    mimeData->setData("test/rectItems", data);
+    QApplication::clipboard()->setMimeData(mimeData);
 }
 
 void Rectangle::remove(bool *repaintNeeded, QSet<EditItemBase *> *items)

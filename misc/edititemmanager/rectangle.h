@@ -13,6 +13,7 @@ class Rectangle : public EditItemBase
 public:
     enum PlacementMode { Instant = 0, Resize = 1 };
     Rectangle(PlacementMode = Instant);
+    Rectangle(QRect rect, QColor color);
     virtual ~Rectangle();
 private:
     virtual bool hit(const QPoint &, bool) const;
@@ -36,12 +37,14 @@ private:
 
     virtual void draw(DrawModes, bool);
 
+    void init();
     int hitControlPoint(const QPoint &) const;
     void move(const QPoint &);
     void resize(const QPoint &);
     void updateControlPoints();
     void drawControlPoints();
     void drawHoverHighlighting(bool);
+    void copy(QSet<EditItemBase *> *);
     void remove(bool *, QSet<EditItemBase *> *);
     void split(bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
     void merge(bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
@@ -64,6 +67,7 @@ private:
 
     QPoint *placementPos1_;
 
+    QAction *copy_;
     QAction *remove_;
     QAction *split_;
     QAction *merge_;
