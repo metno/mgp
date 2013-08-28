@@ -272,28 +272,9 @@ private slots:
 
     void pasteFromClipboard()
     {
-        const QClipboard *clipboard = QApplication::clipboard();
-        const QMimeData *mimeData = clipboard->mimeData();
-
-        if (mimeData->formats().contains("test/rectItems")) {
-            QByteArray data = mimeData->data("test/rectItems");
-            QDataStream dstream(data);
-            QVariantMap msg;
-            dstream >> msg;
-//            qDebug() << "msg:" << msg;
-            const QVariantList rectItems = msg.value("rectItems").toList();
-            foreach (QVariant rectItem, rectItems) {
-                QVariantMap itemProps = rectItem.toMap();
-                const QRect rect = itemProps.value("rect").toRect();
-                const QColor color = itemProps.value("color").value<QColor>();
-//                qDebug() << "rect:" << rect << ", color:" << color;
-                editItemMgr_->addItem(new EditItem_Rectangle::Rectangle(rect, color));
-                editItemMgr_->repaint();
-            }
-        } else {
-            qDebug() << "MIME type \"test/rectItems\" not supported; supported types:" << mimeData->formats();
-        }
+        editItemMgr_->pasteFromClipboard();
     }
+
     void handleCanUndoChanged(bool canUndo)
     {
         undoButton_->setEnabled(canUndo);

@@ -1,6 +1,8 @@
 #include "edititemmanager.h"
 #include "edititembase.h"
 
+#include "rectangle.h" // ### needed only as long as this file refers to specific EditItemBase subclasses (like Rectangle)
+
 static QString undoCommandText(int nadded, int nremoved, int nmodified)
 {
     QString s;
@@ -108,6 +110,31 @@ void EditItemManager::removeItems(const QSet<EditItemBase *> &items)
 QUndoStack * EditItemManager::undoStack()
 {
     return &undoStack_;
+}
+
+void EditItemManager::pasteFromClipboard()
+{
+    const QClipboard *clipboard = QApplication::clipboard();
+    const QMimeData *mimeData = clipboard->mimeData();
+
+    if (mimeData->formats().contains("test/rectItems")) {
+        QByteArray data = mimeData->data("test/rectItems");
+        QDataStream dstream(data);
+        QVariantMap msg;
+        dstream >> msg;
+//            qDebug() << "msg:" << msg;
+        const QVariantList rectItems = msg.value("rectItems").toList();
+        foreach (QVariant rectItem, rectItems) {
+            QVariantMap itemProps = rectItem.toMap();
+            const QRect rect = itemProps.value("rect").toRect();
+            const QColor color = itemProps.value("color").value<QColor>();
+//                qDebug() << "rect:" << rect << ", color:" << color;
+            addItem(new EditItem_Rectangle::Rectangle(rect, color));
+            repaint();
+        }
+    } else {
+        qDebug() << "MIME type \"test/rectItems\" not supported; supported types:" << mimeData->formats();
+    }
 }
 
 void EditItemManager::mousePress(QMouseEvent *event)
@@ -387,6 +414,12 @@ void EditItemManager::keyPress(QKeyEvent *event)
 {
     if (incompleteItem_) {
         incompleteKeyPress(event);
+        return;
+    }
+
+    if (selItems_.isEmpty()) {
+        if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_V))
+            pasteFromClipboard();
         return;
     }
 

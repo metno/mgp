@@ -170,6 +170,8 @@ void Rectangle::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoComma
     if (items && ((event->key() == Qt::Key_Backspace) || (event->key() == Qt::Key_Delete))) {
         Q_ASSERT(items->contains(this));
         items->remove(this);
+    } else if (items && (event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_C)) {
+        copy(items);
     }
 }
 
