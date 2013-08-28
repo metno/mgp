@@ -162,6 +162,25 @@ public:
         button4->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
         leftLayout->addWidget(button4);
 
+        QLabel *cblabel = new QLabel("CLIPBOARD DEMO");
+        cblabel->setStyleSheet("QLabel { background-color : yellow }");
+        cblabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        leftLayout->addWidget(cblabel);
+
+        cbTextEdit_ = new QTextEdit;
+        cbTextEdit_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        leftLayout->addWidget(cbTextEdit_);
+
+        QPushButton *button5 = new QPushButton("copy to clipboard");
+        button5->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(button5, SIGNAL(clicked()), this, SLOT(copyToClipboard()));
+        leftLayout->addWidget(button5);
+
+        QPushButton *button6 = new QPushButton("paste from clipboard");
+        button6->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        connect(button6, SIGNAL(clicked()), this, SLOT(pasteFromClipboard()));
+        leftLayout->addWidget(button6);
+
         leftLayout->addStretch();
         topLayout->addLayout(leftLayout);
 
@@ -234,6 +253,7 @@ private:
     EditItemManager *editItemMgr_;
     QPushButton *undoButton_;
     QPushButton *redoButton_;
+    QTextEdit *cbTextEdit_;
 
 private slots:
     void addRectangle()
@@ -260,6 +280,30 @@ private slots:
         editItemMgr_->repaint();
     }
 
+    void copyToClipboard()
+    {
+        QClipboard *clipboard = QApplication::clipboard();
+        clipboard->setText(cbTextEdit_->toPlainText());
+    }
+
+    void pasteFromClipboard()
+    {
+        const QClipboard *clipboard = QApplication::clipboard();
+        const QMimeData *mimeData = clipboard->mimeData();
+
+        if (mimeData->hasImage()) {
+            qDebug() << "mimeData->hasImage() ...";
+            const QPixmap pixmap = qvariant_cast<QPixmap>(mimeData->imageData());
+        } else if (mimeData->hasHtml()) {
+            qDebug() << "mimeData->hasHtml() ...";
+            const QString html = mimeData->html();
+            qDebug() << "   html:" << html;
+        } else if (mimeData->hasText()) {
+            cbTextEdit_->setPlainText(mimeData->text());
+        } else {
+            qDebug() << "supported formats:" << mimeData->formats();
+        }
+    }
     void handleCanUndoChanged(bool canUndo)
     {
         undoButton_->setEnabled(canUndo);
