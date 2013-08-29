@@ -110,10 +110,6 @@ QUndoStack * EditItemManager::undoStack()
     return &undoStack_;
 }
 
-void EditItemManager::pasteFromClipboard()
-{
-}
-
 void EditItemManager::mousePress(QMouseEvent *event)
 {
     if (incompleteItem_) {

@@ -19,8 +19,6 @@ public:
     // Returns the undo stack.
     QUndoStack *undoStack();
 
-    void pasteFromClipboard();
-
 public slots:
     void mousePress(QMouseEvent *);
     void mouseRelease(QMouseEvent *);

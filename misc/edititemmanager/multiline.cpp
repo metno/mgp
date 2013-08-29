@@ -35,24 +35,38 @@ void SetGeometryCommand::redo()
 }
 
 MultiLine::MultiLine()
-    : moving_(false)
-    , resizing_(false)
-    , pressedCtrlPointIndex_(-1)
-    , hoveredCtrlPointIndex_(-1)
-    , placementPos_(0)
-    , remove_(new QAction("Remove", 0))
-    , split_(new QAction("Split", 0))
-    , merge_(new QAction("Merge", 0))
-    , contextMenu_(new QMenu)
 {
-    updateControlPoints();
     color_.setRed(64 + 128 * (float(qrand()) / RAND_MAX));
     color_.setGreen(64 + 128 * (float(qrand()) / RAND_MAX));
     color_.setBlue(64 + 128 * (float(qrand()) / RAND_MAX));
+    init();
+}
+
+MultiLine::MultiLine(const QList<QPoint> &points, QColor color)
+    : points_(points)
+    , color_(color)
+{
+    init();
+}
+
+void MultiLine::init()
+{
+   moving_ = false;
+   resizing_ = false;
+   pressedCtrlPointIndex_ = -1;
+   hoveredCtrlPointIndex_ = -1;
+   placementPos_ = 0;
+   copy_ = new QAction("Copy", 0);
+   remove_ = new QAction("Remove", 0);
+   split_ = new QAction("Split", 0);
+   merge_ = new QAction("Merge", 0);
+   contextMenu_ = new QMenu;
+   updateControlPoints();
 }
 
 MultiLine::~MultiLine()
 {
+    delete copy_;
     delete remove_;
     delete split_;
     delete merge_;
@@ -90,12 +104,15 @@ void MultiLine::mousePress(
         if (items) {
             // open a context menu and perform the selected action
             contextMenu_->clear();
+            contextMenu_->addAction(copy_);
             contextMenu_->addAction(remove_);
             contextMenu_->addAction(split_);
             if (items->size() > 1)
                 contextMenu_->addAction(merge_);
-            QAction *action = contextMenu_->exec(event->globalPos(), remove_);
-            if (action == remove_) {
+            QAction *action = contextMenu_->exec(event->globalPos(), copy_);
+            if (action == copy_) {
+                copy(items);
+            } else if (action == remove_) {
                 remove(repaintNeeded, items);
             } else if (action == split_) {
                 split(repaintNeeded, undoCommands, items); // undoCommands passed here since this operation may modify the internal state of this item
@@ -150,6 +167,8 @@ void MultiLine::keyPress(QKeyEvent *event, bool *repaintNeeded, QList<QUndoComma
     if (items && ((event->key() == Qt::Key_Backspace) || (event->key() == Qt::Key_Delete))) {
         Q_ASSERT(items->contains(this));
         items->remove(this);
+    } else if (items && (event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_C)) {
+        copy(items);
     }
 }
 
@@ -356,6 +375,38 @@ void MultiLine::drawHoverHighlighting(bool incomplete)
         glEnd();
         glPopAttrib();
     }
+}
+
+void MultiLine::copy(QSet<EditItemBase *> *items)
+{
+    Q_ASSERT(items);
+    Q_ASSERT(items->contains(this));
+
+    QVariantList multiLineItems; // ### only copy multiline items for now
+
+    foreach (EditItemBase *item, *items) {
+        MultiLine *itemx;
+        if ((itemx = qobject_cast<MultiLine *>(item))) {
+            QVariantMap itemProps;
+            QVariantList vpoints;
+            foreach (QPoint point, itemx->points_)
+                vpoints.append(point);
+            itemProps.insert("multiline", vpoints);
+            itemProps.insert("color", itemx->color_);
+            multiLineItems.append(itemProps);
+        }
+    }
+
+    QVariantMap msg;
+    msg.insert("multiLineItems", multiLineItems);
+
+    QByteArray data;
+    QDataStream dstream(&data, QIODevice::Append);
+    dstream << msg;
+
+    QMimeData *mimeData = new QMimeData;
+    mimeData->setData("test/multiLineItems", data);
+    QApplication::clipboard()->setMimeData(mimeData);
 }
 
 void MultiLine::remove(bool *repaintNeeded, QSet<EditItemBase *> *items)

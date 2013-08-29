@@ -275,9 +275,12 @@ private slots:
         if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_V))
             pasteFromClipboard();
         else
-            // ### hm ... maybe first check if editItemMgr_ acted upon the event, and _then_ check for Ctrl-V ?
-            // ### the keyPress() function could e.g. return true iff the event was acted upon, or event->isAccepted()
-            // ### could be checked after the function call
+            // ### Hm ... maybe first check if editItemMgr_ acted upon the event, and _then_ check for Ctrl-V ?
+            // ### The keyPress() function could e.g. return true iff the event was acted upon
+            // ### (or perhaps easier, the event->isAccepted() could be checked after the function call; then we
+            // ### wouldn't have to change the return type of the event functions (from void to bool), but we would
+            // ### need to introduce (and document!) this convention (i.e. that all subclasses of EditItemBase must call
+            // ### event->accept() iff the event is acted upon - but this is the convention in Qt anyway!)
             editItemMgr_->keyPress(event);
     }
 
@@ -285,13 +288,15 @@ private slots:
     {
         const QClipboard *clipboard = QApplication::clipboard();
         const QMimeData *mimeData = clipboard->mimeData();
+        const QString rectMimeType("test/rectItems");
+        const QString multiLineMimeType("test/multiLineItems");
 
-        if (mimeData->formats().contains("test/rectItems")) {
-            QByteArray data = mimeData->data("test/rectItems");
+        if (mimeData->formats().contains(rectMimeType)) {
+            QByteArray data = mimeData->data(rectMimeType);
             QDataStream dstream(data);
             QVariantMap msg;
             dstream >> msg;
-    //            qDebug() << "msg:" << msg;
+//            qDebug() << "msg:" << msg;
             const QVariantList rectItems = msg.value("rectItems").toList();
             foreach (QVariant rectItem, rectItems) {
                 QVariantMap itemProps = rectItem.toMap();
@@ -301,8 +306,26 @@ private slots:
                 editItemMgr_->addItem(new EditItem_Rectangle::Rectangle(rect, color));
                 editItemMgr_->repaint();
             }
+        } else if (mimeData->formats().contains(multiLineMimeType)) {
+            QByteArray data = mimeData->data(multiLineMimeType);
+            QDataStream dstream(data);
+            QVariantMap msg;
+            dstream >> msg;
+//            qDebug() << "msg:" << msg;
+            const QVariantList multiLineItems = msg.value("multiLineItems").toList();
+            foreach (QVariant multiLineItem, multiLineItems) {
+                QVariantMap itemProps = multiLineItem.toMap();
+                const QVariantList vpoints = itemProps.value("multiline").toList();
+                QList<QPoint> points;
+                foreach (QVariant vpoint, vpoints)
+                    points.append(vpoint.toPoint());
+                const QColor color = itemProps.value("color").value<QColor>();
+                editItemMgr_->addItem(new EditItem_MultiLine::MultiLine(points, color));
+                editItemMgr_->repaint();
+            }
         } else {
-            qDebug() << "MIME type \"test/rectItems\" not supported; supported types:" << mimeData->formats();
+            qDebug() << QString("no match for MIME types \"%1\" or \"%2\"").arg(rectMimeType).arg(multiLineMimeType);
+            qDebug() << "supported MIME types:" << mimeData->formats();
         }
     }
 

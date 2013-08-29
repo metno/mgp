@@ -12,6 +12,7 @@ class MultiLine : public EditItemBase
     friend class SetGeometryCommand;
 public:
     MultiLine();
+    MultiLine(const QList<QPoint> &, QColor);
     virtual ~MultiLine();
 private:
     virtual bool hit(const QPoint &, bool) const;
@@ -35,12 +36,14 @@ private:
 
     virtual void draw(DrawModes, bool);
 
+    void init();
     int hitControlPoint(const QPoint &) const;
     void move(const QPoint &);
     void resize(const QPoint &);
     void updateControlPoints();
     void drawControlPoints();
     void drawHoverHighlighting(bool);
+    void copy(QSet<EditItemBase *> *items);
     void remove(bool *, QSet<EditItemBase *> *);
     void split(bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
     void merge(bool *, QList<QUndoCommand *> *, QSet<EditItemBase *> *);
@@ -63,6 +66,7 @@ private:
 
     QPoint *placementPos_;
 
+    QAction *copy_;
     QAction *remove_;
     QAction *split_;
     QAction *merge_;
