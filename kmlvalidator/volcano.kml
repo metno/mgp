@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+  <Document>
+    <name>polygon.kml</name>
+    <Snippet>SNIPPET</Snippet>
+    <description>DESCRIPTION</description>
+    <StyleMap id="msn_ylw-pushpin">
+      <Pair>
+	<key>normal</key>
+	<styleUrl>#unselected</styleUrl>
+      </Pair>
+      <Pair>
+	<key>highlight</key>
+	<styleUrl>#selected</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="unselected">
+      <LineStyle>
+	<color>ffff00aa</color>
+	<width>2</width>
+      </LineStyle>
+      <PolyStyle>
+	<color>ff00aa55</color>
+      </PolyStyle>
+    </Style>
+    <Style id="selected">
+      <LineStyle>
+	<color>ff0000aa</color>
+	<width>4</width>
+      </LineStyle>
+      <PolyStyle>
+	<color>ff00aa55</color>
+      </PolyStyle>
+    </Style>
+    <Style id="sh_volcano">
+      <IconStyle>
+	<scale>1.4</scale>
+	<Icon>
+	  <href>http://maps.google.com/mapfiles/kml/shapes/volcano.png</href>
+	</Icon>
+	<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
+      </IconStyle>
+      <ListStyle>
+      </ListStyle>
+    </Style>
+    <StyleMap id="msn_volcano">
+      <Pair>
+	<key>normal</key>
+	<styleUrl>#sn_volcano</styleUrl>
+      </Pair>
+      <Pair>
+	<key>highlight</key>
+	<styleUrl>#sh_volcano</styleUrl>
+      </Pair>
+      <!-- <BalloonStyle> -->
+      <!-- 	<bgColor>ffaaff00</bgColor> -->
+      <!-- 	<text><![CDATA[ -->
+      <!-- 	<b>$[name]</b><br/><br/> -->
+      <!-- 	$[description]<br/> -->
+      <!-- 	]]></text> -->
+      <!-- </BalloonStyle> -->
+    </StyleMap>
+    <Style id="exampleBalloonStyle">
+      <IconStyle>
+	<scale>1.2</scale>
+	<Icon>
+	  <href>http://maps.google.com/mapfiles/kml/shapes/volcano.png</href>
+	</Icon>
+	<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
+      </IconStyle>
+      <BalloonStyle>
+	<text><![CDATA[
+	<b><font size="+1">$[name]</font></b><br/><br/>
+	$[description]<br/>
+	]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="sn_volcano">
+      <IconStyle>
+	<scale>1.2</scale>
+	<Icon>
+	  <href>http://maps.google.com/mapfiles/kml/shapes/volcano.png</href>
+	</Icon>
+	<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
+      </IconStyle>
+      <ListStyle>
+      </ListStyle>
+    </Style>
+    <Placemark>
+      <name>GRIMSVOTN 1703-01</name>
+      <Snippet>Snippet</Snippet>
+      <description>TEST PLEASE DISREGARD</description>
+      <styleUrl>#exampleBalloonStyle</styleUrl>
+      <Point>
+	<coordinates>-17.20,64.24,0</coordinates>
+      </Point>
+    </Placemark>
+    <Folder>
+      <name>Observation</name>
+      <TimeSpan>
+	<begin>2013-07-03T12:00:00Z</begin>
+	<end>2013-07-03T18:00:00Z</end>
+      </TimeSpan>
+
+      <Placemark>
+	<name>FL100/330</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+	<Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+		-17.55,64.45,0
+		-16.10,65.50,0
+		-14.30,64.55,0
+		-15.25,63.45,0
+		-17.15,64.00,0
+		-17.55,64.45,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Forecast +6H</name>
+      <TimeSpan>
+	<begin>2013-07-03T18:00:00Z</begin>
+	<end>2013-07-04T00:00:00Z</end>
+      </TimeSpan>
+      <Placemark>
+	<name>FL080/180</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+	<Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+		-17.25,65.10,0
+		-10.55,65.55,0
+		-10.30,64.20,0
+		-17.25,63.40,0
+		-17.25,65.10,0 
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+      <Placemark>
+	<name>FL180/330</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+	<Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+		-12.30,66.00,0
+		-08.30,68.10,0
+		-06.50,66.10,0
+		-11.50,64.45,0
+		-12.30,66.00,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Forecast +12H</name>
+      <TimeSpan>
+	<begin>2013-07-04T00:00:00Z</begin>
+	<end>2013-07-04T06:00:00Z</end>
+      </TimeSpan>
+      <Placemark>
+	<name>FL080/120</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+	<Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+		-17.30,64.55,0
+		-15.35,66.00,0
+		-13.35,66.20,0
+		-13.25,64.50,0
+		-17.30,64.55,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>
