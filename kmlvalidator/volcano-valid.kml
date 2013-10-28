@@ -86,11 +86,20 @@
       <ListStyle>
       </ListStyle>
     </Style>
+
+    <!-- association between object ID and type -->
+    <ExtendedData>
+      <Data name="met:typemap"><value>0 VAAC</value></Data>
+    </ExtendedData>
+
     <Placemark>
       <name>GRIMSVOTN 1703-01</name>
       <Snippet>Snippet</Snippet>
       <description>TEST PLEASE DISREGARD</description>
       <styleUrl>#exampleBalloonStyle</styleUrl>
+      <ExtendedData>
+        <Data name="met:id"><value>0</value></Data>
+      </ExtendedData>
       <Point>
 	<coordinates>-17.20,64.24,0</coordinates>
       </Point>
@@ -101,7 +110,9 @@
 	<begin>2013-07-03T12:00:00Z</begin>
 	<end>2013-07-03T18:00:00Z</end>
       </TimeSpan>
-
+      <ExtendedData>
+        <Data name="met:id"><value>0</value></Data>
+      </ExtendedData>
       <Placemark>
 	<name>FL100/330</name>
 	<styleUrl>#msn_ylw-pushpin</styleUrl>
@@ -128,6 +139,9 @@
 	<begin>2013-07-03T18:00:00Z</begin>
 	<end>2013-07-04T00:00:00Z</end>
       </TimeSpan>
+      <ExtendedData>
+        <Data name="met:id"><value>0</value></Data>
+      </ExtendedData>
       <Placemark>
 	<name>FL080/180</name>
 	<styleUrl>#msn_ylw-pushpin</styleUrl>
@@ -171,6 +185,9 @@
 	<begin>2013-07-04T00:00:00Z</begin>
 	<end>2013-07-04T06:00:00Z</end>
       </TimeSpan>
+      <ExtendedData>
+        <Data name="met:id"><value>0</value></Data>
+      </ExtendedData>
       <Placemark>
 	<name>FL080/120</name>
 	<styleUrl>#msn_ylw-pushpin</styleUrl>
