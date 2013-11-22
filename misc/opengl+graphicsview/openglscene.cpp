@@ -41,6 +41,7 @@
 
 #include <QtGui>
 #include <QtOpenGL>
+#include <GL/glu.h>
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE  0x809D
@@ -135,8 +136,9 @@ OpenGLScene::OpenGLScene()
 
 void OpenGLScene::drawBackground(QPainter *painter, const QRectF &)
 {
-    if (painter->paintEngine()->type() != QPaintEngine::OpenGL) {
-        qWarning("OpenGLScene: drawBackground needs a QGLWidget to be set as viewport on the graphics view");
+    if ((painter->paintEngine()->type() != QPaintEngine::OpenGL) && (painter->paintEngine()->type() != QPaintEngine::OpenGL2)) {
+        qWarning(QString("OpenGLScene: drawBackground needs a QGLWidget to be set as viewport on the graphics view (paint eng. type: %1)")
+                 .arg(painter->paintEngine()->type()).toLatin1().constData());
         return;
     }
 

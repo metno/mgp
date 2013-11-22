@@ -11,4 +11,6 @@ INCLUDEPATH += .
 HEADERS += openglscene.h point3d.h model.h
 SOURCES += main.cpp model.cpp openglscene.cpp
 
+LIBS += -lGLU
+
 QT += opengl
