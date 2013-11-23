@@ -67,6 +67,8 @@ OpenGLScene::OpenGLScene()
     , m_lastTime(0)
     , m_distance(1.4f)
     , m_angularMomentum(0, 40, 0)
+    , m_frames(-1)
+    , m_lastFramesElapsed(0)
 {
     QWidget *controls = createDialog(tr("Controls"));
 
@@ -96,7 +98,7 @@ OpenGLScene::OpenGLScene()
     QWidget *statistics = createDialog(tr("Model info"));
     statistics->layout()->setMargin(20);
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         m_labels[i] = new QLabel;
         statistics->layout()->addWidget(m_labels[i]);
     }
@@ -130,6 +132,21 @@ OpenGLScene::OpenGLScene()
     m_lightItem->setPos(800, 200);
     addItem(m_lightItem);
 
+    m_infoItem = new QGraphicsSimpleTextItem("<no info>");
+    m_infoItem->setBrush(QBrush(QColor(255, 255, 0)));
+    addItem(m_infoItem);
+
+    for (int i = 0; i < 100; ++i) {
+        QGraphicsSvgItem *svgItem = new QGraphicsSvgItem("/home/joa/dev/joa/misc/opengl+graphicsview/test.svg");
+        svgItem->setPos(qrand() % 1200, qrand() % 900);
+        svgItem->setScale(0.05 + (qrand() / qreal(RAND_MAX)) * 0.1);
+        svgItem->setZValue(-1);
+        svgItem->setFlag(QGraphicsItem::ItemIsMovable);
+        m_svgItems.append(svgItem);
+        addItem(svgItem);
+    }
+    m_labels[4]->setText(QString("SVG items: %0").arg(m_svgItems.size()));
+
     loadModel(QLatin1String("qt.obj"));
     m_time.start();
 }
@@ -161,7 +178,8 @@ void OpenGLScene::drawBackground(QPainter *painter, const QRectF &)
     glLightfv(GL_LIGHT0, GL_POSITION, pos);
     glColor4f(m_modelColor.redF(), m_modelColor.greenF(), m_modelColor.blueF(), 1.0f);
 
-    const int delta = m_time.elapsed() - m_lastTime;
+    const int elapsed = m_time.elapsed();
+    const int delta = elapsed - m_lastTime;
     m_rotation += m_angularMomentum * (delta / 1000.0);
     m_lastTime += delta;
 
@@ -178,6 +196,21 @@ void OpenGLScene::drawBackground(QPainter *painter, const QRectF &)
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
+
+    const int maxFrames = 20;
+    m_frames++;
+    if ((m_frames == 0) || (m_frames >= maxFrames)) {
+        const int framesElapsed = elapsed - m_lastFramesElapsed;
+        m_lastFramesElapsed = elapsed;
+        const qreal fps = (m_frames / qreal(framesElapsed)) * 1000;
+
+        const QGraphicsView *view = views().first();
+        m_infoItem->setText(QString("fps: %1").arg(QString::number(fps, 'f', 2)));
+        const int pad = 5;
+        m_infoItem->setPos(pad, view->height() - m_infoItem->boundingRect().height() - pad);
+
+        m_frames = 0;
+    }
 
     QTimer::singleShot(20, this, SLOT(update()));
 }

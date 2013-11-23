@@ -42,6 +42,7 @@
 #include "point3d.h"
 
 #include <QGraphicsScene>
+#include <QGraphicsSvgItem>
 #include <QLabel>
 #include <QTime>
 
@@ -101,6 +102,12 @@ private:
     QWidget *m_modelButton;
 
     QGraphicsRectItem *m_lightItem;
+
+    QGraphicsSimpleTextItem *m_infoItem;
+    QList<QGraphicsSvgItem *> m_svgItems;
+
+    int m_frames;
+    int m_lastFramesElapsed;
 
 #ifndef QT_NO_CONCURRENT
     QFutureWatcher<Model *> m_modelLoader;

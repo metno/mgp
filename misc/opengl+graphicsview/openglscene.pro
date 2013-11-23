@@ -13,4 +13,4 @@ SOURCES += main.cpp model.cpp openglscene.cpp
 
 LIBS += -lGLU
 
-QT += opengl
+QT += opengl svg
