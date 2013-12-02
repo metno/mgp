@@ -8,5 +8,5 @@ DEPENDPATH += .
 INCLUDEPATH += .
 
 # Input
-SOURCES += main.cpp callgrindtester.cpp
+SOURCES += main.cpp
 HEADERS += callgrindtester.h
