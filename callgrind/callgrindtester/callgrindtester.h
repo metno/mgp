@@ -35,13 +35,13 @@ public slots:
   bool start(int nSteps, int stepDelay, QObject *testObject, const char *stepAction)
   {
     if (nSteps < 1) {
-      qWarning("nSteps must be a positive integer: %d\n", nSteps);
+      qWarning("nSteps must be a positive integer: %d", nSteps);
       return false;
     }
     nSteps_ = nSteps;
 
-    if (stepDelay_ < 0) {
-      qWarning("nDelay must be a non-negative integer: %d\n", stepDelay);
+    if (stepDelay < 0) {
+      qWarning("nDelay must be a non-negative integer: %d", stepDelay);
       return false;
     }
     stepDelay_ = stepDelay;
@@ -50,7 +50,7 @@ public slots:
     stepAction_ = stepAction;
 
     if (active_) {
-      qWarning("a test is already active\n");
+      qWarning("a test is already active");
       return false;
     }
     active_ = true;
