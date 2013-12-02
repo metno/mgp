@@ -1,4 +1,4 @@
-The class CallgrindTester is a simple API to facilite callgrind-profiling.
+The class CallgrindTester is a simple API to facilite profiling with callgrind.
 
 Typical usage:
 
@@ -16,9 +16,11 @@ STEP 1: Write the test code, essentially something like this:
       // do something interesting, like posting a MouseMove event etc.
     }
 
-STEP 2: Build the test code and run it through valgrind/callgrind like this:
+
+STEP 2: Build the test code and run it through valgrind/callgrind like this (note the '--instr-atstart=no' option!):
 
     $ valgrind --tool=callgrind --instr-atstart=no <executable>
+
 
 STEP 3: Analyze the result:
 
