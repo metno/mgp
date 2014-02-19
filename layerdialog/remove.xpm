@@ -1,5 +1,5 @@
 /* XPM */
-static char * remove_xpm[] = {
+static const char * remove_xpm[] = {
 "24 24 338 2",
 "  	c None",
 ". 	c #EAD8D6",

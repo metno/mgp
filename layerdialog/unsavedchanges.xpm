@@ -1,5 +1,5 @@
 /* XPM */
-static char * unsavedchanges_xpm[] = {
+static const char * unsavedchanges_xpm[] = {
 "24 24 52 1",
 " 	c None",
 ".	c #3F3F3F",
