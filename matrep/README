@@ -1,0 +1,62 @@
+=========================================================================
+OVERVIEW
+
+This directory contains MATRep, a tool for reporting manual test results
+for meteorological applications. (MATRep = Meteorological Application
+Test Reporter)
+
+Test results are entered and inspected via a web application and
+stored in a SQLite database file located on the same machine as the
+web server.
+
+=========================================================================
+INSTALLATION ON THE SERVER MACHINE
+
+STEP 1: Install the MATRep directory (containing this README!) under an
+    arbitrary directory <MATRep dir>.
+
+
+STEP 2: Install Python, SQLite, and Apache.
+   ### TBD: Specify versions / dev headers
+
+
+STEP 3: Initialize the database:
+
+    $ <MATRep dir>/database/scripts/reset.py
+
+
+STEP 4: Install a script named 'matrepwrapper' for executing
+    matrep.py with the appropriate environment. The script
+    typically looks like this on Linux (<MATRep dir> is
+    /root/matrep in this example):
+
+    #!/bin/sh
+    LD_LIBRARY_PATH=SOME_LIB_THAT_WE_DEPEND_ON \
+    /root/matrep/scripts/matrep.py
+
+
+STEP 5: Configure the Apache web server to 1) allow access to the
+    <MATRep dir>/web/ directory, and 2) to allow launching
+    'matrepwrapper' as a CGI script (see separate documentation
+    for the web server - typically this requires changes to
+    httpd.conf etc.).
+
+
+STEP 6: Start the web server and (if desirable) arrange for it be
+    started automatically at boot time (on a Linux system this would
+    typically mean to add some stuff under /etc/init.d/).
+
+
+=========================================================================
+USAGE
+
+--- Open the URL
+
+    Open the top-level index.html page, located under <MATRep dir>/web/, for example:
+
+        http://matrep.met.no:8080/matrep
+
+    where matrep.met.no is the host address, 8080 the Apache port number,
+    and matrep a symbolic link to <MATRep dir>/web/.
+
+    Obviously, this may be configured differently on different installations.
