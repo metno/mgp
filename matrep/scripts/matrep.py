@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys, os, re, urllib, json, sqlite3
+import sys, os, re, urllib, json, sqlite3, calendar, time
+from itertools import chain
 
 # --- BEGIN Global classes ----------------------------------------------
 
@@ -15,10 +16,10 @@ class GetApps:
     def writeOutputAsJSON(self):
         printJSONHeader()
         json.dump({
-                'apps': self.apps,
+                'apps': self.apps
                 }, sys.stdout)
 
-class GetAppsAsJSON(GetApps):
+class GetApps_JSON(GetApps):
     def writeOutput(self):
         self.writeOutputAsJSON()
 
@@ -27,18 +28,69 @@ class GetVersions:
         self.app = app
 
     def execute(self):
-        self.versions = execQuery(
+        query_result = execQuery(
             "SELECT version.name FROM app,version "
-            "WHERE app_id=app.id AND app.name=? ORDER BY version.name DESC", (self.app,))
+            "WHERE app.name=? AND app_id=app.id ORDER BY version.name DESC", (self.app,))
+        self.versions = list(chain.from_iterable(query_result))
+
+        self.ntests = []
+        for version in self.versions:
+            query_result = execQuery(
+            "SELECT count(test.id) FROM app,version,test,version_test "
+            "WHERE app.name=? AND version.name=? AND version.app_id=app.id AND test.app_id=app.id "
+            "AND version_test.version_id=version.id AND version_test.test_id=test.id;", (self.app, version))
+            self.ntests.append(query_result[0][0])
+
+        self.ntest_results = []
+        for version in self.versions:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND version.app_id=app.id AND test.app_id=app.id "
+            "AND version_test.version_id=version.id AND version_test.test_id=test.id "
+            "AND test_result.version_test_id=version_test.id;", (self.app, version))
+            self.ntest_results.append(query_result[0][0])
+
+        self.npassed = []
+        for version in self.versions:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND version.app_id=app.id AND test.app_id=app.id "
+            "AND version_test.version_id=version.id AND version_test.test_id=test.id "
+            "AND test_result.version_test_id=version_test.id AND test_result.status='pass';", (self.app, version))
+            self.npassed.append(query_result[0][0])
+
+        self.nfailed = []
+        for version in self.versions:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND version.app_id=app.id AND test.app_id=app.id "
+            "AND version_test.version_id=version.id AND version_test.test_id=test.id "
+            "AND test_result.version_test_id=version_test.id AND test_result.status='fail';", (self.app, version))
+            self.nfailed.append(query_result[0][0])
+
+        self.ncomments = []
+        for version in self.versions:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND version.app_id=app.id AND test.app_id=app.id "
+            "AND version_test.version_id=version.id AND version_test.test_id=test.id "
+            "AND test_result.version_test_id=version_test.id AND test_result.comment!='';", (self.app, version))
+            self.ncomments.append(query_result[0][0])
+
         self.writeOutput()
 
     def writeOutputAsJSON(self):
         printJSONHeader()
         json.dump({
                 'versions': self.versions,
+                'ntests': self.ntests,
+                'ntest_results': self.ntest_results,
+                'npassed': self.npassed,
+                'nfailed': self.nfailed,
+                'ncomments': self.ncomments
                 }, sys.stdout)
 
-class GetVersionsAsJSON(GetVersions):
+class GetVersions_JSON(GetVersions):
     def writeOutput(self):
         self.writeOutputAsJSON()
 
@@ -56,21 +108,67 @@ class GetTests:
             "AND version_test.test_id=test.id "
             "AND app.name=? AND version.name=? "
             "ORDER BY test.name", (self.app, self.version))
+
+        zqr = zip(*self.query_result)
+        if len(zqr) != 2:
+            zqr = [[]] * 2
+        self.tests = zqr[0]
+        self.descrs = zqr[1]
+
+        self.ntest_results = []
+        for test in self.tests:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND test.name=? AND version.app_id=app.id "
+            "AND test.app_id=app.id AND version_test.version_id=version.id "
+            "AND version_test.test_id=test.id AND test_result.version_test_id=version_test.id;",
+            (self.app, self.version, test))
+            self.ntest_results.append(query_result[0][0])
+
+        self.npassed = []
+        for test in self.tests:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND test.name=? AND version.app_id=app.id "
+            "AND test.app_id=app.id AND version_test.version_id=version.id "
+            "AND version_test.test_id=test.id AND test_result.version_test_id=version_test.id "
+            "AND test_result.status='pass';", (self.app, self.version, test))
+            self.npassed.append(query_result[0][0])
+
+        self.nfailed = []
+        for test in self.tests:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND test.name=? AND version.app_id=app.id "
+            "AND test.app_id=app.id AND version_test.version_id=version.id "
+            "AND version_test.test_id=test.id AND test_result.version_test_id=version_test.id "
+            "AND test_result.status='fail';", (self.app, self.version, test))
+            self.nfailed.append(query_result[0][0])
+
+        self.ncomments = []
+        for test in self.tests:
+            query_result = execQuery(
+            "SELECT count(test_result.id) FROM app,version,test,version_test,test_result "
+            "WHERE app.name=? AND version.name=? AND test.name=? AND version.app_id=app.id "
+            "AND test.app_id=app.id AND version_test.version_id=version.id "
+            "AND version_test.test_id=test.id AND test_result.version_test_id=version_test.id "
+            "AND test_result.comment!='';", (self.app, self.version, test))
+            self.ncomments.append(query_result[0][0])
+
         self.writeOutput()
 
     def writeOutputAsJSON(self):
         printJSONHeader()
-        zqr = zip(*self.query_result)
-        if (len(zqr) != 2):
-            zqr = [[]] * 2
-        tests = zqr[0]
-        descrs = zqr[1]
         json.dump({
-                'tests': tests,
-                'descrs': descrs,
+                'tests': self.tests,
+                'descrs': self.descrs,
+                'ntest_results': self.ntest_results,
+                'npassed': self.npassed,
+                'nfailed': self.nfailed,
+                'ncomments': self.ncomments
                 }, sys.stdout)
 
-class GetTestsAsJSON(GetTests):
+class GetTests_JSON(GetTests):
     def writeOutput(self):
         self.writeOutputAsJSON()
 
@@ -82,8 +180,8 @@ class GetTestResults:
 
     def execute(self):
         self.query_result = execQuery(
-            "SELECT test_result.timestamp, test_result.reporter, "
-            "test_result.ipaddress, test_result.status, test_result.description "
+            "SELECT test_result.id, test_result.timestamp, test_result.reporter, "
+            "test_result.ipaddress, test_result.status, test_result.comment "
             "FROM app,version,test,version_test,test_result "
             "WHERE version.app_id=app.id "
             "AND test.app_id=app.id "
@@ -97,22 +195,87 @@ class GetTestResults:
     def writeOutputAsJSON(self):
         printJSONHeader()
         zqr = zip(*self.query_result)
-        if (len(zqr) != 5):
-            zqr = [[]] * 5
-        timestamps = zqr[0]
-        reporters = zqr[1]
-        ipaddresses = zqr[2]
-        statuses = zqr[3]
-        descrs = zqr[4]
+        if len(zqr) != 6:
+            zqr = [[]] * 6
+        ids = zqr[0]
+        timestamps = zqr[1]
+        reporters = zqr[2]
+        ipaddresses = zqr[3]
+        statuses = zqr[4]
+        comments = zqr[5]
         json.dump({
+                'ids': ids,
                 'timestamps': timestamps,
                 'reporters': reporters,
                 'ipaddresses': ipaddresses,
                 'statuses': statuses,
-                'descrs': descrs,
+                'comments': comments
                 }, sys.stdout)
 
-class GetTestResultsAsJSON(GetTestResults):
+class GetTestResults_JSON(GetTestResults):
+    def writeOutput(self):
+        self.writeOutputAsJSON()
+
+class AddTestResult:
+    def __init__(self, app, version, test, reporter, status, ipaddress, comment):
+        self.app = app
+        self.version = version
+        self.test = test
+        self.reporter = reporter
+        self.status = status
+        self.ipaddress = ipaddress
+        self.comment = comment
+        self.error = False
+
+    def execute(self):
+
+        query_result = execQuery(
+            "SELECT version_test.id "
+            "FROM app,version,test,version_test "
+            "WHERE version.app_id=app.id "
+            "AND test.app_id=app.id "
+            "AND version_test.version_id=version.id "
+            "AND version_test.test_id=test.id "
+            "AND app.name=? AND version.name=? AND test.name=? ",
+            (self.app, self.version, self.test))
+        if len(query_result) == 0:
+            self.error = True
+        else:
+            version_test_id = query_result[0][0]
+            execQuery(
+                "INSERT INTO test_result "
+                "(version_test_id, timestamp, reporter, status, ipaddress, comment) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (version_test_id, calendar.timegm(time.gmtime()),
+                 unicode(self.reporter, 'utf-8'), self.status, self.ipaddress, unicode(self.comment, 'utf-8')))
+            commit()
+
+        self.writeOutput()
+
+    def writeOutputAsJSON(self):
+        printJSONHeader()
+        json.dump({}, sys.stdout) # ### ignoring self.error for now
+
+class AddTestResult_JSON(AddTestResult):
+    def writeOutput(self):
+        self.writeOutputAsJSON()
+
+class RemoveTestResult:
+    def __init__(self, id):
+        self.id = id
+        self.error = False
+
+    def execute(self):
+        self.versions = execQuery(
+            "DELETE FROM test_result WHERE id=?", (self.id,))
+        commit()
+        self.writeOutput()
+
+    def writeOutputAsJSON(self):
+        printJSONHeader()
+        json.dump({}, sys.stdout) # ### ignoring self.error for now
+
+class RemoveTestResult_JSON(RemoveTestResult):
     def writeOutput(self):
         self.writeOutputAsJSON()
 
@@ -132,6 +295,12 @@ def connectDatabase():
 
     global cursor
     cursor = conn.cursor()
+
+# Commits everything that has been written to the database.
+def commit():
+    if not "cursor" in globals():
+        return
+    cursor.connection.commit()
 
 # Executes a query against the database. args contains the arguments to be
 # passed to the query. Returns any result set iff fetch_results is true.
@@ -208,7 +377,10 @@ def createCommand(options, http_get):
             '  --cmd get_apps | \\\n'
             '  --cmd get_versions --app A | \\\n'
             '  --cmd get_tests --app A --version V | \\\n'
-            '  --cmd get_test_results --app A --version V --test T')
+            '  --cmd get_test_results --app A --version V --test T | \\\n'
+            '  --cmd add_test_result --app A --version V --test T --reporter R '
+            '--status S --ipaddress I --comment C | \\\n'
+            '  --cmd remove_test_result --id I')
 
         if http_get:
             printErrorAsJSON('usage error')
@@ -226,22 +398,37 @@ def createCommand(options, http_get):
 
     # --- 'get_apps' ---------------------------------
     if cmd == 'get_apps':
-        return GetAppsAsJSON()
+        return GetApps_JSON()
 
     # --- 'get_versions' ---------------------------------
     elif cmd == 'get_versions':
         if 'app' in options:
-            return GetVersionsAsJSON(options['app'])
+            return GetVersions_JSON(options['app'])
 
     # --- 'get_tests' ---------------------------------
     elif cmd == 'get_tests':
         if ('app' in options) and ('version' in options):
-            return GetTestsAsJSON(options['app'], options['version'])
+            return GetTests_JSON(options['app'], options['version'])
 
     # --- 'get_test_results' ---------------------------------
     elif cmd == 'get_test_results':
         if ('app' in options) and ('version' in options) and ('test' in options):
-            return GetTestResultsAsJSON(options['app'], options['version'], options['test'])
+            return GetTestResults_JSON(options['app'], options['version'], options['test'])
+
+    # --- 'add_test_result' ---------------------------------
+    elif cmd == 'add_test_result':
+        if (('app' in options) and ('version' in options) and ('test' in options)
+            and ('reporter' in options) and ('status' in options) and ('ipaddress' in options)
+            and ('comment' in options)):
+            return AddTestResult_JSON(
+                options['app'], options['version'], options['test'],
+                options['reporter'], options['status'], options['ipaddress'],
+                options['comment'])
+
+    # --- 'remove_test_result' ---------------------------------
+    elif cmd == 'remove_test_result':
+        if ('id' in options):
+            return RemoveTestResult_JSON(options['id'])
 
     # No match:
     printUsageError()

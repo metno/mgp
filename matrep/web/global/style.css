@@ -6,48 +6,27 @@ body {
 }
 
 table.tablesorter tbody tr.selectedRow td {
-	background:#ffcc77;
+    background-color:#ffcc77;
 }
 
 table.tablesorter tbody tr.odd.selectedRow td {
-	background:#ffcc77;
+    background-color:#ffcc77;
 }
 
 table.tablesorter tbody tr.even.selectedRow td {
-	background:#ffcc77;
+    background-color:#ffcc77;
 }
 
-a.actionButton:link, a.actionButton:visited {
-    display:inline;
-    /* font-weight:bold; */
-    font-size:14px;
-    color:#000;
-    background-color:#eee8ce;
-    border-style:solid;
-    border-color:#fff9dc #ddd8bf #ddd8bf #fff9dc;
-    text-align:center;
-    /* padding:4px; */
-    /* margin-top:5px; */
-    /* margin-bottom:5px; */
-    text-decoration:none;
+table.tablesorter tbody tr td.selectedColumn {
+    background-color:#ffcc77;
 }
 
-a.actionButton:hover, a.actionButton:active {
-    background-color:#e6e1c7;
+table.tablesorter tbody tr.odd td.selectedColumn {
+    background-color:#ffcc77;
 }
 
-a.disabledActionButton:link,
-a.disabledActionButton:visited,
-a.disabledActionButton:hover,
-a.disabledActionButton:active {
-    display:inline;
-    font-size:14px;
-    color:#999;
-    background-color:#eee;
-    border-style:solid;
-    border-color:#fdfdfd #dfdfdf #dfdfdf #fdfdfd;
-    text-align:center;
-    text-decoration:none;
+table.tablesorter tbody tr.even td.selectedColumn {
+    background-color:#ffcc77;
 }
 
 table {
@@ -58,30 +37,6 @@ table {
 table, th, td {
     border: 1px solid #aaaaaa;
     padding:3;
-}
-
-/* Note: In the below classes, an image is used instead of an explicit
-   background color to work around a limitation in the
-   jQuery tablesorter plugin. */
-.context1 {
-    /* background-color:...; */
-    background-image:url("images/bg_context1.png");
-}
-.context2 {
-    /* background-color:...; */
-    background-image:url("images/bg_context2.png");
-}
-.metric {
-    /* background-color:...; */
-    background-image:url("images/bg_metric.png");
-}
-.benchmark {
-    /* background-color:...; */
-    background-image:url("images/bg_benchmark.png");
-}
-
-.unselected {
-    background-color:#ffffff;
 }
 
 .tooltipHeader1 {
@@ -97,34 +52,6 @@ table, th, td {
 /*    opacity: 0.95; */
 }
 
-.leadText {
-    font-weight:bold;
-    font-size:11px;
-    text-align:right;
-    background-color:#eee;
-}
-.leadText_thin {
-    font-weight:regular;
-    font-size:11px;
-    text-align:right;
-    background-color:#eee;
-}
-.contentText_pad {
-    font-weight:regular;
-    font-size:11px;
-    text-align:left;
-    padding-right:20px;
-}
-.contentText_mono {
-    font-family: "Lucida Console", "Courier New", monospace;
-    font-weight:regular;
-    font-size:11px;
-    text-align:left;
-}
-.contentText_mono_pad {
-    font-family: "Lucida Console", "Courier New", monospace;
-    font-weight:regular;
-    font-size:11px;
-    text-align:left;
-    padding-right:20px;
-}
+#top, #bot { position:absolute; }
+#top { top:0; }
+#bot { bottom:0; }

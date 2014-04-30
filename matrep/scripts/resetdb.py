@@ -16,7 +16,7 @@ def setTestData(conn):
 
     # create versions for diana
     app_id_diana = 1 # by assumption
-    for version in ['3.33', '3.34', '3.35']: # assume id=1..3
+    for version in ['3.33', '3.3', '3.35']: # assume id=1..3
         conn.execute("INSERT INTO version (app_id, name) VALUES (?, ?);", (app_id_diana, version))
 
     # create tests for diana
@@ -69,9 +69,12 @@ def setTestData(conn):
                   """.decode('utf8').strip())
                  ) # assume id=2
 
-    # create version/test combinations for diana (note that test2 (id=2) applies to version 3.35 (id=3) only)
-    combs = [[1, 1], [2, 1], [3, 1], [3, 2]]
-    for c in combs: # assume id=1..4
+    # create version/test combinations for diana
+    # note:
+    # - test2 (id=2) applies to version 3.35 (id=3) only)
+    # - there are no tests for version 3.3 (id=2)
+    combs = [[1, 1], [3, 1], [3, 2]]
+    for c in combs: # assume id=1..3
         conn.execute("INSERT INTO version_test (version_id, test_id) VALUES (?, ?);", (c[0], c[1]))
 
     # create versions for modfly
@@ -92,24 +95,28 @@ def setTestData(conn):
                   </ol>
                   """.decode('utf8').strip())
                  ) # assume id=3
+    for i in [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]: # assume id=4..13
+        conn.execute("INSERT INTO test (app_id, name, description) VALUES (?, ?, ?);",
+                     (app_id_modfly, 'modfly-test{}'.format(i), 'modfly-test{} ...'.format(i)))
 
     # create version/test combinations for modfly
-    combs = [[4, 3], [5, 3]] # assume id=5..6
+    combs = [[4, 3], [5, 3], [5, 4], [5, 5], [5, 6], [5, 7], [5, 8], [5, 9],
+             [5, 10], [5, 11], [5, 12], [5, 13]] # assume id=4..5
     for c in combs:
         conn.execute("INSERT INTO version_test (version_id, test_id) VALUES (?, ?);", (c[0], c[1]))
 
 
-    # create two test results for diana/3.34/diana-test-1
+    # create two test results for diana/3.33/diana-test-1
     conn.execute(
         "INSERT INTO test_result "
-        "(version_test_id, timestamp, reporter, ipaddress, status, description) "
+        "(version_test_id, timestamp, reporter, ipaddress, status, comment) "
         "VALUES (?, ?, ?, ?, ?, ?);",
-        (2, 1398422318, 'joa', '157.249.115.120', 'fail', u'testen feilet pga æøå ...'))
+        (1, 1398422318, 'joa', '157.249.115.120', 'fail', u'testen feilet pga æøå ...'))
     conn.execute(
         "INSERT INTO test_result "
-        "(version_test_id, timestamp, reporter, ipaddress, status, description) "
+        "(version_test_id, timestamp, reporter, ipaddress, status, comment) "
         "VALUES (?, ?, ?, ?, ?, ?);",
-        (2, 1398422328, 'juergen', '157.249.115.122', 'pass', ''))
+        (1, 1398422328, 'juergen', '157.249.115.122', 'pass', ''))
 
 def resetDatabase(fname, set_test_data):
     if os.path.exists(fname):
@@ -173,7 +180,7 @@ def resetDatabase(fname, set_test_data):
             reporter TEXT NOT NULL,
             ipaddress TEXT NOT NULL,
             status TEXT NOT NULL,
-            description TEXT NOT NULL,
+            comment TEXT NOT NULL,
             FOREIGN KEY(version_test_id) REFERENCES version_test(id)
         );
     """)
