@@ -689,7 +689,7 @@ class SetTestDescr(Command):
             print 'error: ' + self.error
 
 
-class AddVersionTest(Command):
+class AddVersionTests(Command):
     def __init__(self, http_get, app, version, src_version, test):
         self.http_get = http_get
         self.app = app
@@ -1164,7 +1164,7 @@ def createCommand(options, http_get):
             '  --cmd remove_test --app A --test T | \\\n'
             '  --cmd rename_test --app A --old O --new N | \\\n'
             '  --cmd set_test_descr --app A --test T --descr D | \\\n'
-            '  --cmd add_version_test --app A --version V [--src_version S] [--test T] | \\\n'
+            '  --cmd add_version_tests --app A --version V [--src_version S] [--test T] | \\\n'
             '  --cmd get_version_tests --app A [--version S] [--test T] | \\\n'
             '  --cmd remove_version_tests --app A [--version S] [--test T] | \\\n'
             '  --cmd get_test_results --app A --version V --test T | \\\n'
@@ -1250,10 +1250,10 @@ def createCommand(options, http_get):
         if ('app' in options) and ('test' in options) and ('descr' in options):
             return SetTestDescr(http_get, options['app'], options['test'], options['descr'])
 
-    # --- 'add_version_test' ---------------------------------
-    elif cmd == 'add_version_test':
+    # --- 'add_version_tests' ---------------------------------
+    elif cmd == 'add_version_tests':
         if ('app' in options) and ('version' in options):
-            return AddVersionTest(
+            return AddVersionTests(
                 http_get, options['app'], options['version'],
                 options['src_version'] if 'src_version' in options else None,
                 options['test'] if 'test' in options else None)
