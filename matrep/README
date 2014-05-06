@@ -42,7 +42,7 @@ STEP 5: Configure the Apache web server to 1) allow access to the
     httpd.conf etc.).
 
 
-STEP 6: Start the web server and (if desirable) arrange for it be
+STEP 6: Start the web server and (if desirable) arrange for it to be
     started automatically at boot time (on a Linux system this would
     typically mean to add some stuff under /etc/init.d/).
 
