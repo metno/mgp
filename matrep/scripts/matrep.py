@@ -689,6 +689,37 @@ class SetTestDescr(Command):
             print 'error: ' + self.error
 
 
+class GetVersionTests(Command):
+    def __init__(self, http_get, app, version, test):
+        self.http_get = http_get
+        self.app = app
+        self.version = version
+        self.test = test
+        self.error = None
+
+    def doExecute(self):
+        app_id = getAppID(self.app)
+        if app_id < 0:
+            self.error = 'app ' + self.app + ' not found'
+            return
+        self.versions, self.tests, dummy, self.error = getVersionTests(self.app, app_id, self.version, self.test)
+
+    def execute(self):
+        self.doExecute()
+        self.writeOutput()
+
+    def writeOutputAsJSON(self):
+        printJSONHeader()
+        json.dump({}, sys.stdout) # empty for now
+
+    def writeOutputAsPlainText(self):
+        if self.error != None:
+            print 'error: ' + self.error
+        else:
+            for i in range(len(self.versions)):
+                print '{:>10} {:>10}'.format(self.versions[i], self.tests[i])
+
+
 class AddVersionTests(Command):
     def __init__(self, http_get, app, version, src_version, test):
         self.http_get = http_get
@@ -761,37 +792,6 @@ class AddVersionTests(Command):
     def writeOutputAsPlainText(self):
         if self.error != None:
             print 'error: ' + self.error
-
-
-class GetVersionTests(Command):
-    def __init__(self, http_get, app, version, test):
-        self.http_get = http_get
-        self.app = app
-        self.version = version
-        self.test = test
-        self.error = None
-
-    def doExecute(self):
-        app_id = getAppID(self.app)
-        if app_id < 0:
-            self.error = 'app ' + self.app + ' not found'
-            return
-        self.versions, self.tests, dummy, self.error = getVersionTests(self.app, app_id, self.version, self.test)
-
-    def execute(self):
-        self.doExecute()
-        self.writeOutput()
-
-    def writeOutputAsJSON(self):
-        printJSONHeader()
-        json.dump({}, sys.stdout) # empty for now
-
-    def writeOutputAsPlainText(self):
-        if self.error != None:
-            print 'error: ' + self.error
-        else:
-            for i in range(len(self.versions)):
-                print '{:>10} {:>10}'.format(self.versions[i], self.tests[i])
 
 
 class RemoveVersionTests(Command):
@@ -1250,20 +1250,20 @@ def createCommand(options, http_get):
         if ('app' in options) and ('test' in options) and ('descr' in options):
             return SetTestDescr(http_get, options['app'], options['test'], options['descr'])
 
-    # --- 'add_version_tests' ---------------------------------
-    elif cmd == 'add_version_tests':
-        if ('app' in options) and ('version' in options):
-            return AddVersionTests(
-                http_get, options['app'], options['version'],
-                options['src_version'] if 'src_version' in options else None,
-                options['test'] if 'test' in options else None)
-
     # --- 'get_version_tests' ---------------------------------
     elif cmd == 'get_version_tests':
         if ('app' in options):
             return GetVersionTests(
                 http_get, options['app'],
                 options['version'] if 'version' in options else None,
+                options['test'] if 'test' in options else None)
+
+    # --- 'add_version_tests' ---------------------------------
+    elif cmd == 'add_version_tests':
+        if ('app' in options) and ('version' in options):
+            return AddVersionTests(
+                http_get, options['app'], options['version'],
+                options['src_version'] if 'src_version' in options else None,
                 options['test'] if 'test' in options else None)
 
     # --- 'remove_version_tests' ---------------------------------
