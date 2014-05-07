@@ -187,7 +187,7 @@ function getApps() {
     updateStatus(statusBase, true);
 
     query = "?cmd=get_apps";
-    url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
+    url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
         url: url,
@@ -249,7 +249,7 @@ function getVersions(appName, versionName, testName) {
     updateStatus(statusBase, true);
 
     query = "?cmd=get_versions&app=" + appName;
-    url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
+    url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
         url: url,
@@ -339,7 +339,7 @@ function getTests(appName, versionName, testName) {
     updateStatus(statusBase, true);
 
     query = "?cmd=get_tests&app=" + appName + "&version=" + versionName;
-    url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
+    url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
         url: url,
@@ -431,7 +431,7 @@ function getTestResults(app, version, test) {
     updateStatus(statusBase, true);
 
     query = "?cmd=get_test_results&app=" + app + "&version=" + version + "&test=" + test;
-    url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
+    url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
         url: url,
@@ -566,7 +566,7 @@ function addTestResult() {
 	+ encodeURIComponent(currentVersionName()) + "&test=" + encodeURIComponent(currentTestName())
 	+ "&reporter=" + encodeURIComponent(reporter) + "&status=" + status + "&ipaddress=" + ipAddress
 	+ "&comment=" + encodeURIComponent(comment);
-    url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
+    url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
         url: url,
@@ -617,7 +617,7 @@ function removeTestResult(id) {
     updateStatus(statusBase, true);
 
     query = "?cmd=remove_test_result&id=" + id;
-    url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
+    url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
         url: url,
