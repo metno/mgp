@@ -562,9 +562,10 @@ function addTestResult() {
     var ipAddress = extractArg(queryStringArgs(), "ipaddress");
     var comment = $("#add_test_result_comment").val().trim();
 
-    query = "?cmd=add_test_result&app=" + currentAppName() + "&version=" + currentVersionName()
-        + "&test=" + currentTestName() + "&reporter=" + encodeURIComponent(reporter) + "&status=" + status
-	+ "&ipaddress=" + ipAddress + "&comment=" + encodeURIComponent(comment);
+    query = "?cmd=add_test_result&app=" + encodeURIComponent(currentAppName()) + "&version="
+	+ encodeURIComponent(currentVersionName()) + "&test=" + encodeURIComponent(currentTestName())
+	+ "&reporter=" + encodeURIComponent(reporter) + "&status=" + status + "&ipaddress=" + ipAddress
+	+ "&comment=" + encodeURIComponent(comment);
     url = "http://" + location.host + "/cgi-bin/matrep.py" + query;
 
     $.ajax({
