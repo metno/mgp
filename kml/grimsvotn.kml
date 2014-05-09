@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+  <Document>
+    <name>polygon.kml</name>
+    <Snippet>SNIPPET</Snippet>
+    <description>DESCRIPTION</description>
+    <StyleMap id="msn_ylw-pushpin">
+      <Pair>
+	<key>normal</key>
+	<styleUrl>#unselected</styleUrl>
+      </Pair>
+      <Pair>
+	<key>highlight</key>
+	<styleUrl>#selected</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="unselected">
+      <LineStyle>
+	<color>ffff00aa</color>
+	<width>2</width>
+      </LineStyle>
+      <PolyStyle>
+	<color>ff00aa55</color>
+      </PolyStyle>
+    </Style>
+    <Style id="selected">
+      <LineStyle>
+	<color>ff0000aa</color>
+	<width>4</width>
+      </LineStyle>
+      <PolyStyle>
+	<color>ff00aa55</color>
+      </PolyStyle>
+    </Style>
+    <Style id="sh_volcano">
+      <IconStyle>
+	<scale>1.4</scale>
+	<Icon>
+	  <href>http://maps.google.com/mapfiles/kml/shapes/volcano.png</href>
+	</Icon>
+	<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
+      </IconStyle>
+      <ListStyle>
+      </ListStyle>
+    </Style>
+    <StyleMap id="msn_volcano">
+      <Pair>
+	<key>normal</key>
+	<styleUrl>#sn_volcano</styleUrl>
+      </Pair>
+      <Pair>
+	<key>highlight</key>
+	<styleUrl>#sh_volcano</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="exampleBalloonStyle">
+      <IconStyle>
+	<scale>1.2</scale>
+	<Icon>
+	  <href>http://maps.google.com/mapfiles/kml/shapes/volcano.png</href>
+	</Icon>
+	<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
+      </IconStyle>
+      <BalloonStyle>
+	<text><![CDATA[
+	<b><font size="+1">$[name]</font></b><br/><br/>
+	$[description]<br/>
+	]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="sn_volcano">
+      <IconStyle>
+	<scale>1.2</scale>
+	<Icon>
+	  <href>http://maps.google.com/mapfiles/kml/shapes/volcano.png</href>
+	</Icon>
+	<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/>
+      </IconStyle>
+      <ListStyle>
+      </ListStyle>
+    </Style>
+
+<!-- BEGIN volcano -->
+    <Placemark>
+      <name>GRISVOTMN 1703-01</name>
+      <Snippet>Snippet</Snippet>
+      <description>VAACEXERCISE PLEASE DISREGARD</description>
+      <styleUrl>#exampleBalloonStyle</styleUrl>
+      <ExtendedData>
+        <Data name="met:objectType"><value>Symbol</value></Data>
+        <Data name="met:groupId"><value>0</value></Data>
+      </ExtendedData>
+      <Point>
+	<coordinates>-17.3333333333333,64.4166666666667,0</coordinates>
+      </Point>
+    </Placemark>
+<!-- END volcano -->
+
+
+    <Folder>
+      <name>Observation</name>
+      <TimeSpan>
+	<begin>2013-09-03T06:00:00Z</begin>
+	<end>2013-09-03T12:00:00Z</end>
+      </TimeSpan>
+
+<!-- BEGIN area -->
+      <Placemark>
+	<name>FL100/450</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>1</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -27.9166666666667,64.9166666666667,0
+                -23.8333333333333,67.1666666666667,0
+                -23.5,64.6666666666667,0
+                -27.5833333333333,64,0
+                -27.9166666666667,64.9166666666667,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+<!-- END area -->
+    </Folder>
+
+    <Folder>
+      <name>Observation</name>
+      <TimeSpan>
+	<begin>2013-09-03T06:00:00Z</begin>
+	<end>2013-09-03T12:00:00Z</end>
+      </TimeSpan>
+      <Placemark>
+	<name>FL100/450</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -17.9166666666667,64.9166666666667,0
+                -13.8333333333333,67.1666666666667,0
+                -13.5,64.6666666666667,0
+                -17.5833333333333,64,0
+                -17.9166666666667,64.9166666666667,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+
+    <Folder>
+      <name>Forecast +6H</name>
+      <TimeSpan>
+	<begin>2013-09-03T12:00:00Z</begin>
+	<end>2013-09-03T18:00:00Z</end>
+      </TimeSpan>
+      <Placemark>
+	<name>FL100/450</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -17.9166666666667,64.9166666666667,0
+                -17.5,63.5833333333333,0
+                -8,65.1666666666667,0
+                -5.91666666666667,67.9166666666667,0
+                -17.9166666666667,64.9166666666667,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+
+      <Placemark>
+	<name>FL150/340</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+	<Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -17.6666666666667,64.0833333333333,0
+                0.333333333333333,67.6666666666667,0
+                3.91666666666667,69.9166666666667,0
+                -9.91666666666667,67.5833333333333,0
+                -17.75,65.25,0
+                -17.6666666666667,64.0833333333333,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Forecast +12H</name>
+      <TimeSpan>
+	<begin>2013-09-03T18:00:00Z</begin>
+	<end>2013-09-04T00:00:00Z</end>
+      </TimeSpan>
+      <Placemark>
+	<name>FL100/450</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -18.1666666666667,65,0
+                -17.4166666666667,63.5833333333333,0
+                -11,64.5,0
+                1.5,68.8333333333333,0
+                1.08333333333333,70.4166666666667,0
+                -8.66666666666667,68.5,0
+                -18.1666666666667,65,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+
+      <Placemark>
+	<name>FL150/340</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -18.0833333333333,65.25,0
+                -17.75,63.6666666666667,0
+                13,71.9166666666667,0
+                12.6666666666667,73.75,0
+                7.91666666666667,74.25,0
+                -18.0833333333333,65.25,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Forecast +18H</name>
+      <TimeSpan>
+	<begin>2013-09-04T00:00:00Z</begin>
+	<end>2013-09-04T06:00:00Z</end>
+      </TimeSpan>
+      <Placemark>
+	<name>FL100/450</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -18,65.1666666666667,0
+                -17.1666666666667,63.6666666666667,0
+                -0.25,67.5,0
+                10.1666666666667,72.5,0
+                8.83333333333333,73.9166666666667,0
+                -18,65.1666666666667,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+
+      <Placemark>
+	<name>FL150/340</name>
+	<styleUrl>#msn_ylw-pushpin</styleUrl>
+    <ExtendedData>
+      <Data name="met:objectType"><value>PolyLine</value></Data>
+      <Data name="met:groupId"><value>0</value></Data>
+    </ExtendedData>
+    <Polygon>
+	  <tessellate>1</tessellate>
+	  <outerBoundaryIs>
+	    <LinearRing>
+	      <coordinates>
+                -18.8333333333333,65.6666666666667,0
+                -16.9166666666667,62.8333333333333,0
+                14.25,73.75,0
+                13.25,76.5,0
+                3.58333333333333,78.25,0
+                4.75,73.6666666666667,0
+                -18.8333333333333,65.6666666666667,0
+	      </coordinates>
+	    </LinearRing>
+	  </outerBoundaryIs>
+	</Polygon>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>
