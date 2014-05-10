@@ -689,6 +689,42 @@ class SetTestDescr(Command):
             print 'error: ' + self.error
 
 
+class GetTestDescr(Command):
+    def __init__(self, http_get, app, test):
+        self.http_get = http_get
+        self.app = app
+        self.test = test
+        self.error = None
+
+    def doExecute(self):
+        app_id = getAppID(self.app)
+        if app_id < 0:
+            self.error = 'app ' + self.app + ' not found'
+            return
+
+        test_id = getTestID(app_id, self.test)
+        if test_id < 0:
+            self.error = 'app ' + self.app + ' contains no such test: ' + self.test
+            return
+
+        query_result = execQuery("SELECT description FROM test WHERE app_id=? AND id=?;", (app_id, test_id))
+        self.descr = query_result[0][0]
+
+    def execute(self):
+        self.doExecute()
+        self.writeOutput()
+
+    def writeOutputAsJSON(self):
+        printJSONHeader()
+        json.dump({}, sys.stdout) # ### ignoring self.error for now
+
+    def writeOutputAsPlainText(self):
+        if self.error != None:
+            print 'error: ' + self.error
+        else:
+            print self.descr
+
+
 class GetVersionTests(Command):
     def __init__(self, http_get, app, version, test):
         self.http_get = http_get
@@ -1164,6 +1200,7 @@ def createCommand(options, http_get):
             '  --cmd remove_test --app A --test T | \\\n'
             '  --cmd rename_test --app A --old O --new N | \\\n'
             '  --cmd set_test_descr --app A --test T --descr D | \\\n'
+            '  --cmd get_test_descr --app A --test T | \\\n'
             '  --cmd add_version_tests --app A --version V [--src_version S] [--test T] | \\\n'
             '  --cmd get_version_tests --app A [--version S] [--test T] | \\\n'
             '  --cmd remove_version_tests --app A [--version S] [--test T] | \\\n'
@@ -1249,6 +1286,11 @@ def createCommand(options, http_get):
     elif cmd == 'set_test_descr':
         if ('app' in options) and ('test' in options) and ('descr' in options):
             return SetTestDescr(http_get, options['app'], options['test'], options['descr'])
+
+    # --- 'get_test_descr' ---------------------------------
+    elif cmd == 'get_test_descr':
+        if ('app' in options) and ('test' in options):
+            return GetTestDescr(http_get, options['app'], options['test'])
 
     # --- 'get_version_tests' ---------------------------------
     elif cmd == 'get_version_tests':
