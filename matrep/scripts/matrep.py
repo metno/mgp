@@ -672,8 +672,8 @@ class SetTestDescr(Command):
             return
 
         execQuery(
-            "UPDATE test SET description=? WHERE app_id=? AND name=?;",
-            (unicode(descr_content, 'utf-8'), app_id, self.test))
+            "UPDATE test SET description=? WHERE app_id=? AND id=?;",
+            (unicode(descr_content, 'utf-8'), app_id, test_id))
         commit()
 
     def execute(self):
@@ -890,8 +890,25 @@ class GetTestResults(Command):
         self.app = app
         self.version = version
         self.test = test
+        self.error = None
 
-    def execute(self):
+    def doExecute(self):
+
+        app_id = getAppID(self.app)
+        if app_id < 0:
+            self.error = 'app ' + self.app + ' not found'
+            return
+
+        version_id = getVersionID(app_id, self.version)
+        if version_id < 0:
+            self.error = 'app ' + self.app + ' contains no such version: ' + self.version
+            return
+
+        test_id = getTestID(app_id, self.test)
+        if test_id < 0:
+            self.error = 'app ' + self.app + ' contains no such test: ' + self.test
+            return
+
         self.query_result = execQuery(
             "SELECT test_result.id, test_result.timestamp, test_result.reporter, "
             "test_result.ipaddress, test_result.status, test_result.comment "
@@ -901,22 +918,31 @@ class GetTestResults(Command):
             "AND version_test.version_id=version.id "
             "AND version_test.test_id=test.id "
             "AND version_test_id=version_test.id "
-            "AND app.name=? AND version.name=? AND test.name=? "
-            "ORDER BY test_result.timestamp", (self.app, self.version, self.test))
-        zqr = zip(*self.query_result)
-        if len(zqr) != 6:
-            zqr = [[]] * 6
-        self. ids = zqr[0]
-        self.timestamps = zqr[1]
-        self.reporters = zqr[2]
-        self.ipaddresses = zqr[3]
-        self.statuses = zqr[4]
-        self.comments = zqr[5]
+            "AND app.id=? AND version.id=? AND test.id=? "
+            "ORDER BY test_result.timestamp", (app_id, version_id, test_id))
+
+    def execute(self):
+        self.doExecute()
+
+        if self.error != None:
+            x = [[]] * 6
+        else:
+            x = zip(*self.query_result)
+            if len(x) != 6:
+                x = [[]] * 6
+
+        self.ids = x[0]
+        self.timestamps = x[1]
+        self.reporters = x[2]
+        self.ipaddresses = x[3]
+        self.statuses = x[4]
+        self.comments = x[5]
 
         self.writeOutput()
 
     def writeOutputAsJSON(self):
         printJSONHeader()
+        # ### ignore self.error for now (just return empty output upon error)
         json.dump({
                 'ids': self.ids,
                 'timestamps': self.timestamps,
@@ -927,8 +953,11 @@ class GetTestResults(Command):
                 }, sys.stdout)
 
     def writeOutputAsPlainText(self):
-        for id in self.ids:
-            print id
+        if self.error != None:
+            print 'error: ' + self.error
+        else:
+            for id in self.ids:
+                print id
 
 
 class AddTestResult(Command):
