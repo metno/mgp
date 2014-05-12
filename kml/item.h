@@ -8,7 +8,6 @@
 #include <QDomNode>
 #include <QDomElement>
 #include <QPointF>
-#include <iostream>
 
 struct Item {
   QList<QPointF> points; // lat,lon points
