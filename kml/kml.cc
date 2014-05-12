@@ -10,8 +10,6 @@
 #include <QXmlSchemaValidator>
 #include <QAbstractMessageHandler>
 #include <QPointF>
-#include <QDebug>
-#include <iostream>
 #include "item.h"
 
 namespace KML {
