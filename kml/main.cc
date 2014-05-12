@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
   if ((argc < 2) || (argc > 3)) {
     printError(QString("usage: %1 <KML input file> [<KML output file>]").arg(argv[0]));
-    return 0;
+    return 1;
   }
 
   QString error;
