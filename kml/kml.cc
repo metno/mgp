@@ -50,7 +50,7 @@ QString MessageHandler::lastMessage() const
 
 // Attempts to load \a fileName as a valid XML schema.
 // Upon success, the function returns true and a valid schema in \a schema.
-// Otherwise, the function returns and the failure reason in \a error.
+// Otherwise, the function returns false and the failure reason in \a error.
 static bool loadSchemaFromFile(QXmlSchema &schema, const QString &fileName, QString *error)
 {
   *error = QString();
