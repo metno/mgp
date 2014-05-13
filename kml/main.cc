@@ -42,8 +42,6 @@ int main(int argc, char *argv[])
 
   // write items to KML file
   if (argc == 3) {
-    error.clear();
-
     if (QDir::cleanPath(QDir().absoluteFilePath(argv[1])) == QDir::cleanPath(QDir().absoluteFilePath(argv[2]))) {
       printError("input file == output file -> writing skipped");
       return 1;
