@@ -960,6 +960,58 @@ class GetTestResults(Command):
                 print id
 
 
+class RemoveTestResults(Command):
+    def __init__(self, http_get, app, version, test):
+        self.http_get = http_get
+        self.app = app
+        self.version = version
+        self.test = test
+        self.error = None
+
+    def doExecute(self):
+
+        app_id = getAppID(self.app)
+        if app_id < 0:
+            self.error = 'app ' + self.app + ' not found'
+            return
+
+        version_id = getVersionID(app_id, self.version)
+        if version_id < 0:
+            self.error = 'app ' + self.app + ' contains no such version: ' + self.version
+            return
+
+        test_id = getTestID(app_id, self.test)
+        if test_id < 0:
+            self.error = 'app ' + self.app + ' contains no such test: ' + self.test
+            return
+
+        execQuery(
+            "DELETE FROM test_result "
+            "WHERE id IN ("
+            "  SELECT test_result.id "
+            "  FROM app,version,test,version_test,test_result "
+            "  WHERE version.app_id=app.id "
+            "  AND test.app_id=app.id "
+            "  AND version_test.version_id=version.id "
+            "  AND version_test.test_id=test.id "
+            "  AND version_test_id=version_test.id "
+            "  AND app.id=? AND version.id=? AND test.id=? "
+            ");", (app_id, version_id, test_id))
+        commit();
+
+    def execute(self):
+        self.doExecute()
+        self.writeOutput()
+
+    def writeOutputAsJSON(self):
+        printJSONHeader()
+        json.dump({}, sys.stdout) # empty for now
+
+    def writeOutputAsPlainText(self):
+        if self.error != None:
+            print 'error: ' + self.error
+
+
 class AddTestResult(Command):
     def __init__(self, http_get, app, version, test, reporter, status, ipaddress, comment):
         self.http_get = http_get
@@ -1234,6 +1286,7 @@ def createCommand(options, http_get):
             '  --cmd get_version_tests --app A [--version S] [--test T] | \\\n'
             '  --cmd remove_version_tests --app A [--version S] [--test T] | \\\n'
             '  --cmd get_test_results --app A --version V --test T | \\\n'
+            '  --cmd remove_test_results --app A --version V --test T | \\\n'
             '  --cmd add_test_result --app A --version V --test T --reporter R '
             '--status S --ipaddress I --comment C | \\\n'
             '  --cmd remove_test_result --id I')
@@ -1349,6 +1402,11 @@ def createCommand(options, http_get):
     elif cmd == 'get_test_results':
         if ('app' in options) and ('version' in options) and ('test' in options):
             return GetTestResults(http_get, options['app'], options['version'], options['test'])
+
+    # --- 'remove_test_results' ---------------------------------
+    elif cmd == 'remove_test_results':
+        if ('app' in options) and ('version' in options) and ('test' in options):
+            return RemoveTestResults(http_get, options['app'], options['version'], options['test'])
 
     # --- 'add_test_result' ---------------------------------
     elif cmd == 'add_test_result':
