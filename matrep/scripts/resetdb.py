@@ -145,7 +145,7 @@ def resetDatabase(fname, set_test_data):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             app_id INTEGER,
             name TEXT NOT NULL,
-            FOREIGN KEY(app_id) REFERENCES app(id),
+            FOREIGN KEY(app_id) REFERENCES app(id) ON DELETE CASCADE,
             UNIQUE(app_id, name)
         );
     """)
@@ -156,7 +156,7 @@ def resetDatabase(fname, set_test_data):
             app_id INTEGER,
             name TEXT NOT NULL,
             description TEXT NOT NULL,
-            FOREIGN KEY(app_id) REFERENCES app(id),
+            FOREIGN KEY(app_id) REFERENCES app(id) ON DELETE CASCADE,
             UNIQUE(app_id, name)
         );
     """)
@@ -166,8 +166,8 @@ def resetDatabase(fname, set_test_data):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             version_id INTEGER,
             test_id INTEGER,
-            FOREIGN KEY(version_id) REFERENCES version(id),
-            FOREIGN KEY(test_id) REFERENCES test(id),
+            FOREIGN KEY(version_id) REFERENCES version(id) ON DELETE CASCADE,
+            FOREIGN KEY(test_id) REFERENCES test(id) ON DELETE CASCADE,
             UNIQUE(version_id, test_id)
         );
     """)
@@ -181,7 +181,7 @@ def resetDatabase(fname, set_test_data):
             ipaddress TEXT NOT NULL,
             status TEXT NOT NULL,
             comment TEXT NOT NULL,
-            FOREIGN KEY(version_test_id) REFERENCES version_test(id)
+            FOREIGN KEY(version_test_id) REFERENCES version_test(id) ON DELETE CASCADE
         );
     """)
 
