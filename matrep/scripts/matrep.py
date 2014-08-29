@@ -68,9 +68,10 @@ class AddApp(Command):
 
 
 class RemoveApp(Command):
-    def __init__(self, http_get, app):
+    def __init__(self, http_get, app, force):
         self.http_get = http_get
         self.app = app
+        self.force = force
         self.error = None
 
     def doExecute(self):
@@ -79,19 +80,20 @@ class RemoveApp(Command):
             self.error = 'app ' + self.app + ' not found'
             return
 
-        versions = getVersions(app_id)
-        if len(versions) > 0:
-            self.error = (
-                'the app ' + self.app + ' is already associated with the following version(s): ' +
-                ", ".join(str(v) for v in versions))
-            return
+        if not self.force:
+            versions = getVersions(app_id)
+            if len(versions) > 0:
+                self.error = (
+                    'the app ' + self.app + ' is already associated with the following version(s): ' +
+                    ", ".join(str(v) for v in versions))
+                return
 
-        tests = getTests(app_id)
-        if len(tests) > 0:
-            self.error = (
-                'the app ' + self.app + ' is already associated with the following test(s): ' +
-                ", ".join(str(t) for t in tests))
-            return
+            tests = getTests(app_id)
+            if len(tests) > 0:
+                self.error = (
+                    'the app ' + self.app + ' is already associated with the following test(s): ' +
+                    ", ".join(str(t) for t in tests))
+                return
 
         execQuery("DELETE FROM app WHERE id=?;", (app_id,))
         commit()
@@ -278,10 +280,11 @@ class AddVersion(Command):
 
 
 class RemoveVersion(Command):
-    def __init__(self, http_get, app, version):
+    def __init__(self, http_get, app, version, force):
         self.http_get = http_get
         self.app = app
         self.version = version
+        self.force = force
         self.error = None
 
     def doExecute(self):
@@ -295,16 +298,17 @@ class RemoveVersion(Command):
             self.error = 'app ' + self.app + ' contains no such version: ' + self.version
             return
 
-        query_result = execQuery(
-            "SELECT test.name FROM app,version,test,version_test "
-            "WHERE version.app_id=app.id AND test.app_id=app.id "
-            "AND version_test.version_id=version.id AND version_test.test_id=test.id "
-            "AND app.id=? AND version.id=?;", (app_id, version_id))
-        if len(query_result) > 0:
-            self.error = (
-                'the version ' + self.version + ' is already associated with the following test(s): ' +
-                ", ".join(str(t) for t in zip(*query_result)[0]))
-            return
+        if not self.force:
+            query_result = execQuery(
+                "SELECT test.name FROM app,version,test,version_test "
+                "WHERE version.app_id=app.id AND test.app_id=app.id "
+                "AND version_test.version_id=version.id AND version_test.test_id=test.id "
+                "AND app.id=? AND version.id=?;", (app_id, version_id))
+            if len(query_result) > 0:
+                self.error = (
+                    'the version ' + self.version + ' is already associated with the following test(s): ' +
+                    ", ".join(str(t) for t in zip(*query_result)[0]))
+                return
 
         execQuery("DELETE FROM version WHERE app_id=? AND id=?;", (app_id, version_id))
         commit()
@@ -556,10 +560,11 @@ class AddTest(Command):
 
 
 class RemoveTest(Command):
-    def __init__(self, http_get, app, test):
+    def __init__(self, http_get, app, test, force):
         self.http_get = http_get
         self.app = app
         self.test = test
+        self.force = force
         self.error = None
 
     def doExecute(self):
@@ -573,16 +578,17 @@ class RemoveTest(Command):
             self.error = 'app ' + self.app + ' contains no such test: ' + self.test
             return
 
-        query_result = execQuery(
-            "SELECT version.name FROM app,version,test,version_test "
-            "WHERE version.app_id=app.id AND test.app_id=app.id "
-            "AND version_test.version_id=version.id AND version_test.test_id=test.id "
-            "AND app.id=? AND test.id=?;", (app_id, test_id))
-        if len(query_result) > 0:
-            self.error = (
-                'the test is already associated with the following version(s): ' +
-                ", ".join(str(v) for v in zip(*query_result)[0]))
-            return
+        if not self.force:
+            query_result = execQuery(
+                "SELECT version.name FROM app,version,test,version_test "
+                "WHERE version.app_id=app.id AND test.app_id=app.id "
+                "AND version_test.version_id=version.id AND version_test.test_id=test.id "
+                "AND app.id=? AND test.id=?;", (app_id, test_id))
+            if len(query_result) > 0:
+                self.error = (
+                    'the test is already associated with the following version(s): ' +
+                    ", ".join(str(v) for v in zip(*query_result)[0]))
+                return
 
         execQuery("DELETE FROM test WHERE app_id=? AND id=?;", (app_id, test_id))
         commit()
@@ -831,11 +837,12 @@ class AddVersionTests(Command):
 
 
 class RemoveVersionTests(Command):
-    def __init__(self, http_get, app, version, test):
+    def __init__(self, http_get, app, version, test, force):
         self.http_get = http_get
         self.app = app
         self.version = version
         self.test = test
+        self.force = force
         self.error = None
 
     def doExecute(self):
@@ -848,12 +855,13 @@ class RemoveVersionTests(Command):
         if self.error != None:
             return
 
-        # check that no test results exist for the target version/test combinations
-        for id in version_test_ids:
-            query_result = execQuery(
-            "SELECT count(test_result.id) FROM version_test,test_result "
-            "WHERE test_result.version_test_id=version_test.id "
-            "AND version_test.id=?;", (id,))
+        if not self.force:
+            # check that no test results exist for the target version/test combinations
+            for id in version_test_ids:
+                query_result = execQuery(
+                    "SELECT count(test_result.id) FROM version_test,test_result "
+                    "WHERE test_result.version_test_id=version_test.id "
+                    "AND version_test.id=?;", (id,))
             ntest_results = query_result[0][0]
             if ntest_results > 0:
                 version, test = getVersionTest(id)
@@ -1022,7 +1030,7 @@ class AddTestResult(Command):
         self.status = status
         self.ipaddress = ipaddress
         self.comment = comment
-        self.error = False
+        self.error = None
 
     def execute(self):
         query_result = execQuery(
@@ -1035,7 +1043,7 @@ class AddTestResult(Command):
             "AND app.name=? AND version.name=? AND test.name=? ",
             (self.app, self.version, self.test))
         if len(query_result) == 0:
-            self.error = True
+            self.error = 'no such version/test combination for this app'
         else:
             version_test_id = query_result[0][0]
             execQuery(
@@ -1053,7 +1061,8 @@ class AddTestResult(Command):
         json.dump({}, sys.stdout) # ### ignoring self.error for now
 
     def writeOutputAsPlainText(self):
-        pass
+        if self.error != None:
+            print 'error: ' + self.error
 
 
 class RemoveTestResult(Command):
@@ -1183,6 +1192,7 @@ def connectDatabase():
     fname = '/var/www/matrep_home/matrep.db' # for now
     try:
         conn = sqlite3.connect(fname)
+        conn.execute('pragma foreign_keys=ON')
     except:
         print "failed to connect to the database:", sys.exc_info()
         sys.exit(1)
@@ -1248,8 +1258,7 @@ def getOptions():
             m = p.match(arg)
             if m:
                 key = m.group(1)
-                # support "--help" as the only value-less option:
-                if key == 'help':
+                if key in ['help', 'force']: # value-less options
                     options[key] = 1
                     key = None
             else:
@@ -1270,21 +1279,21 @@ def createCommand(options, http_get):
             'usage: ' + sys.argv[0] + '\\\n'
             '  --cmd get_apps | \\\n'
             '  --cmd add_app --app A | \\\n'
-            '  --cmd remove_app --app A | \\\n'
+            '  --cmd remove_app --app A [--force] | \\\n'
             '  --cmd rename_app --old O --new N | \\\n'
             '  --cmd get_versions --app A | \\\n'
             '  --cmd add_version --app A --version V | \\\n'
-            '  --cmd remove_version --app A --version V | \\\n'
+            '  --cmd remove_version --app A --version V [--force] | \\\n'
             '  --cmd rename_version --app A --old O --new N | \\\n'
             '  --cmd get_tests --app A [--version V] | \\\n'
             '  --cmd add_test --app A --test T --descr D | \\\n'
-            '  --cmd remove_test --app A --test T | \\\n'
+            '  --cmd remove_test --app A --test T [--force] | \\\n'
             '  --cmd rename_test --app A --old O --new N | \\\n'
             '  --cmd set_test_descr --app A --test T --descr D | \\\n'
             '  --cmd get_test_descr --app A --test T | \\\n'
             '  --cmd add_version_tests --app A --version V [--src_version S] [--test T] | \\\n'
             '  --cmd get_version_tests --app A [--version S] [--test T] | \\\n'
-            '  --cmd remove_version_tests --app A [--version S] [--test T] | \\\n'
+            '  --cmd remove_version_tests --app A [--version S] [--test T] [--force] | \\\n'
             '  --cmd get_test_results --app A --version V --test T | \\\n'
             '  --cmd remove_test_results --app A --version V --test T | \\\n'
             '  --cmd add_test_result --app A --version V --test T --reporter R '
@@ -1317,7 +1326,7 @@ def createCommand(options, http_get):
     # --- 'remove_app' ---------------------------------
     elif cmd == 'remove_app':
         if ('app' in options):
-            return RemoveApp(http_get, options['app'])
+            return RemoveApp(http_get, options['app'], 'force' in options)
 
     # --- 'rename_app' ---------------------------------
     elif cmd == 'rename_app':
@@ -1337,7 +1346,7 @@ def createCommand(options, http_get):
     # --- 'remove_version' ---------------------------------
     elif cmd == 'remove_version':
         if ('app' in options) and ('version' in options):
-            return RemoveVersion(http_get, options['app'], options['version'])
+            return RemoveVersion(http_get, options['app'], options['version'], 'force' in options)
 
     # --- 'rename_version' ---------------------------------
     elif cmd == 'rename_version':
@@ -1357,7 +1366,7 @@ def createCommand(options, http_get):
     # --- 'remove_test' ---------------------------------
     elif cmd == 'remove_test':
         if ('app' in options) and ('test' in options):
-            return RemoveTest(http_get, options['app'], options['test'])
+            return RemoveTest(http_get, options['app'], options['test'], 'force' in options)
 
     # --- 'rename_test' ---------------------------------
     elif cmd == 'rename_test':
@@ -1396,7 +1405,7 @@ def createCommand(options, http_get):
             return RemoveVersionTests(
                 http_get, options['app'],
                 options['version'] if 'version' in options else None,
-                options['test'] if 'test' in options else None)
+                options['test'] if 'test' in options else None, 'force' in options)
 
     # --- 'get_test_results' ---------------------------------
     elif cmd == 'get_test_results':
