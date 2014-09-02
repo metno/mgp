@@ -1100,14 +1100,15 @@ def getAppID(app):
 def getVersionID(app_id, version):
     query_result = execQuery(
         "SELECT version.id FROM app,version WHERE app.id=version.app_id "
-        "AND app.id=? AND version.name=?", (app_id, version))
+        "AND app.id=? AND version.name=?", (app_id, unicode(version, 'utf-8')))
     return query_result[0][0] if (len(query_result) > 0) else -1
 
 # Returns the non-negative ID of the given test if it exists in an app with the given ID,
 # otherwise a negative integer.
 def getTestID(app_id, test):
     query_result = execQuery(
-        "SELECT test.id FROM app,test WHERE app.id=test.app_id AND app.id=? AND test.name=?", (app_id, test))
+        "SELECT test.id FROM app,test WHERE app.id=test.app_id AND app.id=? AND test.name=?",
+        (app_id, unicode(test, 'utf-8')))
     return query_result[0][0] if (len(query_result) > 0) else -1
 
 # Returns versions associated with the app with the given ID.
