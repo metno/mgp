@@ -248,7 +248,7 @@ function getVersions(appName, versionName, testName) {
     statusBase = "getting versions for " + appName + " ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_versions&app=" + appName;
+    query = "?cmd=get_versions&app=" + encodeURIComponent(appName);
     url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
@@ -338,7 +338,8 @@ function getTests(appName, versionName, testName) {
     statusBase = "getting tests for " + appName + " " + versionName + " ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_tests&app=" + appName + "&version=" + versionName;
+    query = "?cmd=get_tests&app=" + encodeURIComponent(appName) + "&version="
+	+ encodeURIComponent(versionName);
     url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({
@@ -430,7 +431,8 @@ function getTestResults(app, version, test) {
     statusBase = "getting test results for " + app + " " + version + " " + test + " ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_test_results&app=" + app + "&version=" + version + "&test=" + test;
+    query = "?cmd=get_test_results&app=" + encodeURIComponent(app)
+	+ "&version=" + encodeURIComponent(version) + "&test=" + encodeURIComponent(test);
     url = "http://" + location.host + "/cgi-bin/matrep" + query;
 
     $.ajax({

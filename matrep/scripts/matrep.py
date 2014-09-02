@@ -1041,7 +1041,7 @@ class AddTestResult(Command):
             "AND version_test.version_id=version.id "
             "AND version_test.test_id=test.id "
             "AND app.name=? AND version.name=? AND test.name=? ",
-            (self.app, self.version, self.test))
+            (unicode(self.app, 'utf-8'), unicode(self.version, 'utf-8'), unicode(self.test, 'utf-8')))
         if len(query_result) == 0:
             self.error = 'no such version/test combination for this app'
         else:
