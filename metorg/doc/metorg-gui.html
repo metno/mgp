@@ -1,0 +1,115 @@
+<html>
+<head><meta http-equiv="content-type" content="text/html;charset=utf-8" /></head>
+<body>
+<h2>Skisse av GUI-layout for METORG (METeorologisk gjøremåls-ORGanisator)</h2>
+
+<pre>
+Felles for alle tabeller er at de kan sorteres i flere nivåer (primært på kolonne 1, sekundært på
+kolonne 2 osv.) 
+
+====================================================================================================
+Hovedside
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 1: DATO.
+
+    Dato: (combobox eller kalender-widget for å velge dato)
+
+    * Datoen er felles for begge faner. Når man oppdaterer datoen, oppdateres alt innhold i fanene.
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 2: VAKT.
+
+    vakt: (combobox for å velge vakt)
+
+    * Når man velger en vakt, filtreres alt innhold i fanene til kun å vise denne vakten.
+
+
+====================================================================================================
+Fane 1: Gjøremålsvisning.
+
+  Hensikt: Vise oversikt over dagens gjøremål, hvilke vakter som har ansvaret for dem,
+           hva status er, osv.
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 1: GJØREMÅLSTABELL.
+
+    GJØREMÅL    FLYTTBAR   VAKT     VAKTPERIODE  REGION  FRIST     STATUS    KOMMENTARER
+    CG          CB         CV       CP           CR      CF        CS        CK
+    ...
+
+    Celler:
+      - CG: Navn på gjøremål (globalt unik).
+      - CB: Hvorvidt gjøremålet er flyttbart.
+      - CV: Navn på vakt (globalt unik) som i øyeblikket er ansvarlig for gjøremålet.
+            Dette er en comboboks hvor man kan velge blant alle aktuelle vakter for denne dagen.
+            Ved å velge en annen vakt, flytter man gjøremålet!
+            MERK: Hvis man flytter et ikke-flyttbart gjøremål, indikeres dette med en spesiell farge
+            (det er altså fortsatt mulig å utføre flyttingen).
+      - CP: Periode for vakten (Dag, Ettermiddag, Natt). Dette indikeres også i vaktnavnet og
+            oppdateres derfor hviss CV endres.
+      - CR: Region for vakten (VA, VNN, VV). Dette indikeres også i vaktnavnet og 
+            oppdateres derfor hviss CV endres.
+      - CF: Klokkeslett for når gjøremålet skal være ferdig.
+      - CS: Status for gjøremålet.
+      - CK: Antall kommentarer lagt inn for dette gjøremålet på denne datoen.
+            (Se Element 2: KOMMENTARTABELL)
+
+    * Tabellen er 'single-select'. Når man velger en rad, vises detaljer for dette gjøremålet
+      i et eget felt (Element 3: DETALJER).
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 2: KOMMENTARTABELL. (Viser kommentarene lagt inn for valgt gjøremål på denne dato)
+
+    TID  KOMMENTAR 
+    CT   CK
+    ...  ...
+
+    Celler:
+      - CT: Klokkeslett for når kommentaren ble lagt inn.
+      - CK: Kommentaren.  
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 3: DETALJER. (Viser flere detaljer for valgt gjøremål, som beskrivelse av
+  gjøremålet (evt. med linker til andre sider) osv.)
+
+
+====================================================================================================
+Fane 2: Vaktvisning.<span style="color:red">(MERK: Det er ikke sikkert denne fanen er nødvendig i første omgang)</span>
+
+  Hensikt: Vise oversikt over dagens vakter, hvilke gjøremål hver enkelt vakt i øyeblikket har
+  ansvaret for osv.
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 1: VAKTTABELL.
+
+    VAKT  GJØREMÅL
+    CV    CG
+    ...   ...
+
+    Celler:
+      - CV: Navn på vakt (globalt unik).
+      - CG: Antall gjøremål vakten i øyeblikket har ansvaret for.
+
+    * Tabellen er 'single-select'. Når man velger en rad, vises:
+      - gjøremålene denne vakten i øyeblikket har ansvaret for (Element 2: GJØREMÅLSTABELL).
+      - detaljer for denne vakten (Element 3: DETALJER).
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 2: GJØREMÅLSTABELL. (Viser gjøremålene den valgte vakten i øyeblikket
+                               har ansvaret for på denne dato)
+
+    GJØREMÅL
+    CG
+    ...
+
+    Celler:
+      - CG: Navn på gjøremål (globalt unik).
+
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Element 3: DETALJER. (Viser flere detaljer for valgt vakt, som beskrivelse av
+  vakten (evt. med linker til andre sider) osv.)
+
+</pre>
+</body>
+</html>
