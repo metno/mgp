@@ -1,0 +1,184 @@
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <title>METORG</title>
+    <script type="text/javascript" src="global/jquery-2.1.0.min.js"></script>
+    <script type="text/javascript" src="global/tablesorter/jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="global/tablesorter/jquery.tablesorter.widgets.min.js"></script>
+    <script type="text/javascript" src="global/global.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+
+    <script type="text/javascript" src="global/jquery-ui-1.11.1.custom/jquery-ui.js"></script>
+    <link rel="stylesheet" href="global/jquery-ui-1.11.1.custom/jquery-ui.css" type="text/css" />
+
+    <link rel="stylesheet" href="global/style.css" type="text/css" />
+    <link rel="stylesheet" href="global/tablesorter/docs/css/jq.css" type="text/css" />
+    <link rel="stylesheet" href="global/tablesorter/css/theme.blue.css" type="text/css" />
+
+</head>
+
+<body>
+
+<!-- status label and busy indicator -->
+<span style="white-space:nowrap">
+<span id="status">no status</span>
+<img alt="spinner" id="spinner" src="global/images/ajax-spinner.gif" style="display:none"/>
+<img alt="nospinner" id="nospinner" src="global/images/ajax-nospinner.png" style="display:inline"/>
+</span>
+
+<br/>
+
+
+<!-- main section 1 ======================================================= -->
+<table>
+<tr style="vertical-align:top">
+
+<!-- METORG label -->
+<td style="width:100px; background-color:#defbff; position:relative">
+<span id="title" style="font-size:18; color:#1099ad; font-weight:bold">METORG</span>
+<br/>
+<span style="font-size:14; color:#666">
+<span style="color:#1099ad"><b>MET</b></span>eorologsk<br/>
+gjøremåls-<br/>
+<span style="color:#1099ad"><b>ORG</b></span>anisator<br/>
+</span>
+</td>
+
+<!-- users -->
+<td style="border:0">
+<!-- (<a href="https://dokit.met.no/personal/it/joa/metorg_admin">admin doc</a>) -->
+<table style="border:0; width:60%; table-layout:auto; white-space:nowrap;">
+
+<tr style="vertical-align:center; border:0">
+<td style="vertical-align:center; text-align:right; border:0">
+<b>Dato:</b>
+</td>
+<td style="vertical-align:top; border:0">
+<input type="text" id="datepicker">
+<!-- <div id="datepicker"></div> -->
+</td>
+</tr>
+
+<tr style="vertical-align:center; border:0">
+<td style="vertical-align:center; text-align:right; border:0">
+<b>Vakt:</b>
+</td>
+<td style="vertical-align:center; border:0">
+<select id="select_shifts" style="margin-top:5px; margin-bottom:5px">
+<option>vakt 1</option>
+<option>vakt 2</option>
+<option>vakt 3</option>
+<option>vakt 4</option>
+<option>vakt 5</option>
+<option>vakt 6</option>
+<option>vakt 7</option>
+<option>vakt 8</option>
+<option>vakt 9</option>
+<option>vakt 10</option>
+<option>vakt 11</option>
+</select>
+</td>
+</tr>
+
+<tr style="vertical-align:center; border:0">
+<td style="vertical-align:center; text-align:right; border:0">
+<b>Bruker:</b>
+</td>
+<td style="vertical-align:center; border:0">
+<select id="select_users" style="margin-top:5px; margin-bottom:5px" />
+</td>
+</tr>
+
+</table>
+</td>
+
+</tr>
+
+</table>
+
+<!-- main section 2 ======================================================= -->
+<table style="width:100%">
+<tr style="vertical-align:top">
+
+<!-- tasks -->
+<td style="vertical-align:top">
+<div class="wrapper_tasks" style="position:relative; padding:0 5px; height:200px; overflow-y:auto;">
+<table id="table_tasks" class="tablesorter-blue" cellpadding="0" cellspacing="1" style="border:0; width:100%; table-layout:auto; white-space:nowrap;">
+<thead>
+<tr style="display:table-row;">
+<th class="tasks">Gjøremål</th>
+<th class="tasks">Flyttbar</th>
+<th class="tasks">Vakt</th>
+<th class="tasks">Periode</th>
+<th class="tasks">Region</th>
+<th class="tasks">Frist</th>
+<th class="tasks">Status</th>
+<th class="tasks">Kommentarer</th>
+</tr>
+</thead>
+<tbody>
+<!-- --- BEGIN test rows ---------------->
+<tr class="tr_tasks"><td class="tasks">gjøremål 1</td><td class="tasks">ja</td><td class="tasks">vakt 1</td><td class="tasks">Dag</td><td class="tasks">VNN</td><td class="tasks">2014-10-09 16:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 2</td><td class="tasks">ja</td><td class="tasks">vakt 3</td><td class="tasks">Dag</td><td class="tasks">VNN</td><td class="tasks">2014-10-09 16:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 3</td><td class="tasks">nei</td><td class="tasks">vakt 9</td><td class="tasks">Ettermiddag</td><td class="tasks">VA</td><td class="tasks">2014-10-09 16:30</td><td class="tasks">Ikke påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 4</td><td class="tasks">ja</td><td class="tasks">vakt 10</td><td class="tasks">Dag</td><td class="tasks">VV</td><td class="tasks">2014-10-09 11:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 5</td><td class="tasks">nei</td><td class="tasks">vakt 4</td><td class="tasks">Dag</td><td class="tasks">VA</td><td class="tasks">2014-10-09 12:00</td><td class="tasks">Ferdig</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 1 bla bla bla bla bla bla bla</td><td class="tasks">ja</td><td class="tasks">vakt 1</td><td class="tasks">Natt</td><td class="tasks">VA</td><td class="tasks">2014-10-10 02:30</td><td class="tasks">Ikke påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 11</td><td class="tasks">ja</td><td class="tasks">vakt 4</td><td class="tasks">Dag</td><td class="tasks">VNN</td><td class="tasks">2014-10-09 16:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 12</td><td class="tasks">ja</td><td class="tasks">vakt 2</td><td class="tasks">Dag</td><td class="tasks">VNN</td><td class="tasks">2014-10-09 16:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 13</td><td class="tasks">nei</td><td class="tasks">vakt 1</td><td class="tasks">Ettermiddag</td><td class="tasks">VA</td><td class="tasks">2014-10-09 16:30</td><td class="tasks">Ikke påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 14</td><td class="tasks">ja</td><td class="tasks">vakt 2</td><td class="tasks">Dag</td><td class="tasks">VV</td><td class="tasks">2014-10-09 11:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 15</td><td class="tasks">nei</td><td class="tasks">vakt 8</td><td class="tasks">Dag</td><td class="tasks">VA</td><td class="tasks">2014-10-09 12:00</td><td class="tasks">Ferdig</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål bla bla bla bla bla bla bla</td><td class="tasks">ja</td><td class="tasks">vakt 1</td><td class="tasks">Natt</td><td class="tasks">VA</td><td class="tasks">2014-10-10 02:30</td><td class="tasks">Ikke påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 21</td><td class="tasks">ja</td><td class="tasks">vakt 1</td><td class="tasks">Dag</td><td class="tasks">VNN</td><td class="tasks">2014-10-09 16:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 22</td><td class="tasks">ja</td><td class="tasks">vakt 3</td><td class="tasks">Dag</td><td class="tasks">VNN</td><td class="tasks">2014-10-09 16:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 23</td><td class="tasks">nei</td><td class="tasks">vakt 11</td><td class="tasks">Ettermiddag</td><td class="tasks">VA</td><td class="tasks">2014-10-09 16:30</td><td class="tasks">Ikke påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 24</td><td class="tasks">ja</td><td class="tasks">vakt 2</td><td class="tasks">Dag</td><td class="tasks">VV</td><td class="tasks">2014-10-09 11:00</td><td class="tasks">Påbegynt</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 25</td><td class="tasks">nei</td><td class="tasks">vakt 1</td><td class="tasks">Dag</td><td class="tasks">VA</td><td class="tasks">2014-10-09 12:00</td><td class="tasks">Ferdig</td><td class="tasks">0</td></tr>
+<tr class="tr_tasks"><td class="tasks">gjøremål 2 bla bla bla bla bla bla bla</td><td class="tasks">ja</td><td class="tasks">vakt 1</td><td class="tasks">Natt</td><td class="tasks">VA</td><td class="tasks">2014-10-10 02:30</td><td class="tasks">Ikke påbegynt</td><td class="tasks">0</td></tr>
+<!-- --- END test rows ---------------->
+</tbody>
+</table>
+</div>
+</td>
+
+<!-- description of current task -->
+<td style="width:40%; vertical-align:top" />
+<span style="color:#555; font-size:120%">&lt;Beskrivelse av valgt gjøremål&gt;</span>
+<div id="task_descr" style="position: relative;	padding: 0 5px;	height: 200px; overflow-y: auto;" />
+</td>
+
+</tr>
+
+</table>
+
+<br/><br/>
+<span style="font-size:140%; color:#4488ff">SEKSJONER:</span>
+<br/><br/>
+
+<hr/>
+<span style="color:#555; font-size:120%">&lt;Liste med kommentarer for valgt gjøremål (evt filtrert med dato-intervall)&gt;</span>
+<br/><br/><br/>
+<span style="color:#555; font-size:120%">&lt;Legge inn en kommentar for valgt gjøremål&gt;</span>
+<br/><br/><br/>
+
+<hr/>
+<span style="color:#555; font-size:120%">&lt;Liste med flyttinger av valgt gjøremål (evt filtrert med dato-intervall)&gt;</span>
+<br/><br/><br/>
+<span style="color:#555; font-size:120%">&lt;Flytte valgt gjøremål til en annen vakt&gt;</span>
+<br/><br/><br/>
+
+<hr/>
+<span style="color:#555; font-size:120%">&lt;Liste med status-endringer for valgt gjøremål (evt filtrert med dato-intervall)&gt;</span>
+<br/><br/><br/>
+<span style="color:#555; font-size:120%">&lt;Endre status for valgt gjøremål&gt;</span>
+<br/><br/><br/>
+
+<hr/>
+<span style="color:#555; font-size:120%">&lt;Legge inn et nytt gjøremål&gt;</span>
+<br/><br/><br/>
+<span style="color:#555; font-size:120%">&lt;Legge inn en ny vakt&gt;</span>
+
+</body>
+</html>
