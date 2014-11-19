@@ -1,0 +1,28 @@
+*** Groovy scripts that may be run in Jenkins Script Console ***
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Wipe all builds for given jobs.
+
+jobs = [
+  "test_A_3s",
+  "test_B1_1s",
+  "test_B2_10s",
+  "test_C1_1s",
+  "test_C2_10s",
+  "test_C3_3s",
+  "test_D_3s",
+  "test_E1_1s",
+  "test_E2_10s",
+  "test_E3_3s",
+  "test_F_3s",
+]
+
+//println("jobs: >" + jobs + "<")
+
+jobs.each {
+  //print("removing all builds for job >" + it + "< ... ")
+  job = Jenkins.instance.getItem(it)
+  job.getBuilds().each { it.delete() } // wipe all builds
+  job.updateNextBuildNumber(1) // restart at build number 1
+  //println("done")
+}
