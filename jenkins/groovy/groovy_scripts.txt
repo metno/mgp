@@ -4,17 +4,17 @@
 // Wipe all builds for given jobs.
 
 jobs = [
-  "test_A_3s",
-  "test_B1_1s",
-  "test_B2_10s",
-  "test_C1_1s",
-  "test_C2_10s",
-  "test_C3_3s",
-  "test_D_3s",
-  "test_E1_1s",
-  "test_E2_10s",
-  "test_E3_3s",
-  "test_F_3s",
+  "A",
+  "B1",
+  "B2",
+  "C1",
+  "C2",
+  "C3",
+  "D",
+  "E1",
+  "E2",
+  "E3",
+  "F",
 ]
 
 //println("jobs: >" + jobs + "<")
