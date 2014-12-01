@@ -1,0 +1,4 @@
+To execute python with the gear module (the value of PYTHONDIR is where the .egg directory is located):
+
+PYTHONPATH=/disk1/gear/gear-0.5.5 python
+
