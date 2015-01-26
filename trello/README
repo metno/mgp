@@ -1,0 +1,13 @@
+apikey = ...
+The API key displayed in the browser when opening the following URL directly in a browser
+
+    https://trello.com/app-key while being logged in on Trello.
+
+
+token = ...
+The token is displayed in the browser when interactively accepting the authorization request on the
+web page generated when opening an URL like the following (adjust as necessary) directly in a browser:
+
+    https://trello.com/1/authorize?key=7e799f6e7b7933c7a2520b442cde3a81&name=MetOrgTestAuthRequest&expiration=1day&response_type=token&scope=read,write
+
+See https://trello.com/docs/gettingstarted/authorize.html for a full documentation.
