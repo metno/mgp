@@ -6371,22 +6371,22 @@ EditDrawingDialog.#</dia:string>
     </dia:object>
     <dia:object type="UML - Note" version="0" id="O72">
       <dia:attribute name="obj_pos">
-        <dia:point val="-8.65953,-25.957"/>
+        <dia:point val="-7.2964,-26.6113"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="-8.70953,-26.007;21.1655,-5.00703"/>
+        <dia:rectangle val="-7.3464,-26.6613;20.6036,-4.86133"/>
       </dia:attribute>
       <dia:attribute name="meta">
         <dia:composite type="dict"/>
       </dia:attribute>
       <dia:attribute name="elem_corner">
-        <dia:point val="-8.65953,-25.957"/>
+        <dia:point val="-7.2964,-26.6113"/>
       </dia:attribute>
       <dia:attribute name="elem_width">
-        <dia:real val="29.775000000000002"/>
+        <dia:real val="27.850000000000001"/>
       </dia:attribute>
       <dia:attribute name="elem_height">
-        <dia:real val="20.900000000000002"/>
+        <dia:real val="21.700000000000003"/>
       </dia:attribute>
       <dia:attribute name="line_width">
         <dia:real val="0.10000000149011612"/>
@@ -6410,17 +6410,18 @@ does this for each TSLG (to prepare for subsequent plotting):
      time interval.
   2: Read all layers from those files and update TSLG like this
      (note: Case 1 is the likely case!):
-     - Case 1: The items of an existing layer belonging to this TSLG, and
-       with the same name as a layer read from file are replaced
+     - Case 1: The items of an existing layer belonging to this TSLG,
+       and with the same name as a layer read from file are replaced
        with the items from all those layers (note that this layer
        keeps it position in orderedLayers_).
      - Case 2: A new layer is added to this TSLG, and to the bottom of
-       orderedLayers_, for a layer name that didn't already exist in this
-       TSLG. All items read from layers with this name are added to the new
-       layer.
+       orderedLayers_, for a layer name that didn't already exist in
+       this TSLG. All items read from layers with this name are added
+       to the new layer.
 
 QUESTION: When to check for added/removed TimeFile objects for a TSLG?
           (i.e. to reflect changes on disk)
+
 QUESTION: Is it ok to allow layers with identical names
           (as long as they belong to different layer groups) ?
           
@@ -6433,7 +6434,7 @@ QUESTION: Is it ok to allow layers with identical names
             <dia:real val="0.80000000000000004"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="-8.30953,-24.712"/>
+            <dia:point val="-6.9464,-25.3663"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>

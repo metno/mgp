@@ -1,0 +1,5 @@
+Build like this:
+
+qmake -project
+qmake
+make
