@@ -53,8 +53,13 @@ for m in sorted_msg:
     if m1[3] != normal_channel_id:
         prefix = '<span style="background:#aff">'
         suffix = '</span>'
-    sys.stdout.write('{}{} {:10} {}{}\n'.format(
-            prefix, datetime.fromtimestamp(m1[0]).strftime('%Y-%m-%d %H:%M:%S'), m1[1], m1[2].encode('utf-8'), suffix))
+    timestamp = m1[0]
+    user = m1[1]
+    text = m1[2]
+    channel_id = m1[3]
+    sys.stdout.write('{}{} {} {:10} {}{}\n'.format(
+            prefix, datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S'), channel_id, user,
+            text.encode('utf-8'), suffix))
 sys.stdout.write('</pre></body></html>\n')
 
 sys.exit(0)
