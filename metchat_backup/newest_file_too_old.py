@@ -37,9 +37,6 @@ for fname in sys.argv[2:]:
 curr_ts = time.time()
 max_secs = 24 * 3600 * max_days
 
-sys.stderr.write('curr_ts: {}, newest_ts: {}, diff: {}, max_secs: {}\n'.format(
-        curr_ts, newest_ts, curr_ts - newest_ts, max_secs))
-
 if curr_ts - newest_ts > max_secs:
     sys.exit(0) # newest file is too old
 
