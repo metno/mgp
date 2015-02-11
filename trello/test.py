@@ -43,7 +43,8 @@ def printCardNamesFromBoardId(board_id):
   print names
 
 def printCardNames(org_name, board_name):
-    printCardNamesFromBoardId(getBoardIdFromName(org_name, board_name))
+  print 'card names of board', board_name, ':'
+  printCardNamesFromBoardId(getBoardIdFromName(org_name, board_name))
 
 def printListNamesFromBoardId(board_id):
   lists = trello.get(['boards', board_id, 'lists'])
@@ -51,6 +52,7 @@ def printListNamesFromBoardId(board_id):
   print names
 
 def printListNames(org_name, board_name):
+  print 'list names of board', board_name, ':'
   printListNamesFromBoardId(getBoardIdFromName(org_name, board_name))
 
 # def getOrgIdFromName(org_name):
@@ -87,10 +89,10 @@ org_name = 'metorgtest' # same as the 'Short Name' of the organization in the Tr
 #printNameAndDescr(org_name)
 #printBoards(org_name)
 #printBoardNames(org_name)
-board_name = 'Tasks - 21 January 2015'
-#printCardNames(org_name, board_name)
-#printListNames(org_name, board_name)
-addBoard(org_name, 'my new board 6')
-user_name = '_mt2' # same as the 'Username' of the member
+board_name = 'HVERDAG'
+printCardNames(org_name, board_name)
+printListNames(org_name, board_name)
+#addBoard(org_name, 'my new board 6')
+#user_name = '_mt2' # same as the 'Username' of the member
 #printMemberInfo(user_name)
 #setMemberFullName(user_name, 'a_new_full_name_for__mt2')
