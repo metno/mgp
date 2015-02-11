@@ -4,8 +4,8 @@ import sys
 from trellosimple import TrelloSimple
 
 # See README for documentation of the following two variables:
-apikey = '7e799f6e7b7933c7a2520b442cde3a81'
-token = '2ea096a1d4ff67da85e8ef7ab736c9e976c6a7dd8b1aa506c32c481961f50513'
+apikey = '8387ec96c89f2b594a7bbffac916fe82'
+token = '1ce5c35ab2c4809799339367be4c53b083f99adbbca852e6e5eef332d0ed4323'
 
 trello = TrelloSimple(apikey, token)
 
