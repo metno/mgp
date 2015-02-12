@@ -6,6 +6,6 @@ node('master') {
     //ws = sh 'which sleep';
     def ws = 'foo';
     echo "${ws}";
-    echo 'sleepHome: ${ws}';
+    echo "sleepHome: ${ws}";
 
 }
