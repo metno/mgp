@@ -4,8 +4,8 @@ node('master') {
     echo 'done';
 
     //ws = sh 'which sleep';
-    def ws = 'foo';
+    def ws = sh 'which sleep';
     echo "${ws}";
-    echo "sleepHome: ${ws}";
+    echo "output of which sleep: ${ws}";
 
 }
