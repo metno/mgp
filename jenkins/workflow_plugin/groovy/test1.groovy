@@ -3,7 +3,7 @@ node('master') {
     git url: 'https://github.com/metno/met-api.git';
     echo 'done';
 
-    sh('which sleep');
+    sh 'which sleep';
     echo 'sleepHome:' $sleepHome;
 
 }
