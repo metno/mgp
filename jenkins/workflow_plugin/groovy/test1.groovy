@@ -5,6 +5,6 @@ node('master') {
 
     //ws = sh 'which sleep';
     ws = 'foo';
-    echo 'sleepHome:' + ${ws};
+    echo 'sleepHome: ${ws}';
 
 }
