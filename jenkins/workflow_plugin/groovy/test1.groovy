@@ -3,9 +3,6 @@ node('master') {
     git url: 'https://github.com/metno/met-api.git';
     echo 'done';
 
-    //ws = sh 'which sleep';
-    def ws = sh 'which sleep';
-    echo "${ws}";
-    echo "output of which sleep: ${ws}";
-
+    input 'ready to continue?'
+    echo 'continuing ...';
 }
