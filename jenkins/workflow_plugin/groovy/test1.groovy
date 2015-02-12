@@ -1,3 +1,3 @@
 node('master') {
-  echo 'bravo...'
+  echo 'bravo 1...'
 }
