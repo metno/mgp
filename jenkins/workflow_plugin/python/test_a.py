@@ -3,7 +3,7 @@
 import sys, os
 from time import sleep
 
-sys.stdout.write('test_a.py running; pid:{} ...\n'.format(os.getpid()))
+sys.stderr.write('test_a.py running; pid:{} ...\n'.format(os.getpid()))
 
 try:
     n = int(sys.argv[1])
@@ -13,7 +13,7 @@ except:
     sys.exit(1)
 
 for i in range(n):
-  sys.stdout.write('iteration {}:{}; sleeping {} secs ...\n'.format(i + 1, n, s))
+  sys.stderr.write('iteration {}:{}; sleeping {} secs ...\n'.format(i + 1, n, s))
   sleep(s)
 
 sys.exit(0)
