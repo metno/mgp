@@ -16,6 +16,10 @@ node('metapps-cpp-slave1') {
     sh 'jenkins/workflow_plugin/python/test_a.py 6 0.5'
 }
 
+node('ted') {
+    echo 'checking out joa.git in workspace on ted ...';
+    git url: 'git://git.met.no/joa.git';
+}
 
 // Execute test_a.py twice in parallel.
 def branches = [:]
