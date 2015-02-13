@@ -13,5 +13,5 @@ node('metapps-cpp-slave1') {
     echo 'PWD: $PWD'
     sh 'echo $PWD'
     sh 'pwd'
-    sh './test_a.py'
+    sh 'jenkins/workflow_plugin/python/test_a.py'
 }
