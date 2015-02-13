@@ -8,8 +8,8 @@ node('metapps-cpp-slave1') {
 
     echo 'running test_a.py sequentially for 5 secs ...';
     sh 'jenkins/workflow_plugin/python/test_a.py 5 1.0'
-    echo '... and then sequentially for 3 secs ...';
-    sh 'jenkins/workflow_plugin/python/test_a.py 6 0.5'
+    echo '... and then sequentially for 3 secs and failing after iteration 4 ...';
+    sh 'jenkins/workflow_plugin/python/test_a.py 6 0.5 4'
 }
 
 // Execute test_a.py twice in parallel.
