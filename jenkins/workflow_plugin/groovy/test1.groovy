@@ -22,7 +22,8 @@ branches["branch >>> 0 <<<"] = {
     }
 }
 branches["branch >>> 1 <<<"] = {
-    node('ted') {
+//    node('ted') {
+    node('metapps-cpp-slave1') {
         git url: 'git://git.met.no/joa.git';
         echo 'running test_a.py in parallel for 30 secs ...';
         sh 'jenkins/workflow_plugin/python/test_a.py 60 0.5'
