@@ -5,5 +5,8 @@ node('metapps-cpp-slave1') {
 
     input 'ready to continue?'
     echo 'continuing to run test_a.py ...';
+    echo $PWD
+    sh 'echo $PWD'
+    sh 'pwd'
     sh './test_a.py'
 }
