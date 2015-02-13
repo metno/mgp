@@ -26,7 +26,7 @@ branches["branch >>> 0 <<<"] = {
     }
 }
 branches["branch >>> 1 <<<"] = {
-    node('metapps-cpp-slave1') {
+    node('ted') {
         echo 'running test_a.py in parallel for 30 secs ...';
         sh 'jenkins/workflow_plugin/python/test_a.py 60 0.5'
     }
