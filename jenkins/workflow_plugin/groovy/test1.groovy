@@ -18,6 +18,7 @@ node('metapps-cpp-slave1') {
 
 
 // Execute test_a.py twice in parallel.
+def branches = [:]
 branches["branch >>> 0 <<<"] = {
     node('metapps-cpp-slave1') {
         echo 'running test_a.py in parallel for 5 secs ...';
