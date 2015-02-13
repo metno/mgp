@@ -1,4 +1,4 @@
-stage 'Stage1'
+stage 'Stage1', concurrency: 1
 
 // Execute test_a.py twice sequentially.
 node('metapps-cpp-slave1') {
