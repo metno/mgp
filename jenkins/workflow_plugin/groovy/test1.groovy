@@ -4,5 +4,6 @@ node('metapps-cpp-slave1') {
     echo 'done';
 
     input 'ready to continue?'
-    echo 'continuing ...';
+    echo 'continuing to run test_a.py ...';
+    sh './test_a.py'
 }
