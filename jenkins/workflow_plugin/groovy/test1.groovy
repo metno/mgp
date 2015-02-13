@@ -3,7 +3,7 @@ node('metapps-cpp-slave1') {
     git url: 'https://github.com/metno/met-api.git';
     echo 'done';
 
-    input 'ready to continue?'
+    //input 'ready to continue?'
     echo 'continuing to run test_a.py ...';
     echo $PWD
     sh 'echo $PWD'
