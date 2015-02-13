@@ -1,3 +1,4 @@
+// Execute test_a.py twice sequentially.
 node('metapps-cpp-slave1') {
 
     //echo 'checking out met-api.git in workspace on metapps-cpp-slave1 ...';
@@ -9,8 +10,26 @@ node('metapps-cpp-slave1') {
 
     //input 'ready to continue?'
 
-    echo 'continuing to run test_a.py for 5 secs ...';
+    echo 'running test_a.py sequentially for 5 secs ...';
     sh 'jenkins/workflow_plugin/python/test_a.py 5 1.0'
-    echo '... and then test_a.py for 3 secs ...';
+    echo '... and then sequentially for 3 secs ...';
     sh 'jenkins/workflow_plugin/python/test_a.py 6 0.5'
 }
+
+
+// Execute test_a.py twice in parallel.
+branches["branch >>> 0 <<<"] = {
+    node('metapps-cpp-slave1') {
+        echo 'running test_a.py in parallel for 5 secs ...';
+        sh 'jenkins/workflow_plugin/python/test_a.py 5 1.0'
+    }
+}
+branches["branch >>> 1 <<<"] = {
+    node('metapps-cpp-slave1') {
+        echo 'running test_a.py in parallel for 3 secs ...';
+        sh 'jenkins/workflow_plugin/python/test_a.py 6 0.5'
+    }
+}
+
+echo 'starting parallel branches ...';
+parallel branches
