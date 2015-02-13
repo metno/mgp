@@ -1,3 +1,5 @@
+stage 'Stage1'
+
 // Execute test_a.py twice sequentially.
 node('metapps-cpp-slave1') {
 
