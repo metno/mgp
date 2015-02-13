@@ -24,6 +24,6 @@ for i in range(n):
   sys.stderr.write('iteration {}:{}; sleeping {} secs ...\n'.format(i + 1, n, s))
   sleep(s)
   if i == fail_iter:
-      sys.exit(17)
+      sys.exit(1)
 
 sys.exit(0)
