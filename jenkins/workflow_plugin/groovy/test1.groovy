@@ -1,3 +1,5 @@
+stage concurrency: 1, name: 'Stage1'
+
 // Execute test_a.py twice sequentially.
 node('metapps-cpp-slave1') {
 
@@ -11,8 +13,6 @@ node('metapps-cpp-slave1') {
     echo '... and then sequentially for 3 secs ...';
     sh 'jenkins/workflow_plugin/python/test_a.py 6 0.5'
 }
-
-stage 'Stage1', concurrency: 1
 
 // Execute test_a.py twice in parallel.
 def branches = [:]
