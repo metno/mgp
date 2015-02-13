@@ -11,5 +11,5 @@ node('metapps-cpp-slave1') {
 
     echo 'continuing to run test_a.py ...';
     sh 'pwd'
-    sh 'jenkins/workflow_plugin/python/test_a.py 5 a1.0'
+    sh 'jenkins/workflow_plugin/python/test_a.py 5 1.0'
 }
