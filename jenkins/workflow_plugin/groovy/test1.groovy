@@ -10,8 +10,6 @@ node('metapps-cpp-slave1') {
     //input 'ready to continue?'
 
     echo 'continuing to run test_a.py ...';
-    echo 'PWD: $PWD'
-    sh 'echo $PWD'
     sh 'pwd'
     sh 'jenkins/workflow_plugin/python/test_a.py'
 }
