@@ -11,7 +11,6 @@ rsync -a root@metchat:$srcdir/$dbfile $dstdir
 # (note: we assume that the DB file contains messages 30 days back, so archiving around
 # twice a month should be safe, i.e. provide plenty of overlap!)
 scriptdir=`dirname "$0"`
-echo $scriptdir
 if $scriptdir/newest_file_too_old.py 15 $dstdir/*-qc.db; then
   cp $dstdir/$dbfile $dstdir/`date "+%Y-%m-%d"`-$dbfile
 fi
