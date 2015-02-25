@@ -68,7 +68,7 @@ class BackupBoard(Command):
         sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
         board = getFullBoard(self.board_id)
         sys.stderr.write('done\nbacking up ... ')
-        self.status = backupToGitRepo(board, getEnv('METORGGITDIR'), 'metorg.json')
+        self.status = backupToGitRepo([board], getEnv('METORGGITDIR'))
         sys.stderr.write('done\n')
         self.printOutput()
 
@@ -89,7 +89,7 @@ class BackupAllBoards(Command):
             boards.append(getFullBoard(b['id']))
             sys.stderr.write('done\n')
         sys.stderr.write('backing up ... ')
-        self.status = backupToGitRepo(boards, getEnv('METORGGITDIR'), 'metorg.json')
+        self.status = backupToGitRepo(boards, getEnv('METORGGITDIR'))
         sys.stderr.write('done\n')
         self.printOutput()
 
@@ -155,13 +155,14 @@ def getFullBoard(board_id):
         'cards': cards
         }
 
-def backupToGitRepo(data, gitdir, fname):
+def backupToGitRepo(boards, gitdir):
     git = sh.git.bake(_cwd=gitdir)
     git.checkout('master')
     git.stash()
-    fpath = '{}/{}'.format(gitdir, fname)
-    json.dump(data, open(fpath, 'w'), indent=2, ensure_ascii=True)
-    git.add(fname)
+    for board in boards:
+        fpath = '{}/{}.json'.format(gitdir, board['board']['id'])
+        json.dump(board, open(fpath, 'w'), indent=2, ensure_ascii=True)
+        git.add(fpath)
 
     diff = False
     try:
