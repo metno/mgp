@@ -68,7 +68,7 @@ class BackupBoard(Command):
         sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
         board = getFullBoard(self.board_id)
         sys.stderr.write('done\nbacking up ... ')
-        self.status = backupToGitRepo([board], getEnv('METORGGITDIR'))
+        self.status = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
         sys.stderr.write('done\n')
         self.printOutput()
 
@@ -89,7 +89,7 @@ class BackupAllBoards(Command):
             boards.append(getFullBoard(b['id']))
             sys.stderr.write('done\n')
         sys.stderr.write('backing up ... ')
-        self.status = backupToGitRepo(boards, getEnv('METORGGITDIR'))
+        self.status = backupToGitRepo(boards, getEnv('TRELLOBACKUPDIR'))
         sys.stderr.write('done\n')
         self.printOutput()
 
