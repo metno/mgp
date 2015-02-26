@@ -12,7 +12,7 @@ class Command:
         self.printOutputAsJSON()
 
 
-# Lists the ID and name of all available boards.
+# Lists the ID and name of all available boards on the Trello server.
 class GetBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
@@ -26,8 +26,22 @@ class GetBoards(Command):
         sys.stdout.write('\n');
 
 
-# Dumps all relevant info for a given board.
-class DumpBoard(Command):
+# Lists the ID and name of all available boards in the local backup directory.
+class GetBackedupBoards(Command):
+    def __init__(self, http_get):
+        self.http_get = http_get
+
+    def execute(self):
+        self.board_id_and_names = getBackedupBoardIdAndNames()
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump(self.board_id_and_names, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+
+# Prints relevant info for a given board on the Trello server.
+class GetBoard(Command):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
         self.board_id = board_id
@@ -40,24 +54,78 @@ class DumpBoard(Command):
         json.dump(self.board, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
-# Dumps relevant info for all boards.
-class DumpAllBoards(Command):
-    def __init__(self, http_get):
+
+# Prints relevant info for a given board in the local backup directory.
+class GetBackedupBoard(Command):
+    def __init__(self, http_get, board_id):
         self.http_get = http_get
+        self.board_id = board_id
 
     def execute(self):
-        self.boards = []
-        for b in getBoardIdAndNames():
-            sys.stderr.write('appending board {} (id:{}) ...\n'.format(b['name'].encode('utf-8'), b['id']))
-            self.boards.append(getFullBoard(b['id']))
+        self.board = getFullBackedupBoard(self.board_id)
         self.printOutput()
 
     def printOutputAsJSON(self):
-        json.dump(self.boards, sys.stdout, indent=2, ensure_ascii=True)
+        json.dump(self.board, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
 
-# Backs up given board to a git repo.
+# Prints a HTML version of a given board in the local backup directory.
+class GetBackedupBoardHtml(Command):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def execute(self):
+        board = getFullBackedupBoard(self.board_id)
+
+        html = (
+            '<html>'
+            '<head>'
+            '<meta charset="UTF-8">'
+            '<style>'
+            'table { border-collapse:collapse; font-size:12px; }'
+            'table, th, td { border: 1px solid #aaaaaa; padding:3; text-align:left; vertical-align:text-top; }'
+            'td { white-space:pre; }'
+            'th { background: #eee; font-size:120%; }'
+            '</style>'
+            '</head>'
+            '<body>'
+            )
+
+        html += '<h1>{}</h1>'.format(board['board']['name'].encode('utf-8'))
+
+        for lst in board['lists']:
+            html += '<table>'
+            html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
+
+            for card in board['cards'][lst['id']]:
+                html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
+
+            html += '</table>'
+            html += '<br/>'
+
+        html += '</body>'
+        html += '</html>'
+        sys.stdout.write(html)
+
+
+# Prints stats for a given board in the local backup directory.
+class GetBackedupBoardStats(Command):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def execute(self):
+        board = getFullBackedupBoard(self.board_id)
+        self.stats = '<stats not implemented yet>'
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump(self.stats, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+# Backs up given board to a git repo (via the local backup directory).
 class BackupBoard(Command):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
@@ -77,7 +145,7 @@ class BackupBoard(Command):
         sys.stdout.write('\n');
 
 
-# Backs up all boards to a git repo.
+# Backs up all boards to a git repo (via the local backup directory).
 class BackupAllBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
@@ -97,6 +165,17 @@ class BackupAllBoards(Command):
         json.dump(self.status, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
+
+# Creates a new board on the Trello server based on a board in the local backup directory.
+class CreateBoard(Command):
+    def __init__(self, http_get, src_id, dst_name):
+        self.http_get = http_get
+        self.src_id = src_id
+        self.dst_name = dst_name
+
+    def execute(self):
+        pass ### TBD
+
 # --- END Global classes ----------------------------------------------
 
 
@@ -105,6 +184,18 @@ class BackupAllBoards(Command):
 def getBoardIdAndNames():
     board_infos = trello.get(['organizations', org_name, 'boards'])
     return list({'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos)
+
+def getBackedupBoardIdAndNames():
+    budir = getEnv('TRELLOBACKUPDIR')
+    result = []
+    for fname in os.listdir(budir):
+        if fname.endswith(".json"):
+            try:
+                data = json.load(open('{}/{}'.format(budir, fname)))
+                result.append({'id': data['board']['id'], 'name': data['board']['name']})
+            except:
+                pass # ignore parsing errors
+    return result
 
 def getBoard(board_id):
     board = trello.get(['boards', board_id])
@@ -155,6 +246,9 @@ def getFullBoard(board_id):
         'cards': cards
         }
 
+def getFullBackedupBoard(board_id):
+    return json.load(open('{}/{}.json'.format(getEnv('TRELLOBACKUPDIR'), board_id)))
+
 def backupToGitRepo(boards, gitdir):
     git = sh.git.bake(_cwd=gitdir)
     git.checkout('master')
@@ -181,8 +275,12 @@ def backupToGitRepo(boards, gitdir):
 def printJSONHeader():
     sys.stdout.write('Content-type: text/json\n')
 
-def printErrorAsJSON(error):
-    sys.stdout.write('{\"error\": \"' + error + '\"}\n')
+def printErrorAsJSON(error, http_get):
+    if http_get:
+        printJSONHeader()
+    json.dump({ 'error': error }, sys.stdout if http_get else sys.stderr, indent=2, ensure_ascii=True)
+    if not http_get:
+        sys.stderr.write('\n')
 
 # Returns a 2-tuple consisting of:
 # 1: an option dictionary, and
@@ -231,17 +329,21 @@ def getOptions():
 def createCommand(options, http_get):
 
     def printUsageError():
-        error = (
-            'usage: ' + sys.argv[0] +
-            ' --cmd get_boards |'
-            ' --cmd dump_board --id <board ID> |'
-            ' --cmd dump_all_boards |'
-            ' --cmd backup_board --id <board ID> |'
-            ' --cmd backup_all_boards |'
-            ' --cmd create_board --id <source board ID> --name <destination board name>')
-        if http_get:
-            printJSONHeader()
-        printErrorAsJSON(error)
+        error = {
+            'argv0': sys.argv[0],
+            'commands': [
+                '--cmd get_boards',
+                '--cmd get_backedup_boards',
+                '--cmd get_board --id <board ID>',
+                '--cmd get_backedup_board --id <board ID>',
+                '--cmd get_backedup_board_html --id <board ID>',
+                '--cmd get_backedup_board_stats --id <board ID>',
+                '--cmd backup_board --id <board ID>',
+                '--cmd backup_all_boards',
+                '--cmd create_board --src_id <source board ID> --dst_name <destination board name>'
+                ]
+            }
+        printErrorAsJSON(error, http_get)
 
     # check for mandatory 'cmd' argument
     if 'cmd' in options:
@@ -253,19 +355,28 @@ def createCommand(options, http_get):
     # return the command if possible
     if cmd == 'get_boards':
         return GetBoards(http_get)
-    elif cmd == 'dump_board':
+    elif cmd == 'get_backedup_boards':
+        return GetBackedupBoards(http_get)
+    elif cmd == 'get_board':
         if 'bid' in options:
-            return DumpBoard(http_get, options['bid'])
-    elif cmd == 'dump_all_boards':
-        return DumpAllBoards(http_get)
+            return GetBoard(http_get, options['bid'])
+    elif cmd == 'get_backedup_board':
+        if 'bid' in options:
+            return GetBackedupBoard(http_get, options['bid'])
+    elif cmd == 'get_backedup_board_html':
+        if 'bid' in options:
+            return GetBackedupBoardHtml(http_get, options['bid'])
+    elif cmd == 'get_backedup_board_stats':
+        if 'bid' in options:
+            return GetBackedupBoardStats(http_get, options['bid'])
     elif cmd == 'backup_board':
         if 'bid' in options:
             return BackupBoard(http_get, options['bid'])
     elif cmd == 'backup_all_boards':
         return BackupAllBoards(http_get)
     elif cmd == 'create_board':
-        if ('src' in options) and ('dst' in options):
-            return CreateBoard(http_get, options['src'], options['dst'])
+        if ('src_id' in options) and ('dst_name' in options):
+            return CreateBoard(http_get, options['src_id'], options['dst_name'])
 
     # no match
     printUsageError()
@@ -293,7 +404,7 @@ command = createCommand(options, http_get)
 try:
     command.execute()
 except:
-    printErrorAsJSON(str(sys.exc_info()))
+    printErrorAsJSON(str(sys.exc_info()), http_get)
     sys.exit(1)
 
 sys.exit(0)
