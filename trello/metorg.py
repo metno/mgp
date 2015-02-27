@@ -166,14 +166,131 @@ class BackupAllBoards(Command):
         sys.stdout.write('\n');
 
 
-# Creates a new board on the Trello server based on a board in the local backup directory.
-class CreateBoard(Command):
+# Secure all boards on the Trello server so that only admins may invite new members.
+class SecureAllBoards(Command):
+    def __init__(self, http_get):
+        self.http_get = http_get
+
+    def execute(self):
+        boards = []
+        board_infos = getBoardIdAndNames()
+        self.sec_count = 0
+        self.tot_count = len(board_infos)
+        for b in board_infos:
+            sys.stderr.write('securing board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
+            try:
+                trello.put(
+                    ['boards', b['id'], 'prefs', 'invitations'],
+                    arguments = {
+                        'value': 'admins'
+                        }
+                    )
+                self.sec_count = self.sec_count + 1
+                sys.stderr.write('done\n')
+            except:
+                sys.stderr.write('failed: {}\n'.format(str(sys.exc_info())))
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump(
+            'secured {} of {} boards; only admins may invite new members to those'.format(
+                self.sec_count, self.tot_count), sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+
+# Initializes a board on the Trello server based on a source board in the local backup directory.
+# - The board will be created if it doesn't already exist.
+#
+# - When merging the source board with an existing destination board, the contents of the latter will
+#   take priority over the former to ensure that any updates made manually via the Trello web GUI are kept.
+#   For example, if the destination board contains a card with the same name as a card in the source board, and the
+#   two cards are in lists with the same name, the card in the source board will not overwrite the one in the
+#   destination board (even if other card attributes, like the description, have changed).
+#
+# - Lists and cards that exist only in the destination board will be kept.
+#
+# - Labels will be reset to an sensible intial state.
+# 
+# - Cards will be moved to initial lists based on metadata in the card description.
+#
+class InitBoard(Command):
     def __init__(self, http_get, src_id, dst_name):
         self.http_get = http_get
         self.src_id = src_id
         self.dst_name = dst_name
 
     def execute(self):
+        src_board = getFullBackedupBoard(self.src_id) # get source board
+
+        board_infos = getBoardIdAndNames()
+        if not self.dst_name in [item['name'] for item in board_infos]:
+            # board did not exist, so create it
+            sys.stderr.write('creating new board ... ')
+            trello.post(
+                ['boards'],
+                arguments = {
+                    'name': self.dst_name,
+                    'desc': 'copied from {}'.format(src_board['board']['name']),
+                    'idOrganization': org_name,
+                    'prefs_permissionLevel': 'org',
+                    'prefs_comments': 'org',
+                    'prefs_invitations': 'admins', # ensure that only admins may invite new members to the board
+                    'prefs_selfJoin': 'false'
+                    }
+                )
+            sys.stderr.write('done\n')
+
+            board_infos = getBoardIdAndNames() # recompute and expect the new board to be present this time
+        else:
+            sys.stderr.write('updating existing board\n')
+
+        # get ID of destination board
+        assert self.dst_name in [item['name'] for item in board_infos]
+        dst_id = next((item['id'] for item in board_infos if item['name'] == self.dst_name), None)
+
+        # save original state of destination board (so that we can merge in that information later)
+        dst_board = getFullBoard(dst_id)
+
+        # open destination board
+        sys.stderr.write('open board ... ')
+        trello.put(
+            ['boards', dst_id, 'closed'],
+            arguments = {
+                'value': 'false'
+                }
+            )
+        sys.stderr.write('done\n')
+
+        # For each list in the source board that doesn't already exist (i.e. with the same name)
+        # in the destination board, create an empty destination list with this name and
+        # insert it at the last/rightmost position ... TBD
+        sys.stderr.write('copy lists ... ')
+        src_lnames = [item['name'] for item in src_board['lists']]
+        dst_lnames = [item['name'] for item in dst_board['lists']]
+        for src_lname in src_lnames:
+            if src_lname not in dst_lnames:
+                trello.post(
+                    ['boards', dst_id, 'lists'],
+                    arguments = {
+                        'name': src_lname,
+                        'pos': 'bottom'
+                        }
+                    )
+        sys.stderr.write('done\n')
+
+
+        # For each card SC in the source board (regardless of list), copy the card to the list DL in the
+        # destination board with a name that matches the value of 'standardvakt' in the description of SC,
+        # unless a card with this name doesn't already exist in DL.
+        # Cards that don't have such a value, or where the value doesn't match any list name, are copied to a
+        # special list 'ukjent'.
+        # HM ... what if there are more than one corresponding destination list (i.e. having the same name)?
+        #   -> only consider the first/leftmost one? (yup!)
+
+        # ALSO handle labels (replace 'ferdig' with 'ikke paabegynt')
+        # ALSO clear actions in each card
+
+
         pass ### TBD
 
 # --- END Global classes ----------------------------------------------
@@ -181,9 +298,12 @@ class CreateBoard(Command):
 
 # --- BEGIN Global functions ----------------------------------------------
 
+def getOrgId():
+    return trello.get(['organizations', org_name, 'id'])
+
 def getBoardIdAndNames():
     board_infos = trello.get(['organizations', org_name, 'boards'])
-    return list({'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos)
+    return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
 
 def getBackedupBoardIdAndNames():
     budir = getEnv('TRELLOBACKUPDIR')
@@ -200,7 +320,7 @@ def getBackedupBoardIdAndNames():
 def getBoard(board_id):
     board = trello.get(['boards', board_id])
     return dict((k, board[k]) for k in ( # only keep certain attributes
-            'id', 'name', 'prefs'
+            'id', 'name', 'prefs', 'closed'
             ))
 
 def getMembers(board_id):
@@ -209,7 +329,7 @@ def getMembers(board_id):
 
 def getActions(board_id):
     actions = trello.get(['boards', board_id, 'actions'])
-    actions = list(x for x in actions if x['type'] == 'commentCard') # for now
+    actions = [x for x in actions if x['type'] == 'commentCard'] # for now
     return actions
 
 def getLists(board_id):
@@ -340,7 +460,7 @@ def createCommand(options, http_get):
                 '--cmd get_backedup_board_stats --id <board ID>',
                 '--cmd backup_board --id <board ID>',
                 '--cmd backup_all_boards',
-                '--cmd create_board --src_id <source board ID> --dst_name <destination board name>'
+                '--cmd init_board --src_id <source board ID> --dst_name <destination board name>'
                 ]
             }
         printErrorAsJSON(error, http_get)
@@ -374,9 +494,11 @@ def createCommand(options, http_get):
             return BackupBoard(http_get, options['bid'])
     elif cmd == 'backup_all_boards':
         return BackupAllBoards(http_get)
-    elif cmd == 'create_board':
+    elif cmd == 'secure_all_boards':
+        return SecureAllBoards(http_get)
+    elif cmd == 'init_board':
         if ('src_id' in options) and ('dst_name' in options):
-            return CreateBoard(http_get, options['src_id'], options['dst_name'])
+            return InitBoard(http_get, options['src_id'], options['dst_name'])
 
     # no match
     printUsageError()
