@@ -335,6 +335,15 @@ class InitBoard(Command):
         # insert orphanage list in dst_lists
         dst_lists[orph_lname] = orph_lid
 
+        # ensure the board has special labels: 'todo', 'in progress', and 'done'
+        sys.stderr.write('ensure board has labels \'todo\', \'in progress\', and \'done\' ... ')
+        label_id = {
+            'todo': getLabelId('todo', dst_bid, 'green'),
+            'in progress': getLabelId('in progress', dst_bid, 'yellow'),
+            'done': getLabelId('done', dst_bid, 'red')
+            }
+        sys.stderr.write('done\n')
+
         # Copy each card in the source board to a list corresponding to the default responsible for the card,
         # unless a card with the same name already exists in that list.
         # If a default responsible cannot be identified, the card is copied to a special orphanage list.
@@ -400,12 +409,27 @@ class InitBoard(Command):
                 )
             sys.stderr.write('done\n')
       
-        # ALSO sort cards in each list in chronological order
-        # ALSO handle labels (replace 'ferdig' with 'ikke paabegynt')
-        # ALSO clear actions in each card
+
+        # sort cards in each list chronologically based on time in title
+        for dst_lname in dst_lists:
+            sys.stderr.write('sorting cards in list {} ... '.format(dst_lname))
+            sortList(dst_lists[dst_lname])
+            sys.stderr.write('done\n')
+
+        # initialize labels of cards in each list
+        for dst_lname in dst_lists:
+            sys.stderr.write('initializing labels of cards in list {} ... '.format(dst_lname))
+
+            cards = trello.get(['lists', dst_lists[dst_lname], 'cards'])
+            for card in cards:
+                trello.delete(['cards', card['id'], 'idLabels', label_id['todo']])
+                trello.delete(['cards', card['id'], 'idLabels', label_id['in progress']])
+                trello.delete(['cards', card['id'], 'idLabels', label_id['done']])
+                trello.post(['cards', card['id'], 'idLabels'], arguments = { 'value': label_id['todo'] })
+
+            sys.stderr.write('done\n')
 
 
-        pass ### TBD
 
 # --- END Global classes ----------------------------------------------
 
@@ -506,6 +530,45 @@ def backupToGitRepo(boards, gitdir):
         sha1 = git('rev-parse', 'HEAD').strip()
         return 'updated backup {} with Commit {}'.format(fpath, sha1)
     return 'no difference since last backup'
+
+def getLabelId(name, board_id, color):
+    labels = trello.get(['boards', board_id, 'labels'], arguments = { 'fields': 'name,color' })
+    for label in labels:
+        if (label['name'] == name) and (label['color'] == color):
+            return label['id'] # found
+
+    # not found, so insert it
+    trello.post(['boards', board_id, 'labels'], arguments = { 'name': name, 'color': color })
+    # ... and find the ID
+    labels = trello.get(['boards', board_id, 'labels'], arguments = { 'fields': 'name,color' })
+    for label in labels:
+        if (label['name'] == name) and (label['color'] == color):
+            return label['id'] # found
+
+    raise Exception('inserted label not found')
+
+
+# Sorts cards in list chronologically based on time in title.
+def sortList(list_id):
+
+    def sortKey(cname):
+        p = re.compile('^\s*(\d\d):(\d\d)\s*;')
+        m = p.match(cname)
+        if m:
+            hours = int(m.group(1))
+            mins = int(m.group(2))
+            return ((hours + 2) % 24) * 60 + mins # define 22:00 to be the earliest time
+        return -1
+
+    cards = trello.get(['lists', list_id, 'cards'], arguments = { 'fields': 'name' })
+    sorted_cards = sorted(cards, key=lambda k: sortKey(k['name']), reverse=True)
+    for scard in sorted_cards:
+        trello.put(
+            ['cards', scard['id'], 'pos'],
+            arguments = {
+                'value': 'top'
+                }
+            )
 
 def printJSONHeader():
     sys.stdout.write('Content-type: text/json\n')
