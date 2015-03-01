@@ -246,31 +246,40 @@ class InitBoard(Command):
 
         # get ID of destination board
         assert self.dst_name in [item['name'] for item in board_infos]
-        dst_id = next((item['id'] for item in board_infos if item['name'] == self.dst_name), None)
+        dst_bid = next((item['id'] for item in board_infos if item['name'] == self.dst_name), None)
 
         # save original state of destination board (so that we can merge in that information later)
-        dst_board = getFullBoard(dst_id)
+        dst_board = getFullBoard(dst_bid)
+
+        # register the lists that each card with a given name belongs to
+        dst_clists = {}
+        for card in dst_board['cards']:
+            card_name = card['name']
+            card_list = card['idList']
+            if card_name not in dst_clists:
+                dst_clists[card_name] = []
+            dst_clists[card_name].append(card_list)
 
         # open destination board
         sys.stderr.write('open board ... ')
         trello.put(
-            ['boards', dst_id, 'closed'],
+            ['boards', dst_bid, 'closed'],
             arguments = {
                 'value': 'false'
                 }
             )
         sys.stderr.write('done\n')
 
-        # For each list in the source board that doesn't already exist (i.e. with the same name)
+        # for each list in the source board that doesn't already exist (i.e. with the same name)
         # in the destination board, create an empty destination list with this name and
-        # insert it at the last/rightmost position ... TBD
+        # insert it at the last/rightmost position
         sys.stderr.write('copy lists ... ')
         src_lnames = [item['name'] for item in src_board['lists']]
         dst_lnames = [item['name'] for item in dst_board['lists']]
         for src_lname in src_lnames:
             if src_lname not in dst_lnames:
                 trello.post(
-                    ['boards', dst_id, 'lists'],
+                    ['boards', dst_bid, 'lists'],
                     arguments = {
                         'name': src_lname,
                         'pos': 'bottom'
@@ -278,15 +287,120 @@ class InitBoard(Command):
                     )
         sys.stderr.write('done\n')
 
+        # get ID and name of open destination board lists at this point (represent as dict using name as key
+        # and ignoring multiple occurrences of the same name)
+        dst_lists = {}
+        for item in getLists(dst_bid):
+            if item['name'] not in dst_lists:
+                dst_lists[item['name']] = item['id']
+        # get ID of both open and closed lists in the same fashion
+        dst_lists_all = {}
+        for item in getListsAll(dst_bid):
+            if item['name'] not in dst_lists_all:
+                dst_lists_all[item['name']] = item['id']
 
-        # For each card SC in the source board (regardless of list), copy the card to the list DL in the
-        # destination board with a name that matches the value of 'standardvakt' in the description of SC,
-        # unless a card with this name doesn't already exist in DL.
-        # Cards that don't have such a value, or where the value doesn't match any list name, are copied to a
-        # special list 'ukjent'.
-        # HM ... what if there are more than one corresponding destination list (i.e. having the same name)?
-        #   -> only consider the first/leftmost one? (yup!)
+        # ensure an orphanage list exists
+        orph_lname = 'ukjent' # name of orphanage list (see below)
+        orph_lid = None
+        if orph_lname not in dst_lists_all:
+            sys.stderr.write('creating orphanage list ... ')
+            trello.post(
+                ['boards', dst_bid, 'lists'],
+                arguments = {
+                    'name': orph_lname,
+                    'pos': 'bottom'
+                    }
+                )
+            # get the ID of the orphanage list
+            for item in getLists(dst_bid):
+                if item['name'] == orph_lname:
+                    orph_lid = item['id']
+                    break
+            if not orph_lid:
+                raise Exception('failed to get ID of new orphanage list: {}'.format(orph_lname))
+            sys.stderr.write('done\n')
+        else:
+            orph_lid = dst_lists_all[orph_lname]
 
+        # open orphanage list
+        sys.stderr.write('open orphanage list ... ')
+        trello.put(
+            ['lists', orph_lid, 'closed'],
+            arguments = {
+                'value': 'false'
+                }
+            )
+        sys.stderr.write('done\n')
+
+        # insert orphanage list in dst_lists
+        dst_lists[orph_lname] = orph_lid
+
+        # Copy each card in the source board to a list corresponding to the default responsible for the card,
+        # unless a card with the same name already exists in that list.
+        # If a default responsible cannot be identified, the card is copied to a special orphanage list.
+        sys.stderr.write('copy cards ... ')
+        p_dresp = re.compile('.*standardvakt=([^&\t\n\r\f\v]+)') # default responsible
+        p_movable = re.compile('.*flyttbar=([^&\t\n\r\f\v]+)')
+        for card in src_board['cards']:
+            dresp_ok = False
+            card_name = card['name']
+            card_desc = card['desc']
+            m_dresp = p_dresp.match(card_desc)
+            if m_dresp:
+                # card has a default responsible
+                dresp = m_dresp.group(1)
+
+                # if the default responsible matches the first part of a name in dst_list, consider copying the card to that list
+                for dst_lname in dst_lists:
+                    if dst_lname.lower().startswith(dresp.lower()):
+                        # copy card to list if this doesn't already contain a card with the same name
+                        dst_lid = dst_lists[dst_lname]
+                        if (card_name not in dst_clists) or (dst_lid not in dst_clists[card_name]):
+                            trello.post(
+                                ['lists', dst_lid, 'cards'],
+                                arguments = {
+                                    'name': card_name,
+                                    'desc': card_desc
+                                    }
+                                )
+                        dresp_ok = True # in any case we consider processing of 'default responsible' a success at this point
+                        break
+
+                if not dresp_ok:
+                    dresp_nomatch_reason = 'the default responsible (standardvakt) doesn\'t match the first part of any list'
+
+            else:
+                dresp_nomatch_reason = 'card description contains no default responsible (standardvakt)'
+
+            if not dresp_ok:
+                # prepend the reason to the card description
+                card['desc'] = '[[ERROR: {}.]]\n{}'.format(dresp_nomatch_reason, card['desc'].encode('utf-8'))
+
+                # copy card to orphanage list if this doesn't already contain a card with the same name
+                if (card_name not in dst_clists) or (orph_lid not in dst_clists[card_name]):
+                    trello.post(
+                        ['lists', orph_lid, 'cards'],
+                        arguments = {
+                            'name': card['name'],
+                            'desc': card['desc']
+                            }
+                        )
+                
+        sys.stderr.write('done\n')   
+
+        # close orphanage list if empty
+        orph_cards = trello.get(['lists', orph_lid, 'cards'])
+        if len(orph_cards) == 0:
+            sys.stderr.write('close empty orphanage list ... ')
+            trello.put(
+                ['lists', orph_lid, 'closed'],
+                arguments = {
+                    'value': 'true'
+                    }
+                )
+            sys.stderr.write('done\n')
+      
+        # ALSO sort cards in each list in chronological order
         # ALSO handle labels (replace 'ferdig' with 'ikke paabegynt')
         # ALSO clear actions in each card
 
@@ -332,8 +446,8 @@ def getActions(board_id):
     actions = [x for x in actions if x['type'] == 'commentCard'] # for now
     return actions
 
-def getLists(board_id):
-    lists = trello.get(['boards', board_id, 'lists'])
+def getLists(board_id, filter='open'):
+    lists = trello.get(['boards', board_id, 'lists'], arguments = { 'filter': filter })
     lists2 = []
     for lst in lists:
         lists2.append(dict((k, lst[k]) for k in ( # only keep certain attributes
@@ -341,12 +455,15 @@ def getLists(board_id):
                     )))
     return lists2
 
-def getCards(list_id):
-    cards = trello.get(['lists', list_id, 'cards'])
+def getListsAll(board_id):
+    return getLists(board_id, 'all')
+
+def getCards(board_id):
+    cards = trello.get(['boards', board_id, 'cards'])
     cards2 = []
     for card in cards:
         cards2.append(dict((k, card[k]) for k in ( # only keep certain attributes
-                    'id', 'name', 'desc', 'labels', 'idLabels', 'idMembers'
+                    'id', 'name', 'desc', 'idList', 'labels', 'idLabels', 'idMembers'
                     )))
     return cards2
 
@@ -355,9 +472,7 @@ def getFullBoard(board_id):
     members = getMembers(board_id)
     actions = getActions(board_id)
     lists = getLists(board_id)
-    cards = {}
-    for lst in lists:
-        cards[lst['id']] = getCards(lst['id'])
+    cards = getCards(board_id)
     return {
         'board': board,
         'members': members,
@@ -380,7 +495,7 @@ def backupToGitRepo(boards, gitdir):
 
     diff = False
     try:
-        git.commit('-a', '-m', 'updated metorg backup') # ignore empty diff
+        git.commit('-a', '-m', 'updated backup') # ignore empty diff
         diff = True
         git.push()
         git.stash('pop') # ignore empty stash
@@ -478,20 +593,20 @@ def createCommand(options, http_get):
     elif cmd == 'get_backedup_boards':
         return GetBackedupBoards(http_get)
     elif cmd == 'get_board':
-        if 'bid' in options:
-            return GetBoard(http_get, options['bid'])
+        if 'id' in options:
+            return GetBoard(http_get, options['id'])
     elif cmd == 'get_backedup_board':
-        if 'bid' in options:
-            return GetBackedupBoard(http_get, options['bid'])
+        if 'id' in options:
+            return GetBackedupBoard(http_get, options['id'])
     elif cmd == 'get_backedup_board_html':
-        if 'bid' in options:
-            return GetBackedupBoardHtml(http_get, options['bid'])
+        if 'id' in options:
+            return GetBackedupBoardHtml(http_get, options['id'])
     elif cmd == 'get_backedup_board_stats':
-        if 'bid' in options:
-            return GetBackedupBoardStats(http_get, options['bid'])
+        if 'id' in options:
+            return GetBackedupBoardStats(http_get, options['id'])
     elif cmd == 'backup_board':
-        if 'bid' in options:
-            return BackupBoard(http_get, options['bid'])
+        if 'id' in options:
+            return BackupBoard(http_get, options['id'])
     elif cmd == 'backup_all_boards':
         return BackupAllBoards(http_get)
     elif cmd == 'secure_all_boards':
