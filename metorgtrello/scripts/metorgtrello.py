@@ -22,7 +22,7 @@ class GetBoards(Command):
         self.printOutput()
 
     def printOutputAsJSON(self):
-        json.dump(self.board_id_and_names, sys.stdout, indent=2, ensure_ascii=True)
+        json.dump({ 'boards': self.board_id_and_names }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
 
@@ -36,7 +36,7 @@ class GetBackedupBoards(Command):
         self.printOutput()
 
     def printOutputAsJSON(self):
-        json.dump(self.board_id_and_names, sys.stdout, indent=2, ensure_ascii=True)
+        json.dump({ 'boards': self.board_id_and_names }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
 
@@ -571,7 +571,7 @@ def sortList(list_id):
             )
 
 def printJSONHeader():
-    sys.stdout.write('Content-type: text/json\n')
+    sys.stdout.write('Content-type: text/json\n\n')
 
 def printErrorAsJSON(error, http_get):
     if http_get:
