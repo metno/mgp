@@ -95,11 +95,18 @@ class GetBackedupBoardHtml(Command):
 
         html += '<h1>{}</h1>'.format(board['board']['name'].encode('utf-8'))
 
+        cards = {}
+        for lst in board['lists']:
+            cards[lst['id']] = []
+        for card in board['cards']:
+            lid = card['idList']
+            cards[lid].append(card)
+
         for lst in board['lists']:
             html += '<table>'
             html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
 
-            for card in board['cards'][lst['id']]:
+            for card in cards[lst['id']]:
                 html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
 
             html += '</table>'
