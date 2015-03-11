@@ -4,7 +4,8 @@ object Timer {
     while (true) {
       h(i)
       i = i + 1
-      Thread.sleep(msecs)
+      /* Thread sleep msecs */ // option 1
+      Thread sleep msecs // option 2
     }
   }
 
