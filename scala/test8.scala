@@ -1,11 +1,16 @@
 class A(_s: String, _x: Int) {
-  def s() = _s
-  def x() = _x * 2
+  var __s = _s
+  var __x = _x
+  def s = __s
+  def x() = __x
+  def setX(_x: Int) { __x = _x }
 }
 
 object Test8 {
   def main(args: Array[String]) {
-    var a = new A("bravo", 4711)
-    println("a.s(): " + a.s() + ", a.x(): " + a.x())
+    val a = new A("bravo", 4711)
+    println("a.s(): " + a.s + ", a.x(): " + a.x())
+    a.setX(17)
+    println("a.s(): " + a.s + ", a.x(): " + a.x())
   }
 }
