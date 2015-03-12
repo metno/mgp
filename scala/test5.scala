@@ -13,7 +13,7 @@ object Factorial {
       n = args(0).toLong
     } catch {
       case _ => {
-	println("expected an integer argument")
+	println("usage: scala " + getClass.getName.split("\\$").last + " <integer>")
 	System.exit(1)
       }
     }
