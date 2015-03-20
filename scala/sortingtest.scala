@@ -24,7 +24,7 @@ object QuickSort {
 
 }
 
-object Test13 {
+object SortingTest {
   def main(args: Array[String]) {
     var a = Array(2, 1, 3)
     println("original: " + a.deep)
