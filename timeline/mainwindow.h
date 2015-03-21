@@ -1,20 +1,20 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QtGui>
+#include <QWidget>
 
-class Scene;
-class QDoubleSpinBox;
-class QCheckBox;
-class QPushButton;
+class LaneScene;
 
 class MainWindow : public QWidget
 {
     Q_OBJECT
 public:
     MainWindow(QWidget * = 0);
+public slots:
+    void update();
 private:
-    Scene *scene_;
+    LaneScene *laneScene_;
+    void keyPressEvent(QKeyEvent *);
 };
 
 #endif // MAINWINDOW_H
