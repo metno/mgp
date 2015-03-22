@@ -9,7 +9,7 @@
 #include <QSplitter>
 #include <QPushButton>
 #include <QKeyEvent>
-
+#include <QScrollBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
@@ -18,15 +18,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     QSplitter *splitter = new QSplitter;
 
-    LaneHeaderScene *laneHeaderScene = new LaneHeaderScene(0, 0, 100, 2000);
-    connect(TaskManager::instance(), SIGNAL(updated()), laneHeaderScene, SLOT(refresh()));
-    LaneHeaderView *laneHeaderView = new LaneHeaderView(laneHeaderScene);
-    connect(laneHeaderView, SIGNAL(resized()), laneHeaderScene, SLOT(refresh()));
+    laneHeaderScene_ = new LaneHeaderScene(0, 0, 100, 2000);
+    LaneHeaderView *laneHeaderView = new LaneHeaderView(laneHeaderScene_);
     splitter->addWidget(laneHeaderView);
 
-    LaneScene *laneScene = new LaneScene(laneHeaderScene, 2000);
-    connect(TaskManager::instance(), SIGNAL(updated()), laneScene, SLOT(refresh()));
-    LaneView *laneView = new LaneView(laneScene);
+    laneScene_ = new LaneScene(laneHeaderScene_, 2000);
+    LaneView *laneView = new LaneView(laneScene_);
     splitter->addWidget(laneView);
 
     splitter->setSizes(QList<int>() << 100 << 400);
@@ -38,6 +35,12 @@ MainWindow::MainWindow(QWidget *parent)
     setLayout(mainLayout);
     setWindowTitle("Timeline");
 
+    connect(TaskManager::instance(), SIGNAL(updated()), SLOT(refresh()));
+    connect(laneHeaderView, SIGNAL(resized()), SLOT(refresh()));
+
+    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneHeaderView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(laneHeaderView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
+
     resize(1500, 500);
 }
 
@@ -47,7 +50,8 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         close();
 }
 
-//void MainWindow::update()
-//{
-//    laneScene_->update();
-//}
+void MainWindow::refresh()
+{
+    laneHeaderScene_->refresh();
+    laneScene_->refresh();
+}

@@ -12,7 +12,18 @@ LaneHeaderScene::LaneHeaderScene(qreal x, qreal y, qreal w, qreal h, QObject *pa
     // add background item
     bgItem_ = new QGraphicsRectItem(sceneRect());
     bgItem_->setBrush(QBrush(QColor("#cccccc")));
+    bgItem_->setZValue(-1);
     addItem(bgItem_);
+}
+
+qreal LaneHeaderScene::laneHeight()
+{
+    return 100;
+}
+
+qreal LaneHeaderScene::lanePadding()
+{
+    return 5;
 }
 
 void LaneHeaderScene::refresh()
@@ -27,17 +38,16 @@ void LaneHeaderScene::refresh()
             removeOneHeaderItem();
     }
 
-    const int itemCellHeight = 100;
-
     // update scene rect
     const QRectF srect = sceneRect();
-    setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, items().size() * itemCellHeight);
+    setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, headerItems().size() * laneHeight() + lanePadding());
 
     // update header item attributes
-    const qreal pad = 5;
     int i = 0;
+    const qreal lpadding = lanePadding();
+    const qreal lheight = laneHeight();
     foreach (LaneHeaderItem *item, headerItems()) {
-        item->setRect(pad, i * itemCellHeight + pad, width() - 2 * pad, itemCellHeight - pad);
+        item->setRect(lpadding, i * lheight + lpadding, width() - 2 * lpadding, lheight - lpadding);
         item->setBrush(QBrush(QColor(128 + qrand() % 128, 128 + qrand() % 128, 128 + qrand() % 128)));
         i++;
     }
