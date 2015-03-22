@@ -1,5 +1,7 @@
 #include "lanescene.h"
 #include "laneheaderscene.h"
+#include "taskmanager.h"
+#include "common.h"
 #include <QGraphicsRectItem>
 
 LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, qreal w, QObject *parent)
@@ -12,9 +14,7 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, qreal w, QObject *parent)
     addItem(background);
 }
 
-void LaneScene::update()
+void LaneScene::refresh()
 {
-    laneHeaderScene_->update();
-
-    remember to eventually remove scene.* and view.* (i.e. files not in timeline.pro)
+    qDebug() << "LaneScene::refresh() ...";
 }

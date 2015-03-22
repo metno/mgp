@@ -10,7 +10,7 @@ class LaneView : public QGraphicsView
     Q_OBJECT
 public:
     LaneView(LaneScene *, QWidget * = 0);
-protected:
+private:
     void resizeEvent(QResizeEvent *);
 };
 

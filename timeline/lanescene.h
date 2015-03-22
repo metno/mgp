@@ -10,7 +10,9 @@ class LaneScene : public QGraphicsScene
     Q_OBJECT
 public:
     LaneScene(LaneHeaderScene *, qreal, QObject * = 0);
-    void update();
+
+public slots:
+    void refresh();
 
 private:
     LaneHeaderScene *laneHeaderScene_;

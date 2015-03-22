@@ -14,6 +14,7 @@ class TaskManager : public QObject
 public:   
     TaskManager();
     static TaskManager *instance();
+    void emitUpdated();
     QList<qint64> roleIds() const;
     QList<qint64> taskIds() const;
     QSharedPointer<Role> findRole(qint64) const;
@@ -29,6 +30,9 @@ private:
     static TaskManager *self_;   // singleton instance pointer
     qint64 nextRoleId_;
     qint64 nextTaskId_;
+
+signals:
+    void updated();
 };
 
 #endif // TASKMANAGER_H

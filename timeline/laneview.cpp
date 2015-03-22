@@ -1,5 +1,7 @@
 #include "laneview.h"
 #include "lanescene.h"
+#include "common.h"
+#include <QResizeEvent>
 
 LaneView::LaneView(LaneScene *scene, QWidget *parent)
     : QGraphicsView(scene, parent)
@@ -8,7 +10,7 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
 //    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
-void LaneView::resizeEvent(QResizeEvent *)
+void LaneView::resizeEvent(QResizeEvent *event)
 {
-    //fitInView(scene()->sceneRect(), Qt::KeepAspectRatio);
+    QGraphicsView::resizeEvent(event);
 }

@@ -1,4 +1,4 @@
-//#include "communicator.h"
+//#include "communicator.h" // ### implement later to handle communication with other clients via central server
 #include "mainwindow.h"
 #include "taskmanager.h"
 #include <QApplication>
@@ -23,5 +23,6 @@ int main(int argc, char *argv[])
     MainWindow window;
     window.show();
 
+    TaskManager::instance()->emitUpdated(); // ensure views are initialized
     return app.exec();
 }

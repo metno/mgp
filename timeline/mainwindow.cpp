@@ -3,10 +3,13 @@
 #include "lanescene.h"
 #include "laneview.h"
 #include "mainwindow.h"
+#include "taskmanager.h"
+#include "common.h"
 #include <QVBoxLayout>
 #include <QSplitter>
 #include <QPushButton>
 #include <QKeyEvent>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
@@ -16,11 +19,14 @@ MainWindow::MainWindow(QWidget *parent)
     QSplitter *splitter = new QSplitter;
 
     LaneHeaderScene *laneHeaderScene = new LaneHeaderScene(0, 0, 100, 2000);
+    connect(TaskManager::instance(), SIGNAL(updated()), laneHeaderScene, SLOT(refresh()));
     LaneHeaderView *laneHeaderView = new LaneHeaderView(laneHeaderScene);
+    connect(laneHeaderView, SIGNAL(resized()), laneHeaderScene, SLOT(refresh()));
     splitter->addWidget(laneHeaderView);
 
-    laneScene_ = new LaneScene(laneHeaderScene, 2000);
-    LaneView *laneView = new LaneView(laneScene_);
+    LaneScene *laneScene = new LaneScene(laneHeaderScene, 2000);
+    connect(TaskManager::instance(), SIGNAL(updated()), laneScene, SLOT(refresh()));
+    LaneView *laneView = new LaneView(laneScene);
     splitter->addWidget(laneView);
 
     splitter->setSizes(QList<int>() << 100 << 400);
@@ -33,8 +39,6 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("Timeline");
 
     resize(1500, 500);
-
-    update();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
@@ -43,7 +47,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         close();
 }
 
-void MainWindow::update()
-{
-    laneScene_->update();
-}
+//void MainWindow::update()
+//{
+//    laneScene_->update();
+//}

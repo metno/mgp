@@ -15,6 +15,11 @@ TaskManager *TaskManager::instance()
   return TaskManager::self_;
 }
 
+void TaskManager::emitUpdated()
+{
+    emit updated();
+}
+
 QList<qint64> TaskManager::roleIds() const
 {
     return roles_.keys();

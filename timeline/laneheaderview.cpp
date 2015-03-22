@@ -1,14 +1,17 @@
 #include "laneheaderview.h"
 #include "laneheaderscene.h"
+#include "common.h"
+#include <QResizeEvent>
 
-LaneHeaderView::LaneHeaderView(LaneHeaderScene *scene, QWidget *parent)
-    : QGraphicsView(scene, parent)
+LaneHeaderView::LaneHeaderView(LaneHeaderScene *lhScene, QWidget *parent)
+    : QGraphicsView(lhScene, parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
-void LaneHeaderView::resizeEvent(QResizeEvent *)
+void LaneHeaderView::resizeEvent(QResizeEvent *event)
 {
-    //fitInView(scene()->sceneRect(), Qt::KeepAspectRatio);
+    emit resized();
+    QGraphicsView::resizeEvent(event);
 }

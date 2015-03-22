@@ -10,8 +10,10 @@ class LaneHeaderView : public QGraphicsView
     Q_OBJECT
 public:
     LaneHeaderView(LaneHeaderScene *, QWidget * = 0);
-protected:
+private:
     void resizeEvent(QResizeEvent *);
+signals:
+    void resized();
 };
 
 #endif // LANEHEADERVIEW_H
