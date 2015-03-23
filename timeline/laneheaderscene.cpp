@@ -1,5 +1,5 @@
 #include "laneheaderscene.h"
-#include "laneheaderitem.h"
+#include "laneheaderbgitem.h"
 #include "laneheaderview.h"
 #include "taskmanager.h"
 #include "common.h"
@@ -16,39 +16,34 @@ LaneHeaderScene::LaneHeaderScene(qreal x, qreal y, qreal w, qreal h, QObject *pa
     addItem(bgItem_);
 }
 
-qreal LaneHeaderScene::laneHeight()
-{
-    return 100;
-}
-
-qreal LaneHeaderScene::lanePadding()
-{
-    return 5;
-}
-
 void LaneHeaderScene::refresh()
 {
-    // adjust header item count to match role count
-    const int diff = TaskManager::instance()->roleIds().size() - headerItems().size();
-    if (diff > 0) {
-        for (int i = 0; i < diff; ++i)
-            addOneHeaderItem();
-    } else if (diff < 0) {
-        for (int i = 0; i < -diff; ++i)
-            removeOneHeaderItem();
+    const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
+
+    // remove header items for roles that no longer exist in the task manager
+    foreach (LaneHeaderBGItem *hItem, headerItems()) {
+        if (!tmRoleIds.contains(hItem->roleId()))
+            removeItem(hItem);
+    }
+
+    // add header items for unrepresented roles in the task manager
+    const QList<qint64> hiRoleIds = headerItemRoleIds();
+    foreach (qint64 tmRoleId, tmRoleIds) {
+        if (!hiRoleIds.contains(tmRoleId))
+            addHeaderItem(tmRoleId);
     }
 
     // update scene rect
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, headerItems().size() * laneHeight() + lanePadding());
 
-    // update header item attributes
-    int i = 0;
+    // update header item rects
     const qreal lpadding = lanePadding();
     const qreal lheight = laneHeight();
-    foreach (LaneHeaderItem *item, headerItems()) {
+    int i = 0;
+    foreach (LaneHeaderBGItem *item, headerItems()) {
+        item->setPos(0, 0);
         item->setRect(lpadding, i * lheight + lpadding, width() - 2 * lpadding, lheight - lpadding);
-        item->setBrush(QBrush(QColor(128 + qrand() % 128, 128 + qrand() % 128, 128 + qrand() % 128)));
         i++;
     }
 
@@ -56,23 +51,29 @@ void LaneHeaderScene::refresh()
     bgItem_->setRect(sceneRect());
 }
 
-QList<LaneHeaderItem *> LaneHeaderScene::headerItems() const
+QList<LaneHeaderBGItem *> LaneHeaderScene::headerItems() const
 {
-    QList<LaneHeaderItem *> hItems;
+    QList<LaneHeaderBGItem *> hItems;
     foreach (QGraphicsItem *item, items()) {
-        LaneHeaderItem *hItem = dynamic_cast<LaneHeaderItem *>(item);
+        LaneHeaderBGItem *hItem = dynamic_cast<LaneHeaderBGItem *>(item);
         if (hItem)
             hItems.append(hItem);
     }
     return hItems;
 }
 
-void LaneHeaderScene::addOneHeaderItem()
+QList<qint64> LaneHeaderScene::headerItemRoleIds() const
 {
-    addItem(new LaneHeaderItem);
+    QList<qint64> hiRoleIds;
+    foreach (QGraphicsItem *item, items()) {
+        LaneHeaderBGItem *hItem = dynamic_cast<LaneHeaderBGItem *>(item);
+        if (hItem)
+            hiRoleIds.append(hItem->roleId());
+    }
+    return hiRoleIds;
 }
 
-void LaneHeaderScene::removeOneHeaderItem()
+void LaneHeaderScene::addHeaderItem(qint64 roleId)
 {
-    removeItem(headerItems().first());
+    addItem(new LaneHeaderBGItem(roleId));
 }

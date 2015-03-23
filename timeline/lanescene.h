@@ -5,7 +5,7 @@
 
 class LaneHeaderScene;
 class QGraphicsRectItem;
-class LaneItem;
+class LaneBGItem;
 
 class LaneScene : public QGraphicsScene
 {
@@ -19,9 +19,9 @@ public slots:
 private:
     LaneHeaderScene *laneHeaderScene_;
     QGraphicsRectItem *bgItem_;
-    QList<LaneItem *> laneItems() const;
-    void addOneLaneItem();
-    void removeOneLaneItem();
+    QList<LaneBGItem *> laneItems() const;
+    QList<qint64> laneItemRoleIds() const;
+    void addLaneItem(qint64);
 };
 
 #endif // LANESCENE_H

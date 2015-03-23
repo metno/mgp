@@ -1,6 +1,6 @@
 #include "lanescene.h"
 #include "laneheaderscene.h"
-#include "laneitem.h"
+#include "lanebgitem.h"
 #include "taskmanager.h"
 #include "common.h"
 #include <QGraphicsRectItem>
@@ -20,27 +20,32 @@ void LaneScene::refresh()
 {
     // note: we assume that laneHeaderScene_ is already refreshed at this point
 
-    // adjust lane item count to match role count
-    const int diff = TaskManager::instance()->roleIds().size() - laneItems().size();
-    if (diff > 0) {
-        for (int i = 0; i < diff; ++i)
-            addOneLaneItem();
-    } else if (diff < 0) {
-        for (int i = 0; i < -diff; ++i)
-            removeOneLaneItem();
+    const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
+
+    // remove lane items for roles that no longer exist in the task manager
+    foreach (LaneBGItem *lItem, laneItems()) {
+        if (!tmRoleIds.contains(lItem->roleId()))
+            removeItem(lItem);
+    }
+
+    // add lane items for unrepresented roles in the task manager
+    const QList<qint64> liRoleIds = laneItemRoleIds();
+    foreach (qint64 tmRoleId, tmRoleIds) {
+        if (!liRoleIds.contains(tmRoleId))
+            addLaneItem(tmRoleId);
     }
 
     // update scene rect
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * laneHeaderScene_->laneHeight() + laneHeaderScene_->lanePadding());
 
-    // update header item attributes
-    int i = 0;
+    // update header item rects
     const qreal lpadding = laneHeaderScene_->lanePadding();
     const qreal lheight = laneHeaderScene_->laneHeight();
-    foreach (LaneItem *item, laneItems()) {
+    int i = 0;
+    foreach (LaneBGItem *item, laneItems()) {
+        item->setPos(0, 0);
         item->setRect(lpadding, i * lheight + lpadding, width() - 2 * lpadding, lheight - lpadding);
-        item->setBrush(QBrush(QColor(128 + qrand() % 128, 128 + qrand() % 128, 128 + qrand() % 128)));
         i++;
     }
 
@@ -48,23 +53,29 @@ void LaneScene::refresh()
     bgItem_->setRect(sceneRect());
 }
 
-QList<LaneItem *> LaneScene::laneItems() const
+QList<LaneBGItem *> LaneScene::laneItems() const
 {
-    QList<LaneItem *> lItems;
+    QList<LaneBGItem *> lItems;
     foreach (QGraphicsItem *item, items()) {
-        LaneItem *lItem = dynamic_cast<LaneItem *>(item);
+        LaneBGItem *lItem = dynamic_cast<LaneBGItem *>(item);
         if (lItem)
             lItems.append(lItem);
     }
     return lItems;
 }
 
-void LaneScene::addOneLaneItem()
+QList<qint64> LaneScene::laneItemRoleIds() const
 {
-    addItem(new LaneItem);
+    QList<qint64> liRoleIds;
+    foreach (QGraphicsItem *item, items()) {
+        LaneBGItem *lItem = dynamic_cast<LaneBGItem *>(item);
+        if (lItem)
+            liRoleIds.append(lItem->roleId());
+    }
+    return liRoleIds;
 }
 
-void LaneScene::removeOneLaneItem()
+void LaneScene::addLaneItem(qint64 roleId)
 {
-    removeItem(laneItems().first());
+    addItem(new LaneBGItem(roleId));
 }
