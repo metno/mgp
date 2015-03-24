@@ -19,6 +19,8 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
 void LaneView::updateScale(qreal val)
 {
     scale(val, val);
+    if (transform().m11() < 1.0)
+        setTransform(QTransform());
 }
 
 void LaneView::resizeEvent(QResizeEvent *event)

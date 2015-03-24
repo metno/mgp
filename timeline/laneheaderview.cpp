@@ -14,6 +14,8 @@ LaneHeaderView::LaneHeaderView(LaneHeaderScene *lhScene, QWidget *parent)
 void LaneHeaderView::updateScale(qreal val)
 {
     scale(val, val);
+    if (transform().m11() < 1.0)
+        setTransform(QTransform());
 }
 
 void LaneHeaderView::resizeEvent(QResizeEvent *event)
