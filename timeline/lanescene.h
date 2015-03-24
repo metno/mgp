@@ -10,6 +10,8 @@ class LaneBGItem;
 class LaneScene : public QGraphicsScene
 {
     Q_OBJECT
+    friend class LaneView;
+
 public:
     LaneScene(LaneHeaderScene *, qreal, QObject * = 0);
 

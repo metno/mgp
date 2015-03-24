@@ -16,7 +16,7 @@ public:
 private:
     LaneHeaderScene *laneHeaderScene_;
     LaneScene *laneScene_;
-    void keyPressEvent(QKeyEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
 
 private slots:
     void refresh();

@@ -1,5 +1,6 @@
 #include "laneheaderview.h"
 #include "laneheaderscene.h"
+#include "wheelscaler.h"
 #include "common.h"
 #include <QResizeEvent>
 
@@ -10,8 +11,22 @@ LaneHeaderView::LaneHeaderView(LaneHeaderScene *lhScene, QWidget *parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
+void LaneHeaderView::updateScale(qreal val)
+{
+    scale(val, val);
+}
+
 void LaneHeaderView::resizeEvent(QResizeEvent *event)
 {
     emit resized();
     QGraphicsView::resizeEvent(event);
+}
+
+void LaneHeaderView::wheelEvent(QWheelEvent *event)
+{
+    const qreal scaleVal = WheelScaler::exec(this, event);
+    if (scaleVal > 0)
+        emit scaled(scaleVal);
+    else
+        QGraphicsView::wheelEvent(event);
 }
