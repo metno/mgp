@@ -16,11 +16,9 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
     connect(dynamic_cast<LaneHeaderView *>(scene->laneHeaderScene_->views().first()), SIGNAL(scaled(qreal)), SLOT(updateScale(qreal)));
 }
 
-void LaneView::updateScale(qreal val)
+void LaneView::updateScale(qreal sx)
 {
-    scale(val, val);
-    if (transform().m11() < 1.0)
-        setTransform(QTransform());
+    setTransform(QTransform::fromScale(sx, sx));
 }
 
 void LaneView::resizeEvent(QResizeEvent *event)
@@ -30,9 +28,9 @@ void LaneView::resizeEvent(QResizeEvent *event)
 
 void LaneView::wheelEvent(QWheelEvent *event)
 {
-    const qreal scaleVal = WheelScaler::exec(this, event);
-    if (scaleVal > 0)
-        emit scaled(scaleVal);
+    const qreal m11 = WheelScaler::exec(this, event);
+    if (m11 > 0)
+        emit scaled(m11);
     else
         QGraphicsView::wheelEvent(event);
 }

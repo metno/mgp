@@ -9,11 +9,14 @@ qreal WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
         const qreal scaleFactor = 1.1;
         qreal val = (event->delta() > 0) ? scaleFactor : (1.0 / scaleFactor);
         const qreal m11 = view->transform().m11();
-        if ((val * m11) < 1.0)
-            val = 1.0 / m11;
         view->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-        view->scale(val, val);
-        return val;
+        if ((val * m11) < 1.0) {
+            view->setTransform(QTransform());
+            // Q_ASSERT(view->transform().m11() == 1.0);
+            return 1.0;
+        }
+        view->setTransform(QTransform::fromScale(val * m11, val * m11));
+        return val * m11;
     }
 
     return -1.0;
