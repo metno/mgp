@@ -2,6 +2,7 @@
 #define WHEELSCALER_H
 
 #include <QtGlobal>
+#include <QPair>
 
 class QGraphicsView;
 class QWheelEvent;
@@ -9,7 +10,7 @@ class QWheelEvent;
 class WheelScaler
 {
 public:
-    static qreal exec(QGraphicsView *, QWheelEvent *);
+    static QPair<qreal, qreal> exec(QGraphicsView *, QWheelEvent *);
 };
 
 #endif // WHEELSCALER_H

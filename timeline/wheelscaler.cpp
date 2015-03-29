@@ -3,21 +3,27 @@
 #include <QGraphicsView>
 #include <QWheelEvent>
 
-qreal WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
+QPair<qreal, qreal> WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
 {
-    if (event->modifiers() & Qt::ControlModifier) {
-        const qreal scaleFactor = 1.1;
-        qreal val = (event->delta() > 0) ? scaleFactor : (1.0 / scaleFactor);
-        const qreal m11 = view->transform().m11();
+    const bool scaleHorizontal = event->modifiers() & Qt::ShiftModifier;
+    const bool scaleVertical = event->modifiers() & Qt::ControlModifier;
+
+    if (scaleHorizontal || scaleVertical) {
+        const qreal sfactBase = 1.01;
+        const qreal sfact = (event->delta() > 0) ? sfactBase : (1.0 / sfactBase);
+        qreal m11 = view->transform().m11(); // horizontal scaling factor
+        qreal m22 = view->transform().m22(); // vertical scaling factor
+
+        if (scaleHorizontal)
+            m11 = ((sfact * m11) < 1.0) ? 1.0 : (sfact * m11);
+        if (scaleVertical)
+            m22 = ((sfact * m22) < 1.0) ? 1.0 : (sfact * m22);
+
         view->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-        if ((val * m11) < 1.0) {
-            view->setTransform(QTransform());
-            // Q_ASSERT(view->transform().m11() == 1.0);
-            return 1.0;
-        }
-        view->setTransform(QTransform::fromScale(val * m11, val * m11));
-        return val * m11;
+        view->setTransform(QTransform::fromScale(m11, m22));
+
+        return qMakePair(m11, m22);
     }
 
-    return -1.0;
+    return qMakePair(-1.0, -1.0);
 }

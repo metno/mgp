@@ -13,14 +13,14 @@ public:
     LaneView(LaneScene *, QWidget * = 0);
 
 public slots:
-    void updateScale(qreal);
+    void updateScale(qreal, qreal);
 
 private:
     virtual void resizeEvent(QResizeEvent *);
     virtual void wheelEvent(QWheelEvent *);
 
 signals:
-    void scaled(qreal);
+    void scaled(qreal, qreal);
 };
 
 #endif // LANEVIEW_H

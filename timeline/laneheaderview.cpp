@@ -11,9 +11,9 @@ LaneHeaderView::LaneHeaderView(LaneHeaderScene *lhScene, QWidget *parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
-void LaneHeaderView::updateScale(qreal sx)
+void LaneHeaderView::updateScale(qreal sx, qreal sy)
 {
-    setTransform(QTransform::fromScale(sx, sx));
+    setTransform(QTransform::fromScale(sx, sy));
 }
 
 void LaneHeaderView::resizeEvent(QResizeEvent *event)
@@ -24,9 +24,9 @@ void LaneHeaderView::resizeEvent(QResizeEvent *event)
 
 void LaneHeaderView::wheelEvent(QWheelEvent *event)
 {
-    const qreal scaleVal = WheelScaler::exec(this, event);
-    if (scaleVal > 0)
-        emit scaled(scaleVal);
+    const QPair<qreal, qreal> scaleFactors = WheelScaler::exec(this, event);
+    if (scaleFactors.first > 0)
+        emit scaled(scaleFactors.first, scaleFactors.second);
     else
         QGraphicsView::wheelEvent(event);
 }

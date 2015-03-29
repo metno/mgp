@@ -12,13 +12,13 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
-    connect(this, SIGNAL(scaled(qreal)), dynamic_cast<LaneHeaderView *>(scene->laneHeaderScene_->views().first()), SLOT(updateScale(qreal)));
-    connect(dynamic_cast<LaneHeaderView *>(scene->laneHeaderScene_->views().first()), SIGNAL(scaled(qreal)), SLOT(updateScale(qreal)));
+    connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<LaneHeaderView *>(scene->laneHeaderScene_->views().first()), SLOT(updateScale(qreal, qreal)));
+    connect(dynamic_cast<LaneHeaderView *>(scene->laneHeaderScene_->views().first()), SIGNAL(scaled(qreal, qreal)), SLOT(updateScale(qreal, qreal)));
 }
 
-void LaneView::updateScale(qreal sx)
+void LaneView::updateScale(qreal sx, qreal sy)
 {
-    setTransform(QTransform::fromScale(sx, sx));
+    setTransform(QTransform::fromScale(sx, sy));
 }
 
 void LaneView::resizeEvent(QResizeEvent *event)
@@ -28,9 +28,9 @@ void LaneView::resizeEvent(QResizeEvent *event)
 
 void LaneView::wheelEvent(QWheelEvent *event)
 {
-    const qreal m11 = WheelScaler::exec(this, event);
-    if (m11 > 0)
-        emit scaled(m11);
+    const QPair<qreal, qreal> scaleFactors = WheelScaler::exec(this, event);
+    if (scaleFactors.first > 0)
+        emit scaled(scaleFactors.first, scaleFactors.second);
     else
         QGraphicsView::wheelEvent(event);
 }

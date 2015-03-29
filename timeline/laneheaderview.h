@@ -13,7 +13,7 @@ public:
     LaneHeaderView(LaneHeaderScene *, QWidget * = 0);
 
 public slots:
-    void updateScale(qreal);
+    void updateScale(qreal, qreal);
 
 private:
     virtual void resizeEvent(QResizeEvent *);
@@ -21,7 +21,7 @@ private:
 
 signals:
     void resized();
-    void scaled(qreal);
+    void scaled(qreal, qreal);
 };
 
 #endif // LANEHEADERVIEW_H
