@@ -3,7 +3,7 @@
 
 #include <QGraphicsScene>
 
-class LaneHeaderScene;
+class LeftHeaderScene;
 class QGraphicsRectItem;
 class LaneBGItem;
 
@@ -13,13 +13,13 @@ class LaneScene : public QGraphicsScene
     friend class LaneView;
 
 public:
-    LaneScene(LaneHeaderScene *, qreal, QObject * = 0);
+    LaneScene(LeftHeaderScene *, qreal, QObject * = 0);
 
 public slots:
     void refresh();
 
 private:
-    LaneHeaderScene *laneHeaderScene_;
+    LeftHeaderScene *leftHeaderScene_;
     QGraphicsRectItem *bgItem_;
     QList<LaneBGItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;

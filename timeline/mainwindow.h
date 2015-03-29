@@ -3,7 +3,7 @@
 
 #include <QWidget>
 
-class LaneHeaderScene;
+class LeftHeaderScene;
 class LaneScene;
 
 class MainWindow : public QWidget
@@ -14,7 +14,7 @@ public:
     MainWindow(QWidget * = 0);
 
 private:
-    LaneHeaderScene *laneHeaderScene_;
+    LeftHeaderScene *leftHeaderScene_;
     LaneScene *laneScene_;
     virtual void keyPressEvent(QKeyEvent *);
 

@@ -1,5 +1,5 @@
-#include "laneheaderscene.h"
-#include "laneheaderview.h"
+#include "leftheaderscene.h"
+#include "leftheaderview.h"
 #include "lanescene.h"
 #include "laneview.h"
 #include "mainwindow.h"
@@ -18,11 +18,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     QSplitter *splitter = new QSplitter;
 
-    laneHeaderScene_ = new LaneHeaderScene(0, 0, 100, 2000);
-    LaneHeaderView *laneHeaderView = new LaneHeaderView(laneHeaderScene_);
-    splitter->addWidget(laneHeaderView);
+    leftHeaderScene_ = new LeftHeaderScene(0, 0, 100, 2000);
+    LeftHeaderView *leftHeaderView = new LeftHeaderView(leftHeaderScene_);
+    splitter->addWidget(leftHeaderView);
 
-    laneScene_ = new LaneScene(laneHeaderScene_, 2000);
+    laneScene_ = new LaneScene(leftHeaderScene_, 2000);
     LaneView *laneView = new LaneView(laneScene_);
     splitter->addWidget(laneView);
 
@@ -36,10 +36,10 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("Timeline");
 
     connect(TaskManager::instance(), SIGNAL(updated()), SLOT(refresh()));
-    connect(laneHeaderView, SIGNAL(resized()), SLOT(refresh()));
+    connect(leftHeaderView, SIGNAL(resized()), SLOT(refresh()));
 
-    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneHeaderView->verticalScrollBar(), SLOT(setValue(int)));
-    connect(laneHeaderView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), leftHeaderView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(leftHeaderView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
 
     resize(1500, 500);
 }
@@ -52,6 +52,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
 void MainWindow::refresh()
 {
-    laneHeaderScene_->refresh();
+    leftHeaderScene_->refresh();
     laneScene_->refresh();
 }

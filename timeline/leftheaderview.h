@@ -1,16 +1,16 @@
-#ifndef LANEHEADERVIEW_H
-#define LANEHEADERVIEW_H
+#ifndef LEFTHEADERVIEW_H
+#define LEFTHEADERVIEW_H
 
 #include <QGraphicsView>
 
-class LaneHeaderScene;
+class LeftHeaderScene;
 
-class LaneHeaderView : public QGraphicsView
+class LeftHeaderView : public QGraphicsView
 {
     Q_OBJECT
 
 public:
-    LaneHeaderView(LaneHeaderScene *, QWidget * = 0);
+    LeftHeaderView(LeftHeaderScene *, QWidget * = 0);
 
 public slots:
     void updateScale(qreal, qreal);
@@ -24,4 +24,4 @@ signals:
     void scaled(qreal, qreal);
 };
 
-#endif // LANEHEADERVIEW_H
+#endif // LEFTHEADERVIEW_H

@@ -1,13 +1,13 @@
 #include "lanescene.h"
-#include "laneheaderscene.h"
+#include "leftheaderscene.h"
 #include "lanebgitem.h"
 #include "taskmanager.h"
 #include "common.h"
 #include <QGraphicsRectItem>
 
-LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, qreal w, QObject *parent)
-    : QGraphicsScene(0, 0, w, laneHeaderScene->height(), parent)
-    , laneHeaderScene_(laneHeaderScene)
+LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, qreal w, QObject *parent)
+    : QGraphicsScene(0, 0, w, leftHeaderScene->height(), parent)
+    , leftHeaderScene_(leftHeaderScene)
 {
     // add background
     bgItem_ = new QGraphicsRectItem(sceneRect());
@@ -18,7 +18,7 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, qreal w, QObject *parent)
 
 void LaneScene::refresh()
 {
-    // note: we assume that laneHeaderScene_ is already refreshed at this point
+    // note: we assume that leftHeaderScene_ is already refreshed at this point
 
     const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
 
@@ -37,11 +37,11 @@ void LaneScene::refresh()
 
     // update scene rect
     const QRectF srect = sceneRect();
-    setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * laneHeaderScene_->laneHeight() + laneHeaderScene_->lanePadding());
+    setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->lanePadding());
 
     // update header item rects
-    const qreal lpadding = laneHeaderScene_->lanePadding();
-    const qreal lheight = laneHeaderScene_->laneHeight();
+    const qreal lpadding = leftHeaderScene_->lanePadding();
+    const qreal lheight = leftHeaderScene_->laneHeight();
     int i = 0;
     foreach (LaneBGItem *item, laneItems()) {
         item->setPos(0, 0);
