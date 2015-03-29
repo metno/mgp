@@ -29,8 +29,13 @@ void LaneView::resizeEvent(QResizeEvent *event)
 void LaneView::wheelEvent(QWheelEvent *event)
 {
     const QPair<qreal, qreal> scaleFactors = WheelScaler::exec(this, event);
-    if (scaleFactors.first > 0)
-        emit scaled(scaleFactors.first, scaleFactors.second);
-    else
+    if (scaleFactors.first > 0) {
+        const qreal sx = scaleFactors.first;
+        const qreal sy = scaleFactors.second;
+        emit scaled(sx, sy);
+        setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+        updateScale(sx, sy);
+    } else {
         QGraphicsView::wheelEvent(event);
+    }
 }

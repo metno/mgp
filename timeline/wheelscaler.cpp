@@ -15,12 +15,9 @@ QPair<qreal, qreal> WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
         qreal m22 = view->transform().m22(); // vertical scaling factor
 
         if (scaleHorizontal)
-            m11 = ((sfact * m11) < 1.0) ? 1.0 : (sfact * m11);
+            m11 = qMin(qMax(sfact * m11, 1.0), 4.0);
         if (scaleVertical)
-            m22 = ((sfact * m22) < 1.0) ? 1.0 : (sfact * m22);
-
-        view->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-        view->setTransform(QTransform::fromScale(m11, m22));
+            m22 = qMin(qMax(sfact * m22, 1.0), 4.0);
 
         return qMakePair(m11, m22);
     }
