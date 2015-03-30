@@ -17,11 +17,9 @@ public slots:
 
 private:
     virtual void resizeEvent(QResizeEvent *);
-    virtual void wheelEvent(QWheelEvent *);
 
 signals:
     void resized();
-    void scaled(qreal, qreal);
 };
 
 #endif // LEFTHEADERVIEW_H

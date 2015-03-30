@@ -9,6 +9,7 @@ class LeftHeaderBGItem;
 class LeftHeaderScene : public QGraphicsScene
 {
     Q_OBJECT
+
 public:
     LeftHeaderScene(qreal, qreal, qreal, qreal, QObject * = 0);
     static qreal laneHeight() { return 100; }

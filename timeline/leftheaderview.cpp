@@ -21,17 +21,3 @@ void LeftHeaderView::resizeEvent(QResizeEvent *event)
     emit resized();
     QGraphicsView::resizeEvent(event);
 }
-
-void LeftHeaderView::wheelEvent(QWheelEvent *event)
-{
-    const QPair<qreal, qreal> scaleFactors = WheelScaler::exec(this, event);
-    if (scaleFactors.first > 0) {
-        const qreal sx = scaleFactors.first;
-        const qreal sy = scaleFactors.second;
-        emit scaled(sx, sy);
-        setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-        updateScale(sx, sy);
-    } else {
-        QGraphicsView::wheelEvent(event);
-    }
-}
