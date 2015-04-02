@@ -11,7 +11,7 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-
+    setDragMode(QGraphicsView::ScrollHandDrag);
     connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<LeftHeaderView *>(scene->leftHeaderScene_->views().first()), SLOT(updateScale(qreal, qreal)));
 }
 

@@ -9,6 +9,7 @@ LeftHeaderView::LeftHeaderView(LeftHeaderScene *lhScene, QWidget *parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setDragMode(QGraphicsView::ScrollHandDrag);
 }
 
 void LeftHeaderView::updateScale(qreal, qreal sy)
