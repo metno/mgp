@@ -9,6 +9,7 @@
 #include "common.h"
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QFont>
 #include <QSplitter>
 #include <QPushButton>
 #include <QKeyEvent>
@@ -36,7 +37,12 @@ MainWindow::MainWindow(QWidget *parent)
     // ------------------------
 
     topSplitter_ = new QSplitter;
-    QLabel *cornerLabel = new QLabel;
+    QLabel *cornerLabel = new QLabel("MetOrg");
+    cornerLabel->setFont(QFont("helvetica", 24));
+    cornerLabel->setAlignment(Qt::AlignCenter);
+    cornerLabel->setStyleSheet(
+                "font-weight:bold; color: red; "
+                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #ffff00, stop: 0.5 #00ffff, stop: 1 #ffff00)");
     topSplitter_->addWidget(cornerLabel);
 
     topHeaderScene_ = new TopHeaderScene(laneScene_, 50);
