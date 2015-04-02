@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QWidget>
+#include <QDate>
 
 class LeftHeaderScene;
 class LaneScene;
@@ -13,9 +14,10 @@ class MainWindow : public QWidget
     Q_OBJECT
 
 public:
-    MainWindow(QWidget * = 0);
+    MainWindow(const QDate &, QWidget * = 0);
 
 private:
+    QDate baseDate_;
     LeftHeaderScene *leftHeaderScene_;
     LaneScene *laneScene_;
     TopHeaderScene *topHeaderScene_;

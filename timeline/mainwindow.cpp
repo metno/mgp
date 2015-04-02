@@ -8,6 +8,7 @@
 #include "taskmanager.h"
 #include "common.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QFont>
 #include <QSplitter>
@@ -15,8 +16,9 @@
 #include <QKeyEvent>
 #include <QScrollBar>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(const QDate &baseDate, QWidget *parent)
     : QWidget(parent)
+    , baseDate_(baseDate)
 {
     QVBoxLayout *mainLayout = new QVBoxLayout;
 
@@ -57,7 +59,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     mainLayout->addWidget(vsplitter);
 
-    mainLayout->addWidget(new QPushButton("Test"));
+    QHBoxLayout *botLayout = new QHBoxLayout;
+    QLabel *baseDateLabel = new QLabel(QString("Base date: %1").arg(baseDate_.toString("yyyy-MM-dd")));
+    baseDateLabel->setFont(QFont("helvetica", 18));
+    botLayout->addWidget(baseDateLabel);
+
+    mainLayout->addLayout(botLayout);
 
     setLayout(mainLayout);
     setWindowTitle("Timeline");

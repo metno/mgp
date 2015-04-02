@@ -1,6 +1,7 @@
 //#include "communicator.h" // ### implement later to handle communication with other clients via central server
 #include "mainwindow.h"
 #include "taskmanager.h"
+#include <QDate>
 #include <QApplication>
 
 int main(int argc, char *argv[])
@@ -25,7 +26,8 @@ int main(int argc, char *argv[])
     TaskManager::instance()->assignTaskToRole(taskId4, roleId2);
     TaskManager::instance()->assignTaskToRole(taskId1, roleId1); // to check reassignment to a different role
 
-    MainWindow window;
+
+    MainWindow window(QDate(2015, 4, 1));
     window.show();
 
     TaskManager::instance()->emitUpdated(); // ensure views are initialized
