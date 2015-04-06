@@ -14,16 +14,18 @@ class MainWindow : public QWidget
     Q_OBJECT
 
 public:
-    MainWindow(const QDate &, QWidget * = 0);
+    MainWindow(const QDate &, const QDate &, QWidget * = 0);
 
 private:
-    QDate baseDate_;
+    QDate loDate_;
+    QDate hiDate_;
     LeftHeaderScene *leftHeaderScene_;
     LaneScene *laneScene_;
     TopHeaderScene *topHeaderScene_;
     QSplitter *topSplitter_;
     QSplitter *botSplitter_;
     virtual void keyPressEvent(QKeyEvent *);
+    virtual void showEvent(QShowEvent *);
 
 private slots:
     void refresh();
