@@ -39,7 +39,7 @@ void LaneScene::refresh()
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->lanePadding());
 
-    // update header item rects
+    // update lane item rects
     const qreal lpadding = leftHeaderScene_->lanePadding();
     const qreal lheight = leftHeaderScene_->laneHeight();
     int i = 0;
