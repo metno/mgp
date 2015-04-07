@@ -18,13 +18,20 @@
 #include <QScrollBar>
 #include <QFrame>
 #include <QDateEdit>
+#include <QSpinBox>
 #include <QToolButton>
 
-MainWindow::MainWindow(const QDate &loDate, const QDate &hiDate, QWidget *parent)
+MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     : QWidget(parent)
-    , loDate_(loDate)
-    , hiDate_(hiDate)
 {
+    const int minDateSpan = 1;
+    const int maxDateSpan = 10;
+    if ((dateSpan < minDateSpan) || (dateSpan > maxDateSpan))
+        qWarning(QString("date span (%1) outside valid range ([%2, %3])").arg(dateSpan).arg(minDateSpan).arg(maxDateSpan).toLatin1().data());
+    dateSpan = qMin(qMax(dateSpan, minDateSpan), maxDateSpan);
+
+    // ------------------------
+
     setWindowTitle("MetOrg 0.0.0");
 
     QVBoxLayout *mainLayout = new QVBoxLayout;
@@ -37,7 +44,7 @@ MainWindow::MainWindow(const QDate &loDate, const QDate &hiDate, QWidget *parent
     LeftHeaderView *leftHeaderView = new LeftHeaderView(leftHeaderScene_);
     botSplitter_->addWidget(leftHeaderView);
 
-    laneScene_ = new LaneScene(leftHeaderScene_, 2000);
+    laneScene_ = new LaneScene(leftHeaderScene_, baseDate, dateSpan);
     LaneView *laneView = new LaneView(laneScene_);
     botSplitter_->addWidget(laneView);
 
@@ -55,8 +62,8 @@ MainWindow::MainWindow(const QDate &loDate, const QDate &hiDate, QWidget *parent
     appLabel->setFont(QFont("helvetica", 18));
     appLabel->setAlignment(Qt::AlignCenter);
     appLabel->setStyleSheet(
-                "font-weight:bold; color: red; "
-                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #ffff00, stop: 0.5 #00ffff, stop: 1 #ffff00)");
+                "font-weight:bold; color: #770044; "
+                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #ffff00, stop: 0.5 #ff7700, stop: 1 #ffff00)");
     cornerLayout->addWidget(appLabel, 0, 0, 1, 2);
     cornerLayout->addWidget(new QPushButton("Filter"), 1, 0);
     cornerLayout->addWidget(new QPushButton("Sort"), 1, 1);
@@ -70,22 +77,26 @@ MainWindow::MainWindow(const QDate &loDate, const QDate &hiDate, QWidget *parent
     topFrame2->setLayout(new QHBoxLayout);
     topFrame2->layout()->setContentsMargins(0, 0, 0, 0);
 
-    QDateEdit *loDateEdit = new QDateEdit(loDate);
-    loDateEdit->setDisplayFormat("yyyy-MM-dd");
-    topFrame2->layout()->addWidget(loDateEdit);
+    QDateEdit *baseDateEdit = new QDateEdit(baseDate);
+    baseDateEdit->setDisplayFormat("yyyy-MM-dd");
+    topFrame2->layout()->addWidget(baseDateEdit);
 
     TopView *topView = new TopView;
     topView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
     topFrame2->layout()->addWidget(topView);
 
-    QDateEdit *hiDateEdit = new QDateEdit(hiDate);
-    hiDateEdit->setDisplayFormat("yyyy-MM-dd");
-    topFrame2->layout()->addWidget(hiDateEdit);
+    QSpinBox *dateSpanSpinBox = new QSpinBox;
+    dateSpanSpinBox->setRange(minDateSpan, maxDateSpan);
+    dateSpanSpinBox->setValue(dateSpan);
+    topFrame2->layout()->addWidget(dateSpanSpinBox);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         QToolButton *toolButton = new QToolButton;
         toolButton->setText(QString::number(i + 1));
-        topFrame2->layout()->addWidget(toolButton);
+        if (i == 0)
+            qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(0, toolButton);
+        else
+            topFrame2->layout()->addWidget(toolButton);
     }
 
     topFrame1->layout()->addWidget(topFrame2);

@@ -4,16 +4,34 @@
 #include "taskmanager.h"
 #include "common.h"
 #include <QGraphicsRectItem>
+#include <QDate>
 
-LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, qreal w, QObject *parent)
-    : QGraphicsScene(0, 0, w, leftHeaderScene->height(), parent)
+LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate, int dateSpan, QObject *parent)
+    : QGraphicsScene(0, 0, dateSpan * dateWidth(), leftHeaderScene->height(), parent)
     , leftHeaderScene_(leftHeaderScene)
+    , dateSpan_(dateSpan)
 {
-    // add background
-    bgItem_ = new QGraphicsRectItem(sceneRect());
-    bgItem_->setBrush(QBrush(QColor("#eeeeee")));
-    bgItem_->setZValue(-1);
-    addItem(bgItem_);
+    // add date items
+    for (int i = 0; i < dateSpan_; ++i) {
+        QGraphicsRectItem *dateItem = new QGraphicsRectItem;
+        dateItem->setBrush(QBrush(QColor((i % 2) ? "#eeeeee" : "#cccccc")));
+        dateItem->setOpacity(0.4);
+        dateItem->setZValue(2);
+        addItem(dateItem);
+        dateItems_.append(dateItem);
+    }
+    updateDateItems();
+}
+
+void LaneScene::updateDateItems()
+{
+    for (int i = 0; i < dateSpan_; ++i) {
+        const qreal x = sceneRect().x() + i * dateWidth();
+        const qreal y = sceneRect().y();
+        const qreal w = dateWidth();
+        const qreal h = sceneRect().height();
+        dateItems_.at(i)->setRect(QRectF(x, y, w, h));
+    }
 }
 
 void LaneScene::refresh()
@@ -49,8 +67,7 @@ void LaneScene::refresh()
         i++;
     }
 
-    // update background item
-    bgItem_->setRect(sceneRect());
+    updateDateItems();
 }
 
 QList<LaneBGItem *> LaneScene::laneItems() const

@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     TaskManager::instance()->assignTaskToRole(taskId1, roleId1); // to check reassignment to a different role
 
 
-    MainWindow window(QDate(2015, 4, 1), QDate(2015, 4, 7));
+    MainWindow window(QDate(2015, 4, 1), 7);
     window.show();
 
     TaskManager::instance()->emitUpdated(); // ensure views are initialized
