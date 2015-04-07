@@ -9,7 +9,7 @@ QPair<qreal, qreal> WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
     const bool scaleVertical = event->modifiers() & Qt::ControlModifier;
 
     if (scaleHorizontal || scaleVertical) {
-        const qreal sfactBase = 1.01;
+        const qreal sfactBase = 1.05;
         const qreal sfact = (event->delta() > 0) ? sfactBase : (1.0 / sfactBase);
         qreal m11 = view->transform().m11(); // horizontal scaling factor
         qreal m22 = view->transform().m22(); // vertical scaling factor
