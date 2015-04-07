@@ -5,7 +5,7 @@
 
 class LaneScene;
 class QGraphicsRectItem;
-class QGraphicsLineItem;
+class QGraphicsTextItem;
 
 class TopHeaderScene : public QGraphicsScene
 {
@@ -20,8 +20,9 @@ public slots:
 
 private:
     LaneScene *laneScene_;
-    QGraphicsRectItem *bgItem_;
-    QGraphicsLineItem *lineItem_;
+    QList<QGraphicsRectItem *> dateRectItems_; // ### rename to dateRectItems_
+    QList<QGraphicsTextItem *> dateTextItems_; // ### rename to dateTextItems_
+    void updateDateItems();
 };
 
 #endif // TOPHEADERSCENE_H

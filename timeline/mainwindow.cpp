@@ -27,7 +27,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     const int minDateSpan = 1;
     const int maxDateSpan = 10;
     if ((dateSpan < minDateSpan) || (dateSpan > maxDateSpan))
-        qWarning(QString("date span (%1) outside valid range ([%2, %3])").arg(dateSpan).arg(minDateSpan).arg(maxDateSpan).toLatin1().data());
+        qWarning("date span (%d) outside valid range ([%d, %d])", dateSpan, minDateSpan, maxDateSpan);
     dateSpan = qMin(qMax(dateSpan, minDateSpan), maxDateSpan);
 
     // ------------------------

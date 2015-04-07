@@ -2,11 +2,11 @@
 #define LANESCENE_H
 
 #include <QGraphicsScene>
+#include <QDate>
 
 class LeftHeaderScene;
 class QGraphicsRectItem;
 class LaneBGItem;
-class QDate;
 
 class LaneScene : public QGraphicsScene
 {
@@ -14,7 +14,10 @@ class LaneScene : public QGraphicsScene
     friend class LaneView;
 
 public:
-    LaneScene(LeftHeaderScene *, const QDate &baseDate, int dateSpan, QObject * = 0);
+    LaneScene(LeftHeaderScene *, const QDate &, int, QObject * = 0);
+    QDate baseDate() const;
+    int dateSpan() const;
+    static qreal dateWidth();
 
 public slots:
     void refresh();
@@ -25,8 +28,8 @@ private:
     QList<LaneBGItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;
     void addLaneItem(qint64);
-    static qreal dateWidth() { return 1000; }
     void updateDateItems();
+    QDate baseDate_;
     int dateSpan_;
 };
 

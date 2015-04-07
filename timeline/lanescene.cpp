@@ -4,12 +4,12 @@
 #include "taskmanager.h"
 #include "common.h"
 #include <QGraphicsRectItem>
-#include <QDate>
 
-LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate, int dateSpan, QObject *parent)
-    : QGraphicsScene(0, 0, dateSpan * dateWidth(), leftHeaderScene->height(), parent)
+LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
+    : QGraphicsScene(0, 0, dateSpan__ * dateWidth(), leftHeaderScene->height(), parent)
     , leftHeaderScene_(leftHeaderScene)
-    , dateSpan_(dateSpan)
+    , baseDate_(baseDate__)
+    , dateSpan_(dateSpan__)
 {
     // add date items
     for (int i = 0; i < dateSpan_; ++i) {
@@ -21,6 +21,21 @@ LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate, in
         dateItems_.append(dateItem);
     }
     updateDateItems();
+}
+
+QDate LaneScene::baseDate() const
+{
+    return baseDate_;
+}
+
+int LaneScene::dateSpan() const
+{
+    return dateSpan_;
+}
+
+qreal LaneScene::dateWidth()
+{
+    return 1000;
 }
 
 void LaneScene::updateDateItems()
