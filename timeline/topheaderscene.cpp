@@ -23,6 +23,7 @@ TopHeaderScene::TopHeaderScene(LaneScene *laneScene, qreal h, QObject *parent)
         QGraphicsTextItem *dateTextItem = new QGraphicsTextItem(laneScene_->baseDate().addDays(i).toString("yyyy-MM-dd"));
         dateTextItem->setFont(QFont("helvetica", 18));
         dateTextItem->setZValue(2);
+        dateTextItem->setFlag(QGraphicsItem::ItemIgnoresTransformations);
         addItem(dateTextItem);
         dateTextItems_.append(dateTextItem);
     }
