@@ -77,18 +77,20 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     topFrame2->setLayout(new QHBoxLayout);
     topFrame2->layout()->setContentsMargins(0, 0, 0, 0);
 
-    QDateEdit *baseDateEdit = new QDateEdit(baseDate);
-    baseDateEdit->setDisplayFormat("yyyy-MM-dd");
-    topFrame2->layout()->addWidget(baseDateEdit);
+    baseDateEdit_ = new QDateEdit(baseDate);
+    baseDateEdit_->setDisplayFormat("yyyy-MM-dd");
+    topFrame2->layout()->addWidget(baseDateEdit_);
+    connect(baseDateEdit_, SIGNAL(dateChanged(const QDate &)), SLOT(dateRangeChanged()));
 
     TopView *topView = new TopView;
     topView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
     topFrame2->layout()->addWidget(topView);
 
-    QSpinBox *dateSpanSpinBox = new QSpinBox;
-    dateSpanSpinBox->setRange(minDateSpan, maxDateSpan);
-    dateSpanSpinBox->setValue(dateSpan);
-    topFrame2->layout()->addWidget(dateSpanSpinBox);
+    dateSpanSpinBox_ = new QSpinBox;
+    dateSpanSpinBox_->setRange(minDateSpan, maxDateSpan);
+    dateSpanSpinBox_->setValue(dateSpan);
+    topFrame2->layout()->addWidget(dateSpanSpinBox_);
+    connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(dateRangeChanged()));
 
     for (int i = 0; i < 4; ++i) {
         QToolButton *toolButton = new QToolButton;
@@ -166,4 +168,9 @@ void MainWindow::splitterMoved(int, int)
         topSplitter_->setSizes(botSplitter_->sizes());
     else
         botSplitter_->setSizes(topSplitter_->sizes());
+}
+
+void MainWindow::dateRangeChanged()
+{
+    laneScene_->setDateRange(baseDateEdit_->date(), dateSpanSpinBox_->value());
 }

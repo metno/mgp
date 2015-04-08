@@ -23,6 +23,9 @@ private:
     QList<QGraphicsRectItem *> dateRectItems_; // ### rename to dateRectItems_
     QList<QGraphicsTextItem *> dateTextItems_; // ### rename to dateTextItems_
     void updateDateItems();
+
+private slots:
+    void updateDateRange();
 };
 
 #endif // TOPHEADERSCENE_H

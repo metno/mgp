@@ -11,16 +11,7 @@ LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate__, 
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
 {
-    // add date items
-    for (int i = 0; i < dateSpan_; ++i) {
-        QGraphicsRectItem *dateItem = new QGraphicsRectItem;
-        dateItem->setBrush(QBrush(QColor((i % 2) ? "#eeeeee" : "#cccccc")));
-        dateItem->setOpacity(0.4);
-        dateItem->setZValue(2);
-        addItem(dateItem);
-        dateItems_.append(dateItem);
-    }
-    updateDateItems();
+    setDateRange(baseDate_, dateSpan_);
 }
 
 QDate LaneScene::baseDate() const
@@ -36,6 +27,35 @@ int LaneScene::dateSpan() const
 qreal LaneScene::dateWidth()
 {
     return 1000;
+}
+
+void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
+{
+    // clear items for existing range
+    foreach (QGraphicsRectItem *dateItem, dateItems_)
+        delete dateItem;
+    dateItems_.clear();
+
+    baseDate_ = baseDate__;
+    dateSpan_ = dateSpan__;
+
+    // update scene rect width
+    const QRectF srect = sceneRect();
+    setSceneRect(srect.x(), srect.y(), dateSpan_ * dateWidth(), srect.height());
+
+    // add items for new range
+    for (int i = 0; i < dateSpan_; ++i) {
+        QGraphicsRectItem *dateItem = new QGraphicsRectItem;
+        dateItem->setBrush(QBrush(QColor((i % 2) ? "#eeeeee" : "#cccccc")));
+        dateItem->setOpacity(0.4);
+        dateItem->setZValue(2);
+        addItem(dateItem);
+        dateItems_.append(dateItem);
+    }
+
+    refresh();
+
+    emit dateRangeChanged();
 }
 
 void LaneScene::updateDateItems()
@@ -68,7 +88,7 @@ void LaneScene::refresh()
             addLaneItem(tmRoleId);
     }
 
-    // update scene rect
+    // update scene rect height
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->lanePadding());
 

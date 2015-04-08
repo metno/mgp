@@ -18,6 +18,7 @@ public:
     QDate baseDate() const;
     int dateSpan() const;
     static qreal dateWidth();
+    void setDateRange(const QDate &, int);
 
 public slots:
     void refresh();
@@ -31,6 +32,9 @@ private:
     void updateDateItems();
     QDate baseDate_;
     int dateSpan_;
+
+signals:
+    void dateRangeChanged();
 };
 
 #endif // LANESCENE_H

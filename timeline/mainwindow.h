@@ -8,6 +8,8 @@ class LeftHeaderScene;
 class LaneScene;
 class TopHeaderScene;
 class QSplitter;
+class QDateEdit;
+class QSpinBox;
 
 class MainWindow : public QWidget
 {
@@ -22,12 +24,15 @@ private:
     TopHeaderScene *topHeaderScene_;
     QSplitter *topSplitter_;
     QSplitter *botSplitter_;
+    QDateEdit *baseDateEdit_;
+    QSpinBox *dateSpanSpinBox_;
     virtual void keyPressEvent(QKeyEvent *);
     virtual void showEvent(QShowEvent *);
 
 private slots:
     void refresh();
     void splitterMoved(int, int);
+    void dateRangeChanged();
 };
 
 #endif // MAINWINDOW_H
