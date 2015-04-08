@@ -93,15 +93,18 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     topFrame2->layout()->addWidget(dateSpanSpinBox_);
     connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(updateDateRange()));
 
-    for (int i = 0; i < 4; ++i) {
+    {
+        QToolButton *toolButton = new QToolButton;
+        toolButton->setText("T");
+        qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(0, toolButton);
+        connect(toolButton, SIGNAL(clicked()), SLOT(showToday()));
+        toolButton->setToolTip("show today's date");
+    }
+
+    for (int i = 0; i < 3; ++i) {
         QToolButton *toolButton = new QToolButton;
         toolButton->setText(QString::number(i + 1));
-        if (i == 0) {
-            qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(0, toolButton);
-            connect(toolButton, SIGNAL(clicked()), SLOT(showToday()));
-        } else {
-            topFrame2->layout()->addWidget(toolButton);
-        }
+        topFrame2->layout()->addWidget(toolButton);
     }
 
     topFrame1->layout()->addWidget(topFrame2);
