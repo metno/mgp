@@ -63,7 +63,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     appLabel->setFont(QFont("helvetica", 18));
     appLabel->setAlignment(Qt::AlignCenter);
     appLabel->setStyleSheet(
-                "font-weight:bold; color: #770044; "
+                "font-weight:normal; color: #000000; "
                 "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #ffff00, stop: 0.5 #ff7700, stop: 1 #ffff00)");
     cornerLayout->addWidget(appLabel, 0, 0, 1, 2);
     cornerLayout->addWidget(new QPushButton("Filter"), 1, 0);
