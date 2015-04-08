@@ -81,7 +81,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     baseDateEdit_ = new QDateEdit(baseDate);
     baseDateEdit_->setDisplayFormat("yyyy-MM-dd");
     topFrame2->layout()->addWidget(baseDateEdit_);
-    connect(baseDateEdit_, SIGNAL(dateChanged(const QDate &)), SLOT(dateRangeChanged()));
+    connect(baseDateEdit_, SIGNAL(dateChanged(const QDate &)), SLOT(updateDateRange()));
 
     TopView *topView = new TopView;
     topView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
@@ -91,7 +91,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     dateSpanSpinBox_->setRange(minDateSpan, maxDateSpan);
     dateSpanSpinBox_->setValue(dateSpan);
     topFrame2->layout()->addWidget(dateSpanSpinBox_);
-    connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(dateRangeChanged()));
+    connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(updateDateRange()));
 
     for (int i = 0; i < 4; ++i) {
         QToolButton *toolButton = new QToolButton;
@@ -132,8 +132,8 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), topHeaderView->horizontalScrollBar(), SLOT(setValue(int)));
     connect(topHeaderView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
 
-    connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(splitterMoved(int, int)));
-    connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(splitterMoved(int, int)));
+    connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
+    connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
 
     resize(1500, 500);
 }
@@ -163,7 +163,7 @@ void MainWindow::updateGeometry()
     topHeaderScene_->updateGeometry();
 }
 
-void MainWindow::splitterMoved(int, int)
+void MainWindow::updateSplitters(int, int)
 {
     if (sender() == botSplitter_)
         topSplitter_->setSizes(botSplitter_->sizes());
@@ -171,7 +171,7 @@ void MainWindow::splitterMoved(int, int)
         botSplitter_->setSizes(topSplitter_->sizes());
 }
 
-void MainWindow::dateRangeChanged()
+void MainWindow::updateDateRange()
 {
     laneScene_->setDateRange(baseDateEdit_->date(), dateSpanSpinBox_->value());
 }
@@ -179,7 +179,7 @@ void MainWindow::dateRangeChanged()
 void MainWindow::showToday()
 {
     baseDateEdit_->setDate(QDate::currentDate());
-    dateRangeChanged();
+    updateDateRange();
     QScrollBar *hsbar = laneScene_->views().first()->horizontalScrollBar();
     hsbar->setValue(hsbar->minimum());
 }

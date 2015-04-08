@@ -32,8 +32,8 @@ private:
 private slots:
     void updateFromTaskMgr();
     void updateGeometry();
-    void dateRangeChanged();
-    void splitterMoved(int, int);
+    void updateDateRange();
+    void updateSplitters(int, int);
     void showToday();
 };
 
