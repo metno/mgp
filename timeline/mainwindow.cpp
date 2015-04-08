@@ -126,9 +126,9 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     setLayout(mainLayout);
 
-    connect(TaskManager::instance(), SIGNAL(updated()), SLOT(refresh()));
-    connect(leftHeaderView, SIGNAL(resized()), SLOT(refresh()));
-    connect(topHeaderView, SIGNAL(resized()), SLOT(refresh()));
+    connect(TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
+    connect(leftHeaderView, SIGNAL(resized()), SLOT(updateGeometry()));
+    connect(topHeaderView, SIGNAL(resized()), SLOT(updateGeometry()));
 
     connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), leftHeaderView->verticalScrollBar(), SLOT(setValue(int)));
     connect(leftHeaderView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
@@ -154,12 +154,18 @@ void MainWindow::showEvent(QShowEvent *)
     topSplitter_->setSizes(botSplitter_->sizes());
 }
 
-
-void MainWindow::refresh()
+void MainWindow::updateFromTaskMgr()
 {
-    leftHeaderScene_->refresh();
-    laneScene_->refresh();
-    topHeaderScene_->refresh();
+    leftHeaderScene_->updateFromTaskMgr();
+    laneScene_->updateFromTaskMgr();
+    topHeaderScene_->updateFromTaskMgr();
+}
+
+void MainWindow::updateGeometry()
+{
+    leftHeaderScene_->updateGeometry();
+    laneScene_->updateGeometry();
+    topHeaderScene_->updateGeometry();
 }
 
 void MainWindow::splitterMoved(int, int)

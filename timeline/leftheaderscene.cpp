@@ -16,7 +16,7 @@ LeftHeaderScene::LeftHeaderScene(qreal x, qreal y, qreal w, qreal h, QObject *pa
     addItem(bgItem_);
 }
 
-void LeftHeaderScene::refresh()
+void LeftHeaderScene::updateFromTaskMgr()
 {
     const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
 
@@ -33,6 +33,11 @@ void LeftHeaderScene::refresh()
             addHeaderItem(tmRoleId);
     }
 
+    updateGeometry();
+}
+
+void LeftHeaderScene::updateGeometry()
+{
     // update scene rect
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, headerItems().size() * laneHeight() + lanePadding());

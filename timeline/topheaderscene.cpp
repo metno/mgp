@@ -15,7 +15,7 @@ TopHeaderScene::TopHeaderScene(LaneScene *laneScene, qreal h, QObject *parent)
     connect(laneScene_, SIGNAL(dateRangeChanged()), SLOT(updateDateRange()));
 }
 
-void TopHeaderScene::updateDateItems()
+void TopHeaderScene::updateDateItemGeometries()
 {
     for (int i = 0; i < laneScene_->dateSpan(); ++i) {
         const qreal x = sceneRect().x() + i * laneScene_->dateWidth();
@@ -27,14 +27,19 @@ void TopHeaderScene::updateDateItems()
     }
 }
 
-void TopHeaderScene::refresh()
+void TopHeaderScene::updateFromTaskMgr()
+{
+    updateGeometry();
+}
+
+void TopHeaderScene::updateGeometry()
 {
     // update scene rect
     if (!views().isEmpty()) {
         const QRectF srect = sceneRect();
         setSceneRect(srect.x(), srect.y(), laneScene_->width(), views().first()->height() - 10);
     }
-    updateDateItems();
+    updateDateItemGeometries();
 }
 
 void TopHeaderScene::updateDateRange()
@@ -64,5 +69,5 @@ void TopHeaderScene::updateDateRange()
         dateTextItems_.append(dateTextItem);
     }
 
-    refresh();
+    updateGeometry();
 }

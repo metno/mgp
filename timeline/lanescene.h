@@ -21,7 +21,8 @@ public:
     void setDateRange(const QDate &, int);
 
 public slots:
-    void refresh();
+    void updateFromTaskMgr();
+    void updateGeometry();
 
 private:
     LeftHeaderScene *leftHeaderScene_;
@@ -29,7 +30,7 @@ private:
     QList<LaneBGItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;
     void addLaneItem(qint64);
-    void updateDateItems();
+    void updateDateItemGeometries();
     QDate baseDate_;
     int dateSpan_;
 

@@ -16,13 +16,14 @@ public:
     TopHeaderScene(LaneScene *, qreal, QObject * = 0);
 
 public slots:
-    void refresh();
+    void updateFromTaskMgr();
+    void updateGeometry();
 
 private:
     LaneScene *laneScene_;
     QList<QGraphicsRectItem *> dateRectItems_; // ### rename to dateRectItems_
     QList<QGraphicsTextItem *> dateTextItems_; // ### rename to dateTextItems_
-    void updateDateItems();
+    void updateDateItemGeometries();
 
 private slots:
     void updateDateRange();

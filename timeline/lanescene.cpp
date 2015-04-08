@@ -53,12 +53,12 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
         dateItems_.append(dateItem);
     }
 
-    refresh();
+    updateGeometry();
 
     emit dateRangeChanged();
 }
 
-void LaneScene::updateDateItems()
+void LaneScene::updateDateItemGeometries()
 {
     for (int i = 0; i < dateSpan_; ++i) {
         const qreal x = sceneRect().x() + i * dateWidth();
@@ -69,10 +69,8 @@ void LaneScene::updateDateItems()
     }
 }
 
-void LaneScene::refresh()
+void LaneScene::updateFromTaskMgr()
 {
-    // note: we assume that leftHeaderScene_ is already refreshed at this point
-
     const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
 
     // remove lane items for roles that no longer exist in the task manager
@@ -88,6 +86,13 @@ void LaneScene::refresh()
             addLaneItem(tmRoleId);
     }
 
+    updateGeometry();
+}
+
+void LaneScene::updateGeometry()
+{
+    // note: we assume that leftHeaderScene_ is up to date at this point
+
     // update scene rect height
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->lanePadding());
@@ -102,7 +107,7 @@ void LaneScene::refresh()
         i++;
     }
 
-    updateDateItems();
+    updateDateItemGeometries();
 }
 
 QList<LaneBGItem *> LaneScene::laneItems() const

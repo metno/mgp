@@ -30,7 +30,8 @@ private:
     virtual void showEvent(QShowEvent *);
 
 private slots:
-    void refresh();
+    void updateFromTaskMgr();
+    void updateGeometry();
     void splitterMoved(int, int);
     void dateRangeChanged();
 };

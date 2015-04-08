@@ -16,7 +16,8 @@ public:
     static qreal lanePadding() { return 5; }
 
 public slots:
-    void refresh();
+    void updateFromTaskMgr();
+    void updateGeometry();
 
 private:
     QGraphicsRectItem *bgItem_;
