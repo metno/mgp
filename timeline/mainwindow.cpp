@@ -20,6 +20,7 @@
 #include <QDateEdit>
 #include <QSpinBox>
 #include <QToolButton>
+#include <QScrollBar>
 
 MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     : QWidget(parent)
@@ -95,10 +96,12 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     for (int i = 0; i < 4; ++i) {
         QToolButton *toolButton = new QToolButton;
         toolButton->setText(QString::number(i + 1));
-        if (i == 0)
+        if (i == 0) {
             qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(0, toolButton);
-        else
+            connect(toolButton, SIGNAL(clicked()), SLOT(showToday()));
+        } else {
             topFrame2->layout()->addWidget(toolButton);
+        }
     }
 
     topFrame1->layout()->addWidget(topFrame2);
@@ -171,4 +174,12 @@ void MainWindow::splitterMoved(int, int)
 void MainWindow::dateRangeChanged()
 {
     laneScene_->setDateRange(baseDateEdit_->date(), dateSpanSpinBox_->value());
+}
+
+void MainWindow::showToday()
+{
+    baseDateEdit_->setDate(QDate::currentDate());
+    dateRangeChanged();
+    QScrollBar *hsbar = laneScene_->views().first()->horizontalScrollBar();
+    hsbar->setValue(hsbar->minimum());
 }

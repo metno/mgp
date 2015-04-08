@@ -61,8 +61,11 @@ void TopHeaderScene::updateDateRange()
         addItem(dateRectItem);
         dateRectItems_.append(dateRectItem);
 
-        QGraphicsTextItem *dateTextItem = new QGraphicsTextItem(laneScene_->baseDate().addDays(i).toString("yyyy-MM-dd"));
-        dateTextItem->setFont(QFont("helvetica", 18));
+        QDate date = laneScene_->baseDate().addDays(i);
+        QGraphicsTextItem *dateTextItem = new QGraphicsTextItem(date.toString("yyyy-MM-dd"));
+        const bool today = (date == QDate::currentDate());
+        dateTextItem->setFont(QFont("helvetica", 16, today ? QFont::Bold : QFont::Normal));
+        //dateTextItem->setDefaultTextColor(today ? Qt::blue : Qt::black);
         dateTextItem->setZValue(2);
         dateTextItem->setFlag(QGraphicsItem::ItemIgnoresTransformations);
         addItem(dateTextItem);

@@ -32,8 +32,9 @@ private:
 private slots:
     void updateFromTaskMgr();
     void updateGeometry();
-    void splitterMoved(int, int);
     void dateRangeChanged();
+    void splitterMoved(int, int);
+    void showToday();
 };
 
 #endif // MAINWINDOW_H
