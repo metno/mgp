@@ -117,13 +117,6 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     mainLayout->addWidget(vsplitter);
 
-//    QHBoxLayout *botLayout = new QHBoxLayout;
-//    QLabel *baseDateLabel = new QLabel(QString("Base date: %1").arg(baseDate_.toString("yyyy-MM-dd")));
-//    baseDateLabel->setFont(QFont("helvetica", 18));
-//    botLayout->addWidget(baseDateLabel);
-//
-//    mainLayout->addLayout(botLayout);
-
     setLayout(mainLayout);
 
     connect(TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
@@ -140,7 +133,6 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(splitterMoved(int, int)));
 
     resize(1500, 500);
-//    topSplitter_->setSizes(botSplitter_->sizes());
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
