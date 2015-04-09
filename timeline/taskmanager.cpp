@@ -56,8 +56,8 @@ qint64 TaskManager::addTask(const QSharedPointer<Task> &task)
 
 void TaskManager::assignTaskToRole(qint64 taskId, qint64 roleId)
 {
-    if (tasks_.contains(taskId)) return; // no such task
-    if (roles_.contains(roleId)) return; // no such role
+    if (!tasks_.contains(taskId)) return; // no such task
+    if (!roles_.contains(roleId)) return; // no such role
 
     const QSharedPointer<Task> task = tasks_.value(taskId);
     const QSharedPointer<Role> role = roles_.value(roleId);
@@ -78,7 +78,7 @@ void TaskManager::assignTaskToRole(qint64 taskId, qint64 roleId)
 
 QList<qint64> TaskManager::assignedTasks(qint64 roleId) const
 {
-    if (roles_.contains(roleId)) return QList<qint64>(); // no such role
+    if (!roles_.contains(roleId)) return QList<qint64>(); // no such role
 
     return roles_.value(roleId)->taskIds_;
 }

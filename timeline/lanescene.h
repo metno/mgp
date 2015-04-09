@@ -7,6 +7,7 @@
 class LeftHeaderScene;
 class QGraphicsRectItem;
 class LaneBGItem;
+class TaskItem;
 
 class LaneScene : public QGraphicsScene
 {
@@ -27,9 +28,15 @@ public slots:
 private:
     LeftHeaderScene *leftHeaderScene_;
     QList<QGraphicsRectItem *> dateItems_;
+
     QList<LaneBGItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;
     void addLaneItem(qint64);
+
+    QList<TaskItem *> taskItems(qint64 = -1) const;
+    QList<qint64> taskItemRoleIds() const;
+    void addTaskItems(qint64);
+
     void updateDateItemGeometries();
     QDate baseDate_;
     int dateSpan_;
