@@ -40,15 +40,16 @@ void LeftHeaderScene::updateGeometry()
 {
     // update scene rect
     const QRectF srect = sceneRect();
-    setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, headerItems().size() * laneHeight() + lanePadding());
+    setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, headerItems().size() * laneHeight() + laneVerticalPadding());
 
     // update header item rects
-    const qreal lpadding = lanePadding();
+    const qreal lhpad = laneHorizontalPadding();
+    const qreal lvpad = laneVerticalPadding();
     const qreal lheight = laneHeight();
     int i = 0;
     foreach (LeftHeaderBGItem *item, headerItems()) {
         item->setPos(0, 0);
-        item->setRect(lpadding, i * lheight + lpadding, width() - 2 * lpadding, lheight - lpadding);
+        item->setRect(lhpad, i * lheight + lvpad, width() - 2 * lhpad, lheight - lvpad);
         i++;
     }
 

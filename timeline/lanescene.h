@@ -37,7 +37,7 @@ private:
     QList<qint64> taskItemRoleIds() const;
     void addTaskItems(qint64);
 
-    void updateDateItemGeometries();
+    void updateDateItemGeometry();
     QDate baseDate_;
     int dateSpan_;
 

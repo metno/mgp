@@ -64,7 +64,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     appLabel->setAlignment(Qt::AlignCenter);
     appLabel->setStyleSheet(
                 "font-weight:normal; color: #000000; "
-                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #ffff00, stop: 0.5 #ff7700, stop: 1 #ffff00)");
+                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #bbbbff, stop: 0.5 #bbeeff, stop: 1 #bbbbff)");
     cornerLayout->addWidget(appLabel, 0, 0, 1, 2);
     cornerLayout->addWidget(new QPushButton("Filter"), 1, 0);
     cornerLayout->addWidget(new QPushButton("Sort"), 1, 1);
@@ -150,6 +150,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 void MainWindow::showEvent(QShowEvent *)
 {
     topSplitter_->setSizes(botSplitter_->sizes());
+
+    // set initial scaling
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(0.3, 0.3);
 }
 
 void MainWindow::updateFromTaskMgr()

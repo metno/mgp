@@ -13,7 +13,8 @@ class LeftHeaderScene : public QGraphicsScene
 public:
     LeftHeaderScene(qreal, qreal, qreal, qreal, QObject * = 0);
     static qreal laneHeight() { return 100; }
-    static qreal lanePadding() { return 5; }
+    static qreal laneHorizontalPadding() { return 5; }
+    static qreal laneVerticalPadding() { return 5; }
 
 public slots:
     void updateFromTaskMgr();

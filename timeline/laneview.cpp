@@ -18,6 +18,7 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
 void LaneView::updateScale(qreal sx, qreal sy)
 {
     setTransform(QTransform::fromScale(sx, sy));
+    emit scaled(sx, sy);
 }
 
 void LaneView::resizeEvent(QResizeEvent *event)
@@ -31,7 +32,6 @@ void LaneView::wheelEvent(QWheelEvent *event)
     if (scaleFactors.first > 0) {
         const qreal sx = scaleFactors.first;
         const qreal sy = scaleFactors.second;
-        emit scaled(sx, sy);
         setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
         updateScale(sx, sy);
     } else {

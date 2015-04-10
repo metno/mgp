@@ -59,7 +59,7 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     emit dateRangeChanged();
 }
 
-void LaneScene::updateDateItemGeometries()
+void LaneScene::updateDateItemGeometry()
 {
     for (int i = 0; i < dateSpan_; ++i) {
         const qreal x = sceneRect().x() + i * dateWidth();
@@ -112,38 +112,33 @@ void LaneScene::updateGeometry()
     // update scene rect height
     {
         const QRectF srect = sceneRect();
-        setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->lanePadding());
+        setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->laneVerticalPadding());
     }
 
-    updateDateItemGeometries();
+    updateDateItemGeometry();
 
-    const qreal lpadding = leftHeaderScene_->lanePadding();
+    const qreal lvpad = leftHeaderScene_->laneVerticalPadding();
     const qreal lheight = leftHeaderScene_->laneHeight();
-    const long loSceneTime = QDateTime(baseDate_, QTime(0, 0)).toUTC().toUTC().toTime_t();
-    const long hiSceneTime = QDateTime(baseDate_.addDays(dateSpan_), QTime(23, 59, 59)).toUTC().toTime_t();
+    const long loSceneTime = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
+    const long hiSceneTime = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
     Q_ASSERT(loSceneTime < hiSceneTime);
-    qDebug() << loSceneTime << hiSceneTime;
     const qreal sceneTimeFact = 1.0 / (hiSceneTime - loSceneTime);
     const QRectF srect = sceneRect();
+
     int i = 0;
     foreach (LaneBGItem *lItem, laneItems()) {
         // update lane item rect
-        lItem->setPos(0, 0);
-        lItem->setRect(lpadding, i * lheight + lpadding, width() - 2 * lpadding, lheight - lpadding);
+        lItem->setRect(0, i * lheight + lvpad, width(), lheight - lvpad);
 
         // update task item rects
         foreach(TaskItem *tItem, taskItems(lItem->roleId())) {
             QSharedPointer<Task> task = TaskManager::instance()->findTask(tItem->taskId());
-            const long loTime = task->loDateTime().toUTC().toTime_t();
-            const long hiTime = task->hiDateTime().toUTC().toTime_t();
+            const long loTime = task->loDateTime().toTime_t();
+            const long hiTime = task->hiDateTime().toTime_t();
             Q_ASSERT(loTime < hiTime);
-
-            const qreal x1 = srect.x() + (loTime - loSceneTime) * sceneTimeFact * qreal(srect.width());
-            const qreal x2 = srect.x() + (hiTime - loSceneTime) * sceneTimeFact * qreal(srect.width());
-
-            //tItem->setPos(x1, 0);
-            tItem->setRect(x1, i * lheight + 2 * lpadding, (x2 - x1), lheight - 4 * lpadding);
-
+            const qreal x1 = (loTime - loSceneTime) * sceneTimeFact * qreal(srect.width());
+            const qreal x2 = (hiTime - loSceneTime) * sceneTimeFact * qreal(srect.width());
+            tItem->setRect(x1, i * lheight + 2 * lvpad, x2 - x1, lheight - 4 * lvpad);
         }
 
         i++;
