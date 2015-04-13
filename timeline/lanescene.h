@@ -6,6 +6,7 @@
 
 class LeftHeaderScene;
 class QGraphicsRectItem;
+class QGraphicsLineItem;
 class LaneBGItem;
 class TaskItem;
 
@@ -40,6 +41,9 @@ private:
     void updateDateItemGeometry();
     QDate baseDate_;
     int dateSpan_;
+
+    void updateCurrTimeMarker();
+    QGraphicsLineItem *currTimeMarker_;
 
 signals:
     void dateRangeChanged();

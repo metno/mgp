@@ -5,12 +5,14 @@
 #include "taskmanager.h"
 #include "common.h"
 #include <QGraphicsRectItem>
+#include <QGraphicsLineItem>
 
 LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
     : QGraphicsScene(0, 0, dateSpan__ * dateWidth(), leftHeaderScene->height(), parent)
     , leftHeaderScene_(leftHeaderScene)
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
+    , currTimeMarker_(0)
 {
     setDateRange(baseDate_, dateSpan_);
 }
@@ -68,6 +70,27 @@ void LaneScene::updateDateItemGeometry()
         const qreal h = sceneRect().height();
         dateItems_.at(i)->setRect(QRectF(x, y, w, h));
     }
+}
+
+void LaneScene::updateCurrTimeMarker()
+{
+    if (!currTimeMarker_) {
+        currTimeMarker_ = new QGraphicsLineItem;
+        currTimeMarker_->setPen(QPen(Qt::red));
+        currTimeMarker_->setZValue(3);
+        addItem(currTimeMarker_);
+    }
+
+    const long loSceneTime = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
+    const long hiSceneTime = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
+    Q_ASSERT(loSceneTime < hiSceneTime);
+    const qreal sceneTimeFact = 1.0 / (hiSceneTime - loSceneTime);
+    const QRectF srect = sceneRect();
+
+    const long currTime = QDateTime::currentDateTime().toTime_t();
+    const qreal x = (currTime - loSceneTime) * sceneTimeFact * qreal(srect.width());
+    currTimeMarker_->setLine(x, srect.y(), x, srect.height());
+
 }
 
 void LaneScene::updateFromTaskMgr()
@@ -143,6 +166,8 @@ void LaneScene::updateGeometry()
 
         i++;
     }
+
+    updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
 }
 
 QList<LaneBGItem *> LaneScene::laneItems() const
