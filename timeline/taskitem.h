@@ -2,6 +2,7 @@
 #define TASKITEM_H
 
 #include <QGraphicsRectItem>
+#include <QColor>
 
 class TaskItem : public QGraphicsRectItem
 {
@@ -11,6 +12,9 @@ public:
     qint64 roleId() const;
 private:
     qint64 taskId_;
+    QList<QColor> colors_;
+    int colIndex_;
+    void setRandomColor();
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
 };
 
