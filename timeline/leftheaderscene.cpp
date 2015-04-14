@@ -21,7 +21,7 @@ void LeftHeaderScene::updateFromTaskMgr()
     const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
 
     // remove header items for roles that no longer exist in the task manager
-    foreach (LeftHeaderBGItem *hItem, headerItems()) {
+    foreach (LeftHeaderLaneItem *hItem, headerItems()) {
         if (!tmRoleIds.contains(hItem->roleId()))
             removeItem(hItem);
     }
@@ -47,7 +47,7 @@ void LeftHeaderScene::updateGeometry()
     const qreal lvpad = laneVerticalPadding();
     const qreal lheight = laneHeight();
     int i = 0;
-    foreach (LeftHeaderBGItem *item, headerItems()) {
+    foreach (LeftHeaderLaneItem *item, headerItems()) {
         item->updateRect(QRectF(lhpad, i * lheight + lvpad, width() - 2 * lhpad, lheight - lvpad));
         i++;
     }
@@ -56,11 +56,11 @@ void LeftHeaderScene::updateGeometry()
     bgItem_->setRect(sceneRect());
 }
 
-QList<LeftHeaderBGItem *> LeftHeaderScene::headerItems() const
+QList<LeftHeaderLaneItem *> LeftHeaderScene::headerItems() const
 {
-    QList<LeftHeaderBGItem *> hItems;
+    QList<LeftHeaderLaneItem *> hItems;
     foreach (QGraphicsItem *item, items()) {
-        LeftHeaderBGItem *hItem = dynamic_cast<LeftHeaderBGItem *>(item);
+        LeftHeaderLaneItem *hItem = dynamic_cast<LeftHeaderLaneItem *>(item);
         if (hItem)
             hItems.append(hItem);
     }
@@ -71,7 +71,7 @@ QList<qint64> LeftHeaderScene::headerItemRoleIds() const
 {
     QList<qint64> hiRoleIds;
     foreach (QGraphicsItem *item, items()) {
-        LeftHeaderBGItem *hItem = dynamic_cast<LeftHeaderBGItem *>(item);
+        LeftHeaderLaneItem *hItem = dynamic_cast<LeftHeaderLaneItem *>(item);
         if (hItem)
             hiRoleIds.append(hItem->roleId());
     }
@@ -80,5 +80,5 @@ QList<qint64> LeftHeaderScene::headerItemRoleIds() const
 
 void LeftHeaderScene::addHeaderItem(qint64 roleId)
 {
-    addItem(new LeftHeaderBGItem(roleId));
+    addItem(new LeftHeaderLaneItem(roleId));
 }

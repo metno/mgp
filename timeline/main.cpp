@@ -3,7 +3,7 @@
 #include "taskmanager.h"
 #include <QDateTime>
 #include <QDate>
-#include <QDateTime>
+#include <QTime>
 #include <QApplication>
 
 int main(int argc, char *argv[])
@@ -11,13 +11,13 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     qsrand(QDateTime::currentDateTime().toTime_t());
 
-    const qint64 roleId1 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 1")));
-    const qint64 roleId2 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 2")));
-    const qint64 roleId3 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 3")));
-    const qint64 roleId4 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 4")));
-    const qint64 roleId5 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 5")));
-    const qint64 roleId6 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 6")));
-    const qint64 roleId7 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 7")));
+    const qint64 roleId1 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 1", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId2 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 2", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId3 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 3", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId4 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 4", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId5 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 5", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId6 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 6", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId7 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 7", QTime(8, 15), QTime(16, 0))));
 
     const qint64 taskId1 = TaskManager::instance()
             ->addTask(QSharedPointer<Task>(new Task("task 1",

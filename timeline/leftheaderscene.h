@@ -4,7 +4,7 @@
 #include <QGraphicsScene>
 
 class QGraphicsRectItem;
-class LeftHeaderBGItem;
+class LeftHeaderLaneItem;
 
 class LeftHeaderScene : public QGraphicsScene
 {
@@ -22,7 +22,7 @@ public slots:
 
 private:
     QGraphicsRectItem *bgItem_;
-    QList<LeftHeaderBGItem *> headerItems() const;
+    QList<LeftHeaderLaneItem *> headerItems() const;
     QList<qint64> headerItemRoleIds() const;
     void addHeaderItem(qint64);
 };
