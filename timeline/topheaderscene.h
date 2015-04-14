@@ -21,8 +21,8 @@ public slots:
 
 private:
     LaneScene *laneScene_;
-    QList<QGraphicsRectItem *> dateRectItems_; // ### rename to dateRectItems_
-    QList<QGraphicsTextItem *> dateTextItems_; // ### rename to dateTextItems_
+    QList<QGraphicsRectItem *> dateRectItems_;
+    QList<QGraphicsTextItem *> dateTextItems_;
     void updateDateItemGeometries();
 
 private slots:
