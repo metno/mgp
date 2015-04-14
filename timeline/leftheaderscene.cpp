@@ -48,8 +48,7 @@ void LeftHeaderScene::updateGeometry()
     const qreal lheight = laneHeight();
     int i = 0;
     foreach (LeftHeaderBGItem *item, headerItems()) {
-        item->setPos(0, 0);
-        item->setRect(lhpad, i * lheight + lvpad, width() - 2 * lhpad, lheight - lvpad);
+        item->updateRect(QRectF(lhpad, i * lheight + lvpad, width() - 2 * lhpad, lheight - lvpad));
         i++;
     }
 
