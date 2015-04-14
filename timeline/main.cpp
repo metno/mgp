@@ -9,6 +9,7 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    qsrand(QDateTime::currentDateTime().toTime_t());
 
     const qint64 roleId1 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 1")));
     const qint64 roleId2 = TaskManager::instance()->addRole(QSharedPointer<Role>(new Role("role 2")));
