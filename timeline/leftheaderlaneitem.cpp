@@ -3,6 +3,7 @@
 #include "role.h"
 #include "common.h"
 #include <QBrush>
+#include <QLinearGradient>
 #include <QColor>
 #include <QGraphicsTextItem>
 #include <QFont>
@@ -13,7 +14,13 @@ LeftHeaderLaneItem::LeftHeaderLaneItem(qint64 roleId__)
     : roleId_(roleId__)
 {
     setZValue(1);
-    setBrush(QBrush(QColor(192 + qrand() % 64, 192 + qrand() % 64, 192 + qrand() % 64)));
+    QLinearGradient grad;
+    grad.setCoordinateMode(QGradient::ObjectBoundingMode);
+    grad.setStart(0, 0.5);
+    grad.setFinalStop(1, 0.5);
+    grad.setColorAt(0, QColor("#ddd"));
+    grad.setColorAt(1, QColor("#aaa"));
+    setBrush(QBrush(grad));
 
     QSharedPointer<Role> role = TaskManager::instance()->findRole(roleId_);
 

@@ -1,6 +1,6 @@
 #include "lanescene.h"
 #include "leftheaderscene.h"
-#include "lanebgitem.h"
+#include "laneitem.h"
 #include "taskitem.h"
 #include "taskmanager.h"
 #include "common.h"
@@ -98,7 +98,7 @@ void LaneScene::updateFromTaskMgr()
     const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
 
     // remove lane items for roles that no longer exist in the task manager
-    foreach (LaneBGItem *lItem, laneItems()) {
+    foreach (LaneItem *lItem, laneItems()) {
         if (!tmRoleIds.contains(lItem->roleId()))
             removeItem(lItem);
     }
@@ -149,7 +149,7 @@ void LaneScene::updateGeometry()
     const QRectF srect = sceneRect();
 
     int i = 0;
-    foreach (LaneBGItem *lItem, laneItems()) {
+    foreach (LaneItem *lItem, laneItems()) {
         // update lane item rect
         lItem->setRect(0, i * lheight + lvpad, width(), lheight - lvpad);
 
@@ -170,11 +170,11 @@ void LaneScene::updateGeometry()
     updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
 }
 
-QList<LaneBGItem *> LaneScene::laneItems() const
+QList<LaneItem *> LaneScene::laneItems() const
 {
-    QList<LaneBGItem *> lItems;
+    QList<LaneItem *> lItems;
     foreach (QGraphicsItem *item, items()) {
-        LaneBGItem *lItem = dynamic_cast<LaneBGItem *>(item);
+        LaneItem *lItem = dynamic_cast<LaneItem *>(item);
         if (lItem)
             lItems.append(lItem);
     }
@@ -186,7 +186,7 @@ QList<qint64> LaneScene::laneItemRoleIds() const
 {
     QList<qint64> liRoleIds;
     foreach (QGraphicsItem *item, items()) {
-        LaneBGItem *lItem = dynamic_cast<LaneBGItem *>(item);
+        LaneItem *lItem = dynamic_cast<LaneItem *>(item);
         if (lItem)
             liRoleIds.append(lItem->roleId());
     }
@@ -195,7 +195,7 @@ QList<qint64> LaneScene::laneItemRoleIds() const
 
 void LaneScene::addLaneItem(qint64 roleId)
 {
-    addItem(new LaneBGItem(roleId));
+    addItem(new LaneItem(roleId));
 }
 
 QList<TaskItem *> LaneScene::taskItems(qint64 roleId) const

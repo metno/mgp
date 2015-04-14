@@ -7,7 +7,7 @@
 class LeftHeaderScene;
 class QGraphicsRectItem;
 class QGraphicsLineItem;
-class LaneBGItem;
+class LaneItem;
 class TaskItem;
 
 class LaneScene : public QGraphicsScene
@@ -30,7 +30,7 @@ private:
     LeftHeaderScene *leftHeaderScene_;
     QList<QGraphicsRectItem *> dateItems_;
 
-    QList<LaneBGItem *> laneItems() const;
+    QList<LaneItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;
     void addLaneItem(qint64);
 
