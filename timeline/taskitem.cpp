@@ -1,18 +1,15 @@
 #include "taskitem.h"
 #include "taskmanager.h"
 #include "common.h"
-#include <QBrush>
 #include <QCursor>
 
 TaskItem::TaskItem(qint64 taskId__)
     : taskId_(taskId__)
     , colIndex_(-1)
 {
-    colors_.append(QColor(Qt::red));
     colors_.append(QColor(Qt::green));
     colors_.append(QColor(Qt::blue));
     colors_.append(QColor(Qt::cyan));
-    colors_.append(QColor(Qt::magenta));
     colors_.append(QColor(Qt::yellow));
     colors_.append(QColor(Qt::black));
     colors_.append(QColor(Qt::white));
@@ -20,6 +17,7 @@ TaskItem::TaskItem(qint64 taskId__)
     setRandomColor();
     setZValue(10);
     setCursor(Qt::ArrowCursor);
+    setAcceptHoverEvents(true);
 }
 
 qint64 TaskItem::taskId() const
@@ -47,4 +45,15 @@ void TaskItem::mousePressEvent(QGraphicsSceneMouseEvent *)
 {
     qDebug() << "mousePressEvent for task" << taskId_;
     setRandomColor();
+}
+
+void TaskItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
+{
+    origBrush_ = brush();
+    setBrush(QBrush(QColor(Qt::red)));
+}
+
+void TaskItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+{
+    setBrush(origBrush_);
 }
