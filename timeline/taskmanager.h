@@ -24,12 +24,15 @@ public:
     void assignTaskToRole(qint64, qint64);
     QList<qint64> assignedTasks(qint64) const;
 
+    void add5Roles(); // ### for testing
+
 private:
     QHash<qint64, QSharedPointer<Role> > roles_; // available roles
     QHash<qint64, QSharedPointer<Task> > tasks_; // available tasks
     static TaskManager *self_;   // singleton instance pointer
     qint64 nextRoleId_;
     qint64 nextTaskId_;
+    int testRoleIndex_; // ### for testing
 
 signals:
     void updated();

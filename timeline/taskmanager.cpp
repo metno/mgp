@@ -5,6 +5,7 @@ TaskManager *TaskManager::self_ = 0;
 TaskManager::TaskManager()
     : nextRoleId_(0)
     , nextTaskId_(0)
+    , testRoleIndex_(0)
 {
 }
 
@@ -81,4 +82,12 @@ QList<qint64> TaskManager::assignedTasks(qint64 roleId) const
     if (!roles_.contains(roleId)) return QList<qint64>(); // no such role
 
     return roles_.value(roleId)->taskIds_;
+}
+
+void TaskManager::add5Roles()
+{
+    for (int i = 0; i < 5; ++i)
+        addRole(QSharedPointer<Role>(new Role(QString("test role %1").arg(testRoleIndex_++), QTime(3 + i, 0), QTime(11, 0))));
+
+    emitUpdated();
 }

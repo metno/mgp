@@ -131,6 +131,17 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     mainLayout->addWidget(vsplitter);
 
+    QHBoxLayout *testLayout = new QHBoxLayout;
+    QPushButton *testBtn_add5Roles = new QPushButton("Add 5 roles");
+    connect(testBtn_add5Roles, SIGNAL(clicked()), SLOT(test1()));
+    testBtn_add5Roles->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    testLayout->addWidget(testBtn_add5Roles);
+    QPushButton *testButton2 = new QPushButton("Test 2");
+    testButton2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    testLayout->addWidget(testButton2);
+    testLayout->addStretch(1);
+    mainLayout->addLayout(testLayout);
+
     setLayout(mainLayout);
 
     connect(TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
@@ -201,4 +212,9 @@ void MainWindow::showToday()
 void MainWindow::resetZooming()
 {
     qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1, 1);
+}
+
+void MainWindow::test1()
+{
+    TaskManager::instance()->add5Roles();
 }

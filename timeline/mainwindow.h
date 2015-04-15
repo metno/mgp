@@ -36,6 +36,8 @@ private slots:
     void updateSplitters(int, int);
     void showToday();
     void resetZooming();
+
+    void test1(); // ### for testing
 };
 
 #endif // MAINWINDOW_H
