@@ -29,6 +29,7 @@ public slots:
 private:
     LeftHeaderScene *leftHeaderScene_;
     QList<QGraphicsRectItem *> dateItems_;
+    QList<QGraphicsLineItem *> timeItems_;
 
     QList<LaneItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;
@@ -38,7 +39,7 @@ private:
     QList<qint64> taskItemRoleIds() const;
     void addTaskItems(qint64);
 
-    void updateDateItemGeometry();
+    void updateDateAndTimeItemGeometry();
     QDate baseDate_;
     int dateSpan_;
 

@@ -34,10 +34,13 @@ qreal LaneScene::dateWidth()
 
 void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
 {
-    // clear items for existing range
+    // clear date- and time items for existing range
     foreach (QGraphicsRectItem *dateItem, dateItems_)
         delete dateItem;
     dateItems_.clear();
+    foreach (QGraphicsLineItem *timeItem, timeItems_)
+        delete timeItem;
+    timeItems_.clear();
 
     baseDate_ = baseDate__;
     dateSpan_ = dateSpan__;
@@ -46,14 +49,24 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), dateSpan_ * dateWidth(), srect.height());
 
-    // add items for new range
+    // add date- and time items for new range
     for (int i = 0; i < dateSpan_; ++i) {
+        // add date item
         QGraphicsRectItem *dateItem = new QGraphicsRectItem;
         dateItem->setBrush(QBrush(QColor((i % 2) ? "#eeeeee" : "#cccccc")));
         dateItem->setOpacity(0.4);
         dateItem->setZValue(2);
         addItem(dateItem);
         dateItems_.append(dateItem);
+
+        // add time items
+        for (int j = 0; j < 23; ++j) {
+            QGraphicsLineItem *timeItem = new QGraphicsLineItem;
+            timeItem->setPen(QPen(QColor("#ccc")));
+            timeItem->setZValue(3);
+            addItem(timeItem);
+            timeItems_.append(timeItem);
+        }
     }
 
     updateGeometry();
@@ -61,14 +74,21 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     emit dateRangeChanged();
 }
 
-void LaneScene::updateDateItemGeometry()
+void LaneScene::updateDateAndTimeItemGeometry()
 {
     for (int i = 0; i < dateSpan_; ++i) {
+        // update date item
         const qreal x = sceneRect().x() + i * dateWidth();
         const qreal y = sceneRect().y();
         const qreal w = dateWidth();
         const qreal h = sceneRect().height();
         dateItems_.at(i)->setRect(QRectF(x, y, w, h));
+
+        // update time items
+        for (int j = 0; j < 23; ++j) {
+            const qreal xt = x + (j + 1) * (dateWidth() / 24.0);
+            timeItems_.at(i * 23 + j)->setLine(xt, y, xt, y + h);
+        }
     }
 }
 
@@ -138,7 +158,7 @@ void LaneScene::updateGeometry()
         setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->laneVerticalPadding());
     }
 
-    updateDateItemGeometry();
+    updateDateAndTimeItemGeometry();
 
     const qreal lvpad = leftHeaderScene_->laneVerticalPadding();
     const qreal lheight = leftHeaderScene_->laneHeight();
