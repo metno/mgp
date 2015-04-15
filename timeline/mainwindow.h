@@ -35,6 +35,7 @@ private slots:
     void updateDateRange();
     void updateSplitters(int, int);
     void showToday();
+    void resetZooming();
 };
 
 #endif // MAINWINDOW_H

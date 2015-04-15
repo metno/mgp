@@ -101,9 +101,17 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
         toolButton->setToolTip("show today's date");
     }
 
+    {
+        QToolButton *toolButton = new QToolButton;
+        toolButton->setText("Z");
+        qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(1, toolButton);
+        connect(toolButton, SIGNAL(clicked()), SLOT(resetZooming()));
+        toolButton->setToolTip("reset zooming");
+    }
+
     for (int i = 0; i < 3; ++i) {
         QToolButton *toolButton = new QToolButton;
-        toolButton->setText(QString::number(i + 1));
+        toolButton->setText(QString('A' + i));
         topFrame2->layout()->addWidget(toolButton);
     }
 
@@ -188,4 +196,9 @@ void MainWindow::showToday()
     updateDateRange();
     QScrollBar *hsbar = laneScene_->views().first()->horizontalScrollBar();
     hsbar->setValue(hsbar->minimum());
+}
+
+void MainWindow::resetZooming()
+{
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1, 1);
 }
