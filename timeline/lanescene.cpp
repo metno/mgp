@@ -49,7 +49,7 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), dateSpan_ * dateWidth(), srect.height());
 
-    // add date- and time items for new range
+    // add items for new range
     for (int i = 0; i < dateSpan_; ++i) {
         // add date item
         QGraphicsRectItem *dateItem = new QGraphicsRectItem;
@@ -74,7 +74,7 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     emit dateRangeChanged();
 }
 
-void LaneScene::updateDateAndTimeItemGeometry()
+void LaneScene::updateItemGeometry()
 {
     for (int i = 0; i < dateSpan_; ++i) {
         // update date item
@@ -158,7 +158,7 @@ void LaneScene::updateGeometry()
         setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->laneVerticalPadding());
     }
 
-    updateDateAndTimeItemGeometry();
+    updateItemGeometry();
 
     const qreal lvpad = leftHeaderScene_->laneVerticalPadding();
     const qreal lheight = leftHeaderScene_->laneHeight();

@@ -23,7 +23,8 @@ private:
     LaneScene *laneScene_;
     QList<QGraphicsRectItem *> dateRectItems_;
     QList<QGraphicsTextItem *> dateTextItems_;
-    void updateDateItemGeometries();
+    QList<QGraphicsTextItem *> timeTextItems_;
+    void updateItemGeometry();
 
 private slots:
     void updateDateRange();
