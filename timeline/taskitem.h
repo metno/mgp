@@ -14,12 +14,11 @@ public:
 private:
     qint64 taskId_;
     QList<QColor> colors_;
-    int colIndex_;
-    QBrush origBrush_;
     void setRandomColor();
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *);
     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *);
+    QGraphicsRectItem *hoverItem_;
 };
 
 #endif // TASKITEM_H
