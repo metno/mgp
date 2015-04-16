@@ -30,6 +30,7 @@ private:
     LeftHeaderScene *leftHeaderScene_;
     QList<QGraphicsRectItem *> dateItems_;
     QList<QGraphicsLineItem *> timeItems_;
+    QList<QGraphicsRectItem *> roleTimeItems_;
 
     QList<LaneItem *> laneItems() const;
     QList<qint64> laneItemRoleIds() const;
@@ -45,6 +46,8 @@ private:
 
     void updateCurrTimeMarker();
     QGraphicsLineItem *currTimeMarker_;
+
+    void updateRoleTimeItems();
 
 signals:
     void dateRangeChanged();
