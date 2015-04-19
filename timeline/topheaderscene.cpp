@@ -19,9 +19,9 @@ void TopHeaderScene::updateItemGeometry()
 {
     for (int i = 0; i < laneScene_->dateSpan(); ++i) {
         // update date rect- and text items
-        const qreal x = sceneRect().x() + i * laneScene_->dateWidth();
+        const qreal x = sceneRect().x() + i * laneScene_->secsInDay();
         const qreal y = sceneRect().y();
-        const qreal w = laneScene_->dateWidth();
+        const qreal w = laneScene_->secsInDay();
         const qreal h = sceneRect().height();
         dateRectItems_.at(i)->setRect(QRectF(x, y, w, h));
         dateTextItems_.at(i)->setPos(dateRectItems_.at(i)->rect().x(), dateRectItems_.at(i)->rect().y());
@@ -30,7 +30,7 @@ void TopHeaderScene::updateItemGeometry()
         if (!views().isEmpty()) {
             for (int j = 0; j < 24; ++j) {
                 QGraphicsTextItem *item = timeTextItems_.at(i * 24 + j);
-                const qreal xt = x + j * (laneScene_->dateWidth() / 24.0) - 0 * views().first()->transform().m11();
+                const qreal xt = x + j * (laneScene_->secsInDay() / 24.0) - 0 * views().first()->transform().m11();
                 item->setPos(xt, dateRectItems_.at(i)->rect().y() + dateRectItems_.at(i)->rect().height() - item->boundingRect().height());
             }
         }

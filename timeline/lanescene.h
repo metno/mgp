@@ -19,7 +19,8 @@ public:
     LaneScene(LeftHeaderScene *, const QDate &, int, QObject * = 0);
     QDate baseDate() const;
     int dateSpan() const;
-    static qreal dateWidth();
+    static int secsInHour() { return 3600; }
+    static int secsInDay() { return 24 * secsInHour(); }
     void setDateRange(const QDate &, int);
 
 public slots:

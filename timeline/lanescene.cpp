@@ -8,7 +8,7 @@
 #include <QGraphicsLineItem>
 
 LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
-    : QGraphicsScene(0, 0, dateSpan__ * dateWidth(), leftHeaderScene->height(), parent)
+    : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), leftHeaderScene->height(), parent)
     , leftHeaderScene_(leftHeaderScene)
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
@@ -25,11 +25,6 @@ QDate LaneScene::baseDate() const
 int LaneScene::dateSpan() const
 {
     return dateSpan_;
-}
-
-qreal LaneScene::dateWidth()
-{
-    return 1000;
 }
 
 void LaneScene::updateRoleTimeItems()
@@ -67,7 +62,7 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
 
     // update scene rect width
     const QRectF srect = sceneRect();
-    setSceneRect(srect.x(), srect.y(), dateSpan_ * dateWidth(), srect.height());
+    setSceneRect(srect.x(), srect.y(), dateSpan_ * secsInDay(), srect.height());
 
     // add items for new range
     for (int i = 0; i < dateSpan_; ++i) {
@@ -96,40 +91,38 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
 
 void LaneScene::updateItemGeometry()
 {
-    const int secsIn24Hours = 24 * 3600;
     const qreal lvpad = leftHeaderScene_->laneVerticalPadding();
     const qreal lheight = leftHeaderScene_->laneHeight();
 
     for (int i = 0; i < dateSpan_; ++i) {
         // update date item
-        const qreal x = sceneRect().x() + i * dateWidth();
-        const qreal y = sceneRect().y();
-        const qreal w = dateWidth();
-        const qreal h = sceneRect().height();
-        dateItems_.at(i)->setRect(QRectF(x, y, w, h));
+        const long date_x = sceneRect().x() + i * secsInDay();
+        const long y = sceneRect().y();
+        const long h = sceneRect().height();
+        dateItems_.at(i)->setRect(QRectF(date_x, y, secsInDay(), h));
 
         // update time items
         for (int j = 0; j < 23; ++j) {
-            const qreal xt = x + (j + 1) * (dateWidth() / 24.0);
-            timeItems_.at(i * 23 + j)->setLine(xt, y, xt, y + h);
+            const long time_x = date_x + (j + 1) * secsInHour();
+            timeItems_.at(i * 23 + j)->setLine(time_x, y, time_x, y + h);
         }
 
         // update role time items
 
-        const long loDateTimestamp = QDateTime(baseDate_.addDays(i), QTime(0, 0)).toTime_t();
-        const long hiDateTimestamp = QDateTime(baseDate_.addDays(i + 1), QTime(0, 0)).toTime_t();
-
         for (int j = 0; j < laneItems().size(); ++j) {
             LaneItem *lItem = laneItems().at(j);
-            const QTime beginTime = TaskManager::instance()->findRole(lItem->roleId())->beginTime();
-            const QTime endTime = TaskManager::instance()->findRole(lItem->roleId())->endTime();
-            const long beginSecs = beginTime.hour() * 3600 + beginTime.minute() * 60 + beginTime.second();
-            long endSecs = endTime.hour() * 3600 + endTime.minute() * 60 + endTime.second();
-            if (endSecs <= beginSecs)
-                endSecs += secsIn24Hours;
-            const qreal xbegin = x + (beginSecs / qreal(secsIn24Hours - 1)) * dateWidth();
-            const qreal xend = x + (endSecs / qreal(secsIn24Hours - 1)) * dateWidth();
-            roleTimeItems_.at(i * laneItems().size() + j)->setRect(QRect(xbegin, j * lheight + lvpad, xend - xbegin, lheight - lvpad));
+
+            const QTime btime = TaskManager::instance()->findRole(lItem->roleId())->beginTime();
+            const long bsecs = btime.hour() * 3600 + btime.minute() * 60 + btime.second();
+
+            const QTime etime = TaskManager::instance()->findRole(lItem->roleId())->endTime();
+            long esecs = etime.hour() * 3600 + etime.minute() * 60 + etime.second();
+            if (esecs <= bsecs)
+                esecs += secsInDay();
+
+            const qreal bx = date_x + bsecs;
+            const qreal ex = date_x + esecs;
+            roleTimeItems_.at(i * laneItems().size() + j)->setRect(QRect(bx, j * lheight + lvpad, ex - bx + 1, lheight - lvpad));
         }
     }
 }
