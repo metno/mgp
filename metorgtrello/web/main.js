@@ -1,6 +1,26 @@
 // --- BEGIN Global variables -----------------------------------
 // --- END Global variables -------------------------------------
 
+// Returns the current local board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no current local board exists.
+function currentLocalBoard() {
+    var tr = $("#table_lboards tr.selectedRow:first");
+    return (tr.length > 0) ? tr : undefined;
+}
+
+// Returns the current local board name (as a string) or undefined if no current local board exists.
+function currentLocalBoardName() {
+    var tr = currentLocalBoard();
+    return tr ? tr.find("td:first").text() : undefined;
+}
+
+// Returns the first local board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no local boards exist.
+function firstLocalBoard() {
+    tr = $("#table_lboards tr.tr_lboards:nth-child(1)");
+    return (tr.length > 0) ? tr : undefined;
+}
+
 // Retrieves the available local boards.
 function getLocalBoards() {
     statusBase = "getting local boards ...";
@@ -42,7 +62,7 @@ function getLocalBoards() {
                     if (html != "") // hm ... why is this test necessary?
                         $("#table_lboards").trigger("appendCache");
 
-
+                    setCurrentLocalBoard(firstLocalBoard());
                 }
             }
         },
@@ -64,11 +84,18 @@ function getLocalBoards() {
     return false;
 }
 
+// Sets given local board as current.
+// tr is the jQuery selector for the corresponding <tr> element.
+function setCurrentLocalBoard(tr) {
+    if (tr.length == 0) return;
+    $("#table_lboards tr").removeClass("selectedRow"); // unselect all rows
+    tr.addClass("selectedRow"); // select target row
+}
 
 // Handles selecting a row in the table of local boards.
 // tr is the jQuery selector for the corresponding <tr> element.
 function selectLocalBoard(tr) {
-    alert('selectLocalBoard() ...');
+    setCurrentLocalBoard(tr);
 }
 
 $(document).ready(function() {
