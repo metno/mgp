@@ -96,7 +96,10 @@ class GetBackedupBoardHtml(Command):
             '<body>'
             )
 
-        self.html += '<h1>{}</h1>'.format(board['board']['name'].encode('utf-8'))
+        self.html += (
+            '<h1 style="display:inline">{}</h1> <span style="color:#444; font-size:120%">'
+            '( {} )</span><br/><br/>').format(
+            board['board']['name'].encode('utf-8'), self.board_id)
 
         cards = {}
         for lst in board['lists']:
