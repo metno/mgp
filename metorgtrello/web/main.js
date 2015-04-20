@@ -109,7 +109,13 @@ $(document).ready(function() {
             // use uitheme widget to apply default jquery ui (jui) class names
             // see the uitheme demo for more details on how to change the class names
             uitheme : 'jui'
-        }
+        },
+
+	headers: {
+	    1: {
+		sorter: false
+	    }
+	}
     };
 
     options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards';
