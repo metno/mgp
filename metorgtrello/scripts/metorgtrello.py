@@ -82,7 +82,7 @@ class GetBackedupBoardHtml(Command):
     def execute(self):
         board = getFullBackedupBoard(self.board_id)
 
-        html = (
+        self.html = (
             '<html>'
             '<head>'
             '<meta charset="UTF-8">'
@@ -96,7 +96,7 @@ class GetBackedupBoardHtml(Command):
             '<body>'
             )
 
-        html += '<h1>{}</h1>'.format(board['board']['name'].encode('utf-8'))
+        self.html += '<h1>{}</h1>'.format(board['board']['name'].encode('utf-8'))
 
         cards = {}
         for lst in board['lists']:
@@ -106,18 +106,23 @@ class GetBackedupBoardHtml(Command):
             cards[lid].append(card)
 
         for lst in board['lists']:
-            html += '<table>'
-            html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
+            self.html += '<table>'
+            self.html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
 
             for card in cards[lst['id']]:
-                html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
+                self.html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
 
-            html += '</table>'
-            html += '<br/>'
+            self.html += '</table>'
+            self.html += '<br/>'
 
-        html += '</body>'
-        html += '</html>'
-        sys.stdout.write(html)
+        self.html += '</body>'
+        self.html += '</html>'
+
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump({ 'html': self.html }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
 
 
 # Prints stats for a given board in the local backup directory.

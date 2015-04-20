@@ -14,6 +14,12 @@ function currentLocalBoardName() {
     return tr ? tr.find("td:first").text() : undefined;
 }
 
+// Returns the current local board ID or undefined if no current local board exists.
+function currentLocalBoardID() {
+    var tr = currentLocalBoard();
+    return $(tr).data("bid");
+}
+
 // Returns the first local board (as a jQuery selector of the corresponding <tr> element)
 // or undefined if no local boards exist.
 function firstLocalBoard() {
@@ -50,8 +56,9 @@ function getLocalBoards() {
                     clearTable("#table_lboards");
 		    boards = data.boards;
                     html = "";
+                    alert(boards.length + ' ' + boards);
                     for (i = 0; i < boards.length; ++i) {
-                        html += "<tr class=\"tr_lboards\">";
+                        html += "<tr class=\"tr_lboards\" id=\"tr_" + i + "\">";
                         html += "<td>" + boards[i].name + "</td>";
                         html += "<td>" + boards[i].id + "</td>";
                         html += "</tr>";
@@ -62,7 +69,65 @@ function getLocalBoards() {
                     if (html != "") // hm ... why is this test necessary?
                         $("#table_lboards").trigger("appendCache");
 
+                    for (i = 0; i < boards.length; ++i) {
+			$("#tr_" + i).data("bid", boards[i].id);
+		    }
+
                     setCurrentLocalBoard(firstLocalBoard());
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateStatus(statusBase + " error: " + descr, false);
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Opens the HTML snapshot of the current local board in a new page.
+function showHtmlOfCurrentLocalBoard() {
+    statusBase = "getting HTML of current board ...";
+    updateStatus(statusBase, true);
+
+    query = "?cmd=get_backedup_board_html&id=" + currentLocalBoardID();
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    // NOTE: the window to display the HTML must be opened already at this point
+    // (and not after the asynchronous server response), otherwise it may be considered
+    // suspicious by the popup blocker
+    var newTitle = currentLocalBoardName();
+    var newWin = window.open('');
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateStatus(statusBase + " failed: " + data.error, false);
+                        return
+                    }
+
+                    updateStatus(statusBase + " done", false);
+                    updateStatus("", false);
+
+                    $(newWin.document.body).html(data.html);
+                    newWin.document.title = newTitle;
                 }
             }
         },
@@ -110,7 +175,8 @@ $(document).ready(function() {
         // headerTemplate : '{content} {icon}', // Add icon for jui theme; new in v2.7!
 
         // widgets: [ 'uitheme', 'zebra', 'stickyHeaders', 'filter' ],
-        widgets: [ 'uitheme', 'zebra', 'stickyHeaders' ],
+        //widgets: [ 'uitheme', 'zebra', 'stickyHeaders' ],
+        widgets: [ 'uitheme', 'stickyHeaders' ],
 
         widgetOptions: {
 
