@@ -6,7 +6,7 @@ function getLocalBoards() {
     statusBase = "getting local boards ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_backedup_boards";
+    query = "?cmd=get_backedup_boards&filter=" + $("#board_name_filter").val();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -32,8 +32,8 @@ function getLocalBoards() {
                     html = "";
                     for (i = 0; i < boards.length; ++i) {
                         html += "<tr class=\"tr_lboards\">";
-                        html += "<td>" + boards[i].id + "</td>";
                         html += "<td>" + boards[i].name + "</td>";
+                        html += "<td>" + boards[i].id + "</td>";
                         html += "</tr>";
                     }
 

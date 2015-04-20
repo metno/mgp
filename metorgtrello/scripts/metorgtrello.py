@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, re, urllib, json, sh
+import sys, os, re, urllib, json, sh, fnmatch
 from trellosimple import TrelloSimple
 
 # --- BEGIN Global classes ----------------------------------------------
@@ -28,11 +28,14 @@ class GetBoards(Command):
 
 # Lists the ID and name of all available boards in the local backup directory.
 class GetBackedupBoards(Command):
-    def __init__(self, http_get):
+    def __init__(self, http_get, name_filter):
         self.http_get = http_get
+        self.name_filter = name_filter.strip()
+        if self.name_filter == '':
+            self.name_filter = '*'
 
     def execute(self):
-        self.board_id_and_names = getBackedupBoardIdAndNames()
+        self.board_id_and_names = getBackedupBoardIdAndNames(self.name_filter)
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -450,14 +453,16 @@ def getBoardIdAndNames():
     board_infos = trello.get(['organizations', org_name, 'boards'])
     return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
 
-def getBackedupBoardIdAndNames():
+def getBackedupBoardIdAndNames(name_filter):
     budir = getEnv('TRELLOBACKUPDIR')
     result = []
     for fname in os.listdir(budir):
         if fname.endswith(".json"):
             try:
                 data = json.load(open('{}/{}'.format(budir, fname)))
-                result.append({'id': data['board']['id'], 'name': data['board']['name']})
+                name = data['board']['name']
+                if fnmatch.fnmatch(name, name_filter):
+                    result.append({'id': data['board']['id'], 'name': name})
             except:
                 pass # ignore parsing errors
     return result
@@ -638,7 +643,7 @@ def createCommand(options, http_get):
             'argv0': sys.argv[0],
             'commands': [
                 '--cmd get_boards',
-                '--cmd get_backedup_boards',
+                '--cmd get_backedup_boards [--filter <board name filter>]',
                 '--cmd get_board --id <board ID>',
                 '--cmd get_backedup_board --id <board ID>',
                 '--cmd get_backedup_board_html --id <board ID>',
@@ -661,7 +666,7 @@ def createCommand(options, http_get):
     if cmd == 'get_boards':
         return GetBoards(http_get)
     elif cmd == 'get_backedup_boards':
-        return GetBackedupBoards(http_get)
+        return GetBackedupBoards(http_get, options['filter'] if 'filter' in options else '')
     elif cmd == 'get_board':
         if 'id' in options:
             return GetBoard(http_get, options['id'])

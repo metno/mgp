@@ -37,8 +37,8 @@
 <table id="table_lboards" class="tablesorter-blue" cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
 <thead>
 <tr style="display:table-row;">
-<th>ID</th>
 <th>Name</th>
+<th>ID</th>
 </tr>
 </thead>
 <tbody>
@@ -46,6 +46,11 @@
 </table>
 </div>
 
+<form action="#">
+Filter:
+<input type="text" id="board_name_filter" onclick="return false" />
+<button type="button" onclick="getLocalBoards()">Apply</button>
+</form>
 
 </body>
 
