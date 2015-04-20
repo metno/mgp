@@ -56,7 +56,6 @@ function getLocalBoards() {
                     clearTable("#table_lboards");
 		    boards = data.boards;
                     html = "";
-                    alert(boards.length + ' ' + boards);
                     for (i = 0; i < boards.length; ++i) {
                         html += "<tr class=\"tr_lboards\" id=\"tr_" + i + "\">";
                         html += "<td>" + boards[i].name + "</td>";
