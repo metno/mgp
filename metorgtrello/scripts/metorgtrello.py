@@ -35,7 +35,7 @@ class GetBackedupBoards(Command):
             self.name_filter = '*'
 
     def execute(self):
-        self.board_id_and_names = getBackedupBoardIdAndNames(self.name_filter)
+        self.board_id_and_names = getBackedupBoardIdAndNames(self.name_filter.decode('utf-8'))
         self.printOutput()
 
     def printOutputAsJSON(self):
