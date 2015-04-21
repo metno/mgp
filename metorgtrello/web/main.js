@@ -1,35 +1,35 @@
 // --- BEGIN Global variables -----------------------------------
 // --- END Global variables -------------------------------------
 
-// Returns the current local board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no current local board exists.
-function currentLocalBoard() {
-    var tr = $("#table_lboards tr.selectedRow:first");
+// Returns the current backed up board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no current backed up board exists.
+function currentBackedupBoard() {
+    var tr = $("#table_bboards tr.selectedRow:first");
     return (tr.length > 0) ? tr : undefined;
 }
 
-// Returns the current local board name (as a string) or undefined if no current local board exists.
-function currentLocalBoardName() {
-    var tr = currentLocalBoard();
+// Returns the current backed up board name (as a string) or undefined if no current backed up board exists.
+function currentBackedupBoardName() {
+    var tr = currentBackedupBoard();
     return tr ? tr.find("td:first").text() : undefined;
 }
 
-// Returns the current local board ID or undefined if no current local board exists.
-function currentLocalBoardID() {
-    var tr = currentLocalBoard();
+// Returns the current backed up board ID or undefined if no current backed up board exists.
+function currentBackedupBoardID() {
+    var tr = currentBackedupBoard();
     return $(tr).data("bid");
 }
 
-// Returns the first local board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no local boards exist.
-function firstLocalBoard() {
-    tr = $("#table_lboards tr.tr_lboards:nth-child(1)");
+// Returns the first backed up board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no backed up boards exist.
+function firstBackedupBoard() {
+    tr = $("#table_bboards tr.tr_bboards:nth-child(1)");
     return (tr.length > 0) ? tr : undefined;
 }
 
-// Retrieves the available local boards.
-function getLocalBoards() {
-    statusBase = "getting local boards ...";
+// Retrieves the available backed up boards.
+function getBackedupBoards() {
+    statusBase = "getting backed up boards ...";
     updateStatus(statusBase, true);
 
     query = "?cmd=get_backedup_boards&filter=" + $("#board_name_filter").val();
@@ -53,27 +53,27 @@ function getLocalBoards() {
                     updateStatus("", false);
 
                     // load table
-                    clearTable("#table_lboards");
+                    clearTable("#table_bboards");
 		    boards = data.boards;
                     html = "";
                     for (i = 0; i < boards.length; ++i) {
-                        html += "<tr class=\"tr_lboards\" id=\"tr_" + i + "\">";
+                        html += "<tr class=\"tr_bboards\" id=\"tr_" + i + "\">";
                         html += "<td>" + boards[i].name + "</td>";
                         html += "<td>" + boards[i].id + "</td>";
                         html += "<td>" + formatUnixUTCTimestamp(boards[i].last_ct) + "</td>";
                         html += "</tr>";
                     }
 
-                    $("#table_lboards > tbody:last").append(html);
-                    $("#table_lboards").trigger("update");
+                    $("#table_bboards > tbody:last").append(html);
+                    $("#table_bboards").trigger("update");
                     if (html != "") // hm ... why is this test necessary?
-                        $("#table_lboards").trigger("appendCache");
+                        $("#table_bboards").trigger("appendCache");
 
                     for (i = 0; i < boards.length; ++i) {
 			$("#tr_" + i).data("bid", boards[i].id);
 		    }
 
-                    setCurrentLocalBoard(firstLocalBoard());
+                    setCurrentBackedupBoard(firstBackedupBoard());
                 }
             }
         },
@@ -95,18 +95,18 @@ function getLocalBoards() {
     return false;
 }
 
-// Opens the HTML snapshot of the current local board in a new page.
-function showHtmlOfCurrentLocalBoard() {
+// Opens the HTML snapshot of the current backed up board in a new page.
+function showHtmlOfCurrentBackedupBoard() {
     statusBase = "getting HTML of current board ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_backedup_board_html&id=" + currentLocalBoardID();
+    query = "?cmd=get_backedup_board_html&id=" + currentBackedupBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     // NOTE: the window to display the HTML must be opened already at this point
     // (and not after the asynchronous server response), otherwise it may be considered
     // suspicious by the popup blocker
-    var newTitle = currentLocalBoardName();
+    var newTitle = currentBackedupBoardName();
     var newWin = window.open('');
 
     $.ajax({
@@ -149,18 +149,18 @@ function showHtmlOfCurrentLocalBoard() {
     return false;
 }
 
-// Sets given local board as current.
+// Sets given backed up board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
-function setCurrentLocalBoard(tr) {
+function setCurrentBackedupBoard(tr) {
     if (tr.length == 0) return;
-    $("#table_lboards tr").removeClass("selectedRow"); // unselect all rows
+    $("#table_bboards tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
 }
 
-// Handles selecting a row in the table of local boards.
+// Handles selecting a row in the table of backed up boards.
 // tr is the jQuery selector for the corresponding <tr> element.
-function selectLocalBoard(tr) {
-    setCurrentLocalBoard(tr);
+function selectBackedupBoard(tr) {
+    setCurrentBackedupBoard(tr);
 }
 
 $(document).ready(function() {
@@ -211,11 +211,11 @@ $(document).ready(function() {
 	}
     };
 
-    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards';
-    $("#table_lboards").tablesorter(options);
-    $(document).on("click", ".tr_lboards td", function(e) {
-        selectLocalBoard($(e.target).parent());
+    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_bboards';
+    $("#table_bboards").tablesorter(options);
+    $(document).on("click", ".tr_bboards td", function(e) {
+        selectBackedupBoard($(e.target).parent());
     });
 
-    getLocalBoards();
+    getBackedupBoards();
 });
