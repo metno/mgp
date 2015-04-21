@@ -157,12 +157,12 @@ class BackupBoard(Command):
         sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
         board = getFullBoard(self.board_id)
         sys.stderr.write('done\nbacking up ... ')
-        self.status = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
+        self.commit = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
         sys.stderr.write('done\n')
         self.printOutput()
 
     def printOutputAsJSON(self):
-        json.dump(self.status, sys.stdout, indent=2, ensure_ascii=True)
+        json.dump({ 'commit': self.commit }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
 
@@ -568,8 +568,8 @@ def backupToGitRepo(boards, gitdir):
 
     if diff:
         sha1 = git('rev-parse', 'HEAD').strip()
-        return 'updated backup {} with Commit {}'.format(fpath, sha1)
-    return 'no difference since last backup'
+        return sha1
+    return ''
 
 def getLabelId(name, board_id, color):
     labels = trello.get(['boards', board_id, 'labels'], arguments = { 'fields': 'name,color' })

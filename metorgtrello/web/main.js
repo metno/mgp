@@ -190,7 +190,7 @@ function getLiveBoards() {
 
 // Opens the HTML snapshot of the current backed up board in a new page.
 function showHtmlOfCurrentBackedupBoard() {
-    statusBase = "getting HTML of current board ...";
+    statusBase = "getting HTML of current backed up board ...";
     updateStatus(statusBase, true);
 
     query = "?cmd=get_backedup_board_html&id=" + currentBackedupBoardID();
@@ -221,6 +221,62 @@ function showHtmlOfCurrentBackedupBoard() {
 
                     $(newWin.document.body).html(data.html);
                     newWin.document.title = newTitle;
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateStatus(statusBase + " error: " + descr, false);
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Backs up current live board.
+function backupCurrentLiveBoard() {
+    statusBase = "backing up current live board ...";
+    updateStatus(statusBase, true);
+    var backupBoard = currentLiveBoardName();
+    $('#backup_status').html('backing up live board ' + backupBoard + ' ...');
+
+    query = "?cmd=backup_board&id=" + currentLiveBoardID();
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateStatus(statusBase + " failed: " + data.error, false);
+                        return
+                    }
+
+                    updateStatus(statusBase + " done", false);
+                    updateStatus("", false);
+
+		    if (data.commit == '') {
+			$('#backup_status').html('no changes in live board ' + backupBoard);
+		    } else {
+			$('#backup_status').html(
+			    'backed up new changes in live board ' + backupBoard +
+				' to local git repository (commit id: ' + data.commit + ' )');
+			getBackedupBoards(); // refresh
+		    }
                 }
             }
         },
