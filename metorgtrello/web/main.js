@@ -27,12 +27,38 @@ function firstBackedupBoard() {
     return (tr.length > 0) ? tr : undefined;
 }
 
+// Returns the current live board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no current live board exists.
+function currentLiveBoard() {
+    var tr = $("#table_lboards tr.selectedRow:first");
+    return (tr.length > 0) ? tr : undefined;
+}
+
+// Returns the current live board name (as a string) or undefined if no current live board exists.
+function currentLiveBoardName() {
+    var tr = currentLiveBoard();
+    return tr ? tr.find("td:first").text() : undefined;
+}
+
+// Returns the current live board ID or undefined if no current live board exists.
+function currentLiveBoardID() {
+    var tr = currentLiveBoard();
+    return $(tr).data("bid");
+}
+
+// Returns the first live board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no live boards exist.
+function firstLiveBoard() {
+    tr = $("#table_lboards tr.tr_lboards:nth-child(1)");
+    return (tr.length > 0) ? tr : undefined;
+}
+
 // Retrieves the available backed up boards.
 function getBackedupBoards() {
     statusBase = "getting backed up boards ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_backedup_boards&filter=" + $("#board_name_filter").val();
+    query = "?cmd=get_backedup_boards&filter=" + $("#bboard_name_filter").val();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -57,7 +83,7 @@ function getBackedupBoards() {
 		    boards = data.boards;
                     html = "";
                     for (i = 0; i < boards.length; ++i) {
-                        html += "<tr class=\"tr_bboards\" id=\"tr_" + i + "\">";
+                        html += "<tr class=\"tr_bboards\" id=\"tr_bb_" + i + "\">";
                         html += "<td>" + boards[i].name + "</td>";
                         html += "<td>" + boards[i].id + "</td>";
                         html += "<td>" + formatUnixUTCTimestamp(boards[i].last_ct) + "</td>";
@@ -70,10 +96,77 @@ function getBackedupBoards() {
                         $("#table_bboards").trigger("appendCache");
 
                     for (i = 0; i < boards.length; ++i) {
-			$("#tr_" + i).data("bid", boards[i].id);
+			$("#tr_bb_" + i).data("bid", boards[i].id);
 		    }
 
                     setCurrentBackedupBoard(firstBackedupBoard());
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateStatus(statusBase + " error: " + descr, false);
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Retrieves the open live boards.
+function getLiveBoards() {
+    statusBase = "getting live boards ...";
+    updateStatus(statusBase, true);
+
+    query = "?cmd=get_boards&filter=" + $("#lboard_name_filter").val();
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateStatus(statusBase + " failed: " + data.error, false);
+                        return
+                    }
+
+                    updateStatus(statusBase + " done", false);
+                    updateStatus("", false);
+
+                    // load table
+                    clearTable("#table_lboards");
+		    boards = data.boards;
+                    html = "";
+                    for (i = 0; i < boards.length; ++i) {
+                        html += "<tr class=\"tr_lboards\" id=\"tr_lb_" + i + "\">";
+                        html += "<td>" + boards[i].name + "</td>";
+                        html += "<td>" + boards[i].id + "</td>";
+                        html += "</tr>";
+                    }
+
+                    $("#table_lboards > tbody:last").append(html);
+                    $("#table_lboards").trigger("update");
+                    if (html != "") // hm ... why is this test necessary?
+                        $("#table_lboards").trigger("appendCache");
+
+                    for (i = 0; i < boards.length; ++i) {
+			$("#tr_lb_" + i).data("bid", boards[i].id);
+		    }
+
+                    setCurrentLiveBoard(firstLiveBoard());
                 }
             }
         },
@@ -163,6 +256,20 @@ function selectBackedupBoard(tr) {
     setCurrentBackedupBoard(tr);
 }
 
+// Sets given live board as current.
+// tr is the jQuery selector for the corresponding <tr> element.
+function setCurrentLiveBoard(tr) {
+    if (tr.length == 0) return;
+    $("#table_lboards tr").removeClass("selectedRow"); // unselect all rows
+    tr.addClass("selectedRow"); // select target row
+}
+
+// Handles selecting a row in the table of live boards.
+// tr is the jQuery selector for the corresponding <tr> element.
+function selectLiveBoard(tr) {
+    setCurrentLiveBoard(tr);
+}
+
 $(document).ready(function() {
 
     // --- TABLESORTER -----------------------
@@ -217,5 +324,12 @@ $(document).ready(function() {
         selectBackedupBoard($(e.target).parent());
     });
 
+    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards';
+    $("#table_lboards").tablesorter(options);
+    $(document).on("click", ".tr_lboards td", function(e) {
+        selectLiveBoard($(e.target).parent());
+    });
+
     getBackedupBoards();
+    getLiveBoards();
 });

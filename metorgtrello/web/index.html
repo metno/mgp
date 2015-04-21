@@ -35,7 +35,7 @@
 
 <h2 style="font-size:120%; font-weight:bold">Backed up boards</h2>
 
-<div class="wrapper_bboards" style="position:relative; padding:0 5px; height:400px; overflow-y:auto;">
+<div class="wrapper_bboards" style="position:relative; padding:0 5px; height:300px; overflow-y:auto;">
 <table id="table_bboards" class="tablesorter-blue" cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
 <thead>
 <tr style="display:table-row;">
@@ -51,7 +51,7 @@
 
 <form action="#">
 Filter:
-<input type="text" id="board_name_filter" onclick="return false" />
+<input type="text" id="bboard_name_filter" onclick="return false" />
 <button type="button" onclick="getBackedupBoards()">Apply</button>
 </form>
 
@@ -81,6 +81,27 @@ Filter:
 <div style="background-color:#beb">
 
 <h2 style="font-size:120%; font-weight:bold">Live boards</h2>
+
+<div class="wrapper_lboards" style="position:relative; padding:0 5px; height:300px; overflow-y:auto;">
+<table id="table_lboards" class="tablesorter-blue" cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
+<thead>
+<tr style="display:table-row;">
+<th>Name</th>
+<th>ID</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+
+<form action="#">
+Filter:
+<input type="text" id="lboard_name_filter" onclick="return false" />
+<button type="button" onclick="getLiveBoards()">Apply</button>
+</form>
+
+<hr>
 
 <form action="#">
 <!-- backs up current live board -->

@@ -14,11 +14,14 @@ class Command:
 
 # Lists the ID and name of all open boards on the Trello server.
 class GetBoards(Command):
-    def __init__(self, http_get):
+    def __init__(self, http_get, name_filter):
         self.http_get = http_get
+        self.name_filter = name_filter.strip()
+        if self.name_filter == '':
+            self.name_filter = '*'
 
     def execute(self):
-        self.board_id_and_names = getBoardIdAndNames()
+        self.board_id_and_names = getBoardIdAndNames(self.name_filter.decode('utf-8'))
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -457,9 +460,17 @@ class InitBoard(Command):
 def getOrgId():
     return trello.get(['organizations', org_name, 'id'])
 
-def getBoardIdAndNames():
+def getBoardIdAndNames(name_filter = None):
     board_infos = trello.get(['organizations', org_name, 'boards'], arguments = { 'filter': 'open' })
-    return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
+
+    result = []
+    for board_info in board_infos:
+        name = board_info['name']
+        if (name_filter == None) or fnmatch.fnmatch(name, name_filter):
+            result.append({ 'id': board_info['id'], 'name': name })
+    return result
+
+    #return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
 
 def getLastCommitTime(gitdir, fname):
     git = sh.git.bake('--no-pager', _cwd=gitdir)
@@ -469,7 +480,7 @@ def getLastCommitTime(gitdir, fname):
         last_ct = -1
     return last_ct
 
-def getBackedupBoardIdAndNames(name_filter):
+def getBackedupBoardIdAndNames(name_filter = None):
     budir = getEnv('TRELLOBACKUPDIR')
     result = []
     for fname in os.listdir(budir):
@@ -477,7 +488,7 @@ def getBackedupBoardIdAndNames(name_filter):
             try:
                 data = json.load(open('{}/{}'.format(budir, fname)))
                 name = data['board']['name']
-                if fnmatch.fnmatch(name, name_filter):
+                if (name_filter == None) or fnmatch.fnmatch(name, name_filter):
                     last_ct = getLastCommitTime(budir, fname)
                     result.append({ 'id': data['board']['id'], 'name': name, 'last_ct': last_ct })
             except:
@@ -681,7 +692,7 @@ def createCommand(options, http_get):
 
     # return the command if possible
     if cmd == 'get_boards':
-        return GetBoards(http_get)
+        return GetBoards(http_get, options['filter'] if 'filter' in options else '')
     elif cmd == 'get_backedup_boards':
         return GetBackedupBoards(http_get, options['filter'] if 'filter' in options else '')
     elif cmd == 'get_board':
