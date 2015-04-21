@@ -12,7 +12,7 @@ class Command:
         self.printOutputAsJSON()
 
 
-# Lists the ID and name of all available boards on the Trello server.
+# Lists the ID and name of all open boards on the Trello server.
 class GetBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
@@ -163,7 +163,7 @@ class BackupBoard(Command):
         sys.stdout.write('\n');
 
 
-# Backs up all boards to a git repo (via the local backup directory).
+# Backs up all open boards to a git repo (via the local backup directory).
 class BackupAllBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
@@ -184,7 +184,7 @@ class BackupAllBoards(Command):
         sys.stdout.write('\n');
 
 
-# Secure all boards on the Trello server so that only admins may invite new members.
+# Secure all open boards on the Trello server so that only admins may invite new members.
 class SecureAllBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
@@ -458,7 +458,7 @@ def getOrgId():
     return trello.get(['organizations', org_name, 'id'])
 
 def getBoardIdAndNames():
-    board_infos = trello.get(['organizations', org_name, 'boards'])
+    board_infos = trello.get(['organizations', org_name, 'boards'], arguments = { 'filter': 'open' })
     return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
 
 def getLastCommitTime(gitdir, fname):
