@@ -111,6 +111,20 @@ function emptySHA1() {
     return s;
 }
 
+function formatUnixUTCTimestamp(t) {
+    if (t < 0) {
+	return "invalid timestamp: " + t;
+    }
+
+    var d = new Date(t * 1000)
+    return "" + d.getFullYear()
+	+ "-" + zeroPad2(d.getMonth() + 1)
+	+ "-" + zeroPad2(d.getDate().toString())
+	+ " " + zeroPad2(d.getHours().toString())
+	+ ":" + zeroPad2(d.getMinutes().toString())
+	+ ":" + zeroPad2(d.getSeconds().toString());
+}
+
 function dateToTimestamp(date) {
     return Math.round(date.getTime() / 1000);
 }

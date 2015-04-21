@@ -60,6 +60,7 @@ function getLocalBoards() {
                         html += "<tr class=\"tr_lboards\" id=\"tr_" + i + "\">";
                         html += "<td>" + boards[i].name + "</td>";
                         html += "<td>" + boards[i].id + "</td>";
+                        html += "<td>" + formatUnixUTCTimestamp(boards[i].last_ct) + "</td>";
                         html += "</tr>";
                     }
 

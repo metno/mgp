@@ -461,6 +461,14 @@ def getBoardIdAndNames():
     board_infos = trello.get(['organizations', org_name, 'boards'])
     return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
 
+def getLastCommitTime(gitdir, fname):
+    git = sh.git.bake('--no-pager', _cwd=gitdir)
+    try:
+        last_ct = int(git.log('-1', '--pretty=format:%ct', fname))
+    except:
+        last_ct = -1
+    return last_ct
+
 def getBackedupBoardIdAndNames(name_filter):
     budir = getEnv('TRELLOBACKUPDIR')
     result = []
@@ -470,7 +478,8 @@ def getBackedupBoardIdAndNames(name_filter):
                 data = json.load(open('{}/{}'.format(budir, fname)))
                 name = data['board']['name']
                 if fnmatch.fnmatch(name, name_filter):
-                    result.append({'id': data['board']['id'], 'name': name})
+                    last_ct = getLastCommitTime(budir, fname)
+                    result.append({ 'id': data['board']['id'], 'name': name, 'last_ct': last_ct })
             except:
                 pass # ignore parsing errors
     return result
