@@ -330,6 +330,18 @@ $(document).ready(function() {
         selectLiveBoard($(e.target).parent());
     });
 
+    $('#bboard_name_filter').keyup(function (e) {
+	if (e.keyCode === 13) {
+	    getBackedupBoards();
+	}
+    });
+
+    $('#lboard_name_filter').keyup(function (e) {
+	if (e.keyCode === 13) {
+	    getLiveBoards();
+	}
+    });
+
     getBackedupBoards();
     getLiveBoards();
 });
