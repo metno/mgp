@@ -247,7 +247,7 @@ function backupCurrentLiveBoard() {
     statusBase = "backing up current live board ...";
     updateStatus(statusBase, true);
     var backupBoard = currentLiveBoardName();
-    $('#backup_status').html('backing up live board ' + backupBoard + ' ...');
+    $('#backup_status').html('backing up live board <u>' + backupBoard + '</u> ...');
 
     query = "?cmd=backup_board&id=" + currentLiveBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
@@ -270,11 +270,11 @@ function backupCurrentLiveBoard() {
                     updateStatus("", false);
 
 		    if (data.commit == '') {
-			$('#backup_status').html('no changes in live board ' + backupBoard);
+			$('#backup_status').html('no changes in live board <u>' + backupBoard + '</u>');
 		    } else {
 			$('#backup_status').html(
-			    'backed up new changes in live board ' + backupBoard +
-				' to local git repository (commit id: ' + data.commit + ' )');
+			    'backed up new changes in live board <u>' + backupBoard +
+				'</u> to local git repository (commit id: ' + data.commit + ' )');
 			getBackedupBoards(); // refresh
 		    }
                 }

@@ -20,13 +20,6 @@
 
 <body style="margin:5px">
 
-<!-- status label and busy indicator -->
-<span style="white-space:nowrap">
-<span id="status">no status</span>
-<img alt="spinner" id="spinner" src="global/images/ajax-spinner.gif" style="display:none"/>
-<img alt="nospinner" id="nospinner" src="global/images/ajax-nospinner.png" style="display:inline"/>
-</span>
-
 <h1>MetOrg/Trello Administration</h1>
 
 <br/>
@@ -35,7 +28,7 @@
 
 <h2 style="font-size:120%; font-weight:bold">Backed up boards</h2>
 
-<div class="wrapper_bboards" style="position:relative; padding:0 5px; height:300px; overflow-y:auto;">
+<div class="wrapper_bboards" style="position:relative; padding:0 5px; height:250px; overflow-y:auto;">
 <table id="table_bboards" class="tablesorter-blue" cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
 <thead>
 <tr style="display:table-row;">
@@ -82,7 +75,7 @@ Filter:
 
 <h2 style="font-size:120%; font-weight:bold">Live boards</h2>
 
-<div class="wrapper_lboards" style="position:relative; padding:0 5px; height:300px; overflow-y:auto;">
+<div class="wrapper_lboards" style="position:relative; padding:0 5px; height:250px; overflow-y:auto;">
 <table id="table_lboards" class="tablesorter-blue" cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
 <thead>
 <tr style="display:table-row;">
@@ -110,6 +103,14 @@ Filter:
 </form>
 
 </div>
+
+<!-- status label and busy indicator -->
+<span style="white-space:nowrap">
+<span id="status">no status</span>
+<img alt="spinner" id="spinner" src="global/images/ajax-spinner.gif" style="display:none"/>
+<img alt="nospinner" id="nospinner" src="global/images/ajax-nospinner.png" style="display:inline"/>
+</span>
+
 
 </body>
 
