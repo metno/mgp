@@ -53,7 +53,7 @@ class GetBoard(Command):
         self.board_id = board_id
 
     def execute(self):
-        self.board = getFullBoard(self.board_id)
+        self.board = getFullLiveBoard(self.board_id)
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -76,14 +76,10 @@ class GetBackedupBoard(Command):
         sys.stdout.write('\n');
 
 
-# Prints a HTML version of a given board in the local backup directory.
-class GetBackedupBoardHtml(Command):
-    def __init__(self, http_get, board_id):
-        self.http_get = http_get
-        self.board_id = board_id
-
+# Prints a HTML version of a board (based on template method pattern).
+class GetBoardHtml(Command):
     def execute(self):
-        board = getFullBackedupBoard(self.board_id)
+        board = self.getFullBoard()
 
         self.html = (
             '<html>'
@@ -130,6 +126,24 @@ class GetBackedupBoardHtml(Command):
         json.dump({ 'html': self.html }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
+# Prints a HTML version of a board (based on template method pattern).
+class GetLiveBoardHtml(GetBoardHtml):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def getFullBoard(self):
+        return getFullLiveBoard(self.board_id)
+
+# Prints a HTML version of a board (based on template method pattern).
+class GetBackedupBoardHtml(GetBoardHtml):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def getFullBoard(self):
+        return getFullBackedupBoard(self.board_id)
+
 
 # Prints stats for a given board in the local backup directory.
 class GetBackedupBoardStats(Command):
@@ -155,7 +169,7 @@ class BackupBoard(Command):
     def execute(self):
         bname = getBoard(self.board_id)['name']
         sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
-        board = getFullBoard(self.board_id)
+        board = getFullLiveBoard(self.board_id)
         sys.stderr.write('done\nbacking up ... ')
         self.commit = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
         sys.stderr.write('done\n')
@@ -175,7 +189,7 @@ class BackupAllBoards(Command):
         boards = []
         for b in getBoardIdAndNames():
             sys.stderr.write('fetching board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
-            boards.append(getFullBoard(b['id']))
+            boards.append(getFullLiveBoard(b['id']))
             sys.stderr.write('done\n')
         sys.stderr.write('backing up ... ')
         self.status = backupToGitRepo(boards, getEnv('TRELLOBACKUPDIR'))
@@ -270,7 +284,7 @@ class InitBoard(Command):
         dst_bid = next((item['id'] for item in board_infos if item['name'] == self.dst_name), None)
 
         # save original state of destination board (so that we can merge in that information later)
-        dst_board = getFullBoard(dst_bid)
+        dst_board = getFullLiveBoard(dst_bid)
 
         # register the lists that each card with a given name belongs to
         dst_clists = {}
@@ -531,7 +545,7 @@ def getCards(board_id):
                     )))
     return cards2
 
-def getFullBoard(board_id):
+def getFullLiveBoard(board_id):
     board = getBoard(board_id)
     members = getMembers(board_id)
     actions = getActions(board_id)
@@ -673,6 +687,7 @@ def createCommand(options, http_get):
                 '--cmd get_boards',
                 '--cmd get_backedup_boards [--filter <board name filter>]',
                 '--cmd get_board --id <board ID>',
+                '--cmd get_board_html --id <board ID>',
                 '--cmd get_backedup_board --id <board ID>',
                 '--cmd get_backedup_board_html --id <board ID>',
                 '--cmd get_backedup_board_stats --id <board ID>',
@@ -698,6 +713,9 @@ def createCommand(options, http_get):
     elif cmd == 'get_board':
         if 'id' in options:
             return GetBoard(http_get, options['id'])
+    elif cmd == 'get_board_html':
+        if 'id' in options:
+            return GetLiveBoardHtml(http_get, options['id'])
     elif cmd == 'get_backedup_board':
         if 'id' in options:
             return GetBackedupBoard(http_get, options['id'])

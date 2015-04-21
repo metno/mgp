@@ -201,6 +201,7 @@ function showHtmlOfCurrentBackedupBoard() {
     // suspicious by the popup blocker
     var newTitle = currentBackedupBoardName();
     var newWin = window.open('');
+    $(newWin.document.body).html('<html><body><h1>please wait ...</h1></body></html>');
 
     $.ajax({
         url: url,
@@ -242,7 +243,62 @@ function showHtmlOfCurrentBackedupBoard() {
     return false;
 }
 
-// Backs up current live board.
+// Opens the HTML snapshot of the current live board in a new page.
+function showHtmlOfCurrentLiveBoard() {
+    statusBase = "getting HTML of current live board ...";
+    updateStatus(statusBase, true);
+
+    query = "?cmd=get_board_html&id=" + currentLiveBoardID();
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    // NOTE: the window to display the HTML must be opened already at this point
+    // (and not after the asynchronous server response), otherwise it may be considered
+    // suspicious by the popup blocker
+    var newTitle = currentLiveBoardName();
+    var newWin = window.open('');
+    $(newWin.document.body).html('<html><body><h1>please wait ...</h1></body></html>');
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateStatus(statusBase + " failed: " + data.error, false);
+                        return
+                    }
+
+                    updateStatus(statusBase + " done", false);
+                    updateStatus("", false);
+
+                    $(newWin.document.body).html(data.html);
+                    newWin.document.title = newTitle;
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateStatus(statusBase + " error: " + descr, false);
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Backs up the current live board.
 function backupCurrentLiveBoard() {
     statusBase = "backing up current live board ...";
     updateStatus(statusBase, true);
