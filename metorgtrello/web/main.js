@@ -126,7 +126,7 @@ function getLiveBoards() {
     statusBase = "getting live boards ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_boards&filter=" + $("#lboard_name_filter").val();
+    query = "?cmd=get_live_boards&filter=" + $("#lboard_name_filter").val();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -248,7 +248,7 @@ function showHtmlOfCurrentLiveBoard() {
     statusBase = "getting HTML of current live board ...";
     updateStatus(statusBase, true);
 
-    query = "?cmd=get_board_html&id=" + currentLiveBoardID();
+    query = "?cmd=get_live_board_html&id=" + currentLiveBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     // NOTE: the window to display the HTML must be opened already at this point

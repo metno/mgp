@@ -13,7 +13,7 @@ class Command:
 
 
 # Lists the ID and name of all open boards on the Trello server.
-class GetBoards(Command):
+class GetLiveBoards(Command):
     def __init__(self, http_get, name_filter):
         self.http_get = http_get
         self.name_filter = name_filter.strip()
@@ -21,7 +21,7 @@ class GetBoards(Command):
             self.name_filter = '*'
 
     def execute(self):
-        self.board_id_and_names = getBoardIdAndNames(self.name_filter.decode('utf-8'))
+        self.board_id_and_names = getLiveBoardIdAndNames(self.name_filter.decode('utf-8'))
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -47,7 +47,7 @@ class GetBackedupBoards(Command):
 
 
 # Prints relevant info for a given board on the Trello server.
-class GetBoard(Command):
+class GetLiveBoard(Command):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
         self.board_id = board_id
@@ -126,7 +126,7 @@ class GetBoardHtml(Command):
         json.dump({ 'html': self.html }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
-# Prints a HTML version of a board (based on template method pattern).
+# Prints a HTML version of a board.
 class GetLiveBoardHtml(GetBoardHtml):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
@@ -135,7 +135,7 @@ class GetLiveBoardHtml(GetBoardHtml):
     def getFullBoard(self):
         return getFullLiveBoard(self.board_id)
 
-# Prints a HTML version of a board (based on template method pattern).
+# Prints a HTML version of a board.
 class GetBackedupBoardHtml(GetBoardHtml):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
@@ -160,14 +160,14 @@ class GetBackedupBoardStats(Command):
         json.dump(self.stats, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
-# Backs up given board to a git repo (via the local backup directory).
-class BackupBoard(Command):
+# Backs up given board on the Trello server to a git repo (via the local backup directory).
+class BackupLiveBoard(Command):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
         self.board_id = board_id
 
     def execute(self):
-        bname = getBoard(self.board_id)['name']
+        bname = getLiveBoard(self.board_id)['name']
         sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
         board = getFullLiveBoard(self.board_id)
         sys.stderr.write('done\nbacking up ... ')
@@ -180,14 +180,14 @@ class BackupBoard(Command):
         sys.stdout.write('\n');
 
 
-# Backs up all open boards to a git repo (via the local backup directory).
-class BackupAllBoards(Command):
+# Backs up all open boards on the Trello server to a git repo (via the local backup directory).
+class BackupAllLiveBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
 
     def execute(self):
         boards = []
-        for b in getBoardIdAndNames():
+        for b in getLiveBoardIdAndNames():
             sys.stderr.write('fetching board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
             boards.append(getFullLiveBoard(b['id']))
             sys.stderr.write('done\n')
@@ -201,14 +201,14 @@ class BackupAllBoards(Command):
         sys.stdout.write('\n');
 
 
-# Secure all open boards on the Trello server so that only admins may invite new members.
-class SecureAllBoards(Command):
+# Secures all open boards on the Trello server so that only admins may invite new members.
+class SecureAllLiveBoards(Command):
     def __init__(self, http_get):
         self.http_get = http_get
 
     def execute(self):
         boards = []
-        board_infos = getBoardIdAndNames()
+        board_infos = getLiveBoardIdAndNames()
         self.sec_count = 0
         self.tot_count = len(board_infos)
         for b in board_infos:
@@ -257,7 +257,7 @@ class InitBoard(Command):
     def execute(self):
         src_board = getFullBackedupBoard(self.src_id) # get source board
 
-        board_infos = getBoardIdAndNames()
+        board_infos = getLiveBoardIdAndNames()
         if not self.dst_name in [item['name'] for item in board_infos]:
             # board did not exist, so create it
             sys.stderr.write('creating new board ... ')
@@ -275,7 +275,7 @@ class InitBoard(Command):
                 )
             sys.stderr.write('done\n')
 
-            board_infos = getBoardIdAndNames() # recompute and expect the new board to be present this time
+            board_infos = getLiveBoardIdAndNames() # recompute and expect the new board to be present this time
         else:
             sys.stderr.write('updating existing board\n')
 
@@ -325,12 +325,12 @@ class InitBoard(Command):
         # get ID and name of open destination board lists at this point (represent as dict using name as key
         # and ignoring multiple occurrences of the same name)
         dst_lists = {}
-        for item in getLists(dst_bid):
+        for item in getLiveLists(dst_bid):
             if item['name'] not in dst_lists:
                 dst_lists[item['name']] = item['id']
         # get ID of both open and closed lists in the same fashion
         dst_lists_all = {}
-        for item in getListsAll(dst_bid):
+        for item in getLiveListsAll(dst_bid):
             if item['name'] not in dst_lists_all:
                 dst_lists_all[item['name']] = item['id']
 
@@ -347,7 +347,7 @@ class InitBoard(Command):
                     }
                 )
             # get the ID of the orphanage list
-            for item in getLists(dst_bid):
+            for item in getLiveLists(dst_bid):
                 if item['name'] == orph_lname:
                     orph_lid = item['id']
                     break
@@ -474,7 +474,7 @@ class InitBoard(Command):
 def getOrgId():
     return trello.get(['organizations', org_name, 'id'])
 
-def getBoardIdAndNames(name_filter = None):
+def getLiveBoardIdAndNames(name_filter = None):
     board_infos = trello.get(['organizations', org_name, 'boards'], arguments = { 'filter': 'open' })
 
     result = []
@@ -509,22 +509,22 @@ def getBackedupBoardIdAndNames(name_filter = None):
                 pass # ignore parsing errors
     return result
 
-def getBoard(board_id):
+def getLiveBoard(board_id):
     board = trello.get(['boards', board_id])
     return dict((k, board[k]) for k in ( # only keep certain attributes
             'id', 'name', 'prefs', 'closed'
             ))
 
-def getMembers(board_id):
+def getLiveMembers(board_id):
     members = trello.get(['boards', board_id, 'members'])
     return members
 
-def getActions(board_id):
+def getLiveActions(board_id):
     actions = trello.get(['boards', board_id, 'actions'])
     actions = [x for x in actions if x['type'] == 'commentCard'] # for now
     return actions
 
-def getLists(board_id, filter='open'):
+def getLiveLists(board_id, filter='open'):
     lists = trello.get(['boards', board_id, 'lists'], arguments = { 'filter': filter })
     lists2 = []
     for lst in lists:
@@ -533,10 +533,10 @@ def getLists(board_id, filter='open'):
                     )))
     return lists2
 
-def getListsAll(board_id):
-    return getLists(board_id, 'all')
+def getLiveListsAll(board_id):
+    return getLiveLists(board_id, 'all')
 
-def getCards(board_id):
+def getLiveCards(board_id):
     cards = trello.get(['boards', board_id, 'cards'])
     cards2 = []
     for card in cards:
@@ -546,11 +546,11 @@ def getCards(board_id):
     return cards2
 
 def getFullLiveBoard(board_id):
-    board = getBoard(board_id)
-    members = getMembers(board_id)
-    actions = getActions(board_id)
-    lists = getLists(board_id)
-    cards = getCards(board_id)
+    board = getLiveBoard(board_id)
+    members = getLiveMembers(board_id)
+    actions = getLiveActions(board_id)
+    lists = getLiveLists(board_id)
+    cards = getLiveCards(board_id)
     return {
         'board': board,
         'members': members,
@@ -684,15 +684,15 @@ def createCommand(options, http_get):
         error = {
             'argv0': sys.argv[0],
             'commands': [
-                '--cmd get_boards',
+                '--cmd get_live_boards',
                 '--cmd get_backedup_boards [--filter <board name filter>]',
-                '--cmd get_board --id <board ID>',
-                '--cmd get_board_html --id <board ID>',
+                '--cmd get_live_board --id <board ID>',
+                '--cmd get_live_board_html --id <board ID>',
                 '--cmd get_backedup_board --id <board ID>',
                 '--cmd get_backedup_board_html --id <board ID>',
                 '--cmd get_backedup_board_stats --id <board ID>',
-                '--cmd backup_board --id <board ID>',
-                '--cmd backup_all_boards',
+                '--cmd backup_live_board --id <board ID>',
+                '--cmd backup_all_live_boards',
                 '--cmd init_board --src_id <source board ID> --dst_name <destination board name>'
                 ]
             }
@@ -706,14 +706,14 @@ def createCommand(options, http_get):
         sys.exit(1)
 
     # return the command if possible
-    if cmd == 'get_boards':
-        return GetBoards(http_get, options['filter'] if 'filter' in options else '')
+    if cmd == 'get_live_boards':
+        return GetLiveBoards(http_get, options['filter'] if 'filter' in options else '')
     elif cmd == 'get_backedup_boards':
         return GetBackedupBoards(http_get, options['filter'] if 'filter' in options else '')
-    elif cmd == 'get_board':
+    elif cmd == 'get_live_board':
         if 'id' in options:
-            return GetBoard(http_get, options['id'])
-    elif cmd == 'get_board_html':
+            return GetLiveBoard(http_get, options['id'])
+    elif cmd == 'get_live_board_html':
         if 'id' in options:
             return GetLiveBoardHtml(http_get, options['id'])
     elif cmd == 'get_backedup_board':
@@ -725,13 +725,13 @@ def createCommand(options, http_get):
     elif cmd == 'get_backedup_board_stats':
         if 'id' in options:
             return GetBackedupBoardStats(http_get, options['id'])
-    elif cmd == 'backup_board':
+    elif cmd == 'backup_live_board':
         if 'id' in options:
-            return BackupBoard(http_get, options['id'])
-    elif cmd == 'backup_all_boards':
-        return BackupAllBoards(http_get)
-    elif cmd == 'secure_all_boards':
-        return SecureAllBoards(http_get)
+            return BackupLiveBoard(http_get, options['id'])
+    elif cmd == 'backup_all_live_boards':
+        return BackupAllLiveBoards(http_get)
+    elif cmd == 'secure_all_live_boards':
+        return SecureAllLiveBoards(http_get)
     elif cmd == 'init_board':
         if ('src_id' in options) and ('dst_name' in options):
             return InitBoard(http_get, options['src_id'], options['dst_name'])
