@@ -54,15 +54,6 @@ Filter:
 <button type="button" onclick="showHtmlOfCurrentBackedupBoard()">Show HTML</button>
 </form>
 
-<hr>
-
-<form action="#">
-<!-- copies current backed up board to new live board -->
-<button type="button" onclick="copyCurrentBackedupBoard()">Copy</button>
-<input type="text" id="copy_board_name" onclick="return false" />
-<span style="color:red">not implemented yet</span>
-</form>
-
 </div>
 
 <hr>
@@ -97,16 +88,25 @@ Filter:
 <hr>
 
 <form action="#">
-<button type="button" onclick="showHtmlOfCurrentLiveBoard()">Show HTML</button>
+<!-- copies current live board to new live board -->
+<button type="button" onclick="copyCurrentLiveBoard()">Copy</button>
+<input type="text" id="copy_board_name" onclick="return false" />
+<span style="color:red">not implemented yet</span>
 </form>
 
 <hr>
 
 <form action="#">
-<!-- backs up current live board -->
-<button type="button" onclick="backupCurrentLiveBoard()">Backup</button>
-<div id="backup_status" style="display:inline; background-color:#eee"></div>
+<button type="button" onclick="showHtmlOfCurrentLiveBoard()">Show HTML</button>
 </form>
+
+<hr>
+
+<!-- <form action="#"> -->
+<!-- <\!-- backs up current live board -\-> -->
+<!-- <button type="button" onclick="backupCurrentLiveBoard()">Backup</button> -->
+<!-- <div id="backup_status" style="display:inline; background-color:#eee"></div> -->
+<!-- </form> -->
 
 </div>
 
