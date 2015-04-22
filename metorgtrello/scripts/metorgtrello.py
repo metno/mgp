@@ -168,11 +168,11 @@ class BackupLiveBoard(Command):
 
     def execute(self):
         bname = getLiveBoard(self.board_id)['name']
-        sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
+        #sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
         board = getFullLiveBoard(self.board_id)
-        sys.stderr.write('done\nbacking up ... ')
+        #sys.stderr.write('done\nbacking up ... ')
         self.commit = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
-        sys.stderr.write('done\n')
+        #sys.stderr.write('done\n')
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -188,12 +188,12 @@ class BackupAllLiveBoards(Command):
     def execute(self):
         boards = []
         for b in getLiveBoardIdAndNames():
-            sys.stderr.write('fetching board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
+            #sys.stderr.write('fetching board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
             boards.append(getFullLiveBoard(b['id']))
-            sys.stderr.write('done\n')
-        sys.stderr.write('backing up ... ')
+            #sys.stderr.write('done\n')
+        #sys.stderr.write('backing up ... ')
         self.status = backupToGitRepo(boards, getEnv('TRELLOBACKUPDIR'))
-        sys.stderr.write('done\n')
+        #sys.stderr.write('done\n')
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -212,7 +212,7 @@ class SecureAllLiveBoards(Command):
         self.sec_count = 0
         self.tot_count = len(board_infos)
         for b in board_infos:
-            sys.stderr.write('securing board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
+            #sys.stderr.write('securing board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
             try:
                 trello.put(
                     ['boards', b['id'], 'prefs', 'invitations'],
@@ -221,7 +221,7 @@ class SecureAllLiveBoards(Command):
                         }
                     )
                 self.sec_count = self.sec_count + 1
-                sys.stderr.write('done\n')
+                #sys.stderr.write('done\n')
             except:
                 sys.stderr.write('failed: {}\n'.format(str(sys.exc_info())))
         self.printOutput()
@@ -233,39 +233,32 @@ class SecureAllLiveBoards(Command):
         sys.stdout.write('\n');
 
 
-# Initializes a board on the Trello server based on a source board in the local backup directory.
-# - The board will be created if it doesn't already exist.
-#
-# - When merging the source board with an existing destination board, the contents of the latter will
-#   take priority over the former to ensure that any updates made manually via the Trello web GUI are kept.
-#   For example, if the destination board contains a card with the same name as a card in the source board, and the
-#   two cards are in lists with the same name, the card in the source board will not overwrite the one in the
-#   destination board (even if other card attributes, like the description, have changed).
-#
-# - Lists and cards that exist only in the destination board will be kept.
-#
-# - Labels will be reset to an sensible intial state.
-# 
-# - Cards will be moved to initial lists based on metadata in the card description.
-#
-class InitBoard(Command):
+# Copies an existing open board on the Trello server to a new open board.
+# The command fails if an open board with the same name already exists.
+class CopyLiveBoard(Command):
     def __init__(self, http_get, src_id, dst_name):
         self.http_get = http_get
         self.src_id = src_id
-        self.dst_name = dst_name
+        self.dst_name = dst_name.strip()
+        self.status = None
+        self.error = None
 
     def execute(self):
-        src_board = getFullBackedupBoard(self.src_id) # get source board
-
         board_infos = getLiveBoardIdAndNames()
-        if not self.dst_name in [item['name'] for item in board_infos]:
-            # board did not exist, so create it
-            sys.stderr.write('creating new board ... ')
+        if self.dst_name in [item['name'] for item in board_infos]:
+            # an open board with this name already exists
+            self.error = 'an open board already exists with the name {}'.format(self.dst_name)
+        elif self.dst_name == '':
+            self.error = 'empty name'
+        else:
+            # copy board
+            src_name = getBoardNameFromId(board_infos, self.src_id)
             trello.post(
                 ['boards'],
                 arguments = {
                     'name': self.dst_name,
-                    'desc': 'copied from {}'.format(src_board['board']['name']),
+                    'desc': 'copied from {} ({})'.format(src_name, self.src_id),
+                    'idBoardSource': self.src_id,
                     'idOrganization': org_name,
                     'prefs_permissionLevel': 'org',
                     'prefs_comments': 'org',
@@ -273,198 +266,42 @@ class InitBoard(Command):
                     'prefs_selfJoin': 'false'
                     }
                 )
-            sys.stderr.write('done\n')
 
-            board_infos = getLiveBoardIdAndNames() # recompute and expect the new board to be present this time
-        else:
-            sys.stderr.write('updating existing board\n')
+            dst_id = getBoardIdFromName(getLiveBoardIdAndNames(), self.dst_name)
 
-        # get ID of destination board
-        assert self.dst_name in [item['name'] for item in board_infos]
-        dst_bid = next((item['id'] for item in board_infos if item['name'] == self.dst_name), None)
-
-        # save original state of destination board (so that we can merge in that information later)
-        dst_board = getFullLiveBoard(dst_bid)
-
-        # register the lists that each card with a given name belongs to
-        dst_clists = {}
-        for card in dst_board['cards']:
-            card_name = card['name']
-            card_list = card['idList']
-            if card_name not in dst_clists:
-                dst_clists[card_name] = []
-            dst_clists[card_name].append(card_list)
-
-        # open destination board
-        sys.stderr.write('open board ... ')
-        trello.put(
-            ['boards', dst_bid, 'closed'],
-            arguments = {
-                'value': 'false'
-                }
-            )
-        sys.stderr.write('done\n')
-
-        # for each list in the source board that doesn't already exist (i.e. with the same name)
-        # in the destination board, create an empty destination list with this name and
-        # insert it at the last/rightmost position
-        sys.stderr.write('copy lists ... ')
-        src_lnames = [item['name'] for item in src_board['lists']]
-        dst_lnames = [item['name'] for item in dst_board['lists']]
-        for src_lname in src_lnames:
-            if src_lname not in dst_lnames:
-                trello.post(
-                    ['boards', dst_bid, 'lists'],
+            # add all members of current organization to board
+            for item in getOrgMemberIdAndNames():
+                if item['username'] == 'metorg_adm':
+                    continue
+                trello.put(
+                    ['boards', dst_id, 'members', item['id']],
                     arguments = {
-                        'name': src_lname,
-                        'pos': 'bottom'
+                        'idMember': item['id'],
+                        'type': 'normal'
                         }
                     )
-        sys.stderr.write('done\n')
 
-        # get ID and name of open destination board lists at this point (represent as dict using name as key
-        # and ignoring multiple occurrences of the same name)
-        dst_lists = {}
-        for item in getLiveLists(dst_bid):
-            if item['name'] not in dst_lists:
-                dst_lists[item['name']] = item['id']
-        # get ID of both open and closed lists in the same fashion
-        dst_lists_all = {}
-        for item in getLiveListsAll(dst_bid):
-            if item['name'] not in dst_lists_all:
-                dst_lists_all[item['name']] = item['id']
+            self.status = 'successfully copied {} ({}) to {} ({})'.format(src_name, self.src_id, self.dst_name, dst_id)
 
-        # ensure an orphanage list exists
-        orph_lname = 'ukjent' # name of orphanage list (see below)
-        orph_lid = None
-        if orph_lname not in dst_lists_all:
-            sys.stderr.write('creating orphanage list ... ')
-            trello.post(
-                ['boards', dst_bid, 'lists'],
-                arguments = {
-                    'name': orph_lname,
-                    'pos': 'bottom'
-                    }
-                )
-            # get the ID of the orphanage list
-            for item in getLiveLists(dst_bid):
-                if item['name'] == orph_lname:
-                    orph_lid = item['id']
-                    break
-            if not orph_lid:
-                raise Exception('failed to get ID of new orphanage list: {}'.format(orph_lname))
-            sys.stderr.write('done\n')
-        else:
-            orph_lid = dst_lists_all[orph_lname]
+        self.printOutput()
 
-        # open orphanage list
-        sys.stderr.write('open orphanage list ... ')
-        trello.put(
-            ['lists', orph_lid, 'closed'],
-            arguments = {
-                'value': 'false'
-                }
-            )
-        sys.stderr.write('done\n')
-
-        # insert orphanage list in dst_lists
-        dst_lists[orph_lname] = orph_lid
-
-        # ensure the board has special labels: 'todo', 'in progress', and 'done'
-        sys.stderr.write('ensure board has labels \'todo\', \'in progress\', and \'done\' ... ')
-        label_id = {
-            'todo': getLabelId('todo', dst_bid, 'green'),
-            'in progress': getLabelId('in progress', dst_bid, 'yellow'),
-            'done': getLabelId('done', dst_bid, 'red')
-            }
-        sys.stderr.write('done\n')
-
-        # Copy each card in the source board to a list corresponding to the default responsible for the card,
-        # unless a card with the same name already exists in that list.
-        # If a default responsible cannot be identified, the card is copied to a special orphanage list.
-        sys.stderr.write('copy cards ... ')
-        p_dresp = re.compile('.*standardvakt=([^&\t\n\r\f\v]+)') # default responsible
-        p_movable = re.compile('.*flyttbar=([^&\t\n\r\f\v]+)')
-        for card in src_board['cards']:
-            dresp_ok = False
-            card_name = card['name']
-            card_desc = card['desc']
-            m_dresp = p_dresp.match(card_desc)
-            if m_dresp:
-                # card has a default responsible
-                dresp = m_dresp.group(1)
-
-                # if the default responsible matches the first part of a name in dst_list, consider copying the card to that list
-                for dst_lname in dst_lists:
-                    if dst_lname.lower().startswith(dresp.lower()):
-                        # copy card to list if this doesn't already contain a card with the same name
-                        dst_lid = dst_lists[dst_lname]
-                        if (card_name not in dst_clists) or (dst_lid not in dst_clists[card_name]):
-                            trello.post(
-                                ['lists', dst_lid, 'cards'],
-                                arguments = {
-                                    'name': card_name,
-                                    'desc': card_desc
-                                    }
-                                )
-                        dresp_ok = True # in any case we consider processing of 'default responsible' a success at this point
-                        break
-
-                if not dresp_ok:
-                    dresp_nomatch_reason = 'the default responsible (standardvakt) doesn\'t match the first part of any list'
-
-            else:
-                dresp_nomatch_reason = 'card description contains no default responsible (standardvakt)'
-
-            if not dresp_ok:
-                # prepend the reason to the card description
-                card['desc'] = '[[ERROR: {}.]]\n{}'.format(dresp_nomatch_reason, card['desc'].encode('utf-8'))
-
-                # copy card to orphanage list if this doesn't already contain a card with the same name
-                if (card_name not in dst_clists) or (orph_lid not in dst_clists[card_name]):
-                    trello.post(
-                        ['lists', orph_lid, 'cards'],
-                        arguments = {
-                            'name': card['name'],
-                            'desc': card['desc']
-                            }
-                        )
-                
-        sys.stderr.write('done\n')   
-
-        # close orphanage list if empty
-        orph_cards = trello.get(['lists', orph_lid, 'cards'])
-        if len(orph_cards) == 0:
-            sys.stderr.write('close empty orphanage list ... ')
-            trello.put(
-                ['lists', orph_lid, 'closed'],
-                arguments = {
-                    'value': 'true'
-                    }
-                )
-            sys.stderr.write('done\n')
-      
-
-        # sort cards in each list chronologically based on time in title
-        for dst_lname in dst_lists:
-            sys.stderr.write('sorting cards in list {} ... '.format(dst_lname))
-            sortList(dst_lists[dst_lname])
-            sys.stderr.write('done\n')
-
-        # initialize labels of cards in each list
-        for dst_lname in dst_lists:
-            sys.stderr.write('initializing labels of cards in list {} ... '.format(dst_lname))
-
-            cards = trello.get(['lists', dst_lists[dst_lname], 'cards'])
-            for card in cards:
-                trello.delete(['cards', card['id'], 'idLabels', label_id['todo']])
-                trello.delete(['cards', card['id'], 'idLabels', label_id['in progress']])
-                trello.delete(['cards', card['id'], 'idLabels', label_id['done']])
-                trello.post(['cards', card['id'], 'idLabels'], arguments = { 'value': label_id['todo'] })
-
-            sys.stderr.write('done\n')
+    def printOutputAsJSON(self):
+        json.dump({ 'status': self.status, 'error': self.error }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
 
 
+# Lists the ID and name of all members of the current organization on the Trello server.
+class GetOrgMembers(Command):
+    def __init__(self, http_get):
+        self.http_get = http_get
+
+    def execute(self):
+        self.member_id_and_names = getOrgMemberIdAndNames()
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump({ 'members': self.member_id_and_names }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
 
 # --- END Global classes ----------------------------------------------
 
@@ -485,6 +322,21 @@ def getLiveBoardIdAndNames(name_filter = None):
     return result
 
     #return [{'id': board_info['id'], 'name': board_info['name']} for board_info in board_infos]
+
+def getBoardNameFromId(bin_dicts, bid):
+    result = filter(lambda d: d['id'] == bid, bin_dicts)
+    if len(result) == 1:
+        return result[0]['name']
+    return None
+
+def getBoardIdFromName(bin_dicts, bname):
+    result = filter(lambda d: d['name'] == bname, bin_dicts)
+    if len(result) == 1:
+        return result[0]['id']
+    return None
+
+def getOrgMemberIdAndNames():
+    return trello.get(['organizations', org_name, 'members'], arguments = { 'fields': 'username,fullName' })
 
 def getLastCommitTime(gitdir, fname):
     git = sh.git.bake('--no-pager', _cwd=gitdir)
@@ -602,28 +454,6 @@ def getLabelId(name, board_id, color):
     raise Exception('inserted label not found')
 
 
-# Sorts cards in list chronologically based on time in title.
-def sortList(list_id):
-
-    def sortKey(cname):
-        p = re.compile('^\s*(\d\d):(\d\d)\s*;')
-        m = p.match(cname)
-        if m:
-            hours = int(m.group(1))
-            mins = int(m.group(2))
-            return ((hours + 2) % 24) * 60 + mins # define 22:00 to be the earliest time
-        return -1
-
-    cards = trello.get(['lists', list_id, 'cards'], arguments = { 'fields': 'name' })
-    sorted_cards = sorted(cards, key=lambda k: sortKey(k['name']), reverse=True)
-    for scard in sorted_cards:
-        trello.put(
-            ['cards', scard['id'], 'pos'],
-            arguments = {
-                'value': 'top'
-                }
-            )
-
 def printJSONHeader():
     sys.stdout.write('Content-type: text/json\n\n')
 
@@ -693,7 +523,9 @@ def createCommand(options, http_get):
                 '--cmd get_backedup_board_stats --id <board ID>',
                 '--cmd backup_live_board --id <board ID>',
                 '--cmd backup_all_live_boards',
-                '--cmd init_board --src_id <source board ID> --dst_name <destination board name>'
+                '--cmd secure_all_live_boards',
+                '--cmd copy_live_board --src_id <source board ID> --dst_name <destination board name>',
+                '--cmd get_org_members'
                 ]
             }
         printErrorAsJSON(error, http_get)
@@ -732,9 +564,11 @@ def createCommand(options, http_get):
         return BackupAllLiveBoards(http_get)
     elif cmd == 'secure_all_live_boards':
         return SecureAllLiveBoards(http_get)
-    elif cmd == 'init_board':
+    elif cmd == 'copy_live_board':
         if ('src_id' in options) and ('dst_name' in options):
-            return InitBoard(http_get, options['src_id'], options['dst_name'])
+            return CopyLiveBoard(http_get, options['src_id'], options['dst_name'])
+    elif cmd == 'get_org_members':
+        return GetOrgMembers(http_get)
 
     # no match
     printUsageError()

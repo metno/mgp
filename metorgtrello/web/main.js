@@ -302,8 +302,8 @@ function showHtmlOfCurrentLiveBoard() {
 function backupCurrentLiveBoard() {
     statusBase = "backing up current live board ...";
     updateStatus(statusBase, true);
-    var backupBoard = currentLiveBoardName();
-    $('#backup_status').html('backing up live board <u>' + backupBoard + '</u> ...');
+    var boardName = currentLiveBoardName();
+    $('#backup_status').html('backing up live board <u>' + boardName + '</u> ...').css('color', '');
 
     query = "?cmd=backup_board&id=" + currentLiveBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
@@ -319,6 +319,7 @@ function backupCurrentLiveBoard() {
 
                     if (data.error != null) {
                         updateStatus(statusBase + " failed: " + data.error, false);
+			$('#backup_status').html('error: ' + data.error).css('color', 'red');
                         return
                     }
 
@@ -326,10 +327,10 @@ function backupCurrentLiveBoard() {
                     updateStatus("", false);
 
 		    if (data.commit == '') {
-			$('#backup_status').html('no changes in live board <u>' + backupBoard + '</u>');
+			$('#backup_status').html('no changes in live board <u>' + boardName + '</u>');
 		    } else {
 			$('#backup_status').html(
-			    'backed up new changes in live board <u>' + backupBoard +
+			    'backed up new changes in live board <u>' + boardName +
 				'</u> to local git repository (commit id: ' + data.commit + ' )');
 			getBackedupBoards(); // refresh
 		    }
@@ -343,6 +344,61 @@ function backupCurrentLiveBoard() {
                 descr = "undefined error - is the server down?";
             }
             updateStatus(statusBase + " error: " + descr, false);
+	    $('#backup_status').html('error: ' + descr).css('color', 'red');
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Copies the current live board.
+function copyCurrentLiveBoard() {
+    statusBase = "copying current live board ...";
+    updateStatus(statusBase, true);
+    var srcBoardName = currentLiveBoardName();
+    var dstBoardName = $("#dst_board_name").val();
+    $('#copy_status').html('copying live board <u>' + srcBoardName + '</u> to new live board <u>' + dstBoardName + '</u> ...')
+	.css('color', '');
+
+    query = "?cmd=copy_live_board&src_id=" + currentLiveBoardID() + "&dst_name=" + dstBoardName;
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateStatus(statusBase + " failed: " + data.error, false);
+			$('#copy_status').html('error: ' + data.error).css('color', 'red');
+                        return
+                    }
+
+                    updateStatus(statusBase + " done", false);
+                    updateStatus("", false);
+
+		    $('#copy_status').html(data.status);
+		    getLiveBoards(); // refresh
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateStatus(statusBase + " error: " + descr, false);
+	    $('#copy_status').html('error: ' + descr).css('color', 'red');
         }
 
         // complete: function(request, textStatus) {
