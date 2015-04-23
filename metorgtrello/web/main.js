@@ -424,9 +424,10 @@ function addMissingMembers() {
     statusBase = "adding missing members to the current live board ...";
     updateStatus(statusBase, true);
     var boardName = currentLiveBoardName();
-    $('#addmembers_status').html('adding missing members to <u>' + boardName + '</u> ...').css('color', '');
+    var boardID = currentLiveBoardID();
+    $('#addmembers_status').html('adding missing members to board <u>' + boardName + '</u> (' + boardID + ') ...').css('color', '');
 
-    query = "?cmd=add_org_members_to_board&id=" + currentLiveBoardID();
+    query = "?cmd=add_org_members_to_board&id=" + boardID;
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -475,7 +476,7 @@ function setCurrentBackedupBoard(tr) {
     if (tr.length == 0) return;
     $("#table_bboards tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
-    $("#curr_bboard").html(currentBackedupBoardName() + " ( " + currentBackedupBoardID() + " )");
+    $("#curr_bboard").html(currentBackedupBoardName() + " (" + currentBackedupBoardID() + ")");
 }
 
 // Handles selecting a row in the table of backed up boards.
@@ -490,7 +491,7 @@ function setCurrentLiveBoard(tr) {
     if (tr.length == 0) return;
     $("#table_lboards tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
-    $("#curr_lboard").html(currentLiveBoardName() + " ( " + currentLiveBoardID() + " )");
+    $("#curr_lboard").html(currentLiveBoardName() + " (" + currentLiveBoardID() + ")");
 }
 
 // Handles selecting a row in the table of live boards.

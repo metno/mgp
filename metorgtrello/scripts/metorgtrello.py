@@ -168,7 +168,7 @@ class BackupLiveBoard(Command):
 
     def execute(self):
         bname = getLiveBoard(self.board_id)['name']
-        #sys.stderr.write('fetching board {} ({}) ... '.format(self.board_id, bname.encode('utf-8')))
+        #sys.stderr.write('fetching board {} ({}) ... '.format(bname.encode('utf-8'), self.board_id))
         board = getFullLiveBoard(self.board_id)
         #sys.stderr.write('done\nbacking up ... ')
         self.commit = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
@@ -188,7 +188,7 @@ class BackupAllLiveBoards(Command):
     def execute(self):
         boards = []
         for b in getLiveBoardIdAndNames():
-            #sys.stderr.write('fetching board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
+            #sys.stderr.write('fetching board {} ({}) ... '.format(b['name'].encode('utf-8'), b['id']))
             boards.append(getFullLiveBoard(b['id']))
             #sys.stderr.write('done\n')
         #sys.stderr.write('backing up ... ')
@@ -212,7 +212,7 @@ class SecureAllLiveBoards(Command):
         self.sec_count = 0
         self.tot_count = len(board_infos)
         for b in board_infos:
-            #sys.stderr.write('securing board {} ({}) ... '.format(b['id'], b['name'].encode('utf-8')))
+            #sys.stderr.write('securing board {} ({}) ... '.format(b['name'].encode('utf-8'), b['id']))
             try:
                 trello.put(
                     ['boards', b['id'], 'prefs', 'invitations'],
@@ -480,7 +480,7 @@ def addNonAdminOrgMembersToBoard(board_id):
             nadded = nadded + 1
 
     return 'added {} member{} of organization {} to board {} ({})'.format(
-        nadded, '' if (nadded == 1) else 's', org_name, board_id, getBoardNameFromId(getLiveBoardIdAndNames(), board_id))
+        nadded, '' if (nadded == 1) else 's', org_name, getBoardNameFromId(getLiveBoardIdAndNames(), board_id), board_id)
 
 def printJSONHeader():
     sys.stdout.write('Content-type: text/json\n\n')
