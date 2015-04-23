@@ -49,32 +49,25 @@ Filter:
 
 <hr>
 
-<form action="#">
-<button id="copy_button" type="button" onclick="copyCurrentLiveBoard()">Copy</button>
-<input type="text" id="dst_board_name" onclick="return false" />
-<div id="copy_status" style="display:inline; background-color:#eee"></div>
-</form>
+<span style="font-size:120%; font-weight:bold">Selected board:</span>
+<div id="curr_lboard" style="display:inline; font-size:120%"></div>
 
-<hr>
+<br/></br/>
+Name of new board:
+<input type="text" id="dst_board_name" onclick="return false" style="width:300px" />
+<button id="copy_button" type="button" onclick="copyCurrentLiveBoard()">Copy from selected board</button>
+<div id="copy_status" style="display:inline"></div>
 
-<form action="#">
-<button id="addmembers_button" type="button" onclick="addMissingMembers()">Add missing members</button>
-<div id="addmembers_status" style="display:inline; background-color:#eee"></div>
-</form>
+<br/>
+<button id="addmembers_button" type="button" onclick="addMissingMembers()">Add missing members to selected board</button>
+<div id="addmembers_status" style="display:inline"></div>
 
-<hr>
-
-<form action="#">
+<br/>
 <button type="button" onclick="showHtmlOfCurrentLiveBoard()">Show HTML</button>
-</form>
 
-<hr>
-
-<!-- <form action="#"> -->
 <!-- <\!-- backs up current live board -\-> -->
 <!-- <button type="button" onclick="backupCurrentLiveBoard()">Backup</button> -->
 <!-- <div id="backup_status" style="display:inline; background-color:#eee"></div> -->
-<!-- </form> -->
 
 </div>
 

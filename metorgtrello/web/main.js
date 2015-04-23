@@ -475,6 +475,7 @@ function setCurrentBackedupBoard(tr) {
     if (tr.length == 0) return;
     $("#table_bboards tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
+    $("#curr_bboard").html(currentBackedupBoardName() + " ( " + currentBackedupBoardID() + " )");
 }
 
 // Handles selecting a row in the table of backed up boards.
@@ -489,6 +490,7 @@ function setCurrentLiveBoard(tr) {
     if (tr.length == 0) return;
     $("#table_lboards tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
+    $("#curr_lboard").html(currentLiveBoardName() + " ( " + currentLiveBoardID() + " )");
 }
 
 // Handles selecting a row in the table of live boards.
