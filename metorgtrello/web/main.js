@@ -201,7 +201,7 @@ function showHtmlOfCurrentBackedupBoard() {
     // suspicious by the popup blocker
     var newTitle = currentBackedupBoardName();
     var newWin = window.open('');
-    $(newWin.document.body).html('<html><body><h1>please wait ...</h1></body></html>');
+    $(newWin.document.body).html('<html><body><h2>please wait ...</h2></body></html>');
 
     $.ajax({
         url: url,
@@ -256,7 +256,7 @@ function showHtmlOfCurrentLiveBoard() {
     // suspicious by the popup blocker
     var newTitle = currentLiveBoardName();
     var newWin = window.open('');
-    $(newWin.document.body).html('<html><body><h1>please wait ...</h1></body></html>');
+    $(newWin.document.body).html('<html><body><h2>please wait ...</h2></body></html>');
 
     $.ajax({
         url: url,
@@ -358,6 +358,11 @@ function backupCurrentLiveBoard() {
 
 // Copies the current live board.
 function copyCurrentLiveBoard() {
+
+    if ($('#copy_button').attr('disabled'))
+	return;
+
+    $('#copy_button').attr('disabled', true);
     statusBase = "copying current live board ...";
     updateStatus(statusBase, true);
     var srcBoardName = currentLiveBoardName();
@@ -399,12 +404,11 @@ function copyCurrentLiveBoard() {
             }
             updateStatus(statusBase + " error: " + descr, false);
 	    $('#copy_status').html('error: ' + descr).css('color', 'red');
+        },
+
+        complete: function(request, textStatus) {
+	    $('#copy_button').attr('disabled', false);
         }
-
-        // complete: function(request, textStatus) {
-        //     alert("complete; request.status: " + request.status)
-        // }
-
     });
 
     return false;
@@ -509,6 +513,10 @@ $(document).ready(function() {
 	    getLiveBoards();
 	}
     });
+
+    // window.onbeforeunload = function() {
+    //     return "Really reload the page?";
+    // }
 
     getBackedupBoards();
     getLiveBoards();
