@@ -414,6 +414,61 @@ function copyCurrentLiveBoard() {
     return false;
 }
 
+// Adds missing members to the current live board (useful for adding back non-admin members who left the board by accident!)
+function addMissingMembers() {
+
+    if ($('#addmembers_button').attr('disabled'))
+	return;
+
+    $('#addmembers_button').attr('disabled', true);
+    statusBase = "adding missing members to the current live board ...";
+    updateStatus(statusBase, true);
+    var boardName = currentLiveBoardName();
+    $('#addmembers_status').html('adding missing members to <u>' + boardName + '</u> ...').css('color', '');
+
+    query = "?cmd=add_org_members_to_board&id=" + currentLiveBoardID();
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateStatus(statusBase + " failed: " + data.error, false);
+			$('#addmembers_status').html('error: ' + data.error).css('color', 'red');
+                        return
+                    }
+
+                    updateStatus(statusBase + " done", false);
+                    updateStatus("", false);
+
+		    $('#addmembers_status').html(data.status);
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateStatus(statusBase + " error: " + descr, false);
+	    $('#addmembers_status').html('error: ' + descr).css('color', 'red');
+        },
+
+        complete: function(request, textStatus) {
+	    $('#addmembers_button').attr('disabled', false);
+        }
+    });
+
+    return false;
+}
+
 // Sets given backed up board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentBackedupBoard(tr) {

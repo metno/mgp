@@ -269,17 +269,7 @@ class CopyLiveBoard(Command):
 
             dst_id = getBoardIdFromName(getLiveBoardIdAndNames(), self.dst_name)
 
-            # add all members of current organization to board
-            for item in getOrgMemberIdAndNames():
-                if item['username'] == 'metorg_adm':
-                    continue
-                trello.put(
-                    ['boards', dst_id, 'members', item['id']],
-                    arguments = {
-                        'idMember': item['id'],
-                        'type': 'normal'
-                        }
-                    )
+            addNonAdminOrgMembersToBoard(dst_id)
 
             self.status = 'successfully copied {} ({}) to {} ({})'.format(src_name, self.src_id, self.dst_name, dst_id)
 
@@ -301,6 +291,21 @@ class GetOrgMembers(Command):
 
     def printOutputAsJSON(self):
         json.dump({ 'members': self.member_id_and_names }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+
+# Adds all non-admin members of the current organization to a given board on the Trello server.
+class AddOrgMembersToBoard(Command):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def execute(self):
+        self.status = addNonAdminOrgMembersToBoard(self.board_id)
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump({ 'status': self.status }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
 # --- END Global classes ----------------------------------------------
@@ -453,6 +458,29 @@ def getLabelId(name, board_id, color):
 
     raise Exception('inserted label not found')
 
+# Adds all non-admin members of the current organization to a board on the Trello server.
+def addNonAdminOrgMembersToBoard(board_id):
+
+    # get current board members
+    board_member_ids = [item['id'] for item in getLiveMembers(board_id)]
+
+    # add org
+    nadded = 0
+    for item in getOrgMemberIdAndNames():
+        if item['username'] == 'metorg_adm':
+            continue
+        if item['id'] not in board_member_ids:
+            trello.put(
+                ['boards', board_id, 'members', item['id']],
+                arguments = {
+                    'idMember': item['id'],
+                    'type': 'normal'
+                    }
+                )
+            nadded = nadded + 1
+
+    return 'added {} member{} of organization {} to board {} ({})'.format(
+        nadded, '' if (nadded == 1) else 's', org_name, board_id, getBoardNameFromId(getLiveBoardIdAndNames(), board_id))
 
 def printJSONHeader():
     sys.stdout.write('Content-type: text/json\n\n')
@@ -525,7 +553,8 @@ def createCommand(options, http_get):
                 '--cmd backup_all_live_boards',
                 '--cmd secure_all_live_boards',
                 '--cmd copy_live_board --src_id <source board ID> --dst_name <destination board name>',
-                '--cmd get_org_members'
+                '--cmd get_org_members',
+                '--cmd add_org_members_to_board --id <board ID>'
                 ]
             }
         printErrorAsJSON(error, http_get)
@@ -569,6 +598,9 @@ def createCommand(options, http_get):
             return CopyLiveBoard(http_get, options['src_id'], options['dst_name'])
     elif cmd == 'get_org_members':
         return GetOrgMembers(http_get)
+    elif cmd == 'add_org_members_to_board':
+        if 'id' in options:
+            return AddOrgMembersToBoard(http_get, options['id'])
 
     # no match
     printUsageError()
