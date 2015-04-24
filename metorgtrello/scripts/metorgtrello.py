@@ -358,7 +358,7 @@ def getLiveBoardIdAndNames(name_filter = None):
 def getBoardNameFromId(bin_dicts, bid):
     result = filter(lambda d: d['id'] == bid, bin_dicts)
     if len(result) == 1:
-        return result[0]['name']
+        return result[0]['name'].encode('utf-8')
     return None
 
 def getBoardIdFromName(bin_dicts, bname):
@@ -479,11 +479,10 @@ def backupToGitRepo(boards, gitdir):
 
 # Adds all non-admin members of the current organization to a board on the Trello server.
 def addNonAdminOrgMembersToBoard(board_id):
-
     # get current board members
     board_member_ids = [item['id'] for item in getLiveMembers(board_id)]
 
-    # add org
+    # add missing non-admin org members as board members
     nadded = 0
     for item in getOrgMemberIdAndNames():
         if item['username'] == 'metorg_adm':
