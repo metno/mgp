@@ -257,7 +257,8 @@ function showHtmlOfCurrentBackedupBoard() {
     // suspicious by the popup blocker
     var newTitle = currentBackedupBoardName();
     var newWin = window.open('');
-    $(newWin.document.body).html('<html><body><h2>please wait ...</h2></body></html>');
+    $(newWin.document.body).html(
+	'<html><body><h3>generating static HTML for ' + newTitle + '; please wait ...</h3></body></html>');
 
     $.ajax({
         url: url,
@@ -312,7 +313,8 @@ function showHtmlOfCurrentLiveBoard() {
     // suspicious by the popup blocker
     var newTitle = currentLiveBoardName();
     var newWin = window.open('');
-    $(newWin.document.body).html('<html><body><h2>please wait ...</h2></body></html>');
+    $(newWin.document.body).html(
+	'<html><body><h3>generating static HTML for ' + newTitle + '; please wait ...</h3></body></html>');
 
     $.ajax({
         url: url,

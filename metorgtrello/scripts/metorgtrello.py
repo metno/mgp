@@ -2,6 +2,7 @@
 
 import sys, os, re, urllib, json, sh, fnmatch
 from trellosimple import TrelloSimple
+from time import gmtime, strftime, localtime
 
 # --- BEGIN Global classes ----------------------------------------------
 
@@ -110,10 +111,18 @@ class GetBoardHtml(Command):
             '<body>'
             )
 
-        self.html += (
-            '<h1 style="display:inline">{}</h1> <span style="color:#444; font-size:120%">'
-            '( {} )</span><br/><br/>').format(
-            board['board']['name'].encode('utf-8'), self.board_id)
+        self.html += '<h1 style="display:inline">{}</h1><br/>'.format(board['board']['name'].encode('utf-8'))
+        self.html += '<br/><table>'
+        self.html += ('<tr><td style="text-align:right; background: #eee; font-family: monospace">'
+                      '<b>Trello board ID:</b></td><td>{}</td></tr>'
+                      ).format(self.board_id)
+        self.html += ('<tr><td style="text-align:right; background: #eee; font-family: monospace">'
+                      '<b>Snapshot created:</b></td><td>{} (UTC)</td></tr>'
+                      ).format(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
+        self.html += ('<tr><td style="text-align:right; background: #eee; font-family: monospace">'
+                      '<b>Source:</b></td><td>{}</td></tr>'
+                      ).format(self.source())
+        self.html += '</table><br/><br/>'
 
         cards = {}
         for lst in board['lists']:
@@ -150,6 +159,9 @@ class GetLiveBoardHtml(GetBoardHtml):
     def getFullBoard(self):
         return getFullLiveBoard(self.board_id)
 
+    def source(self):
+        return 'Trello server'
+
 # Prints a HTML version of a board.
 class GetBackedupBoardHtml(GetBoardHtml):
     def __init__(self, http_get, board_id):
@@ -159,6 +171,8 @@ class GetBackedupBoardHtml(GetBoardHtml):
     def getFullBoard(self):
         return getFullBackedupBoard(self.board_id)
 
+    def source(self):
+        return 'local backup (git repository)'
 
 # Prints stats for a given board in the local backup directory.
 class GetBackedupBoardStats(Command):
