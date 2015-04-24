@@ -477,22 +477,6 @@ def backupToGitRepo(boards, gitdir):
         return sha1
     return ''
 
-def getLabelId(name, board_id, color):
-    labels = trello.get(['boards', board_id, 'labels'], arguments = { 'fields': 'name,color' })
-    for label in labels:
-        if (label['name'] == name) and (label['color'] == color):
-            return label['id'] # found
-
-    # not found, so insert it
-    trello.post(['boards', board_id, 'labels'], arguments = { 'name': name, 'color': color })
-    # ... and find the ID
-    labels = trello.get(['boards', board_id, 'labels'], arguments = { 'fields': 'name,color' })
-    for label in labels:
-        if (label['name'] == name) and (label['color'] == color):
-            return label['id'] # found
-
-    raise Exception('inserted label not found')
-
 # Adds all non-admin members of the current organization to a board on the Trello server.
 def addNonAdminOrgMembersToBoard(board_id):
 
