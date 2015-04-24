@@ -153,10 +153,9 @@ function getLiveBoards() {
                     for (i = 0; i < boards.length; ++i) {
 			var id = boards[i].id;
                         html += "<tr class=\"tr_lboards\" id=\"tr_lb_" + i + "\">";
-                        html += "<td>" + boards[i].name + "</td>";
+                        html += "<td id=name_" + id + ">" + boards[i].name + "</td>";
                         html += "<td>" + id + "</td>";
                         html += "<td id=owner_" + id + " style=\"color:red\">pending...</td>";
-                        html += "<td id=page_" + id + " style=\"color:red\">pending...</td>";
                         html += "</tr>";
                     }
 
@@ -221,7 +220,7 @@ function getLiveBoardSummary(board_id) {
 
                     // insert summary in table
 		    $('#owner_' + board_id).html(data.owner).css('color', '');
-		    $('#page_' + board_id).html('<a href=\"' + data.url + '\">link</a>').css('color', '');
+		    $('#name_' + board_id).html('<a href=\"' + data.url + '\">' + data.name + '</a>').css('color', '');
                     $("#table_lboards").trigger("update");
                 }
             }
@@ -614,9 +613,6 @@ $(document).ready(function() {
     options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards';
     options.headers = {
 	1: { // board ID (random hash, so sorting makes no sense)
-	    sorter: false
-	},
-	3: { // page (all cells contain the text 'link', so sorting makes no sense)
 	    sorter: false
 	}
     }
