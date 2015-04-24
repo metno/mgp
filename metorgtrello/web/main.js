@@ -56,7 +56,7 @@ function firstLiveBoard() {
 // Retrieves the available backed up boards.
 function getBackedupBoards() {
     statusBase = "getting backed up boards ...";
-    updateStatus(statusBase, true);
+    updateBackupStatus(statusBase, true);
 
     query = "?cmd=get_backedup_boards&filter=" + $("#bboard_name_filter").val();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
@@ -71,12 +71,12 @@ function getBackedupBoards() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateBackupStatus(statusBase + " failed: " + data.error, false);
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateBackupStatus(statusBase + " done", false);
+                    updateBackupStatus("", false);
 
                     // load table
                     clearTable("#table_bboards");
@@ -109,7 +109,7 @@ function getBackedupBoards() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateBackupStatus(statusBase + " error: " + descr, false);
         }
 
         // complete: function(request, textStatus) {
@@ -124,7 +124,7 @@ function getBackedupBoards() {
 // Retrieves the open live boards.
 function getLiveBoards() {
     statusBase = "getting live boards ...";
-    updateStatus(statusBase, true);
+    updateLiveStatus(statusBase, true);
 
     query = "?cmd=get_live_boards&filter=" + $("#lboard_name_filter").val();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
@@ -139,21 +139,24 @@ function getLiveBoards() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
 
                     // load table
                     clearTable("#table_lboards");
 		    boards = data.boards;
                     html = "";
                     for (i = 0; i < boards.length; ++i) {
+			var id = boards[i].id;
                         html += "<tr class=\"tr_lboards\" id=\"tr_lb_" + i + "\">";
                         html += "<td>" + boards[i].name + "</td>";
-                        html += "<td>" + boards[i].id + "</td>";
+                        html += "<td>" + id + "</td>";
+                        html += "<td id=owner_" + id + " style=\"color:red\">pending...</td>";
+                        html += "<td id=url_" + id + " style=\"color:red\">pending...</td>";
                         html += "</tr>";
                     }
 
@@ -162,11 +165,14 @@ function getLiveBoards() {
                     if (html != "") // hm ... why is this test necessary?
                         $("#table_lboards").trigger("appendCache");
 
-                    for (i = 0; i < boards.length; ++i) {
+                    for (i = 0; i < boards.length; ++i)
 			$("#tr_lb_" + i).data("bid", boards[i].id);
-		    }
 
                     setCurrentLiveBoard(firstLiveBoard());
+
+		    // complete table by getting summary for each board
+                    for (i = 0; i < boards.length; ++i)
+			getLiveBoardSummary(boards[i].id);
                 }
             }
         },
@@ -176,7 +182,57 @@ function getLiveBoards() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateLiveStatus(statusBase + " error: " + descr, false);
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Retrieves info for a given live board.
+function getLiveBoardSummary(board_id) {
+    statusBase = "getting info for board " + board_id + " ...";
+    updateLiveStatus(statusBase, true);
+
+    query = "?cmd=get_live_board_summary&id=" + board_id;
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
+                        return
+                    }
+
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
+
+                    // insert summary in table
+		    $('#owner_' + board_id).html(data.owner).css('color', '');
+		    $('#url_' + board_id).html(data.url).css('color', '');
+                    $("#table_lboards").trigger("update");
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateLiveStatus(statusBase + " error: " + descr, false);
         }
 
         // complete: function(request, textStatus) {
@@ -191,7 +247,7 @@ function getLiveBoards() {
 // Opens the HTML snapshot of the current backed up board in a new page.
 function showHtmlOfCurrentBackedupBoard() {
     statusBase = "getting HTML of current backed up board ...";
-    updateStatus(statusBase, true);
+    updateBackupStatus(statusBase, true);
 
     query = "?cmd=get_backedup_board_html&id=" + currentBackedupBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
@@ -213,12 +269,12 @@ function showHtmlOfCurrentBackedupBoard() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateBackupStatus(statusBase + " failed: " + data.error, false);
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateBackupStatus(statusBase + " done", false);
+                    updateBackupStatus("", false);
 
                     $(newWin.document.body).html(data.html);
                     newWin.document.title = newTitle;
@@ -231,7 +287,7 @@ function showHtmlOfCurrentBackedupBoard() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateBackupStatus(statusBase + " error: " + descr, false);
         }
 
         // complete: function(request, textStatus) {
@@ -246,7 +302,7 @@ function showHtmlOfCurrentBackedupBoard() {
 // Opens the HTML snapshot of the current live board in a new page.
 function showHtmlOfCurrentLiveBoard() {
     statusBase = "getting HTML of current live board ...";
-    updateStatus(statusBase, true);
+    updateLiveStatus(statusBase, true);
 
     query = "?cmd=get_live_board_html&id=" + currentLiveBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
@@ -268,12 +324,12 @@ function showHtmlOfCurrentLiveBoard() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
 
                     $(newWin.document.body).html(data.html);
                     newWin.document.title = newTitle;
@@ -286,7 +342,7 @@ function showHtmlOfCurrentLiveBoard() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateLiveStatus(statusBase + " error: " + descr, false);
         }
 
         // complete: function(request, textStatus) {
@@ -301,7 +357,7 @@ function showHtmlOfCurrentLiveBoard() {
 // Backs up the current live board.
 function backupCurrentLiveBoard() {
     statusBase = "backing up current live board ...";
-    updateStatus(statusBase, true);
+    updateLiveStatus(statusBase, true);
     var boardName = currentLiveBoardName();
     $('#backup_status').html('backing up live board <u>' + boardName + '</u> ...').css('color', '');
 
@@ -318,13 +374,13 @@ function backupCurrentLiveBoard() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
 			$('#backup_status').html('error: ' + data.error).css('color', 'red');
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
 
 		    if (data.commit == '') {
 			$('#backup_status').html('no changes in live board <u>' + boardName + '</u>');
@@ -343,7 +399,7 @@ function backupCurrentLiveBoard() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateLiveStatus(statusBase + " error: " + descr, false);
 	    $('#backup_status').html('error: ' + descr).css('color', 'red');
         }
 
@@ -364,7 +420,7 @@ function copyCurrentLiveBoard() {
 
     $('#copy_button').attr('disabled', true);
     statusBase = "copying current live board ...";
-    updateStatus(statusBase, true);
+    updateLiveStatus(statusBase, true);
     var srcBoardName = currentLiveBoardName();
     var dstBoardName = $("#dst_board_name").val();
     $('#copy_status').html('copying live board <u>' + srcBoardName + '</u> to new live board <u>' + dstBoardName + '</u> ...')
@@ -383,13 +439,13 @@ function copyCurrentLiveBoard() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
 			$('#copy_status').html('error: ' + data.error).css('color', 'red');
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
 
 		    $('#copy_status').html(data.status);
 		    getLiveBoards(); // refresh
@@ -402,7 +458,7 @@ function copyCurrentLiveBoard() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateLiveStatus(statusBase + " error: " + descr, false);
 	    $('#copy_status').html('error: ' + descr).css('color', 'red');
         },
 
@@ -422,7 +478,7 @@ function addMissingMembers() {
 
     $('#addmembers_button').attr('disabled', true);
     statusBase = "adding missing members to the current live board ...";
-    updateStatus(statusBase, true);
+    updateLiveStatus(statusBase, true);
     var boardName = currentLiveBoardName();
     var boardID = currentLiveBoardID();
     $('#addmembers_status').html('adding missing members to board <u>' + boardName + '</u> (' + boardID + ') ...').css('color', '');
@@ -440,13 +496,13 @@ function addMissingMembers() {
                 if (request.status == 200) {
 
                     if (data.error != null) {
-                        updateStatus(statusBase + " failed: " + data.error, false);
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
 			$('#addmembers_status').html('error: ' + data.error).css('color', 'red');
                         return
                     }
 
-                    updateStatus(statusBase + " done", false);
-                    updateStatus("", false);
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
 
 		    $('#addmembers_status').html(data.status);
                 }
@@ -458,7 +514,7 @@ function addMissingMembers() {
             if (errorThrown == null) {
                 descr = "undefined error - is the server down?";
             }
-            updateStatus(statusBase + " error: " + descr, false);
+            updateLiveStatus(statusBase + " error: " + descr, false);
 	    $('#addmembers_status').html('error: ' + descr).css('color', 'red');
         },
 
@@ -507,8 +563,8 @@ $(document).ready(function() {
     initTablesorter();
 
     var options = {
-        widthFixed : false,
-        showProcessing: true,
+        //widthFixed : false,
+        //showProcessing: true,
         // headerTemplate : '{content} {icon}', // Add icon for jui theme; new in v2.7!
 
         // widgets: [ 'uitheme', 'zebra', 'stickyHeaders', 'filter' ],
@@ -535,26 +591,33 @@ $(document).ready(function() {
             // adding zebra striping, using content and default styles
             // - the ui css removes the background from default
             // even and odd class names included for this demo to allow switching themes
-            zebra   : ["ui-widget-content even", "ui-state-default odd"],
+            //zebra   : ["ui-widget-content even", "ui-state-default odd"],
             // use uitheme widget to apply default jquery ui (jui) class names
             // see the uitheme demo for more details on how to change the class names
             uitheme : 'jui'
-        },
-
-	headers: {
-	    1: {
-		sorter: false
-	    }
-	}
+        }
     };
 
     options.widgetOptions.stickyHeaders_attachTo = '.wrapper_bboards';
+    options.headers = {
+	1: { // board ID (random hash, so sorting makes no sense)
+	    sorter: false
+	}
+    }
     $("#table_bboards").tablesorter(options);
     $(document).on("click", ".tr_bboards td", function(e) {
         selectBackedupBoard($(e.target).parent());
     });
 
     options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards';
+    options.headers = {
+	1: { // board ID (random hash, so sorting makes no sense)
+	    sorter: false
+	},
+	3: { // URL (contains random hash, so sorting makes no sense)
+	    sorter: false
+	}
+    }
     $("#table_lboards").tablesorter(options);
     $(document).on("click", ".tr_lboards td", function(e) {
         selectLiveBoard($(e.target).parent());

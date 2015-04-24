@@ -10,17 +10,23 @@ function clearTable(tableSel) {
 }
 
 // ### 2 B DOCUMENTED!
-function updateStatus(msg, showSpinner) {
-    // Note: the "span[id^=status]" selector matches all span elements
-    // with an id attribute that begins with "status".
-    $("span[id^=status]").text(msg);
+function updateStatus(span_id, spinner_id, nospinner_id, msg, showSpinner) {
+    $("span[id=" + span_id + "]").text(msg);
     if (showSpinner) {
-        $("img[id^=spinner]").css("display", "inline");
-        $("img[id^=nospinner]").css("display", "none");
+        $("img[id="+ spinner_id + "]").css("display", "inline");
+        $("img[id=" + nospinner_id + "]").css("display", "none");
     } else {
-        $("img[id^=spinner]").css("display", "none");
-        $("img[id^=nospinner]").css("display", "inline");
+        $("img[id=" + spinner_id + "]").css("display", "none");
+        $("img[id=" + nospinner_id + "]").css("display", "inline");
     }
+}
+
+function updateLiveStatus(msg, showSpinner) {
+    updateStatus("live_status_span", "live_status_spinner", "live_status_nospinner", msg, showSpinner);
+}
+
+function updateBackupStatus(msg, showSpinner) {
+    updateStatus("backup_status_span", "backup_status_spinner", "backup_status_nospinner", msg, showSpinner);
 }
 
 // ### 2 B DOCUMENTED!
