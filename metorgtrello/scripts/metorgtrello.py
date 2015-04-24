@@ -276,7 +276,7 @@ class CopyLiveBoard(Command):
         board_infos = getLiveBoardIdAndNames()
         if self.dst_name in [item['name'] for item in board_infos]:
             # an open board with this name already exists
-            self.error = 'an open board already exists with the name {}'.format(self.dst_name)
+            self.error = 'an open board already exists with the name {}'.format(self.dst_name.encode('utf-8'))
         elif self.dst_name == '':
             self.error = 'empty name'
         else:
@@ -297,10 +297,9 @@ class CopyLiveBoard(Command):
                 )
 
             dst_id = getBoardIdFromName(getLiveBoardIdAndNames(), self.dst_name)
-
             addNonAdminOrgMembersToBoard(dst_id)
-
-            self.status = 'successfully copied {} ({}) to {} ({})'.format(src_name, self.src_id, self.dst_name, dst_id)
+            self.status = 'successfully copied {} ({}) to {} ({})'.format(
+                src_name, self.src_id, self.dst_name.encode('utf-8'), dst_id)
 
         self.printOutput()
 
@@ -362,7 +361,7 @@ def getBoardNameFromId(bin_dicts, bid):
     return None
 
 def getBoardIdFromName(bin_dicts, bname):
-    result = filter(lambda d: d['name'] == bname, bin_dicts)
+    result = filter(lambda d: d['name'].encode('utf-8') == bname.encode('utf-8'), bin_dicts)
     if len(result) == 1:
         return result[0]['id']
     return None
@@ -617,7 +616,7 @@ def createCommand(options, http_get):
         return SecureAllLiveBoards(http_get)
     elif cmd == 'copy_live_board':
         if ('src_id' in options) and ('dst_name' in options):
-            return CopyLiveBoard(http_get, options['src_id'], options['dst_name'])
+            return CopyLiveBoard(http_get, options['src_id'], options['dst_name'].decode('utf-8'))
     elif cmd == 'get_org_members':
         return GetOrgMembers(http_get)
     elif cmd == 'add_org_members_to_board':
