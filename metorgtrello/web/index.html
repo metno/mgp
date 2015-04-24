@@ -56,14 +56,17 @@ Filter:
 <div id="curr_lboard" style="display:inline; font-size:120%"></div>
 
 <br/></br/>
-Name of new board:
+<button id="copy_button" type="button" onclick="copyCurrentLiveBoard()">Copy to new board:</button>
 <input type="text" id="dst_board_name" onclick="return false" style="width:300px" />
-<button id="copy_button" type="button" onclick="copyCurrentLiveBoard()">Copy from selected board</button>
 <div id="copy_status" style="display:inline"></div>
 
 <br/>
-<button id="addmembers_button" type="button" onclick="addMissingMembers()">Add missing members to selected board</button>
+<button id="addmembers_button" type="button" onclick="addMissingMembers()">Add missing members</button>
 <div id="addmembers_status" style="display:inline"></div>
+
+<br/>
+<button id="close_button" type="button" onclick="closeCurrentLiveBoard()">Close</button>
+<div id="close_status" style="display:inline"></div>
 
 <br/>
 <button type="button" onclick="showHtmlOfCurrentLiveBoard()">Show HTML</button>
