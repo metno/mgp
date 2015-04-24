@@ -197,11 +197,8 @@ class BackupLiveBoard(Command):
 
     def execute(self):
         bname = getLiveBoardSummary(self.board_id)['name']
-        #sys.stderr.write('fetching board {} ({}) ... '.format(bname.encode('utf-8'), self.board_id))
         board = getFullLiveBoard(self.board_id)
-        #sys.stderr.write('done\nbacking up ... ')
         self.commit = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
-        #sys.stderr.write('done\n')
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -217,12 +214,8 @@ class BackupAllLiveBoards(Command):
     def execute(self):
         boards = []
         for b in getLiveBoardIdAndNames():
-            #sys.stderr.write('fetching board {} ({}) ... '.format(b['name'].encode('utf-8'), b['id']))
             boards.append(getFullLiveBoard(b['id']))
-            #sys.stderr.write('done\n')
-        #sys.stderr.write('backing up ... ')
         self.status = backupToGitRepo(boards, getEnv('TRELLOBACKUPDIR'))
-        #sys.stderr.write('done\n')
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -241,7 +234,6 @@ class SecureAllLiveBoards(Command):
         self.sec_count = 0
         self.tot_count = len(board_infos)
         for b in board_infos:
-            #sys.stderr.write('securing board {} ({}) ... '.format(b['name'].encode('utf-8'), b['id']))
             try:
                 trello.put(
                     ['boards', b['id'], 'prefs', 'invitations'],
@@ -250,7 +242,6 @@ class SecureAllLiveBoards(Command):
                         }
                     )
                 self.sec_count = self.sec_count + 1
-                #sys.stderr.write('done\n')
             except:
                 sys.stderr.write('failed: {}\n'.format(str(sys.exc_info())))
         self.printOutput()
