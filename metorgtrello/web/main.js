@@ -629,6 +629,124 @@ function addMissingMembers() {
     return false;
 }
 
+// Closes the current open live board.
+// ### Very similar to reopenCurrentLiveBoard(), consider refactoring.
+function closeCurrentLiveBoard() {
+
+    if ($('#close_button').attr('disabled'))
+	return;
+
+    $('#close_button').attr('disabled', true);
+    statusBase = "closing the current live board ...";
+    updateLiveStatus(statusBase, true);
+    var boardName = currentOpenLiveBoardName();
+    var boardID = currentOpenLiveBoardID();
+    $('#close_status').html('closing board <u>' + boardName + '</u> (' + boardID + ') ...').css('color', '');
+
+    query = "?cmd=close_board&id=" + boardID;
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
+			$('#close_status').html('error: ' + data.error).css('color', 'red');
+                        return
+                    }
+
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
+
+		    $('#close_status').html(data.status);
+		    getOpenLiveBoards(); // refresh
+		    getClosedLiveBoards(); // refresh
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateLiveStatus(statusBase + " error: " + descr, false);
+	    $('#close_status').html('error: ' + descr).css('color', 'red');
+        },
+
+        complete: function(request, textStatus) {
+	    $('#close_button').attr('disabled', false);
+        }
+    });
+
+    return false;
+}
+
+// Reopens the current open live board.
+// ### Very similar to closeCurrentLiveBoard(), consider refactoring.
+function reopenCurrentLiveBoard() {
+
+    if ($('#reopen_button').attr('disabled'))
+	return;
+
+    $('#reopen_button').attr('disabled', true);
+    statusBase = "reopening the current live board ...";
+    updateLiveStatus(statusBase, true);
+    var boardName = currentClosedLiveBoardName();
+    var boardID = currentClosedLiveBoardID();
+    $('#reopen_status').html('reopening board <u>' + boardName + '</u> (' + boardID + ') ...').css('color', '');
+
+    query = "?cmd=reopen_board&id=" + boardID;
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
+			$('#reopen_status').html('error: ' + data.error).css('color', 'red');
+                        return
+                    }
+
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
+
+		    $('#reopen_status').html(data.status);
+		    getOpenLiveBoards(); // refresh
+		    getClosedLiveBoards(); // refresh
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateLiveStatus(statusBase + " error: " + descr, false);
+	    $('#reopen_status').html('error: ' + descr).css('color', 'red');
+        },
+
+        complete: function(request, textStatus) {
+	    $('#reopen_button').attr('disabled', false);
+        }
+    });
+
+    return false;
+}
+
 // Sets given backed up board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentBackedupBoard(tr) {

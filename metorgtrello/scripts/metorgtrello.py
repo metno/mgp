@@ -300,6 +300,50 @@ class CopyLiveBoard(Command):
         sys.stdout.write('\n');
 
 
+# Closes a given board on the Trello server.
+# ### Very similar to ReopenBoard, consider refactoring.
+class CloseBoard(Command):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def execute(self):
+        trello.put(
+            ['boards', self.board_id, 'closed'],
+            arguments = {
+                'value': 'true'
+                }
+            )
+        self.status = 'closed board ({})'.format(self.board_id)
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump({ 'status': self.status }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+
+# Reopens a given board on the Trello server.
+# ### Very similar to CloseBoard, consider refactoring.
+class ReopenBoard(Command):
+    def __init__(self, http_get, board_id):
+        self.http_get = http_get
+        self.board_id = board_id
+
+    def execute(self):
+        trello.put(
+            ['boards', self.board_id, 'closed'],
+            arguments = {
+                'value': 'false'
+                }
+            )
+        self.status = 'reopened board ({})'.format(self.board_id)
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump({ 'status': self.status }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+
 # Lists the ID and name of all members of the current organization on the Trello server.
 class GetOrgMembers(Command):
     def __init__(self, http_get):
@@ -563,6 +607,8 @@ def createCommand(options, http_get):
                 '--cmd backup_all_live_boards',
                 '--cmd secure_all_live_boards',
                 '--cmd copy_live_board --src_id <source board ID> --dst_name <destination board name>',
+                '--cmd close_board --id <board ID>',
+                '--cmd reopen_board --id <board ID>',
                 '--cmd get_org_members',
                 '--cmd add_org_members_to_board --id <board ID>'
                 ]
@@ -610,6 +656,12 @@ def createCommand(options, http_get):
     elif cmd == 'copy_live_board':
         if ('src_id' in options) and ('dst_name' in options):
             return CopyLiveBoard(http_get, options['src_id'], options['dst_name'].decode('utf-8'))
+    elif cmd == 'close_board':
+        if ('id' in options):
+            return CloseBoard(http_get, options['id'])
+    elif cmd == 'reopen_board':
+        if ('id' in options):
+            return ReopenBoard(http_get, options['id'])
     elif cmd == 'get_org_members':
         return GetOrgMembers(http_get)
     elif cmd == 'add_org_members_to_board':
