@@ -24,12 +24,20 @@
 
 <br/>
 
-<div style="background-color:#fdb">
+<div>
 
-<h2 style="font-size:120%; font-weight:bold">Live boards</h2>
+<select id="board_type" onchange="selectBoardType()">
+  <option value="open" style="color:green">Open</option>
+  <option value="closed" style="color:red">Closed</option>
+</select>
 
-<div class="wrapper_lboards" style="position:relative; padding:0 5px; height:500px; overflow-y:auto;">
-<table id="table_lboards" class="tablesorter-blue" style="font-family:'Lucida Console', Monaco, monospace"
+<span style="font-size:120%; font-weight:bold">Live boards</span>
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<div id="div_lboards_open" style="display:block; background-color:#afa">
+
+<div class="wrapper_lboards_open" style="position:relative; padding:0 5px; height:500px; overflow-y:auto;">
+<table id="table_lboards_open" class="tablesorter-blue" style="font-family:'Lucida Console', Monaco, monospace"
        cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
 <thead>
 <tr style="display:table-row;">
@@ -45,17 +53,17 @@
 
 <form action="#">
 Filter:
-<input type="text" id="lboard_name_filter" onclick="return false" />
-<button type="button" onclick="getLiveBoards()">Apply</button>
+<input type="text" id="lboard_open_name_filter" onclick="return false" />
+<button type="button" onclick="getOpenLiveBoards()">Apply</button>
 </form>
 
 <hr>
 
 <span style="font-size:120%; font-weight:bold">Selected board:</span>
-<div id="curr_lboard" style="display:inline; font-size:120%"></div>
+<div id="curr_lboard_open" style="display:inline; font-size:120%"></div>
 
 <br/></br/>
-<button id="copy_button" type="button" onclick="copyCurrentLiveBoard()">Copy to new board:</button>
+<button id="copy_button" type="button" onclick="copyCurrentOpenLiveBoard()">Copy to new board:</button>
 <input type="text" id="dst_board_name" onclick="return false" style="width:300px" />
 <div id="copy_status" style="display:inline"></div>
 
@@ -68,11 +76,51 @@ Filter:
 <div id="close_status" style="display:inline"></div>
 
 <br/>
-<button type="button" onclick="showHtmlOfCurrentLiveBoard()">Show HTML</button>
+<button type="button" onclick="showHtmlOfCurrentOpenLiveBoard()">Show HTML</button>
 
 <!-- <\!-- backs up current live board -\-> -->
 <!-- <button type="button" onclick="backupCurrentLiveBoard()">Backup</button> -->
 <!-- <div id="backup_status" style="display:inline; background-color:#eee"></div> -->
+
+</div> <!-- id="div_lboards_open" -->
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<div id="div_lboards_closed" style="display:none; background-color:#faa">
+
+<div class="wrapper_lboards_closed" style="position:relative; padding:0 5px; height:500px; overflow-y:auto;">
+<table id="table_lboards_closed" class="tablesorter-blue" style="font-family:'Lucida Console', Monaco, monospace"
+       cellpadding="0" cellspacing="1" style="border:0; width: 100%; table-layout: fixed; white-space: nowrap;">
+<thead>
+<tr style="display:table-row;">
+<th>Name</th>
+<th>ID</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+
+<form action="#">
+Filter:
+<input type="text" id="lboard_closed_name_filter" onclick="return false" />
+<button type="button" onclick="getClosedLiveBoards()">Apply</button>
+</form>
+
+<hr>
+
+<span style="font-size:120%; font-weight:bold">Selected board:</span>
+<div id="curr_lboard_closed" style="display:inline; font-size:120%"></div>
+
+<br/>
+<button id="reopen_button" type="button" onclick="reopenCurrentLiveBoard()">Reopen</button>
+<div id="reopen_status" style="display:inline"></div>
+
+</div> <!-- id="div_lboards_closed" -->
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
 
 </div>
 

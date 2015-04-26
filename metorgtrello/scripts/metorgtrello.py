@@ -15,14 +15,15 @@ class Command:
 
 # Lists the ID and name of all open boards on the Trello server.
 class GetLiveBoards(Command):
-    def __init__(self, http_get, name_filter):
+    def __init__(self, http_get, open_boards, name_filter):
         self.http_get = http_get
+        self.open_boards = open_boards.lower() not in ['false', 'no', '0']
         self.name_filter = name_filter.strip()
         if self.name_filter == '':
             self.name_filter = '*'
 
     def execute(self):
-        self.boards = getLiveBoardIdAndNames(self.name_filter.decode('utf-8'))
+        self.boards = getLiveBoardIdAndNames(self.open_boards, self.name_filter.decode('utf-8'))
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -335,8 +336,8 @@ class AddOrgMembersToBoard(Command):
 def getOrgId():
     return trello.get(['organizations', org_name, 'id'])
 
-def getLiveBoardIdAndNames(name_filter = None):
-    board_infos = trello.get(['organizations', org_name, 'boards'], arguments = { 'filter': 'open' })
+def getLiveBoardIdAndNames(open_boards = True, name_filter = None):
+    board_infos = trello.get(['organizations', org_name, 'boards'], arguments = { 'filter': 'open' if open_boards else 'closed' })
 
     result = []
     for board_info in board_infos:
@@ -550,7 +551,7 @@ def createCommand(options, http_get):
         error = {
             'argv0': sys.argv[0],
             'commands': [
-                '--cmd get_live_boards',
+                '--cmd get_live_boards --open {0|1} [--filter <board name filter>]',
                 '--cmd get_backedup_boards [--filter <board name filter>]',
                 '--cmd get_live_board --id <board ID>',
                 '--cmd get_live_board_summary --id <board ID>',
@@ -577,7 +578,8 @@ def createCommand(options, http_get):
 
     # return the command if possible
     if cmd == 'get_live_boards':
-        return GetLiveBoards(http_get, options['filter'] if 'filter' in options else '')
+        if 'open' in options:
+            return GetLiveBoards(http_get, options['open'], options['filter'] if 'filter' in options else '')
     elif cmd == 'get_backedup_boards':
         return GetBackedupBoards(http_get, options['filter'] if 'filter' in options else '')
     elif cmd == 'get_live_board':

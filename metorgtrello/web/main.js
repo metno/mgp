@@ -27,31 +27,66 @@ function firstBackedupBoard() {
     return (tr.length > 0) ? tr : undefined;
 }
 
-// Returns the current live board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no current live board exists.
-function currentLiveBoard() {
-    var tr = $("#table_lboards tr.selectedRow:first");
+
+
+
+// Returns the current open live board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no current open live board exists.
+function currentOpenLiveBoard() {
+    var tr = $("#table_lboards_open tr.selectedRow:first");
     return (tr.length > 0) ? tr : undefined;
 }
 
-// Returns the current live board name (as a string) or undefined if no current live board exists.
-function currentLiveBoardName() {
-    var tr = currentLiveBoard();
+// Returns the current open live board name (as a string) or undefined if no current open live board exists.
+function currentOpenLiveBoardName() {
+    var tr = currentOpenLiveBoard();
     return tr ? tr.find("td:first").text() : undefined;
 }
 
-// Returns the current live board ID or undefined if no current live board exists.
-function currentLiveBoardID() {
-    var tr = currentLiveBoard();
+// Returns the current open live board ID or undefined if no current open live board exists.
+function currentOpenLiveBoardID() {
+    var tr = currentOpenLiveBoard();
     return $(tr).data("bid");
 }
 
-// Returns the first live board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no live boards exist.
-function firstLiveBoard() {
-    tr = $("#table_lboards tr.tr_lboards:nth-child(1)");
+// Returns the first open live board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no open live boards exist.
+function firstOpenLiveBoard() {
+    tr = $("#table_lboards_open tr.tr_lboards_open:nth-child(1)");
     return (tr.length > 0) ? tr : undefined;
 }
+
+
+
+
+// Returns the current closed live board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no current closed live board exists.
+function currentClosedLiveBoard() {
+    var tr = $("#table_lboards_closed tr.selectedRow:first");
+    return (tr.length > 0) ? tr : undefined;
+}
+
+// Returns the current closed live board name (as a string) or undefined if no current live closed board exists.
+function currentClosedLiveBoardName() {
+    var tr = currentClosedLiveBoard();
+    return tr ? tr.find("td:first").text() : undefined;
+}
+
+// Returns the current closed live board ID or undefined if no current closed live board exists.
+function currentClosedLiveBoardID() {
+    var tr = currentClosedLiveBoard();
+    return $(tr).data("bid");
+}
+
+// Returns the first closed live board (as a jQuery selector of the corresponding <tr> element)
+// or undefined if no closed live boards exist.
+function firstClosedLiveBoard() {
+    tr = $("#table_lboards_closed tr.tr_lboards_closed:nth-child(1)");
+    return (tr.length > 0) ? tr : undefined;
+}
+
+
+
 
 // Retrieves the available backed up boards.
 function getBackedupBoards() {
@@ -122,11 +157,11 @@ function getBackedupBoards() {
 }
 
 // Retrieves the open live boards.
-function getLiveBoards() {
-    statusBase = "getting live boards ...";
+function getOpenLiveBoards() {
+    statusBase = "getting open live boards ...";
     updateLiveStatus(statusBase, true);
 
-    query = "?cmd=get_live_boards&filter=" + $("#lboard_name_filter").val();
+    query = "?cmd=get_live_boards&open=1&filter=" + $("#lboard_open_name_filter").val();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -147,27 +182,27 @@ function getLiveBoards() {
                     updateLiveStatus("", false);
 
                     // load table
-                    clearTable("#table_lboards");
+                    clearTable("#table_lboards_open");
 		    boards = data.boards;
                     html = "";
                     for (i = 0; i < boards.length; ++i) {
 			var id = boards[i].id;
-                        html += "<tr class=\"tr_lboards\" id=\"tr_lb_" + i + "\">";
+                        html += "<tr class=\"tr_lboards_open\" id=\"tr_lbo_" + i + "\">";
                         html += "<td id=name_" + id + ">" + boards[i].name + "</td>";
                         html += "<td>" + id + "</td>";
                         html += "<td id=owner_" + id + " style=\"color:red\">pending...</td>";
                         html += "</tr>";
                     }
 
-                    $("#table_lboards > tbody:last").append(html);
-                    $("#table_lboards").trigger("update");
+                    $("#table_lboards_open > tbody:last").append(html);
+                    $("#table_lboards_open").trigger("update");
                     if (html != "") // hm ... why is this test necessary?
-                        $("#table_lboards").trigger("appendCache");
+                        $("#table_lboards_open").trigger("appendCache");
 
                     for (i = 0; i < boards.length; ++i)
-			$("#tr_lb_" + i).data("bid", boards[i].id);
+			$("#tr_lbo_" + i).data("bid", boards[i].id);
 
-                    setCurrentLiveBoard(firstLiveBoard());
+                    setCurrentOpenLiveBoard(firstOpenLiveBoard());
 
 		    // complete table by getting summary for each board
                     for (i = 0; i < boards.length; ++i)
@@ -193,9 +228,76 @@ function getLiveBoards() {
     return false;
 }
 
-// Retrieves info for a given live board.
+// Retrieves the closed live boards.
+function getClosedLiveBoards() {
+    statusBase = "getting closed live boards ...";
+    updateLiveStatus(statusBase, true);
+
+    query = "?cmd=get_live_boards&open=0&filter=" + $("#lboard_closed_name_filter").val();
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
+                        return
+                    }
+
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
+
+                    // load table
+                    clearTable("#table_lboards_closed");
+		    boards = data.boards;
+                    html = "";
+                    for (i = 0; i < boards.length; ++i) {
+			var id = boards[i].id;
+                        html += "<tr class=\"tr_lboards_closed\" id=\"tr_lbc_" + i + "\">";
+                        html += "<td>" + boards[i].name + "</td>";
+                        html += "<td>" + id + "</td>";
+                        html += "</tr>";
+                    }
+
+                    $("#table_lboards_closed > tbody:last").append(html);
+                    $("#table_lboards_closed").trigger("update");
+                    if (html != "") // hm ... why is this test necessary?
+                        $("#table_lboards_closed").trigger("appendCache");
+
+                    for (i = 0; i < boards.length; ++i)
+			$("#tr_lbc_" + i).data("bid", boards[i].id);
+
+                    setCurrentClosedLiveBoard(firstClosedLiveBoard());
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateLiveStatus(statusBase + " error: " + descr, false);
+        }
+
+        // complete: function(request, textStatus) {
+        //     alert("complete; request.status: " + request.status)
+        // }
+
+    });
+
+    return false;
+}
+
+// Retrieves summary of a given live board.
 function getLiveBoardSummary(board_id) {
-    statusBase = "getting info for board " + board_id + " ...";
+    statusBase = "getting summary of board " + board_id + " ...";
     updateLiveStatus(statusBase, true);
 
     query = "?cmd=get_live_board_summary&id=" + board_id;
@@ -221,7 +323,7 @@ function getLiveBoardSummary(board_id) {
                     // insert summary in table
 		    $('#owner_' + board_id).html(data.owner).css('color', '');
 		    $('#name_' + board_id).html('<a href=\"' + data.url + '\">' + data.name + '</a>').css('color', '');
-                    $("#table_lboards").trigger("update");
+                    $("#table_lboards_open").trigger("update");
                 }
             }
         },
@@ -299,18 +401,18 @@ function showHtmlOfCurrentBackedupBoard() {
     return false;
 }
 
-// Opens the HTML snapshot of the current live board in a new page.
-function showHtmlOfCurrentLiveBoard() {
-    statusBase = "getting HTML of current live board ...";
+// Opens the HTML snapshot of the current open live board in a new page.
+function showHtmlOfCurrentOpenLiveBoard() {
+    statusBase = "getting HTML of current open live board ...";
     updateLiveStatus(statusBase, true);
 
-    query = "?cmd=get_live_board_html&id=" + currentLiveBoardID();
+    query = "?cmd=get_live_board_html&id=" + currentOpenLiveBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     // NOTE: the window to display the HTML must be opened already at this point
     // (and not after the asynchronous server response), otherwise it may be considered
     // suspicious by the popup blocker
-    var newTitle = currentLiveBoardName();
+    var newTitle = currentOpenLiveBoardName();
     var newWin = window.open('');
     $(newWin.document.body).html(
 	'<html><body><h3>generating static HTML for ' + newTitle + '; please wait ...</h3></body></html>');
@@ -355,14 +457,14 @@ function showHtmlOfCurrentLiveBoard() {
     return false;
 }
 
-// Backs up the current live board.
+// Backs up the current open live board.
 function backupCurrentLiveBoard() {
     statusBase = "backing up current live board ...";
     updateLiveStatus(statusBase, true);
-    var boardName = currentLiveBoardName();
+    var boardName = currentOpenLiveBoardName();
     $('#backup_status').html('backing up live board <u>' + boardName + '</u> ...').css('color', '');
 
-    query = "?cmd=backup_board&id=" + currentLiveBoardID();
+    query = "?cmd=backup_board&id=" + currentOpenLiveBoardID();
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -413,8 +515,8 @@ function backupCurrentLiveBoard() {
     return false;
 }
 
-// Copies the current live board.
-function copyCurrentLiveBoard() {
+// Copies the current open live board.
+function copyCurrentOpenLiveBoard() {
 
     if ($('#copy_button').attr('disabled'))
 	return;
@@ -422,12 +524,12 @@ function copyCurrentLiveBoard() {
     $('#copy_button').attr('disabled', true);
     statusBase = "copying current live board ...";
     updateLiveStatus(statusBase, true);
-    var srcBoardName = currentLiveBoardName();
+    var srcBoardName = currentOpenLiveBoardName();
     var dstBoardName = $("#dst_board_name").val();
     $('#copy_status').html('copying live board <u>' + srcBoardName + '</u> to new live board <u>' + dstBoardName + '</u> ...')
 	.css('color', '');
 
-    query = "?cmd=copy_live_board&src_id=" + currentLiveBoardID() + "&dst_name=" + dstBoardName;
+    query = "?cmd=copy_live_board&src_id=" + currentOpenLiveBoardID() + "&dst_name=" + dstBoardName;
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -449,7 +551,7 @@ function copyCurrentLiveBoard() {
                     updateLiveStatus("", false);
 
 		    $('#copy_status').html(data.status);
-		    getLiveBoards(); // refresh
+		    getOpenLiveBoards(); // refresh
                 }
             }
         },
@@ -471,7 +573,7 @@ function copyCurrentLiveBoard() {
     return false;
 }
 
-// Adds missing members to the current live board (useful for adding back non-admin members who left the board by accident!)
+// Adds missing members to the current open live board (useful for adding back non-admin members who left the board by accident!)
 function addMissingMembers() {
 
     if ($('#addmembers_button').attr('disabled'))
@@ -480,8 +582,8 @@ function addMissingMembers() {
     $('#addmembers_button').attr('disabled', true);
     statusBase = "adding missing members to the current live board ...";
     updateLiveStatus(statusBase, true);
-    var boardName = currentLiveBoardName();
-    var boardID = currentLiveBoardID();
+    var boardName = currentOpenLiveBoardName();
+    var boardID = currentOpenLiveBoardID();
     $('#addmembers_status').html('adding missing members to board <u>' + boardName + '</u> (' + boardID + ') ...').css('color', '');
 
     query = "?cmd=add_org_members_to_board&id=" + boardID;
@@ -542,19 +644,47 @@ function selectBackedupBoard(tr) {
     setCurrentBackedupBoard(tr);
 }
 
-// Sets given live board as current.
+// Sets given open live board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
-function setCurrentLiveBoard(tr) {
+function setCurrentOpenLiveBoard(tr) {
     if (tr.length == 0) return;
-    $("#table_lboards tr").removeClass("selectedRow"); // unselect all rows
+    $("#table_lboards_open tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
-    $("#curr_lboard").html(currentLiveBoardName() + " (" + currentLiveBoardID() + ")");
+    $("#curr_lboard_open").html(currentOpenLiveBoardName() + " (" + currentOpenLiveBoardID() + ")");
 }
 
-// Handles selecting a row in the table of live boards.
+// Handles selecting a row in the table of open live boards.
 // tr is the jQuery selector for the corresponding <tr> element.
-function selectLiveBoard(tr) {
-    setCurrentLiveBoard(tr);
+function selectOpenLiveBoard(tr) {
+    setCurrentOpenLiveBoard(tr);
+}
+
+// Sets given closed live board as current.
+// tr is the jQuery selector for the corresponding <tr> element.
+function setCurrentClosedLiveBoard(tr) {
+    if (tr.length == 0) return;
+    $("#table_lboards_closed tr").removeClass("selectedRow"); // unselect all rows
+    tr.addClass("selectedRow"); // select target row
+    $("#curr_lboard_closed").html(currentClosedLiveBoardName() + " (" + currentClosedLiveBoardID() + ")");
+}
+
+// Handles selecting a row in the table of closed live boards.
+// tr is the jQuery selector for the corresponding <tr> element.
+function selectClosedLiveBoard(tr) {
+    setCurrentClosedLiveBoard(tr);
+}
+
+function selectBoardType() {
+    var type = $('#board_type').val();
+    if (type == 'open') {
+	$('#div_lboards_open').css('display', 'block')
+	$('#div_lboards_closed').css('display', 'none')
+	$('#board_type').css('color', 'green');
+    } else {
+	$('#div_lboards_open').css('display', 'none')
+	$('#div_lboards_closed').css('display', 'block')
+	$('#board_type').css('color', 'red');
+    }
 }
 
 $(document).ready(function() {
@@ -610,15 +740,26 @@ $(document).ready(function() {
         selectBackedupBoard($(e.target).parent());
     });
 
-    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards';
+    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_open';
     options.headers = {
 	1: { // board ID (random hash, so sorting makes no sense)
 	    sorter: false
 	}
     }
-    $("#table_lboards").tablesorter(options);
-    $(document).on("click", ".tr_lboards td", function(e) {
-        selectLiveBoard($(e.target).parent());
+    $("#table_lboards_open").tablesorter(options);
+    $(document).on("click", ".tr_lboards_open td", function(e) {
+        selectOpenLiveBoard($(e.target).parent());
+    });
+
+    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_closed';
+    options.headers = {
+	1: { // board ID (random hash, so sorting makes no sense)
+	    sorter: false
+	}
+    }
+    $("#table_lboards_closed").tablesorter(options);
+    $(document).on("click", ".tr_lboards_closed td", function(e) {
+        selectClosedLiveBoard($(e.target).parent());
     });
 
     $('#bboard_name_filter').keyup(function (e) {
@@ -627,9 +768,15 @@ $(document).ready(function() {
 	}
     });
 
-    $('#lboard_name_filter').keyup(function (e) {
+    $('#lboard_open_name_filter').keyup(function (e) {
 	if (e.keyCode === 13) {
-	    getLiveBoards();
+	    getOpenLiveBoards();
+	}
+    });
+
+    $('#lboard_closed_name_filter').keyup(function (e) {
+	if (e.keyCode === 13) {
+	    getClosedLiveBoards();
 	}
     });
 
@@ -637,6 +784,8 @@ $(document).ready(function() {
     //     return "Really reload the page?";
     // }
 
+    selectBoardType();
     getBackedupBoards();
-    getLiveBoards();
+    getOpenLiveBoards();
+    getClosedLiveBoards();
 });
