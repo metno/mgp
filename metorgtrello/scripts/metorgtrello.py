@@ -254,44 +254,35 @@ class SecureAllLiveBoards(Command):
         sys.stdout.write('\n');
 
 
-# Copies an existing open board on the Trello server to a new open board.
+# Renames an existing open board on the Trello server.
 # The command fails if an open board with the same name already exists.
-class CopyLiveBoard(Command):
-    def __init__(self, http_get, src_id, dst_name):
+class RenameLiveBoard(Command):
+    def __init__(self, http_get, board_id, new_name):
         self.http_get = http_get
-        self.src_id = src_id
-        self.dst_name = dst_name.strip()
+        self.board_id = board_id
+        self.new_name = new_name.strip()
         self.status = None
         self.error = None
 
     def execute(self):
         board_infos = getLiveBoardIdAndNames()
-        if self.dst_name in [item['name'] for item in board_infos]:
+        if self.new_name in [item['name'] for item in board_infos]:
             # an open board with this name already exists
-            self.error = 'an open board already exists with the name {}'.format(self.dst_name.encode('utf-8'))
-        elif self.dst_name == '':
+            self.error = 'an open board already exists with the name {}'.format(self.new_name.encode('utf-8'))
+        elif self.new_name == '':
             self.error = 'empty name'
         else:
-            # copy board
-            src_name = getBoardNameFromId(board_infos, self.src_id)
-            trello.post(
-                ['boards'],
+            # rename board
+            old_name = getBoardNameFromId(board_infos, self.board_id)
+            trello.put(
+                ['boards', self.board_id, 'name'],
                 arguments = {
-                    'name': self.dst_name,
-                    'desc': 'copied from {} ({})'.format(src_name, self.src_id),
-                    'idBoardSource': self.src_id,
-                    'idOrganization': org_name,
-                    'prefs_permissionLevel': 'org',
-                    'prefs_comments': 'org',
-                    'prefs_invitations': 'admins', # ensure that only admins may invite new members to the board
-                    'prefs_selfJoin': 'false'
+                    'value': self.new_name
                     }
                 )
 
-            dst_id = getBoardIdFromName(getLiveBoardIdAndNames(), self.dst_name)
-            addNonAdminOrgMembersToBoard(dst_id)
-            self.status = 'successfully copied {} ({}) to {} ({})'.format(
-                src_name, self.src_id, self.dst_name.encode('utf-8'), dst_id)
+            self.status = 'successfully renamed {} ({}) to {}'.format(
+                old_name, self.board_id, self.new_name.encode('utf-8'))
 
         self.printOutput()
 
@@ -604,6 +595,7 @@ def createCommand(options, http_get):
                 '--cmd backup_all_live_boards',
                 '--cmd secure_all_live_boards',
                 '--cmd copy_live_board --src_id <source board ID> --dst_name <destination board name>',
+                '--cmd rename_live_board --id <board ID> --new_name <new name>',
                 '--cmd close_board --id <board ID>',
                 '--cmd reopen_board --id <board ID>',
                 '--cmd get_org_members',
@@ -653,6 +645,9 @@ def createCommand(options, http_get):
     elif cmd == 'copy_live_board':
         if ('src_id' in options) and ('dst_name' in options):
             return CopyLiveBoard(http_get, options['src_id'], options['dst_name'].decode('utf-8'))
+    elif cmd == 'rename_live_board':
+        if ('id' in options) and ('new_name' in options):
+            return RenameLiveBoard(http_get, options['id'], options['new_name'].decode('utf-8'))
     elif cmd == 'close_board':
         if ('id' in options):
             return CloseBoard(http_get, options['id'])

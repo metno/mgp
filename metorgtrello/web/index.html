@@ -64,8 +64,13 @@ Filter:
 
 <br/></br/>
 <button id="copy_button" type="button" onclick="copyCurrentOpenLiveBoard()">Copy to new board:</button>
-<input type="text" id="dst_board_name" onclick="return false" style="width:300px" />
+<input type="text" id="copy_dst_board_name" onclick="return false" style="width:300px" />
 <div id="copy_status" style="display:inline"></div>
+
+<br/></br/>
+<button id="rename_button" type="button" onclick="renameCurrentOpenLiveBoard()">Rename:</button>
+<input type="text" id="rename_new_board_name" onclick="return false" style="width:300px" />
+<div id="rename_status" style="display:inline"></div>
 
 <br/>
 <button id="addmembers_button" type="button" onclick="addMissingMembers()">Add missing members</button>

@@ -534,7 +534,7 @@ function copyCurrentOpenLiveBoard() {
     statusBase = "copying current live board ...";
     updateLiveStatus(statusBase, true);
     var srcBoardName = currentOpenLiveBoardName();
-    var dstBoardName = $("#dst_board_name").val();
+    var dstBoardName = $("#copy_dst_board_name").val();
     $('#copy_status').html('copying live board <u>' + srcBoardName + '</u> to new live board <u>' + dstBoardName + '</u> ...')
 	.css('color', '');
 
@@ -576,6 +576,64 @@ function copyCurrentOpenLiveBoard() {
 
         complete: function(request, textStatus) {
 	    $('#copy_button').attr('disabled', false);
+        }
+    });
+
+    return false;
+}
+
+// Renames the current open live board.
+function renameCurrentOpenLiveBoard() {
+
+    if ($('#rename_button').attr('disabled'))
+	return;
+
+    $('#rename_button').attr('disabled', true);
+    statusBase = "renaming current live board ...";
+    updateLiveStatus(statusBase, true);
+    var boardName = currentOpenLiveBoardName();
+    var newName = $("#rename_new_board_name").val();
+    $('#rename_status').html('renaming live board <u>' + boardName + '</u> to <u>' + newName + '</u> ...')
+	.css('color', '');
+
+    query = "?cmd=rename_live_board&id=" + currentOpenLiveBoardID() + "&new_name=" + newName;
+    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        dataType: "json",
+
+        success: function(data, textStatus, request) {
+            if (request.readyState == 4) {
+                if (request.status == 200) {
+
+                    if (data.error != null) {
+                        updateLiveStatus(statusBase + " failed: " + data.error, false);
+			$('#rename_status').html('error: ' + data.error).css('color', 'red');
+                        return
+                    }
+
+                    updateLiveStatus(statusBase + " done", false);
+                    updateLiveStatus("", false);
+
+		    $('#rename_status').html(data.status);
+		    getOpenLiveBoards(); // refresh
+                }
+            }
+        },
+
+        error: function(request, textStatus, errorThrown) {
+            descr = errorThrown;
+            if (errorThrown == null) {
+                descr = "undefined error - is the server down?";
+            }
+            updateLiveStatus(statusBase + " error: " + descr, false);
+	    $('#rename_status').html('error: ' + descr).css('color', 'red');
+        },
+
+        complete: function(request, textStatus) {
+	    $('#rename_button').attr('disabled', false);
         }
     });
 
