@@ -434,12 +434,9 @@ def getLiveBoardSummary(board_id):
         arguments = {
             'fields': 'name,closed,url',
             'members': 'owners',
-            'member_fields': 'username,fullName'
+            'member_fields': 'username'
             })
-    if len(board['members']) != 1:
-        raise Exception('expected exactly one owner of board {} ({}), found {}'.format(
-                board['name'], board_id, len(board['members'])))
-    board['owner'] = board.pop('members')[0]['username']
+    board['owners'] = [item['username'] for item in board.pop('members')]
     return board
 
 def getLiveMembers(board_id):

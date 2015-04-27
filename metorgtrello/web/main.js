@@ -190,7 +190,7 @@ function getOpenLiveBoards() {
                         html += "<tr class=\"tr_lboards_open\" id=\"tr_lbo_" + i + "\">";
                         html += "<td id=name_" + id + ">" + boards[i].name + "</td>";
                         html += "<td>" + id + "</td>";
-                        html += "<td id=owner_" + id + " style=\"color:red\">pending...</td>";
+                        html += "<td id=owners_" + id + " style=\"color:red\">pending...</td>";
                         html += "</tr>";
                     }
 
@@ -321,7 +321,16 @@ function getLiveBoardSummary(board_id) {
                     updateLiveStatus("", false);
 
                     // insert summary in table
-		    $('#owner_' + board_id).html(data.owner).css('color', '');
+		    var html = '';
+		    $.each(data.owners, function(index, value) {
+			if (value == 'metorg_adm')
+			    html += ('<span style="color:green; font-weight:bold">' + value + '</span> ');
+			else
+			    html += ('<span style="color:#555">' + value + '</span> ');
+		    });
+		    // ### consider removing the row if non-admin users have promoted themselves as owner!
+
+		    $('#owners_' + board_id).html(html).css('color', '');
 		    $('#name_' + board_id).html('<a href=\"' + data.url + '\">' + data.name + '</a>').css('color', '');
                     $("#table_lboards_open").trigger("update");
                 }
