@@ -1,4 +1,9 @@
 // --- BEGIN Global variables -----------------------------------
+
+var cookie;
+var cookie_curr_open_live_board_id;
+var cookie_curr_closed_live_board_id;
+
 // --- END Global variables -------------------------------------
 
 // Returns the current backed up board (as a jQuery selector of the corresponding <tr> element)
@@ -90,6 +95,8 @@ function firstClosedLiveBoard() {
 
 // Retrieves the available backed up boards.
 function getBackedupBoards() {
+    loadStateFromCookie();
+
     statusBase = "getting backed up boards ...";
     updateBackupStatus(statusBase, true);
 
@@ -158,6 +165,8 @@ function getBackedupBoards() {
 
 // Retrieves the open live boards.
 function getOpenLiveBoards() {
+    loadStateFromCookie();
+
     statusBase = "getting open live boards ...";
     updateLiveStatus(statusBase, true);
 
@@ -180,6 +189,8 @@ function getOpenLiveBoards() {
 
                     updateLiveStatus(statusBase + " done", false);
                     updateLiveStatus("", false);
+
+		    var curr_tr = null;
 
                     // load table
                     clearTable("#table_lboards_open");
@@ -205,9 +216,12 @@ function getOpenLiveBoards() {
 			var id = boards[i].id;
 			$("#tr_lbo_" + i).data("bid", id);
 			$("#tr_lbo_" + i).data("owned_by_admin", false);
+
+			if (id == cookie_curr_open_live_board_id)
+			    curr_tr = $("#tr_lbo_" + i);
 		    }
 
-                    setCurrentOpenLiveBoard(firstOpenLiveBoard());
+		    setCurrentOpenLiveBoard((curr_tr != null) ? curr_tr : firstOpenLiveBoard());
 
 		    // complete table by getting summary for each board
                     for (i = 0; i < boards.length; ++i)
@@ -235,6 +249,8 @@ function getOpenLiveBoards() {
 
 // Retrieves the closed live boards.
 function getClosedLiveBoards() {
+    loadStateFromCookie();
+
     statusBase = "getting closed live boards ...";
     updateLiveStatus(statusBase, true);
 
@@ -258,6 +274,8 @@ function getClosedLiveBoards() {
                     updateLiveStatus(statusBase + " done", false);
                     updateLiveStatus("", false);
 
+		    var curr_tr = null;
+
                     // load table
                     clearTable("#table_lboards_closed");
 		    boards = data.boards;
@@ -275,10 +293,15 @@ function getClosedLiveBoards() {
                     if (html != "") // hm ... why is this test necessary?
                         $("#table_lboards_closed").trigger("appendCache");
 
-                    for (i = 0; i < boards.length; ++i)
-			$("#tr_lbc_" + i).data("bid", boards[i].id);
+                    for (i = 0; i < boards.length; ++i) {
+			var id = boards[i].id;
+			$("#tr_lbc_" + i).data("bid", id);
 
-                    setCurrentClosedLiveBoard(firstClosedLiveBoard());
+			if (id == cookie_curr_closed_live_board_id)
+			    curr_tr = $("#tr_lbc_" + i);
+		    }
+
+		    setCurrentClosedLiveBoard((curr_tr != null) ? curr_tr : firstClosedLiveBoard());
                 }
             }
         },
@@ -868,6 +891,8 @@ function setCurrentOpenLiveBoard(tr) {
 	$("#curr_lboard_open_restr").html("; <b>warning:</b> board not owned by metorg_adm: operations are restricted");
     else
 	$("#curr_lboard_open_restr").html("");
+
+    saveStateToCookie();
 }
 
 // Handles selecting a row in the table of open live boards.
@@ -882,7 +907,10 @@ function setCurrentClosedLiveBoard(tr) {
     if (tr.length == 0) return;
     $("#table_lboards_closed tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
+
     $("#curr_lboard_closed").html(currentClosedLiveBoardName() + " (" + currentClosedLiveBoardID() + ")");
+
+    saveStateToCookie();
 }
 
 // Handles selecting a row in the table of closed live boards.
@@ -902,6 +930,41 @@ function selectBoardType() {
 	$('#div_lboards_closed').css('display', 'block')
 	$('#board_type').css('color', 'red');
     }
+}
+
+function loadStateFromCookie() {
+    if (!Cookie.enabled()) return;
+
+    var state = cookie.getDynamicProperties();
+
+    cookie_curr_open_live_board_id = state['curr_open_live_board_id'];
+    cookie_curr_closed_live_board_id = state['curr_closed_live_board_id'];
+
+    var btype = state['board_type'];
+    if ((btype == 'open') || (btype == 'closed')) {
+	$('#board_type').val(btype);
+	selectBoardType();
+    }
+
+    var ofilter = state['lboard_open_name_filter'];
+    if (ofilter) {
+	$('#lboard_open_name_filter').val(ofilter);
+    }
+
+    var cfilter = state['lboard_closed_name_filter'];
+    if (cfilter) {
+	$('#lboard_closed_name_filter').val(cfilter);
+    }
+}
+
+function saveStateToCookie() {
+    if (!Cookie.enabled()) return;
+    cookie.setDynamicProperty('board_type', $('#board_type').val());
+    cookie.setDynamicProperty('curr_open_live_board_id', currentOpenLiveBoardID());
+    cookie.setDynamicProperty('lboard_open_name_filter', $('#lboard_open_name_filter').val());
+    cookie.setDynamicProperty('curr_closed_live_board_id', currentClosedLiveBoardID());
+    cookie.setDynamicProperty('lboard_closed_name_filter', $('#lboard_closed_name_filter').val());
+    cookie.store();
 }
 
 $(document).ready(function() {
@@ -995,6 +1058,8 @@ $(document).ready(function() {
     $('#lboard_open_name_filter').keyup(function (e) {
 	if (e.keyCode === 13) {
 	    getOpenLiveBoards();
+	} else {
+	    saveStateToCookie();
 	}
     });
 
@@ -1018,6 +1083,8 @@ $(document).ready(function() {
     $('#lboard_closed_name_filter').keyup(function (e) {
 	if (e.keyCode === 13) {
 	    getClosedLiveBoards();
+	} else {
+	    saveStateToCookie();
 	}
     });
 
@@ -1025,7 +1092,13 @@ $(document).ready(function() {
     //     return "Really reload the page?";
     // }
 
-    selectBoardType();
+    if (Cookie.enabled()) {
+        cookie = new Cookie("metorgtrelloadm");
+        window.onbeforeunload = function() { saveStateToCookie(); }
+    } else {
+	selectBoardType();
+    }
+
     getBackedupBoards();
     getOpenLiveBoards();
     getClosedLiveBoards();
