@@ -915,40 +915,20 @@ $(document).ready(function() {
         }
     };
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     options.widgetOptions.stickyHeaders_attachTo = '.wrapper_bboards';
+
     options.headers = {
 	1: { // board ID (random hash, so sorting makes no sense)
 	    sorter: false
 	}
     }
+
     $("#table_bboards").tablesorter(options);
+
     $(document).on("click", ".tr_bboards td", function(e) {
-        selectBackedupBoard($(e.target).parent());
-    });
-
-    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_open';
-    options.headers = {
-	1: { // board ID (random hash, so sorting makes no sense)
-	    sorter: false
-	},
-	2: { // page (all cells contain the text 'link', so sorting makes no sense)
-	    sorter: false
-	}
-    }
-    $("#table_lboards_open").tablesorter(options);
-    $(document).on("click", ".tr_lboards_open td", function(e) {
-        selectOpenLiveBoard($(e.target).parent());
-    });
-
-    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_closed';
-    options.headers = {
-	1: { // board ID (random hash, so sorting makes no sense)
-	    sorter: false
-	}
-    }
-    $("#table_lboards_closed").tablesorter(options);
-    $(document).on("click", ".tr_lboards_closed td", function(e) {
-        selectClosedLiveBoard($(e.target).parent());
+        selectBackedupBoard($(e.target).closest('tr'));
     });
 
     $('#bboard_name_filter').keyup(function (e) {
@@ -957,10 +937,51 @@ $(document).ready(function() {
 	}
     });
 
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_open';
+
+    options.headers = {
+	1: { // board ID (random hash, so sorting makes no sense)
+	    sorter: false
+	},
+	2: { // page (all cells contain the text 'link', so sorting makes no sense)
+	    sorter: false
+	}
+    }
+
+    $("#table_lboards_open").tablesorter(options);
+
+    $(document).on("click", ".tr_lboards_open td", function(e) {
+        selectOpenLiveBoard($(e.target).closest('tr'));
+    });
+
+    $(document).on("click", ".tr_lboards_open span", function(e) {
+        selectOpenLiveBoard($(e.target).closest('tr'));
+    });
+
     $('#lboard_open_name_filter').keyup(function (e) {
 	if (e.keyCode === 13) {
 	    getOpenLiveBoards();
 	}
+    });
+
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_closed';
+
+    options.headers = {
+	1: { // board ID (random hash, so sorting makes no sense)
+	    sorter: false
+	}
+    }
+
+    $("#table_lboards_closed").tablesorter(options);
+
+    $(document).on("click", ".tr_lboards_closed td", function(e) {
+        selectClosedLiveBoard($(e.target).closest('tr'));
     });
 
     $('#lboard_closed_name_filter').keyup(function (e) {
