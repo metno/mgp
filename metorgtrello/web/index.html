@@ -60,13 +60,14 @@ Filter:
 
 <span style="font-size:120%; font-weight:bold">Selected board:</span>
 <div id="curr_lboard_open" style="display:inline; font-size:120%"></div>
+<div id="curr_lboard_open_restr" style="display:inline; font-size:120%; color:#700"></div>
 
 <br/></br/>
 <button id="copy_button" type="button" onclick="copyCurrentOpenLiveBoard()">Copy to new board:</button>
 <input type="text" id="copy_dst_board_name" onclick="return false" style="width:300px" />
 <div id="copy_status" style="display:inline"></div>
 
-<br/></br/>
+<br/>
 <button id="rename_button" type="button" onclick="renameCurrentOpenLiveBoard()">Rename:</button>
 <input type="text" id="rename_new_board_name" onclick="return false" style="width:300px" />
 <div id="rename_status" style="display:inline"></div>
@@ -80,7 +81,8 @@ Filter:
 <div id="close_status" style="display:inline"></div>
 
 <br/>
-<button type="button" onclick="showHtmlOfCurrentOpenLiveBoard()">Show HTML</button>
+<button id="show_html_button" type="button" onclick="showHtmlOfCurrentOpenLiveBoard()">Show HTML</button>
+
 
 <!-- <\!-- backs up current live board -\-> -->
 <!-- <button type="button" onclick="backupCurrentLiveBoard()">Backup</button> -->

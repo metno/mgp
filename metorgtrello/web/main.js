@@ -201,14 +201,17 @@ function getOpenLiveBoards() {
                     if (html != "") // hm ... why is this test necessary?
                         $("#table_lboards_open").trigger("appendCache");
 
-                    for (i = 0; i < boards.length; ++i)
-			$("#tr_lbo_" + i).data("bid", boards[i].id);
+                    for (i = 0; i < boards.length; ++i) {
+			var id = boards[i].id;
+			$("#tr_lbo_" + i).data("bid", id);
+			$("#tr_lbo_" + i).data("owned_by_admin", false);
+		    }
 
                     setCurrentOpenLiveBoard(firstOpenLiveBoard());
 
 		    // complete table by getting summary for each board
                     for (i = 0; i < boards.length; ++i)
-			getLiveBoardSummary(boards[i].id);
+			getLiveBoardSummary(i, boards[i].id);
                 }
             }
         },
@@ -298,7 +301,7 @@ function getClosedLiveBoards() {
 }
 
 // Retrieves summary of a given live board.
-function getLiveBoardSummary(board_id) {
+function getLiveBoardSummary(index, board_id) {
     statusBase = "getting summary of board " + board_id + " ...";
     updateLiveStatus(statusBase, true);
 
@@ -324,17 +327,21 @@ function getLiveBoardSummary(board_id) {
 
                     // insert summary in table
 		    var html = '';
+		    var ownedByAdmin = false;
 		    $.each(data.owners, function(index, value) {
-			if (value == 'metorg_adm')
+			if (value == 'metorg_adm') {
 			    html += ('<span style="color:green; font-weight:bold">' + value + '</span> ');
-			else
+			    ownedByAdmin = true;
+			} else {
 			    html += ('<span style="color:#555">' + value + '</span> ');
+			}
 		    });
-		    // ### consider removing the row if non-admin users have promoted themselves as owner!
-
 		    $('#owners_' + board_id).html(html).css('color', '');
 		    $('#page_' + board_id).html('<a href=\"' + data.url + '\">link</a>').css('color', '');
                     $("#table_lboards_open").trigger("update");
+		    $("#tr_lbo_" + index).data("owned_by_admin", ownedByAdmin);
+
+		    restrictOperations();
                 }
             }
         },
@@ -831,13 +838,36 @@ function selectBackedupBoard(tr) {
     setCurrentBackedupBoard(tr);
 }
 
+// Restrict certain operations according to properties of the current open live board.
+function restrictOperations() {
+    var tr = currentOpenLiveBoard();
+
+    // certain operations require the board to be owned by the administrator
+    var oba = tr.data("owned_by_admin");
+    $("#copy_button").prop("disabled", !oba);
+    $("#copy_dst_board_name").prop("disabled", !oba);
+    $("#rename_button").prop("disabled", !oba);
+    $("#rename_new_board_name").prop("disabled", !oba);
+    $("#addmembers_button").prop("disabled", !oba);
+    $("#close_button").prop("disabled", !oba);
+    $("#show_html_button").prop("disabled", !oba);
+
+    return !oba;
+}
+
 // Sets given open live board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentOpenLiveBoard(tr) {
     if (tr.length == 0) return;
     $("#table_lboards_open tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
+
     $("#curr_lboard_open").html(currentOpenLiveBoardName() + " (" + currentOpenLiveBoardID() + ")");
+
+    if (restrictOperations())
+	$("#curr_lboard_open_restr").html("; <b>warning:</b> operations restricted (not owned by metorg_adm)");
+    else
+	$("#curr_lboard_open_restr").html("");
 }
 
 // Handles selecting a row in the table of open live boards.
