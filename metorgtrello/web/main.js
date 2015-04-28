@@ -119,9 +119,9 @@ function getBackedupBoards() {
                     html = "";
                     for (i = 0; i < boards.length; ++i) {
                         html += "<tr class=\"tr_bboards\" id=\"tr_bb_" + i + "\">";
-                        html += "<td>" + boards[i].name + "</td>";
-                        html += "<td>" + boards[i].id + "</td>";
-                        html += "<td>" + formatUnixUTCTimestamp(boards[i].last_ct) + "</td>";
+                        html += "<td style=\"width:1%; white-space:nowrap; padding:5px 10px\">" + boards[i].name + "</td>";
+                        html += "<td style=\"width:1%; padding:5px 10px\">" + boards[i].id + "</td>";
+                        html += "<td style=\"padding:5px 10px\">" + formatUnixUTCTimestamp(boards[i].last_ct) + "</td>";
                         html += "</tr>";
                     }
 
@@ -188,10 +188,11 @@ function getOpenLiveBoards() {
                     for (i = 0; i < boards.length; ++i) {
 			var id = boards[i].id;
                         html += "<tr class=\"tr_lboards_open\" id=\"tr_lbo_" + i + "\">";
-                        html += "<td>" + boards[i].name + "</td>";
-                        html += "<td id=page_" + id + " style=\"color:red\">pending...</td>";
-                        html += "<td>" + id + "</td>";
-                        html += "<td id=owners_" + id + " style=\"color:red\">pending...</td>";
+                        html += "<td style=\"width:1%; white-space:nowrap; padding:5px 10px\">" + boards[i].name + "</td>";
+                        html += "<td id=page_" + id + " style=\"color:red; width:1%; padding:5px 10px\">pending...</td>";
+                        html += "<td style=\"width:1%; padding:5px 10px\">" + id + "</td>";
+                        html += "<td id=owners_" + id +
+			    " style=\"color:red; white-space:nowrap; padding:5px 10px\">pending...</td>";
                         html += "</tr>";
                     }
 
@@ -261,8 +262,8 @@ function getClosedLiveBoards() {
                     for (i = 0; i < boards.length; ++i) {
 			var id = boards[i].id;
                         html += "<tr class=\"tr_lboards_closed\" id=\"tr_lbc_" + i + "\">";
-                        html += "<td>" + boards[i].name + "</td>";
-                        html += "<td>" + id + "</td>";
+                        html += "<td style=\"width:1%; white-space:nowrap; padding:5px 10px\">" + boards[i].name + "</td>";
+                        html += "<td style=\"padding:5px 10px\">" + id + "</td>";
                         html += "</tr>";
                     }
 
