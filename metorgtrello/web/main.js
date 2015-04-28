@@ -188,7 +188,8 @@ function getOpenLiveBoards() {
                     for (i = 0; i < boards.length; ++i) {
 			var id = boards[i].id;
                         html += "<tr class=\"tr_lboards_open\" id=\"tr_lbo_" + i + "\">";
-                        html += "<td id=name_" + id + ">" + boards[i].name + "</td>";
+                        html += "<td>" + boards[i].name + "</td>";
+                        html += "<td id=page_" + id + " style=\"color:red\">pending...</td>";
                         html += "<td>" + id + "</td>";
                         html += "<td id=owners_" + id + " style=\"color:red\">pending...</td>";
                         html += "</tr>";
@@ -331,7 +332,7 @@ function getLiveBoardSummary(board_id) {
 		    // ### consider removing the row if non-admin users have promoted themselves as owner!
 
 		    $('#owners_' + board_id).html(html).css('color', '');
-		    $('#name_' + board_id).html('<a href=\"' + data.url + '\">' + data.name + '</a>').css('color', '');
+		    $('#page_' + board_id).html('<a href=\"' + data.url + '\">link</a>').css('color', '');
                     $("#table_lboards_open").trigger("update");
                 }
             }
@@ -928,6 +929,9 @@ $(document).ready(function() {
     options.widgetOptions.stickyHeaders_attachTo = '.wrapper_lboards_open';
     options.headers = {
 	1: { // board ID (random hash, so sorting makes no sense)
+	    sorter: false
+	},
+	2: { // page (all cells contain the text 'link', so sorting makes no sense)
 	    sorter: false
 	}
     }
