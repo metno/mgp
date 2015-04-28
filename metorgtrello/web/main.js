@@ -875,7 +875,7 @@ function restrictOperations() {
     $("#close_button").prop("disabled", !oba);
     $("#show_html_button").prop("disabled", !oba);
 
-    return !oba;
+    $("#curr_lboard_open_restr").html(oba ? "" : "; <b>warning:</b> board not owned by metorg_adm: operations are restricted");
 }
 
 // Sets given open live board as current.
@@ -887,10 +887,7 @@ function setCurrentOpenLiveBoard(tr) {
 
     $("#curr_lboard_open").html(currentOpenLiveBoardName() + " (" + currentOpenLiveBoardID() + ")");
 
-    if (restrictOperations())
-	$("#curr_lboard_open_restr").html("; <b>warning:</b> board not owned by metorg_adm: operations are restricted");
-    else
-	$("#curr_lboard_open_restr").html("");
+    restrictOperations();
 
     saveStateToCookie();
 }
