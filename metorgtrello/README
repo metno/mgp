@@ -21,30 +21,85 @@ e+p3=,\78Q (adm)
 
 Trello users for MetOrg:
 
-metorg-adm@met.no			administrator
-metorg-enol-met@met.no		Ørland meteorolog
-metorg-teamleder-met@met.no	teamleder
-metorg-va-fly-met1@met.no	VA flymeteorolog
-metorg-va-fly-met2@met.no	VA flymeteorolog
-metorg-va-fly-met@met.no	VA flymeteorolog
-metorg-va-kom-met@met.no	VA kommersiell meteorolog
-metorg-va-land-kon@met.no	VA landkonsulent
-metorg-va-land-met@met.no	VA landmeteorolog
-metorg-va-lang-met@met.no	VA langtidsmeteorolog
-metorg-va-skred-met@met.no	VA skredmeteorolog
-metorg-va-tv-met@met.no		VA tvmeteorolog
-metorg-vnn-fly-met@met.no	VNN flymeteorolog
-metorg-vnn-hav-met@met.no	VNN havmeteorolog
-metorg-vnn-klima-met@met.no	VNN klimavakt
-metorg-vnn-kon1@met.no		VNN konsulent land/hav og yrbesvarelser
-metorg-vnn-kon2@met.no		VNN konsulent land/hav og yrbesvarelser
-metorg-vnn-land-hav-met@met.no	VNN land- og havmeteorolog
-metorg-vnn-land-met@met.no	VNN landmeteorolog
-metorg-vv-fly-kon@met.no	VV flykonsulent
-metorg-vv-fly-met@met.no	VV flymeteorolog
-metorg-vv-hav-met@met.no	VV havmeteorolog
-metorg-vv-kom-met@met.no	VV kommersiell meteorolog
-metorg-vv-land-hav-met@met.no	VV land- og havmeteorolog
-metorg-vv-land-kon@met.no	VV landkonsulent
-metorg-vv-land-met@met.no	VV landmeteorolog
-metorg-vv-yr-met@met.no		VV yr meteorolog
+metorg-adm@met.no		administrator
+
+d1: metorg-enol-met@met.no		Ørland meteorolog
+d1: metorg-teamleder-met@met.no	teamleder
+d1: metorg-va-fly-met1@met.no	VA flymeteorolog
+d1: metorg-va-fly-met2@met.no	VA flymeteorolog
+d1: metorg-va-fly-met@met.no	VA flymeteorolog
+d1: metorg-va-kom-met@met.no	VA kommersiell meteorolog
+d1: metorg-va-land-kon@met.no	VA landkonsulent
+d1: metorg-va-land-met@met.no	VA landmeteorolog
+d1: metorg-va-lang-met@met.no	VA langtidsmeteorolog
+d1: metorg-va-skred-met@met.no	VA skredmeteorolog
+d1: metorg-va-tv-met@met.no		VA tvmeteorolog
+d1: metorg-vnn-fly-met@met.no	VNN flymeteorolog
+d1: metorg-vnn-hav-met@met.no	VNN havmeteorolog
+d1: metorg-vnn-klima-met@met.no	VNN klimavakt
+d1: metorg-vnn-kon1@met.no		VNN konsulent land/hav og yrbesvarelser
+d1: metorg-vnn-kon2@met.no		VNN konsulent land/hav og yrbesvarelser
+d1: metorg-vnn-land-hav-met@met.no	VNN land- og havmeteorolog
+d1: metorg-vnn-land-met@met.no	VNN landmeteorolog
+d1: metorg-vv-fly-kon@met.no	VV flykonsulent
+d1: metorg-vv-fly-met@met.no	VV flymeteorolog
+d1: metorg-vv-hav-met@met.no	VV havmeteorolog
+d1: metorg-vv-kom-met@met.no	VV kommersiell meteorolog
+d1: metorg-vv-land-hav-met@met.no	VV land- og havmeteorolog
+d1: metorg-vv-land-kon@met.no	VV landkonsulent
+d1: metorg-vv-land-met@met.no	VV landmeteorolog
+d1: metorg-vv-yr-met@met.no	VV yr meteorolog
+
+d1: Requested email with link to delete account.
+
+
+------
+
+Accounts added 29/4 2015:
+
+.metorg-teamleder@met.no
+
+.metorg-skred-ds@met.no
+.metorg-klima-dk@met.no
+
+.metorg-vnn-kjerne-d1@met.no
+.metorg-vnn-fly-d2@met.no
+.metorg-vnn-kjerne-d3@met.no
+.metorg-vnn-kjerne-e1@met.no
+.metorg-vnn-fly-e2@met.no
+.metorg-vnn-fly-n@met.no
+
+.metorg-vv-kjerne-d1@met.no
+.metorg-vv-kjerne-d2@met.no
+.metorg-vv-kjerne-d7@met.no
+.metorg-vv-kjerne-e15@met.no
+
+.metorg-va-kjerne-d1@met.no
+.metorg-va-kjerne-d3@met.no
+.metorg-va-kjerne-e1@met.no
+
+
+AVATARS:
+				BG		TEXT
+*metorg-teamleder@met.no	red		ADM
+
+*metorg-teamleder@met.no	yellow		TL
+
+*metorg-skred-ds@met.no		white		*/SD
+*metorg-klima-dk@met.no				*/KD
+
+*metorg-vnn-kjerne-d1@met.no	magenta		VNN/KD1
+*metorg-vnn-fly-d2@met.no			VNN/FD2
+*metorg-vnn-kjerne-d3@met.no			VNN/KD3
+*metorg-vnn-kjerne-e1@met.no			VNN/KE1
+*metorg-vnn-fly-e2@met.no			VNN/FE2
+*metorg-vnn-fly-n@met.no			VNN/FN
+
+*metorg-vv-kjerne-d1@met.no	cyan		VV/KD1
+*metorg-vv-kjerne-d2@met.no			VV/KD2
+*metorg-vv-kjerne-d7@met.no			VV/KD7
+*metorg-vv-kjerne-e15@met.no			VV/KE15
+
+*metorg-va-kjerne-d1@met.no	pink		VA/KD1
+*metorg-va-kjerne-d3@met.no			VA/KD3
+*metorg-va-kjerne-e1@met.no			VA/KE1
