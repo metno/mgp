@@ -81,14 +81,14 @@ Accounts added 29/4 2015:
 
 AVATARS:
 				BG		TEXT
-*metorg-teamleder@met.no	red		ADM
+*metorg-adm@met.no		red		ADM
 
 *metorg-teamleder@met.no	yellow		TL
 
 *metorg-skred-ds@met.no		white		*/SD
 *metorg-klima-dk@met.no				*/KD
 
-*metorg-vnn-kjerne-d1@met.no	magenta		VNN/KD1
+*metorg-vnn-kjerne-d1@met.no	purple		VNN/KD1
 *metorg-vnn-fly-d2@met.no			VNN/FD2
 *metorg-vnn-kjerne-d3@met.no			VNN/KD3
 *metorg-vnn-kjerne-e1@met.no			VNN/KE1
@@ -100,6 +100,6 @@ AVATARS:
 *metorg-vv-kjerne-d7@met.no			VV/KD7
 *metorg-vv-kjerne-e15@met.no			VV/KE15
 
-*metorg-va-kjerne-d1@met.no	pink		VA/KD1
+*metorg-va-kjerne-d1@met.no	orange		VA/KD1
 *metorg-va-kjerne-d3@met.no			VA/KD3
 *metorg-va-kjerne-e1@met.no			VA/KE1
