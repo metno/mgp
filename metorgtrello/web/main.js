@@ -202,7 +202,9 @@ function getOpenLiveBoards() {
                         html += "<td style=\"width:1%; white-space:nowrap; padding:5px 10px\">" + boards[i].name + "</td>";
                         html += "<td id=page_" + id + " style=\"color:red; width:1%; padding:5px 10px\">pending...</td>";
                         html += "<td style=\"width:1%; padding:5px 10px\">" + id + "</td>";
-                        html += "<td id=owners_" + id +
+                        html += "<td id=adm_rights_" + id +
+			    " style=\"color:red; white-space:nowrap; padding:5px 10px\">pending...</td>";
+                        html += "<td id=inv_rights_" + id +
 			    " style=\"color:red; white-space:nowrap; padding:5px 10px\">pending...</td>";
                         html += "</tr>";
                     }
@@ -215,7 +217,8 @@ function getOpenLiveBoards() {
                     for (i = 0; i < boards.length; ++i) {
 			var id = boards[i].id;
 			$("#tr_lbo_" + i).data("bid", id);
-			$("#tr_lbo_" + i).data("owned_by_admin", false);
+			$("#tr_lbo_" + i).data("official_adm_rights", false);
+			$("#tr_lbo_" + i).data("official_inv_rights", false);
 
 			if (id == cookie_curr_open_live_board_id)
 			    curr_tr = $("#tr_lbo_" + i);
@@ -349,20 +352,27 @@ function getLiveBoardSummary(index, board_id) {
                     updateLiveStatus("", false);
 
                     // insert summary in table
-		    var html = '';
-		    var ownedByAdmin = false;
-		    $.each(data.owners, function(index, value) {
+		    var adm_rights_html = '';
+		    $.each(data.adm_rights, function(index, value) {
 			if (value == 'metorg_adm') {
-			    html += ('<span style="color:green; font-weight:bold">' + value + '</span> ');
-			    ownedByAdmin = true;
+			    adm_rights_html += ('<span style="color:green; font-weight:bold">' + value + '</span> ');
 			} else {
-			    html += ('<span style="color:#555">' + value + '</span> ');
+			    adm_rights_html += ('<span style="color:#555">' + value + '</span> ');
 			}
 		    });
-		    $('#owners_' + board_id).html(html).css('color', '');
+		    $("#tr_lbo_" + index).data(
+			"official_adm_rights", (data.adm_rights.length == 1) && (data.adm_rights[0] == 'metorg_adm'));
+		    $('#adm_rights_' + board_id).html(adm_rights_html).css('color', '');
+
+		    var official_inv_rights = (data.inv_rights == 'admins');
+		    var inv_rights_html = official_inv_rights
+			? '<span style="color:green; font-weight:bold">admins</span>'
+			: '<span style="color:#555">' + data.inv_rights + '</span>'
+		    $("#tr_lbo_" + index).data("official_inv_rights", official_inv_rights);
+		    $('#inv_rights_' + board_id).html(inv_rights_html).css('color', '');
+
 		    $('#page_' + board_id).html('<a href=\"' + data.url + '\">link</a>').css('color', '');
                     $("#table_lboards_open").trigger("update");
-		    $("#tr_lbo_" + index).data("owned_by_admin", ownedByAdmin);
 
 		    restrictOperations();
                 }
@@ -865,17 +875,19 @@ function selectBackedupBoard(tr) {
 function restrictOperations() {
     var tr = currentOpenLiveBoard();
 
-    // certain operations require the board to be owned by the administrator
-    var oba = tr.data("owned_by_admin");
-    $("#copy_button").prop("disabled", !oba);
-    $("#copy_dst_board_name").prop("disabled", !oba);
-    $("#rename_button").prop("disabled", !oba);
-    $("#rename_new_board_name").prop("disabled", !oba);
-    $("#addmembers_button").prop("disabled", !oba);
-    $("#close_button").prop("disabled", !oba);
-    $("#show_html_button").prop("disabled", !oba);
+    // certain operations require the board to be official, i.e. having metorg_adm as the only user
+    // with admin- and invitation rights to the board
+    var official = tr.data("official_adm_rights") && tr.data("official_inv_rights");
+    $("#copy_button").prop("disabled", !official);
+    $("#copy_dst_board_name").prop("disabled", !official);
+    $("#rename_button").prop("disabled", !official);
+    $("#rename_new_board_name").prop("disabled", !official);
+    $("#addmembers_button").prop("disabled", !official);
+    $("#close_button").prop("disabled", !official);
+    $("#show_html_button").prop("disabled", !official);
 
-    $("#curr_lboard_open_restr").html(oba ? "" : "; <b>warning:</b> board not owned by metorg_adm: operations are restricted");
+    $("#curr_lboard_open_restr").html(
+	official ? "" : "; <b>warning:</b> board not official (i.e. metorg_adm is not the only user with admin- and invitation rights)");
 }
 
 // Sets given open live board as current.

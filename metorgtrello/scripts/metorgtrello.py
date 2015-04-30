@@ -469,11 +469,12 @@ def getLiveBoardSummary(board_id):
     board = trello.get(
         ['boards', board_id],
         arguments = {
-            'fields': 'name,closed,url',
-            'members': 'owners',
+            'fields': 'name,closed,url,prefs',
+            'members': 'admins',
             'member_fields': 'username'
             })
-    board['owners'] = [item['username'] for item in board.pop('members')]
+    board['adm_rights'] = [item['username'] for item in board.pop('members')]
+    board['inv_rights'] = board.pop('prefs')['invitations']
     return board
 
 def getLiveMembers(board_id):
