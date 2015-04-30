@@ -254,6 +254,52 @@ class SecureAllLiveBoards(Command):
         sys.stdout.write('\n');
 
 
+# Copies an existing open board on the Trello server to a new open board.
+# The command fails if an open board with the same name already exists.
+class CopyLiveBoard(Command):
+    def __init__(self, http_get, src_id, dst_name):
+        self.http_get = http_get
+        self.src_id = src_id
+        self.dst_name = dst_name.strip()
+        self.status = None
+        self.error = None
+
+    def execute(self):
+        board_infos = getLiveBoardIdAndNames()
+        if self.dst_name in [item['name'] for item in board_infos]:
+            # an open board with this name already exists
+            self.error = 'an open board already exists with the name {}'.format(self.dst_name.encode('utf-8'))
+        elif self.dst_name == '':
+            self.error = 'empty name'
+        else:
+            # copy board
+            src_name = getBoardNameFromId(board_infos, self.src_id)
+            trello.post(
+                ['boards'],
+                arguments = {
+                    'name': self.dst_name,
+                    'desc': 'copied from {} ({})'.format(src_name, self.src_id),
+                    'idBoardSource': self.src_id,
+                    'idOrganization': org_name,
+                    'prefs_permissionLevel': 'org',
+                    'prefs_comments': 'org',
+                    'prefs_invitations': 'admins', # ensure that only admins may invite new members to the board
+                    'prefs_selfJoin': 'false'
+                    }
+                )
+
+            dst_id = getBoardIdFromName(getLiveBoardIdAndNames(), self.dst_name)
+            addNonAdminOrgMembersToBoard(dst_id)
+            self.status = 'successfully copied {} ({}) to {} ({})'.format(
+                src_name, self.src_id, self.dst_name.encode('utf-8'), dst_id)
+
+        self.printOutput()
+
+    def printOutputAsJSON(self):
+        json.dump({ 'status': self.status, 'error': self.error }, sys.stdout, indent=2, ensure_ascii=True)
+        sys.stdout.write('\n');
+
+
 # Renames an existing open board on the Trello server.
 # The command fails if an open board with the same name already exists.
 class RenameLiveBoard(Command):
