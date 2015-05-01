@@ -7,87 +7,87 @@ var cookie_curr_closed_live_board_id;
 // --- END Global variables -------------------------------------
 
 // Returns the current backed up board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no current backed up board exists.
+// or null if no current backed up board exists.
 function currentBackedupBoard() {
     var tr = $("#table_bboards tr.selectedRow:first");
-    return (tr.length > 0) ? tr : undefined;
+    return (tr.length > 0) ? tr : null;
 }
 
-// Returns the current backed up board name (as a string) or undefined if no current backed up board exists.
+// Returns the current backed up board name (as a string) or null if no current backed up board exists.
 function currentBackedupBoardName() {
     var tr = currentBackedupBoard();
-    return tr ? tr.find("td:first").text() : undefined;
+    return tr ? tr.find("td:first").text() : null;
 }
 
-// Returns the current backed up board ID or undefined if no current backed up board exists.
+// Returns the current backed up board ID or null if no current backed up board exists.
 function currentBackedupBoardID() {
     var tr = currentBackedupBoard();
-    return $(tr).data("bid");
+    return (tr != null) ? $(tr).data("bid") : null;
 }
 
 // Returns the first backed up board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no backed up boards exist.
+// or null if no backed up boards exist.
 function firstBackedupBoard() {
     tr = $("#table_bboards tr.tr_bboards:nth-child(1)");
-    return (tr.length > 0) ? tr : undefined;
+    return (tr.length > 0) ? tr : null;
 }
 
 
 
 
 // Returns the current open live board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no current open live board exists.
+// or null if no current open live board exists.
 function currentOpenLiveBoard() {
     var tr = $("#table_lboards_open tr.selectedRow:first");
-    return (tr.length > 0) ? tr : undefined;
+    return (tr.length > 0) ? tr : null;
 }
 
-// Returns the current open live board name (as a string) or undefined if no current open live board exists.
+// Returns the current open live board name (as a string) or null if no current open live board exists.
 function currentOpenLiveBoardName() {
     var tr = currentOpenLiveBoard();
-    return tr ? tr.find("td:first").text() : undefined;
+    return tr ? tr.find("td:first").text() : null;
 }
 
-// Returns the current open live board ID or undefined if no current open live board exists.
+// Returns the current open live board ID or null if no current open live board exists.
 function currentOpenLiveBoardID() {
     var tr = currentOpenLiveBoard();
-    return $(tr).data("bid");
+    return (tr != null) ? $(tr).data("bid") : null;
 }
 
 // Returns the first open live board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no open live boards exist.
+// or null if no open live boards exist.
 function firstOpenLiveBoard() {
     tr = $("#table_lboards_open tr.tr_lboards_open:nth-child(1)");
-    return (tr.length > 0) ? tr : undefined;
+    return (tr.length > 0) ? tr : null;
 }
 
 
 
 
 // Returns the current closed live board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no current closed live board exists.
+// or null if no current closed live board exists.
 function currentClosedLiveBoard() {
     var tr = $("#table_lboards_closed tr.selectedRow:first");
-    return (tr.length > 0) ? tr : undefined;
+    return (tr.length > 0) ? tr : null;
 }
 
-// Returns the current closed live board name (as a string) or undefined if no current live closed board exists.
+// Returns the current closed live board name (as a string) or null if no current live closed board exists.
 function currentClosedLiveBoardName() {
     var tr = currentClosedLiveBoard();
-    return tr ? tr.find("td:first").text() : undefined;
+    return tr ? tr.find("td:first").text() : null;
 }
 
-// Returns the current closed live board ID or undefined if no current closed live board exists.
+// Returns the current closed live board ID or null if no current closed live board exists.
 function currentClosedLiveBoardID() {
     var tr = currentClosedLiveBoard();
-    return $(tr).data("bid");
+    return (tr != null) ? $(tr).data("bid") : null;
 }
 
 // Returns the first closed live board (as a jQuery selector of the corresponding <tr> element)
-// or undefined if no closed live boards exist.
+// or null if no closed live boards exist.
 function firstClosedLiveBoard() {
     tr = $("#table_lboards_closed tr.tr_lboards_closed:nth-child(1)");
-    return (tr.length > 0) ? tr : undefined;
+    return (tr.length > 0) ? tr : null;
 }
 
 
@@ -226,6 +226,8 @@ function getOpenLiveBoards() {
 
 		    setCurrentOpenLiveBoard((curr_tr != null) ? curr_tr : firstOpenLiveBoard());
 
+		    restrictOpenLiveBoardOps();
+
 		    // complete table by getting summary for each board
                     for (i = 0; i < boards.length; ++i)
 			getLiveBoardSummary(i, boards[i].id);
@@ -305,6 +307,8 @@ function getClosedLiveBoards() {
 		    }
 
 		    setCurrentClosedLiveBoard((curr_tr != null) ? curr_tr : firstClosedLiveBoard());
+
+		    restrictClosedLiveBoardOps();
                 }
             }
         },
@@ -374,7 +378,7 @@ function getLiveBoardSummary(index, board_id) {
 		    $('#page_' + board_id).html('<a href=\"' + data.url + '\">link</a>').css('color', '');
                     $("#table_lboards_open").trigger("update");
 
-		    restrictOperations();
+		    restrictOpenLiveBoardOps();
                 }
             }
         },
@@ -875,9 +879,14 @@ function reopenCurrentClosedLiveBoard_confirm() {
 // Sets given backed up board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentBackedupBoard(tr) {
-    if (tr.length == 0) return;
+    if (tr == null) {
+	$("#curr_bboard").html("none");
+	return;
+    }
+
     $("#table_bboards tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
+
     $("#curr_bboard").html(currentBackedupBoardName() + " (" + currentBackedupBoardID() + ")");
 }
 
@@ -887,35 +896,49 @@ function selectBackedupBoard(tr) {
     setCurrentBackedupBoard(tr);
 }
 
-// Restrict certain operations according to properties of the current open live board.
-function restrictOperations() {
+// Restricts certain operations according to properties of the current open live board.
+function restrictOpenLiveBoardOps() {
     var tr = currentOpenLiveBoard();
 
-    // certain operations require the board to be official, i.e. having metorg_adm as the only user
-    // with admin- and invitation rights to the board
-    var official = tr.data("official_adm_rights") && tr.data("official_inv_rights");
-    $("#copy_button").prop("disabled", !official);
-    $("#copy_dst_board_name").prop("disabled", !official);
-    $("#rename_button").prop("disabled", !official);
-    $("#rename_new_board_name").prop("disabled", !official);
-    $("#addmembers_button").prop("disabled", !official);
-    $("#close_button").prop("disabled", !official);
-    $("#show_html_button").prop("disabled", !official);
+    var boardsExist = (tr != null); 
 
-    $("#curr_lboard_open_restr").html(
-	official ? "" : "; <b>warning:</b> board not official (i.e. metorg_adm is not the only user with admin- and invitation rights)");
+    var official = false;
+    if (boardsExist) {
+	// certain operations require the board to be official, i.e. having metorg_adm as the only user
+	// with admin- and invitation rights to the board
+	official = tr.data("official_adm_rights") && tr.data("official_inv_rights");
+    }
+
+    var opsEnabled = boardsExist && official;
+
+    $("#copy_button").prop("disabled", !opsEnabled);
+    $("#copy_dst_board_name").prop("disabled", !opsEnabled);
+    $("#rename_button").prop("disabled", !opsEnabled);
+    $("#rename_new_board_name").prop("disabled", !opsEnabled);
+    $("#addmembers_button").prop("disabled", !opsEnabled);
+    $("#close_button").prop("disabled", !opsEnabled);
+    $("#show_html_button").prop("disabled", !opsEnabled);
+
+    if (boardsExist && !official)
+	$("#curr_lboard_open_restr").html(
+	    "; <b>warning:</b> board not official (i.e. metorg_adm is not the only user with admin- and invitation rights)");
+    else
+	$("#curr_lboard_open_restr").html("");
 }
 
 // Sets given open live board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentOpenLiveBoard(tr) {
-    if (tr.length == 0) return;
+    if (tr == null) {
+	$("#curr_lboard_open").html("none");
+	return;
+    }
     $("#table_lboards_open tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
 
     $("#curr_lboard_open").html(currentOpenLiveBoardName() + " (" + currentOpenLiveBoardID() + ")");
 
-    restrictOperations();
+    restrictOpenLiveBoardOps();
 
     saveStateToCookie();
 }
@@ -926,10 +949,24 @@ function selectOpenLiveBoard(tr) {
     setCurrentOpenLiveBoard(tr);
 }
 
+// Restricts certain operations according to properties of the current closed live board.
+function restrictClosedLiveBoardOps() {
+    var tr = currentClosedLiveBoard();
+
+    var boardsExist = (tr !== null); 
+    var opsEnabled = boardsExist;
+
+    $("#reopen_button").prop("disabled", !opsEnabled);
+}
+
 // Sets given closed live board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentClosedLiveBoard(tr) {
-    if (tr.length == 0) return;
+    if (tr == null) {
+	$("#curr_lboard_closed").html("none");
+	return;
+    }
+
     $("#table_lboards_closed tr").removeClass("selectedRow"); // unselect all rows
     tr.addClass("selectedRow"); // select target row
 
