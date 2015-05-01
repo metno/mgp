@@ -624,6 +624,10 @@ function copyCurrentOpenLiveBoard() {
     return false;
 }
 
+function copyCurrentOpenLiveBoard_confirm() {
+    call_confirm('Really copy board?', copyCurrentOpenLiveBoard);
+}
+
 // Renames the current open live board.
 function renameCurrentOpenLiveBoard() {
 
@@ -680,6 +684,10 @@ function renameCurrentOpenLiveBoard() {
     });
 
     return false;
+}
+
+function renameCurrentOpenLiveBoard_confirm() {
+    call_confirm('Really rename board?', renameCurrentOpenLiveBoard);
 }
 
 // Adds missing members to the current open live board (useful for adding back non-admin members who left the board by accident!)
@@ -739,8 +747,8 @@ function addMissingMembers() {
 }
 
 // Closes the current open live board.
-// ### Very similar to reopenCurrentLiveBoard(), consider refactoring.
-function closeCurrentLiveBoard() {
+// ### Very similar to reopenCurrentClosedLiveBoard(), consider refactoring.
+function closeCurrentOpenLiveBoard() {
 
     if ($('#close_button').attr('disabled'))
 	return;
@@ -797,9 +805,13 @@ function closeCurrentLiveBoard() {
     return false;
 }
 
-// Reopens the current open live board.
-// ### Very similar to closeCurrentLiveBoard(), consider refactoring.
-function reopenCurrentLiveBoard() {
+function closeCurrentOpenLiveBoard_confirm() {
+    call_confirm('Really close board?', closeCurrentOpenLiveBoard);
+}
+
+// Reopens the current closed live board.
+// ### Very similar to closeCurrentOpenLiveBoard(), consider refactoring.
+function reopenCurrentClosedLiveBoard() {
 
     if ($('#reopen_button').attr('disabled'))
 	return;
@@ -854,6 +866,10 @@ function reopenCurrentLiveBoard() {
     });
 
     return false;
+}
+
+function reopenCurrentClosedLiveBoard_confirm() {
+    call_confirm('Really reopen board?', reopenCurrentClosedLiveBoard);
 }
 
 // Sets given backed up board as current.
@@ -1112,3 +1128,25 @@ $(document).ready(function() {
     getOpenLiveBoards();
     getClosedLiveBoards();
 });
+
+function call_confirm(question, func) {
+    // request confirmation from user
+    $('<div></div>').appendTo('body')
+	.html('<div><h4>' + question + '</h4></div>')
+	.dialog({
+            modal: true, title: 'message', zIndex: 10000, autoOpen: true,
+            width: 'auto', resizable: false,
+            buttons: {
+		Yes: function () {
+                    func();
+                    $(this).dialog("close");
+		},
+		No: function () {
+                    $(this).dialog("close");
+		}
+            },
+            close: function (event, ui) {
+		$(this).remove();
+            }
+	});
+}

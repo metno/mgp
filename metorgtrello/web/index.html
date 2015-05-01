@@ -65,12 +65,12 @@ Filter:
 <div id="curr_lboard_open_restr" style="display:inline; font-size:120%; color:#700"></div>
 
 <br/></br/>
-<button id="copy_button" type="button" onclick="copyCurrentOpenLiveBoard()">Copy to new board:</button>
+<button id="copy_button" type="button" onclick="copyCurrentOpenLiveBoard_confirm()">Copy to new board:</button>
 <input type="text" id="copy_dst_board_name" onclick="return false" style="width:300px" />
 <div id="copy_status" style="display:inline"></div>
 
 <br/>
-<button id="rename_button" type="button" onclick="renameCurrentOpenLiveBoard()">Rename:</button>
+<button id="rename_button" type="button" onclick="renameCurrentOpenLiveBoard_confirm()">Rename:</button>
 <input type="text" id="rename_new_board_name" onclick="return false" style="width:300px" />
 <div id="rename_status" style="display:inline"></div>
 
@@ -79,7 +79,7 @@ Filter:
 <div id="addmembers_status" style="display:inline"></div>
 
 <br/>
-<button id="close_button" type="button" onclick="closeCurrentLiveBoard()">Close</button>
+<button id="close_button" type="button" onclick="closeCurrentOpenLiveBoard_confirm()">Close</button>
 <div id="close_status" style="display:inline"></div>
 
 <br/>
@@ -121,7 +121,7 @@ Filter:
 <div id="curr_lboard_closed" style="display:inline; font-size:120%"></div>
 
 <br/><br/>
-<button id="reopen_button" type="button" onclick="reopenCurrentLiveBoard()">Reopen</button>
+<button id="reopen_button" type="button" onclick="reopenCurrentClosedLiveBoard_confirm()">Reopen</button>
 <div id="reopen_status" style="display:inline"></div>
 
 </div> <!-- id="div_lboards_closed" -->
