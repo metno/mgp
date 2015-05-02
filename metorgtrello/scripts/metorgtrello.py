@@ -267,12 +267,10 @@ class CopyLiveBoard(Command):
     def execute(self):
         board_infos = getLiveBoardIdAndNames()
         if self.dst_name in [item['name'] for item in board_infos]:
-            # an open board with this name already exists
             self.error = 'an open board already exists with the name {}'.format(self.dst_name.encode('utf-8'))
         elif self.dst_name == '':
             self.error = 'empty name'
         else:
-            # copy board
             src_name = getBoardNameFromId(board_infos, self.src_id)
             trello.post(
                 ['boards'],
@@ -313,12 +311,10 @@ class RenameLiveBoard(Command):
     def execute(self):
         board_infos = getLiveBoardIdAndNames()
         if self.new_name in [item['name'] for item in board_infos]:
-            # an open board with this name already exists
             self.error = 'an open board already exists with the name {}'.format(self.new_name.encode('utf-8'))
         elif self.new_name == '':
             self.error = 'empty name'
         else:
-            # rename board
             old_name = getBoardNameFromId(board_infos, self.board_id)
             trello.put(
                 ['boards', self.board_id, 'name'],
