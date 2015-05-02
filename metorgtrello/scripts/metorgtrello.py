@@ -365,19 +365,29 @@ class ReopenBoard(Command):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
         self.board_id = board_id
+        self.status = None
+        self.error = None
 
     def execute(self):
-        trello.put(
-            ['boards', self.board_id, 'closed'],
-            arguments = {
-                'value': 'false'
-                }
-            )
-        self.status = 'reopened board ({})'.format(self.board_id)
+        board_infos_open = getLiveBoardIdAndNames()
+        board_infos_closed = getLiveBoardIdAndNames(False)
+        board_name = getBoardNameFromId(board_infos_closed, self.board_id)
+
+        if board_name in [item['name'] for item in board_infos_open]:
+            self.error = 'an open board already exists with the name {}'.format(board_name.encode('utf-8'))
+        else:
+            trello.put(
+                ['boards', self.board_id, 'closed'],
+                arguments = {
+                    'value': 'false'
+                    }
+                )
+            self.status = 'successfully reopened board ({})'.format(self.board_id)
+
         self.printOutput()
 
     def printOutputAsJSON(self):
-        json.dump({ 'status': self.status }, sys.stdout, indent=2, ensure_ascii=True)
+        json.dump({ 'status': self.status, 'error': self.error }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
 
