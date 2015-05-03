@@ -219,6 +219,7 @@ function getOpenLiveBoards() {
 			$("#tr_lbo_" + i).data("bid", id);
 			$("#tr_lbo_" + i).data("official_adm_rights", false);
 			$("#tr_lbo_" + i).data("official_inv_rights", false);
+			$("#tr_lbo_" + i).data("list_names", []);
 
 			if (id == cookie_curr_open_live_board_id)
 			    curr_tr = $("#tr_lbo_" + i);
@@ -226,11 +227,9 @@ function getOpenLiveBoards() {
 
 		    setCurrentOpenLiveBoard((curr_tr != null) ? curr_tr : firstOpenLiveBoard());
 
-		    restrictOpenLiveBoardOps();
-
-		    // complete table by getting summary for each board
+		    // complete table by getting details for each board
                     for (i = 0; i < boards.length; ++i)
-			getLiveBoardSummary(i, boards[i].id);
+			getLiveBoardDetails(i, boards[i].id);
                 }
             }
         },
@@ -308,7 +307,7 @@ function getClosedLiveBoards() {
 
 		    setCurrentClosedLiveBoard((curr_tr != null) ? curr_tr : firstClosedLiveBoard());
 
-		    restrictClosedLiveBoardOps();
+		    updateControlsForCurrentClosedLiveBoard();
                 }
             }
         },
@@ -330,12 +329,12 @@ function getClosedLiveBoards() {
     return false;
 }
 
-// Retrieves summary of a given live board.
-function getLiveBoardSummary(index, board_id) {
-    statusBase = "getting summary of board " + board_id + " ...";
+// Retrieves details of a given live board.
+function getLiveBoardDetails(index, board_id) {
+    statusBase = "getting details of board " + board_id + " ...";
     updateLiveStatus(statusBase, true);
 
-    query = "?cmd=get_live_board_summary&id=" + board_id;
+    query = "?cmd=get_live_board_details&id=" + board_id;
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -355,9 +354,9 @@ function getLiveBoardSummary(index, board_id) {
                     updateLiveStatus(statusBase + " done", false);
                     updateLiveStatus("", false);
 
-                    // insert summary in table
+                    // insert details in table
 		    var adm_rights_html = '';
-		    $.each(data.adm_rights, function(index, value) {
+		    $.each(data.adm_rights, function(index_, value) {
 			if (value == 'metorg_adm') {
 			    adm_rights_html += ('<span style="color:green; font-weight:bold">' + value + '</span> ');
 			} else {
@@ -378,7 +377,10 @@ function getLiveBoardSummary(index, board_id) {
 		    $('#page_' + board_id).html('<a href=\"' + data.url + '\">link</a>').css('color', '');
                     $("#table_lboards_open").trigger("update");
 
-		    restrictOpenLiveBoardOps();
+		    $("#tr_lbo_" + index).data("list_names", data.list_names);
+
+		    if (data.id == currentOpenLiveBoardID())
+			updateControlsForCurrentOpenLiveBoard();
                 }
             }
         },
@@ -461,16 +463,23 @@ function showHtmlOfCurrentOpenLiveBoard() {
     statusBase = "getting HTML of current open live board ...";
     updateLiveStatus(statusBase, true);
 
-    query = "?cmd=get_live_board_html&id=" + currentOpenLiveBoardID();
+    var query = "?cmd=get_live_board_html&id=" + currentOpenLiveBoardID();
+    var listText = 'all lists';
+    if ($('#show_html_list').val() >= 0) {
+	var listName = $('#show_html_list option:selected').text();
+	query += "&list_name=" + listName;
+	listText = 'list ' + listName;
+    }
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     // NOTE: the window to display the HTML must be opened already at this point
     // (and not after the asynchronous server response), otherwise it may be considered
     // suspicious by the popup blocker
-    var newTitle = currentOpenLiveBoardName();
+    var boardName = currentOpenLiveBoardName();
+    var newTitle = boardName;
     var newWin = window.open('');
     $(newWin.document.body).html(
-	'<html><body><h3>generating static HTML for ' + newTitle + '; please wait ...</h3></body></html>');
+	'<html><body><h3>generating static HTML for ' + listText + ' in board ' + boardName + '; please wait ...</h3></body></html>');
 
     $.ajax({
         url: url,
@@ -896,8 +905,8 @@ function selectBackedupBoard(tr) {
     setCurrentBackedupBoard(tr);
 }
 
-// Restricts certain operations according to properties of the current open live board.
-function restrictOpenLiveBoardOps() {
+// Updates controls for the current open live board.
+function updateControlsForCurrentOpenLiveBoard() {
     var tr = currentOpenLiveBoard();
 
     var boardsExist = (tr != null); 
@@ -918,12 +927,21 @@ function restrictOpenLiveBoardOps() {
     $("#addmembers_button").prop("disabled", !opsEnabled);
     $("#close_button").prop("disabled", !opsEnabled);
     $("#show_html_button").prop("disabled", !opsEnabled);
+    $("#show_html_list").prop("disabled", !opsEnabled);
 
     if (boardsExist && !official)
 	$("#curr_lboard_open_restr").html(
 	    "; <b>warning:</b> board not official (i.e. metorg_adm is not the only user with admin- and invitation rights)");
     else
 	$("#curr_lboard_open_restr").html("");
+
+    // update available lists for 'Show HTML' operation
+    var sel = $("#show_html_list");
+    sel.empty();
+    sel.append($("<option></option>").attr("value", -1).text('------ all lists ------'));
+    $.each(tr.data("list_names"), function(index, value) {
+	sel.append($("<option></option>").attr("value", index).text(value));
+    });
 }
 
 // Sets given open live board as current.
@@ -938,7 +956,7 @@ function setCurrentOpenLiveBoard(tr) {
 
     $("#curr_lboard_open").html(currentOpenLiveBoardName() + " (" + currentOpenLiveBoardID() + ")");
 
-    restrictOpenLiveBoardOps();
+    updateControlsForCurrentOpenLiveBoard();
 
     saveStateToCookie();
 }
@@ -949,8 +967,8 @@ function selectOpenLiveBoard(tr) {
     setCurrentOpenLiveBoard(tr);
 }
 
-// Restricts certain operations according to properties of the current closed live board.
-function restrictClosedLiveBoardOps() {
+// Updates controls for the current closed live board.
+function updateControlsForCurrentClosedLiveBoard() {
     var tr = currentClosedLiveBoard();
 
     var boardsExist = (tr !== null); 

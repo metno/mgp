@@ -64,13 +64,14 @@ class GetLiveBoard(Command):
 
 
 # Prints relevant summary info for a given board on the Trello server.
-class GetLiveBoardSummary(Command):
+class GetLiveBoardDetails(Command):
     def __init__(self, http_get, board_id):
         self.http_get = http_get
         self.board_id = board_id
 
     def execute(self):
         self.summary = getLiveBoardSummary(self.board_id)
+        self.summary['list_names'] = [item['name'] for item in getLiveLists(self.board_id)]
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -133,14 +134,13 @@ class GetBoardHtml(Command):
             cards[lid].append(card)
 
         for lst in board['lists']:
-            self.html += '<table>'
-            self.html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
-
-            for card in cards[lst['id']]:
-                self.html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
-
-            self.html += '</table>'
-            self.html += '<br/>'
+            if (self.list_name == None) or (self.list_name == lst['name'].strip()):
+                self.html += '<table>'
+                self.html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
+                for card in cards[lst['id']]:
+                    self.html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
+                self.html += '</table>'
+                self.html += '<br/>'
 
         self.html += '</body>'
         self.html += '</html>'
@@ -151,11 +151,13 @@ class GetBoardHtml(Command):
         json.dump({ 'html': self.html }, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
 
+
 # Prints a HTML version of a board.
 class GetLiveBoardHtml(GetBoardHtml):
-    def __init__(self, http_get, board_id):
+    def __init__(self, http_get, board_id, list_name = None):
         self.http_get = http_get
         self.board_id = board_id
+        self.list_name = None if (list_name == None) else list_name.strip() # None specifies all lists
 
     def getFullBoard(self):
         return getFullLiveBoard(self.board_id)
@@ -163,17 +165,20 @@ class GetLiveBoardHtml(GetBoardHtml):
     def source(self):
         return 'Trello server'
 
+
 # Prints a HTML version of a board.
 class GetBackedupBoardHtml(GetBoardHtml):
-    def __init__(self, http_get, board_id):
+    def __init__(self, http_get, board_id, list_name = None):
         self.http_get = http_get
         self.board_id = board_id
+        self.list_name = None if (list_name == None) else list_name.strip() # None specifies all lists
 
     def getFullBoard(self):
         return getFullBackedupBoard(self.board_id)
 
     def source(self):
         return 'local backup (git repository)'
+
 
 # Prints stats for a given board in the local backup directory.
 class GetBackedupBoardStats(Command):
@@ -189,6 +194,7 @@ class GetBackedupBoardStats(Command):
     def printOutputAsJSON(self):
         json.dump(self.stats, sys.stdout, indent=2, ensure_ascii=True)
         sys.stdout.write('\n');
+
 
 # Backs up given board on the Trello server to a git repo (via the local backup directory).
 class BackupLiveBoard(Command):
@@ -472,16 +478,16 @@ def getBackedupBoardIdAndNames(name_filter = None):
     return result
 
 def getLiveBoardSummary(board_id):
-    board = trello.get(
+    summary = trello.get(
         ['boards', board_id],
         arguments = {
             'fields': 'name,closed,url,prefs',
             'members': 'admins',
             'member_fields': 'username'
             })
-    board['adm_rights'] = [item['username'] for item in board.pop('members')]
-    board['inv_rights'] = board.pop('prefs')['invitations']
-    return board
+    summary['adm_rights'] = [item['username'] for item in summary.pop('members')]
+    summary['inv_rights'] = summary.pop('prefs')['invitations']
+    return summary
 
 def getLiveMembers(board_id):
     members = trello.get(['boards', board_id, 'members'])
@@ -639,10 +645,10 @@ def createCommand(options, http_get):
                 '--cmd get_live_boards --open {0|1} [--filter <board name filter>]',
                 '--cmd get_backedup_boards [--filter <board name filter>]',
                 '--cmd get_live_board --id <board ID>',
-                '--cmd get_live_board_summary --id <board ID>',
-                '--cmd get_live_board_html --id <board ID>',
+                '--cmd get_live_board_details --id <board ID>',
+                '--cmd get_live_board_html --id <board ID> [--list_name <list name>]',
                 '--cmd get_backedup_board --id <board ID>',
-                '--cmd get_backedup_board_html --id <board ID>',
+                '--cmd get_backedup_board_html --id <board ID> [--list_name <list name>]',
                 '--cmd get_backedup_board_stats --id <board ID>',
                 '--cmd backup_live_board --id <board ID>',
                 '--cmd backup_all_live_boards',
@@ -673,18 +679,18 @@ def createCommand(options, http_get):
     elif cmd == 'get_live_board':
         if 'id' in options:
             return GetLiveBoard(http_get, options['id'])
-    elif cmd == 'get_live_board_summary':
+    elif cmd == 'get_live_board_details':
         if 'id' in options:
-            return GetLiveBoardSummary(http_get, options['id'])
+            return GetLiveBoardDetails(http_get, options['id'])
     elif cmd == 'get_live_board_html':
         if 'id' in options:
-            return GetLiveBoardHtml(http_get, options['id'])
+            return GetLiveBoardHtml(http_get, options['id'], options['list_name'].decode('utf-8') if 'list_name' in options else None)
     elif cmd == 'get_backedup_board':
         if 'id' in options:
             return GetBackedupBoard(http_get, options['id'])
     elif cmd == 'get_backedup_board_html':
         if 'id' in options:
-            return GetBackedupBoardHtml(http_get, options['id'])
+            return GetBackedupBoardHtml(http_get, options['id'], options['list_name'].decode('utf-8') if 'list_name' in options else None)
     elif cmd == 'get_backedup_board_stats':
         if 'id' in options:
             return GetBackedupBoardStats(http_get, options['id'])
