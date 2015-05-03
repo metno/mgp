@@ -106,7 +106,6 @@ class GetBoardHtml(Command):
             '<style>'
             'table { border-collapse:collapse; font-size:12px; }'
             'table, th, td { border: 1px solid #aaaaaa; padding:3; text-align:left; vertical-align:text-top; }'
-            'td { white-space:pre; }'
             'th { background: #eee; font-size:120%; }'
             '</style>'
             '</head>'
