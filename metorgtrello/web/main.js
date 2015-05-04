@@ -403,7 +403,7 @@ function getLiveBoardDetails(index, board_id) {
 }
 
 // Opens the HTML snapshot of the current backed up board in a new page.
-function showHtmlOfCurrentBackedupBoard() {
+function showCurrentBackedupBoardAsPrintablePage() {
     statusBase = "getting HTML of current backed up board ...";
     updateBackupStatus(statusBase, true);
 
@@ -459,7 +459,7 @@ function showHtmlOfCurrentBackedupBoard() {
 }
 
 // Opens the HTML snapshot of the current open live board in a new page.
-function showHtmlOfCurrentOpenLiveBoard() {
+function showCurrentOpenLiveBoardAsPrintablePage() {
     statusBase = "getting HTML of current open live board ...";
     updateLiveStatus(statusBase, true);
 
@@ -926,7 +926,7 @@ function updateControlsForCurrentOpenLiveBoard() {
     $("#rename_new_board_name").prop("disabled", !opsEnabled);
     $("#addmembers_button").prop("disabled", !opsEnabled);
     $("#close_button").prop("disabled", !opsEnabled);
-    $("#show_html_button").prop("disabled", !opsEnabled);
+    $("#show_ppage_button").prop("disabled", !opsEnabled);
     $("#show_html_list").prop("disabled", !opsEnabled);
 
     if (boardsExist && !official)
