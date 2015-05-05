@@ -3,6 +3,7 @@
 var cookie;
 var cookie_curr_open_live_board_id;
 var cookie_curr_closed_live_board_id;
+var cookie_show_ppage_list;
 
 // --- END Global variables -------------------------------------
 
@@ -937,11 +938,16 @@ function updateControlsForCurrentOpenLiveBoard() {
 
     // update available lists for 'Show as printable page' operation
     var sel = $("#show_ppage_list");
+    var initVal = -1; // must be -1 (i.e. one below the 0, 1, 2, ... range for individual lists)
     sel.empty();
-    sel.append($("<option></option>").attr("value", -1).text('------ all lists ------'));
+    sel.append($("<option></option>").attr("value", initVal).text('------ all lists ------'));
     $.each(tr.data("list_names"), function(index, value) {
 	sel.append($("<option></option>").attr("value", index).text(value));
+	if (value == cookie_show_ppage_list)
+	    initVal = index;
     });
+
+    sel.val(initVal);
 }
 
 // Sets given open live board as current.
@@ -1012,6 +1018,10 @@ function selectBoardType() {
     }
 }
 
+function changeShowPrintablePageList() {
+    saveStateToCookie();
+}
+
 function loadStateFromCookie() {
     if (!Cookie.enabled()) return;
 
@@ -1035,6 +1045,8 @@ function loadStateFromCookie() {
     if (cfilter) {
 	$('#lboard_closed_name_filter').val(cfilter);
     }
+
+    cookie_show_ppage_list = state['show_ppage_list'];
 }
 
 function saveStateToCookie() {
@@ -1044,6 +1056,7 @@ function saveStateToCookie() {
     cookie.setDynamicProperty('lboard_open_name_filter', $('#lboard_open_name_filter').val());
     cookie.setDynamicProperty('curr_closed_live_board_id', currentClosedLiveBoardID());
     cookie.setDynamicProperty('lboard_closed_name_filter', $('#lboard_closed_name_filter').val());
+    cookie.setDynamicProperty('show_ppage_list', $('#show_ppage_list option:selected').text());
     cookie.store();
 }
 
