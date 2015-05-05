@@ -3,7 +3,6 @@
 var cookie;
 var cookie_curr_open_live_board_id;
 var cookie_curr_closed_live_board_id;
-var cookie_show_ppage_list;
 
 // --- END Global variables -------------------------------------
 
@@ -708,6 +707,12 @@ function updateControlsForCurrentOpenLiveBoard() {
     var initVal = -1; // must be -1 (i.e. one below the 0, 1, 2, ... range for individual lists)
     sel.empty();
     sel.append($("<option></option>").attr("value", initVal).text('------ all lists ------'));
+    var cookie_show_ppage_list = '';
+    if (Cookie.enabled()) {
+	var spplist = cookie.getDynamicProperties()['show_ppage_list'];
+	if (spplist)
+	    cookie_show_ppage_list = spplist;
+    }
     $.each(tr.data("list_names"), function(index, value) {
 	sel.append($("<option></option>").attr("value", index).text(value));
 	if (value == cookie_show_ppage_list)
@@ -786,7 +791,10 @@ function selectBoardType() {
 }
 
 function changeShowPrintablePageList() {
-    saveStateToCookie();
+    if (Cookie.enabled()) {
+	cookie.setDynamicProperty('show_ppage_list', $('#show_ppage_list option:selected').text());
+	cookie.store();
+    }
 }
 
 function loadStateFromCookie() {
@@ -812,8 +820,6 @@ function loadStateFromCookie() {
     if (cfilter) {
 	$('#lboard_closed_name_filter').val(cfilter);
     }
-
-    cookie_show_ppage_list = state['show_ppage_list'];
 }
 
 function saveStateToCookie() {
@@ -823,7 +829,6 @@ function saveStateToCookie() {
     cookie.setDynamicProperty('lboard_open_name_filter', $('#lboard_open_name_filter').val());
     cookie.setDynamicProperty('curr_closed_live_board_id', currentClosedLiveBoardID());
     cookie.setDynamicProperty('lboard_closed_name_filter', $('#lboard_closed_name_filter').val());
-    cookie.setDynamicProperty('show_ppage_list', $('#show_ppage_list option:selected').text());
     cookie.store();
 }
 
