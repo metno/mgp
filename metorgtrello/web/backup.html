@@ -54,7 +54,9 @@ Filter:
 <div id="curr_bboard" style="display:inline; font-size:120%"></div>
 
 <br/><br/>
-<button type="button" onclick="showCurrentBackedupBoardAsPrintablePage()">Show as printable page</button>
+<button id="show_ppage_button" type="button" onclick="showCurrentBackedupBoardAsPrintablePage()">
+Show as printable page</button>
+<select id="show_ppage_list" onchange="changeShowPrintablePageList()"></select>
 
 </div>
 

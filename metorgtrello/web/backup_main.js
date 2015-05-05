@@ -77,9 +77,14 @@ function getBackedupBoards() {
 
                     for (i = 0; i < boards.length; ++i) {
 			$("#tr_bb_" + i).data("bid", boards[i].id);
+
+			// ### TBD: support list names in the get_backedup_boards command
+			//$("#tr_bb_" + i).data("list_names", boards[i].list_names);
 		    }
 
                     setCurrentBackedupBoard(firstBackedupBoard());
+
+		    updateControlsForCurrentBackedupBoard();
                 }
             }
         },
@@ -106,16 +111,23 @@ function showCurrentBackedupBoardAsPrintablePage() {
     statusBase = "getting HTML of current backed up board ...";
     updateBackupStatus(statusBase, true);
 
-    query = "?cmd=get_backedup_board_html&id=" + currentBackedupBoardID();
+    var query = "?cmd=get_backedup_board_html&id=" + currentBackedupBoardID();
+    var listText = 'all lists';
+    if ($('#show_ppage_list').val() >= 0) {
+	var listName = $('#show_ppage_list option:selected').text();
+	query += "&list_name=" + listName;
+	listText = 'list ' + listName;
+    }
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     // NOTE: the window to display the HTML must be opened already at this point
     // (and not after the asynchronous server response), otherwise it may be considered
     // suspicious by the popup blocker
-    var newTitle = currentBackedupBoardName();
+    var boardName = currentBackedupBoardName();
+    var newTitle = boardName;
     var newWin = window.open('');
     $(newWin.document.body).html(
-	'<html><body><h3>generating static HTML for ' + newTitle + '; please wait ...</h3></body></html>');
+	'<html><body><h3>generating static HTML for ' + listText + ' in board ' + boardName + '; please wait ...</h3></body></html>');
 
     $.ajax({
         url: url,
@@ -157,6 +169,37 @@ function showCurrentBackedupBoardAsPrintablePage() {
     return false;
 }
 
+// Updates controls for the current backed up board.
+function updateControlsForCurrentBackedupBoard() {
+    var tr = currentBackedupBoard();
+
+    var boardsExist = (tr != null);
+
+    var opsEnabled = boardsExist;
+
+    $("#show_ppage_button").prop("disabled", !opsEnabled);
+    $("#show_ppage_list").prop("disabled", !opsEnabled);
+
+    // update available lists for 'Show as printable page' operation
+    var sel = $("#show_ppage_list");
+    var initVal = -1; // must be -1 (i.e. one below the 0, 1, 2, ... range for individual lists)
+    sel.empty();
+    sel.append($("<option></option>").attr("value", initVal).text('------ all lists ------'));
+    var cookie_show_ppage_list = '';
+    if (Cookie.enabled()) {
+	var spplist = cookie.getDynamicProperties()['show_ppage_list'];
+	if (spplist)
+	    cookie_show_ppage_list = spplist;
+    }
+    $.each(tr.data("list_names"), function(index, value) {
+	sel.append($("<option></option>").attr("value", index).text(value));
+	if (value == cookie_show_ppage_list)
+	    initVal = index;
+    });
+
+    sel.val(initVal);
+}
+
 // Sets given backed up board as current.
 // tr is the jQuery selector for the corresponding <tr> element.
 function setCurrentBackedupBoard(tr) {
@@ -169,12 +212,21 @@ function setCurrentBackedupBoard(tr) {
     tr.addClass("selectedRow"); // select target row
 
     $("#curr_bboard").html(currentBackedupBoardName() + " (" + currentBackedupBoardID() + ")");
+
+    updateControlsForCurrentBackedupBoard();
 }
 
 // Handles selecting a row in the table of backed up boards.
 // tr is the jQuery selector for the corresponding <tr> element.
 function selectBackedupBoard(tr) {
     setCurrentBackedupBoard(tr);
+}
+
+function changeShowPrintablePageList() {
+    if (Cookie.enabled()) {
+	cookie.setDynamicProperty('show_ppage_list', $('#show_ppage_list option:selected').text());
+	cookie.store();
+    }
 }
 
 function loadStateFromCookie() {
