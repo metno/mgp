@@ -367,64 +367,6 @@ function showCurrentOpenLiveBoardAsPrintablePage() {
     return false;
 }
 
-// Backs up the current open live board.
-function backupCurrentLiveBoard() {
-    statusBase = "backing up current live board ...";
-    updateLiveStatus(statusBase, true);
-    var boardName = currentOpenLiveBoardName();
-    $('#backup_status').html('backing up live board <u>' + boardName + '</u> ...').css('color', '');
-
-    query = "?cmd=backup_board&id=" + currentOpenLiveBoardID();
-    url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
-
-    $.ajax({
-        url: url,
-        type: "GET",
-        dataType: "json",
-
-        success: function(data, textStatus, request) {
-            if (request.readyState == 4) {
-                if (request.status == 200) {
-
-                    if (data.error != null) {
-                        updateLiveStatus(statusBase + " failed: " + data.error, false);
-			$('#backup_status').html('error: ' + data.error).css('color', 'red');
-                        return
-                    }
-
-                    updateLiveStatus(statusBase + " done", false);
-                    updateLiveStatus("", false);
-
-		    if (data.commit == '') {
-			$('#backup_status').html('no changes in live board <u>' + boardName + '</u>');
-		    } else {
-			$('#backup_status').html(
-			    'backed up new changes in live board <u>' + boardName +
-				'</u> to local git repository (commit id: ' + data.commit + ' )');
-			getBackedupBoards(); // refresh
-		    }
-                }
-            }
-        },
-
-        error: function(request, textStatus, errorThrown) {
-            descr = errorThrown;
-            if (errorThrown == null) {
-                descr = "undefined error - is the server down?";
-            }
-            updateLiveStatus(statusBase + " error: " + descr, false);
-	    $('#backup_status').html('error: ' + descr).css('color', 'red');
-        }
-
-        // complete: function(request, textStatus) {
-        //     alert("complete; request.status: " + request.status)
-        // }
-
-    });
-
-    return false;
-}
-
 // Copies the current open live board.
 function copyCurrentOpenLiveBoard() {
 
