@@ -465,8 +465,8 @@ function showCurrentOpenLiveBoardAsPrintablePage() {
 
     var query = "?cmd=get_live_board_html&id=" + currentOpenLiveBoardID();
     var listText = 'all lists';
-    if ($('#show_html_list').val() >= 0) {
-	var listName = $('#show_html_list option:selected').text();
+    if ($('#show_ppage_list').val() >= 0) {
+	var listName = $('#show_ppage_list option:selected').text();
 	query += "&list_name=" + listName;
 	listText = 'list ' + listName;
     }
@@ -927,7 +927,7 @@ function updateControlsForCurrentOpenLiveBoard() {
     $("#addmembers_button").prop("disabled", !opsEnabled);
     $("#close_button").prop("disabled", !opsEnabled);
     $("#show_ppage_button").prop("disabled", !opsEnabled);
-    $("#show_html_list").prop("disabled", !opsEnabled);
+    $("#show_ppage_list").prop("disabled", !opsEnabled);
 
     if (boardsExist && !official)
 	$("#curr_lboard_open_restr").html(
@@ -935,8 +935,8 @@ function updateControlsForCurrentOpenLiveBoard() {
     else
 	$("#curr_lboard_open_restr").html("");
 
-    // update available lists for 'Show HTML' operation
-    var sel = $("#show_html_list");
+    // update available lists for 'Show as printable page' operation
+    var sel = $("#show_ppage_list");
     sel.empty();
     sel.append($("<option></option>").attr("value", -1).text('------ all lists ------'));
     $.each(tr.data("list_names"), function(index, value) {
