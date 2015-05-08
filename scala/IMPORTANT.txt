@@ -14,3 +14,8 @@ they have side effects (i.e., if the function modifies data outside its scope). 
 input-less function that writes a message to the console should be defined with empty parentheses.
 
 ==================================================================================
+
+As a matter of style it’s better to organize function parameters so that those with default values
+follow required parameters. This emphasizes the importance of the required parameters as well as
+making it possible to call the function without specifying the default parameters and not require
+the use of parameter names.
