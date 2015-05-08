@@ -1,0 +1,16 @@
+On the other hand, it can be really hard to write useful applications that don’t affect files,
+databases, or sockets, so it is rare to write one that only contains pure functions. Instead of
+trying to find a way to exlusively use pure functions in their applications, Scala developers will
+generally compromise and seek ways to reduce the number of unpure functions. Keeping unpure
+functions clearly named and organized in such a way that they can be easily identified versus pure
+functions is a common goal of modularizing and organizing Scala applications.
+
+==================================================================================
+
+Functions with Side Effects Should Use Parentheses
+
+A Scala convention for input-less functions is that they should be defined with empty parentheses if
+they have side effects (i.e., if the function modifies data outside its scope). For example, an
+input-less function that writes a message to the console should be defined with empty parentheses.
+
+==================================================================================
