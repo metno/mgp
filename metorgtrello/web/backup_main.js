@@ -38,7 +38,7 @@ function getBackedupBoards() {
     statusBase = "getting backed up boards ...";
     updateBackupStatus(statusBase, true);
 
-    query = "?cmd=get_backedup_boards&filter=" + $("#bboard_name_filter").val();
+    query = "?cmd=get_backedup_boards&filter=" + encodeURIComponent($("#bboard_name_filter").val());
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({

@@ -70,7 +70,7 @@ function getOpenLiveBoards() {
     statusBase = "getting open live boards ...";
     updateLiveStatus(statusBase, true);
 
-    query = "?cmd=get_live_boards&open=1&filter=" + $("#lboard_open_name_filter").val();
+    query = "?cmd=get_live_boards&open=1&filter=" + encodeURIComponent($("#lboard_open_name_filter").val());
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
 
     $.ajax({
@@ -312,7 +312,7 @@ function showCurrentOpenLiveBoardAsPrintablePage() {
     var listText = 'all lists';
     if ($('#show_ppage_list').val() >= 0) {
 	var listName = $('#show_ppage_list option:selected').text();
-	query += "&list_name=" + listName;
+	query += "&list_name=" + encodeURIComponent(listName);
 	listText = 'list ' + listName;
     }
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;
