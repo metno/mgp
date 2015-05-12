@@ -77,9 +77,7 @@ function getBackedupBoards() {
 
                     for (i = 0; i < boards.length; ++i) {
 			$("#tr_bb_" + i).data("bid", boards[i].id);
-
-			// ### TBD: support list names in the get_backedup_boards command
-			//$("#tr_bb_" + i).data("list_names", boards[i].list_names);
+			$("#tr_bb_" + i).data("list_names", boards[i].list_names);
 		    }
 
                     setCurrentBackedupBoard(firstBackedupBoard());
@@ -115,7 +113,7 @@ function showCurrentBackedupBoardAsPrintablePage() {
     var listText = 'all lists';
     if ($('#show_ppage_list').val() >= 0) {
 	var listName = $('#show_ppage_list option:selected').text();
-	query += "&list_name=" + listName;
+	query += "&list_name=" + encodeURIComponent(listName);
 	listText = 'list ' + listName;
     }
     url = "http://" + location.host + "/cgi-bin/metorgtrello" + query;

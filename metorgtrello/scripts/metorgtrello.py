@@ -40,7 +40,7 @@ class GetBackedupBoards(Command):
             self.name_filter = '*'
 
     def execute(self):
-        self.board_id_and_names = getBackedupBoardIdAndNames(self.name_filter.decode('utf-8'))
+        self.board_id_and_names = getBackedupBoardDetails(self.name_filter.decode('utf-8'))
         self.printOutput()
 
     def printOutputAsJSON(self):
@@ -461,7 +461,7 @@ def getLastCommitTime(gitdir, fname):
         last_ct = -1
     return last_ct
 
-def getBackedupBoardIdAndNames(name_filter = None):
+def getBackedupBoardDetails(name_filter = None):
     budir = getEnv('TRELLOBACKUPDIR')
     result = []
     for fname in os.listdir(budir):
@@ -470,8 +470,11 @@ def getBackedupBoardIdAndNames(name_filter = None):
                 data = json.load(open('{}/{}'.format(budir, fname)))
                 name = data['board']['name']
                 if (name_filter == None) or fnmatch.fnmatch(name, name_filter):
+                    list_names = []
+                    if 'lists' in data:
+                        list_names = [item['name'] for item in data['lists']]
                     last_ct = getLastCommitTime(budir, fname)
-                    result.append({ 'id': data['board']['id'], 'name': name, 'last_ct': last_ct })
+                    result.append({ 'id': data['board']['id'], 'name': name, 'last_ct': last_ct, 'list_names': list_names })
             except:
                 pass # ignore parsing errors
     return result
