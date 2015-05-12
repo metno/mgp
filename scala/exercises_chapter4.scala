@@ -50,11 +50,21 @@ def pow2(x: Double, n: Int) : Double = {
   a
 }
 
-@annotation.tailrec
+//@annotation.tailrec ### not tail-recursive, since it is the multiplication, not the recursive
+// call, that is in tail position!
 def pow3(x: Double, n: Int) : Double = {
   if (n < 2) {
     x
   } else {
     x * pow3(x, n - 1)
+  }
+}
+
+@annotation.tailrec
+def pow4(x: Double, n: Int, r: Double = 1.0) : Double = {
+  if (n < 1) {
+    r
+  } else {
+    pow4(x, n - 1, r * x)
   }
 }
