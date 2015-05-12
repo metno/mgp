@@ -24,19 +24,37 @@ def formatMS(ms: Long) : String = {
   val msInHour : Long = msInMin * 60
   val msInDay : Long = msInHour * 24
 
-  val ms1 : Long = ms
-  val days : Long = ms1 / msInDay
+  val msDays : Long = ms
+  val days : Long = msDays / msInDay
 
-  val ms2 : Long = ms1 % msInDay
-  val hours : Long = ms2 / msInHour
+  val msHours : Long = msDays % msInDay
+  val hours : Long = msHours / msInHour
 
-  val ms3 : Long = ms2 % msInHour
-  val mins : Long = ms3 / msInMin
+  val msMins : Long = msHours % msInHour
+  val mins : Long = msMins / msInMin
 
-  val ms4 : Long = ms3 % msInMin
-  val secs : Long = ms4 / msInSec
+  val msSecs : Long = msMins % msInMin
+  val secs : Long = msSecs / msInSec
 
   s"days: $days; hours: $hours; mins: $mins; secs: $secs"
 }
 
 // 5
+def pow1(x: Double, n: Int) : Double = {
+  math.pow(x, n)
+}
+
+def pow2(x: Double, n: Int) : Double = {
+  var a = x
+  for (i <- 1 until n) a *= x
+  a
+}
+
+@annotation.tailrec
+def pow3(x: Double, n: Int) : Double = {
+  if (n < 2) {
+    x
+  } else {
+    x * pow3(x, n - 1)
+  }
+}
