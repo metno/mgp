@@ -68,3 +68,24 @@ def pow4(x: Double, n: Int, r: Double = 1.0) : Double = {
     pow4(x, n - 1, r * x)
   }
 }
+
+// 6
+def dist(p1: (Double, Double), p2: (Double, Double)) : Double = {
+  math.sqrt(math.pow(p2._1 - p1._1, 2) + math.pow(p2._2 - p1._2, 2))
+}
+
+// 7
+def intInPos1(t: (Any, Any)) : (Any, Any) = {
+  if (t._1.isInstanceOf[Int]) {
+    t
+  } else if (t._2.isInstanceOf[Int]) {
+    (t._2, t._1)
+  } else {
+    throw new Exception("none of the components are of type Int")
+  }    
+}
+
+// 8
+def addStringRepr[T1, T2, T3](t: (T1, T2, T3)) : (T1, String, T2, String, T3, String) = {
+  (t._1, t._1.toString, t._2, t._2.toString, t._3, t._3.toString)
+}
