@@ -19,3 +19,30 @@ As a matter of style it’s better to organize function parameters so that those
 follow required parameters. This emphasizes the importance of the required parameters as well as
 making it possible to call the function without specifying the default parameters and not require
 the use of parameter names.
+
+==================================================================================
+
+Scala’s support for infix operator notation for invoking object methods has multiple benefits for
+the language. Operators, instead of being a part of the syntax and imple‐ mented in hidden ways, are
+just methods implemented in their objects that can be viewed or called directly. The syntax is thus
+reduced and simplified. Developers are free to implement their own operators because every
+single-parameter method can be used as an operator, and are motivated to simplify methods to only
+take a single parameter to make them eligible for operator notation. Finally, the code readability
+may be im‐ proved, removing otherwise necessary punctuation to focus on the simple object, meth‐ od,
+and parameter components.
+
+About the only drawback to using operator notation is when it reduces code readability instead of
+improving it. For example, a chain of 10 method calls separated only by spaces may be a bit harder
+to read than with regular dot notation, because the operators and operands may be hard to
+discern. Or an overeager developer may define his own type with an addition operator that,
+unknowingly to callers, performs a completely different type of operation.
+
+Make sure to use care to invoke operator notation only when it can be clearly read, and you may find
+yourself using it regularly
+
+==================================================================================
+
+Scaladoc (or Javadoc, if you prefer) headers are a standard format for function com‐ ments. Adding
+them to your functions is a good practice to follow even if you don’t plan on generating API
+documentation. Developers reading your function will likely start with the Scaladoc header before
+reading the function’s code, so make sure to keep it accurate and concise.
