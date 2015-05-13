@@ -1,0 +1,5 @@
+Monitoring the latest activity (5 latest messages) in a given channel in MetChat:
+
+$ ssh root@metchat
+root@dev-vm075:~# watch -n10 "sqlite3 /var/lib/qc/qc.db \"select strftime('%Y-%m-%d %H:%M:%S', datetime(timestamp, 'unixepoch', 'localtime')), text from log where channelId=1 order by timestamp;\" | tail -5"
+
