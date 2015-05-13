@@ -46,3 +46,21 @@ Scaladoc (or Javadoc, if you prefer) headers are a standard format for function 
 them to your functions is a good practice to follow even if you don’t plan on generating API
 documentation. Developers reading your function will likely start with the Scaladoc header before
 reading the function’s code, so make sure to keep it accurate and concise.
+
+==================================================================================
+
+Why Not Just Call Them Anonymous Functions?
+
+Although The Scala Language Specification (Odersky, 2011) uses the term anonymous function, this
+term focuses more attention on the lack of a name than on the interesting arrow-based syntax for
+defin‐ ing its logic. Thus I prefer the clarifying term function literal, which indicates that the
+entire logic of a function body is being specified inline! You can think of a function literal as
+being to a function val‐ ue what a string literal (e.g., “Hello, World”) is to a string value: a
+literal expression of the assigned data.
+
+==================================================================================
+
+If you think about it, a function literal is essentially a parameterized expression. We know about
+expressions that return a value, but now have a way to parameterize their input.
+
+==================================================================================
