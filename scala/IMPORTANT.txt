@@ -64,3 +64,10 @@ If you think about it, a function literal is essentially a parameterized express
 expressions that return a value, but now have a way to parameterize their input.
 
 ==================================================================================
+
+What Is the Difference Between Partial and Partially Applied Functions?
+
+The two terms look and sound almost the same, causing many de‐ velopers to mix them up. A partial
+function, as opposed to a total function, only accepts a partial amount of all possible input
+values. A partially applied function is a regular function that has been partial‐ ly invoked, and
+remains to be fully invoked (if ever) in the future.
