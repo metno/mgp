@@ -202,7 +202,6 @@ class BackupLiveBoard(Command):
         self.board_id = board_id
 
     def execute(self):
-        bname = getLiveBoardSummary(self.board_id)['name']
         board = getFullLiveBoard(self.board_id)
         self.commit = backupToGitRepo([board], getEnv('TRELLOBACKUPDIR'))
         self.printOutput()
