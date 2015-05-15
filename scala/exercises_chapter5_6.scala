@@ -7,6 +7,10 @@ conditional(10, { x : Int => x > 10 }, { x : Int => x + 1 }) // -> 10 (p(x) was 
 conditional(11, { x : Int => x > 10 }, { x : Int => x + 1 }) // -> 12 (p(x) was true)
 
 // option 2:
+conditional(10, (x : Int) => x > 10, (x : Int) => x + 1)
+conditional(11, (x : Int) => x > 10, (x : Int) => x + 1)
+
+// option 3:
 val p: Int => Boolean = _ > 10
 val f: Int => Int = _ + 1
 conditional(10, p, f)
