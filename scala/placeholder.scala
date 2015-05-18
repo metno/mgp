@@ -37,3 +37,20 @@ applyFunc2(5, 7, func2a)
 // option 3 (without placeholder syntax):
 def func2b: (Int, Int) => Int = (x: Int, y: Int) => x + y
 applyFunc2(5, 7, func2b)
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// NOTE: Placeholder syntax can't be used if a parameter is used more than once:
+
+// E.g. the following must be expressed without placeholder syntax:
+List(1, 2, 3, 4, 5, 6).partition(x => x < 3 || x > 4)
+// -> (List[Int], List[Int]) = (List(1, 2, 5, 6),List(3, 4))
+// i.e. this is not allowed:
+//List(1, 2, 3, 4, 5, 6).partition(_ < 3 || _ > 4) !!!
+
+// whereas the following may use either placeholder syntax:
+List(1, 2, 3, 4, 5, 6).partition(_ < 3)
+// -> (List[Int], List[Int]) = (List(1, 2),List(3, 4, 5, 6))
+// or not:
+List(1, 2, 3, 4, 5, 6).partition(x => x < 3)
+// -> (List[Int], List[Int]) = (List(1, 2),List(3, 4, 5, 6))
