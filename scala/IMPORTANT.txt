@@ -71,3 +71,19 @@ The two terms look and sound almost the same, causing many de‐ velopers to mix
 function, as opposed to a total function, only accepts a partial amount of all possible input
 values. A partially applied function is a regular function that has been partial‐ ly invoked, and
 remains to be fully invoked (if ever) in the future.
+
+==================================================================================
+
+An important point to make about these arithmetic methods is that ::, drop, and take act on the
+front of the list and thus do not have performance penalties. Recall that List is a linked list, so
+adding items to or removing items from its front does not require a full traversal. A list traversal
+is a trivial operation for short lists, but when you start getting into lists of thousands or
+millions of items, an operation that requires a list traversal can be a big deal.
+
+That said, these operations have corollary operations that act on the end of the list and thus do
+require a full list traversal. Additionally, because adding items to the end of a list would mutate
+it, they require copying the entire list and returning the copy. Again, not an important memory
+consideration unless you are working with large lists, but in general it is best to operate on the
+front of a list, not its end.
+
+==================================================================================
