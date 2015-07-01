@@ -13,8 +13,6 @@ import sys, os
 from datetime import datetime
 import sqlite3
 
-normal_channel_id = 1 # for now
-
 # --- BEGIN Global functions ----------------------------------------------
 
 def printUsage():
