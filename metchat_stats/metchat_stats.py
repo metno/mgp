@@ -21,7 +21,7 @@ normal_channel_id = 1 # for now
 
 # load unique messages
 msg = {}
-for fname in sys.argv[3:]:
+for fname in sys.argv[1:]:
     con = sqlite3.connect(fname)
     rows = con.execute('SELECT id,timestamp,user,text,channelId FROM log ORDER BY timestamp;')
 
