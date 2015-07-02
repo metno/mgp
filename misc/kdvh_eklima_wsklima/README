@@ -1,0 +1,7 @@
+Example:
+
+   wget -O - "http://eklima.met.no/metdata/MetDataService?invoke=getTimeserieTypesProperties&language=&timeserieTypes=" > ut
+
+links:
+   eklima.met.no
+   wsklima.met.no (documentation of REST API)
