@@ -1,0 +1,9 @@
+Use case 1:
+
+$ ./metchat_stats.py day_msg_count ~/metchat_backup/*.db > data
+$ gnuplot -p gnuplot.cfg
+
+
+Use case 1:
+
+$ ./metchat_stats.py usr_msg_count ~/metchat_backup/*.db
