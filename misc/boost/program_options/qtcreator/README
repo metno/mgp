@@ -1,0 +1,9 @@
+$ cd src
+$ qtcreator &
+
+In Qt Creator:
+
+- click on 'Open Project'
+- open CMakeLists.txt
+- click on 'Run CMake'
+- click on 'Finish'
