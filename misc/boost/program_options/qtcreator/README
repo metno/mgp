@@ -5,5 +5,6 @@ In Qt Creator:
 
 - click on 'Open Project'
 - open CMakeLists.txt
+- select build location (the default is fine)
 - click on 'Run CMake'
 - click on 'Finish'
