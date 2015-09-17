@@ -1,10 +1,28 @@
+---- Step 1:
 $ cd src
 $ qtcreator &
 
+---- Step 2: generate Makefile etc in a shadow build config:
 In Qt Creator:
-
 - click on 'Open Project'
 - open CMakeLists.txt
-- select build location (the default is fine)
+- select another directory than src/ as the build location (the default, ../src-build, is fine)
 - click on 'Run CMake'
 - click on 'Finish'
+
+---- Step 3: edit source files:
+- open src/first.cpp, modify, and save
+
+---- Step 4 (option 1): compile from Qt Creator
+- Control+B
+
+---- Step 4 (option 2): compile from terminal:
+$ cd ../src-build
+$ make
+
+---- Step 5 (option 1): run from Qt Creator:
+- Control+R (which will also compile first if necessary)
+
+--- Step 5 (option 2): run from terminal:
+$ cd ../src-build
+$ ./program_options
