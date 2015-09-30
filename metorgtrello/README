@@ -68,6 +68,8 @@ Accounts added 29/4 2015:
 .metorg-vnn-kjerne-e1@met.no
 .metorg-vnn-fly-e2@met.no
 .metorg-vnn-fly-n@met.no
+.metorg-vnn-kon1@met.no
+.metorg-vnn-kon2@met.no
 
 .metorg-vv-kjerne-d1@met.no
 .metorg-vv-kjerne-d2@met.no
@@ -80,26 +82,28 @@ Accounts added 29/4 2015:
 
 
 AVATARS:
-				BG		TEXT
-*metorg-adm@met.no		red		ADM
+                                BG              TEXT
+*metorg-adm@met.no              red             ADM
 
-*metorg-teamleder@met.no	yellow		TL
+*metorg-teamleder@met.no        yellow          TL
 
-*metorg-skred-ds@met.no		white		*/SD
-*metorg-klima-dk@met.no				*/KD
+*metorg-skred-ds@met.no         white           */SD
+*metorg-klima-dk@met.no                         */KD
 
-*metorg-vnn-kjerne-d1@met.no	purple		VNN/KD1
-*metorg-vnn-fly-d2@met.no			VNN/FD2
-*metorg-vnn-kjerne-d3@met.no			VNN/KD3
-*metorg-vnn-kjerne-e1@met.no			VNN/KE1
-*metorg-vnn-fly-e2@met.no			VNN/FE2
-*metorg-vnn-fly-n@met.no			VNN/FN
+*metorg-vnn-kjerne-d1@met.no    purple          VNN/KD1
+*metorg-vnn-fly-d2@met.no                       VNN/FD2
+*metorg-vnn-kjerne-d3@met.no                    VNN/KD3
+*metorg-vnn-kjerne-e1@met.no                    VNN/KE1
+*metorg-vnn-fly-e2@met.no                       VNN/FE2
+*metorg-vnn-fly-n@met.no                        VNN/FN
+*metorg-vnn-kon1@met.no                         VNN/U1
+*metorg-vnn-kon2@met.no                         VNN/U2
 
-*metorg-vv-kjerne-d1@met.no	cyan		VV/KD1
-*metorg-vv-kjerne-d2@met.no			VV/KD2
-*metorg-vv-kjerne-d7@met.no			VV/KD7
-*metorg-vv-kjerne-e15@met.no			VV/KE15
+*metorg-vv-kjerne-d1@met.no     cyan            VV/KD1
+*metorg-vv-kjerne-d2@met.no                     VV/KD2
+*metorg-vv-kjerne-d7@met.no                     VV/KD7
+*metorg-vv-kjerne-e15@met.no                    VV/KE15
 
-*metorg-va-kjerne-d1@met.no	orange		VA/KD1
-*metorg-va-kjerne-d3@met.no			VA/KD3
-*metorg-va-kjerne-e1@met.no			VA/KE1
+*metorg-va-kjerne-d1@met.no     orange          VA/KD1
+*metorg-va-kjerne-d3@met.no                     VA/KD3
+*metorg-va-kjerne-e1@met.no                     VA/KE1
