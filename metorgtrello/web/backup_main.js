@@ -110,6 +110,7 @@ function showCurrentBackedupBoardAsPrintablePage() {
     updateBackupStatus(statusBase, true);
 
     var query = "?cmd=get_backedup_board_html&id=" + currentBackedupBoardID();
+    query += "&font_size=" + $('#font_size option:selected').val();
     var listText = 'all lists';
     if ($('#show_ppage_list').val() >= 0) {
 	var listName = $('#show_ppage_list option:selected').text();

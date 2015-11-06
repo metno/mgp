@@ -99,18 +99,20 @@ class GetBoardHtml(Command):
     def execute(self):
         board = self.getFullBoard()
 
+        header_font_size = int(1.2 * int(self.font_size))
+
         self.html = (
             '<html>'
             '<head>'
             '<meta charset="UTF-8">'
             '<style>'
-            'table { border-collapse:collapse; font-size:12px; }'
-            'table, th, td { border: 1px solid #aaaaaa; padding:3; text-align:left; vertical-align:text-top; }'
-            'th { background: #eee; font-size:120%; }'
+            'table {{ border-collapse:collapse; font-size:12px; }}'
+            'table, th, td {{ border: 1px solid #aaaaaa; padding:3; text-align:left; vertical-align:text-top; }}'
+            'th {{ background: #eee; font-size:{}%; }}'
             '</style>'
             '</head>'
             '<body>'
-            )
+            ).format(header_font_size)
 
         self.html += '<h1 style="display:inline">{}</h1><br/>'.format(board['board']['name'].encode('utf-8'))
         self.html += '<br/><table>'
@@ -137,7 +139,8 @@ class GetBoardHtml(Command):
                 self.html += '<table>'
                 self.html += '<tr><th colspan=2>{}</th></tr>'.format(lst['name'].encode('utf-8'))
                 for card in cards[lst['id']]:
-                    self.html += '<tr><td>{}</td><td>{}</td></tr>'.format(card['name'].encode('utf-8'), card['desc'].encode('utf-8'))
+                    self.html += '<tr><td style="font-size:{}%">{}</td><td><span style="font-size:{}%">{}</span></td></tr>'.format(
+                        int(self.font_size), card['name'].encode('utf-8'), int(self.font_size), card['desc'].encode('utf-8'))
                 self.html += '</table>'
                 self.html += '<br/>'
 
@@ -153,9 +156,10 @@ class GetBoardHtml(Command):
 
 # Prints a HTML version of a board.
 class GetLiveBoardHtml(GetBoardHtml):
-    def __init__(self, http_get, board_id, list_name = None):
+    def __init__(self, http_get, board_id, font_size, list_name = None):
         self.http_get = http_get
         self.board_id = board_id
+        self.font_size = font_size
         self.list_name = None if (list_name == None) else list_name.strip() # None specifies all lists
 
     def getFullBoard(self):
@@ -167,9 +171,10 @@ class GetLiveBoardHtml(GetBoardHtml):
 
 # Prints a HTML version of a board.
 class GetBackedupBoardHtml(GetBoardHtml):
-    def __init__(self, http_get, board_id, list_name = None):
+    def __init__(self, http_get, board_id, font_size, list_name = None):
         self.http_get = http_get
         self.board_id = board_id
+        self.font_size = font_size
         self.list_name = None if (list_name == None) else list_name.strip() # None specifies all lists
 
     def getFullBoard(self):
@@ -639,6 +644,8 @@ def getOptions():
 # Returns a command instance.
 def createCommand(options, http_get):
 
+    default_font_size = 100
+
     def printUsageError():
         error = {
             'argv0': sys.argv[0],
@@ -647,9 +654,9 @@ def createCommand(options, http_get):
                 '--cmd get_backedup_boards [--filter <board name filter>]',
                 '--cmd get_live_board --id <board ID>',
                 '--cmd get_live_board_details --id <board ID>',
-                '--cmd get_live_board_html --id <board ID> [--list_name <list name>]',
+                '--cmd get_live_board_html --id <board ID> [--list_name <list name>] [--font_size <font size % (default: {})>]'.format(default_font_size),
                 '--cmd get_backedup_board --id <board ID>',
-                '--cmd get_backedup_board_html --id <board ID> [--list_name <list name>]',
+                '--cmd get_backedup_board_html --id <board ID> [--list_name <list name>] [--font_size <font size % (default: {})>]'.format(default_font_size),
                 '--cmd get_backedup_board_stats --id <board ID>',
                 '--cmd backup_live_board --id <board ID>',
                 '--cmd backup_all_live_boards',
@@ -685,13 +692,17 @@ def createCommand(options, http_get):
             return GetLiveBoardDetails(http_get, options['id'])
     elif cmd == 'get_live_board_html':
         if 'id' in options:
-            return GetLiveBoardHtml(http_get, options['id'], options['list_name'].decode('utf-8') if 'list_name' in options else None)
+            return GetLiveBoardHtml(
+                http_get, options['id'], options['font_size'] if 'font_size' in options else default_font_size,
+                options['list_name'].decode('utf-8') if 'list_name' in options else None)
     elif cmd == 'get_backedup_board':
         if 'id' in options:
             return GetBackedupBoard(http_get, options['id'])
     elif cmd == 'get_backedup_board_html':
         if 'id' in options:
-            return GetBackedupBoardHtml(http_get, options['id'], options['list_name'].decode('utf-8') if 'list_name' in options else None)
+            return GetBackedupBoardHtml(
+                http_get, options['id'], options['font_size'] if 'font_size' in options else default_font_size,
+                options['list_name'].decode('utf-8') if 'list_name' in options else None)
     elif cmd == 'get_backedup_board_stats':
         if 'id' in options:
             return GetBackedupBoardStats(http_get, options['id'])

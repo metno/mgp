@@ -309,6 +309,7 @@ function showCurrentOpenLiveBoardAsPrintablePage() {
     updateLiveStatus(statusBase, true);
 
     var query = "?cmd=get_live_board_html&id=" + currentOpenLiveBoardID();
+    query += "&font_size=" + $('#font_size option:selected').val();
     var listText = 'all lists';
     if ($('#show_ppage_list').val() >= 0) {
 	var listName = $('#show_ppage_list option:selected').text();
