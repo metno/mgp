@@ -7,6 +7,9 @@
 class LeftHeaderScene;
 class LaneScene;
 class TopHeaderScene;
+class TimelineController;
+class RoleController;
+class TaskController;
 class QSplitter;
 class QDateEdit;
 class QSpinBox;
@@ -24,17 +27,19 @@ private:
     TopHeaderScene *topHeaderScene_;
     QSplitter *topSplitter_;
     QSplitter *botSplitter_;
-    QDateEdit *baseDateEdit_;
-    QSpinBox *dateSpanSpinBox_;
+
+    TimelineController *timelineController_;
+    RoleController *roleController_;
+    TaskController *taskController_;
+
     virtual void keyPressEvent(QKeyEvent *);
     virtual void showEvent(QShowEvent *);
 
 private slots:
     void updateFromTaskMgr();
     void updateGeometry();
-    void updateDateRange();
+    void updateDateRange(bool = false);
     void updateSplitters(int, int);
-    void showToday();
     void resetZooming();
 
     void test1(); // ### for testing

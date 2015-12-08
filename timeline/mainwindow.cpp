@@ -5,8 +5,10 @@
 #include "laneview.h"
 #include "topheaderscene.h"
 #include "topheaderview.h"
-#include "topview.h"
 #include "taskmanager.h"
+#include "timelinecontroller.h"
+#include "rolecontroller.h"
+#include "taskcontroller.h"
 #include "common.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -25,14 +27,6 @@
 MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     : QWidget(parent)
 {
-    const int minDateSpan = 1;
-    const int maxDateSpan = 10;
-    if ((dateSpan < minDateSpan) || (dateSpan > maxDateSpan))
-        qWarning("date span (%d) outside valid range ([%d, %d])", dateSpan, minDateSpan, maxDateSpan);
-    dateSpan = qMin(qMax(dateSpan, minDateSpan), maxDateSpan);
-
-    // ------------------------
-
     setWindowTitle("MetOrg 0.0.0");
 
     QVBoxLayout *mainLayout = new QVBoxLayout;
@@ -70,58 +64,39 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     cornerLayout->addWidget(new QPushButton("Sort"), 1, 1);
     topSplitter_->addWidget(cornerFrame);
 
-    QFrame *topFrame1 = new QFrame;
-    topFrame1->setLayout(new QVBoxLayout);
-    topFrame1->layout()->setContentsMargins(0, 0, 0, 0);
+    QFrame *topFrame = new QFrame;
+    topFrame->setLayout(new QVBoxLayout);
+    topFrame->layout()->setContentsMargins(0, 0, 0, 0);
 
-    QFrame *topFrame2 = new QFrame;
-    topFrame2->setLayout(new QHBoxLayout);
-    topFrame2->layout()->setContentsMargins(0, 0, 0, 0);
+    QFrame *ctrlFrame = new QFrame;
+    ctrlFrame->setLayout(new QHBoxLayout);
+    ctrlFrame->layout()->setContentsMargins(0, 0, 0, 0);
+    topFrame->layout()->addWidget(ctrlFrame);
 
-    baseDateEdit_ = new QDateEdit(baseDate);
-    baseDateEdit_->setDisplayFormat("yyyy-MM-dd");
-    topFrame2->layout()->addWidget(baseDateEdit_);
-    connect(baseDateEdit_, SIGNAL(dateChanged(const QDate &)), SLOT(updateDateRange()));
+    // ### put this somewhere else (it doesn't belong only to timeline controller, since the reset applies to both dimensions)
+    //    {
+    //        QToolButton *toolButton = new QToolButton;
+    //        toolButton->setText("Z");
+    //        qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(1, toolButton);
+    //        connect(toolButton, SIGNAL(clicked()), SLOT(resetZooming()));
+    //        toolButton->setToolTip("reset zooming");
+    //    }
 
-    TopView *topView = new TopView;
-    topView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
-    topFrame2->layout()->addWidget(topView);
+    timelineController_ = new TimelineController(baseDate, dateSpan);
+    connect(timelineController_, SIGNAL(updateDateRange(bool)), SLOT(updateDateRange(bool)));
+    ctrlFrame->layout()->addWidget(timelineController_);
 
-    dateSpanSpinBox_ = new QSpinBox;
-    dateSpanSpinBox_->setRange(minDateSpan, maxDateSpan);
-    dateSpanSpinBox_->setValue(dateSpan);
-    topFrame2->layout()->addWidget(dateSpanSpinBox_);
-    connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(updateDateRange()));
+    roleController_ = new RoleController();
+    ctrlFrame->layout()->addWidget(roleController_);
 
-    {
-        QToolButton *toolButton = new QToolButton;
-        toolButton->setText("T");
-        qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(0, toolButton);
-        connect(toolButton, SIGNAL(clicked()), SLOT(showToday()));
-        toolButton->setToolTip("show today's date");
-    }
-
-    {
-        QToolButton *toolButton = new QToolButton;
-        toolButton->setText("Z");
-        qobject_cast<QHBoxLayout *>(topFrame2->layout())->insertWidget(1, toolButton);
-        connect(toolButton, SIGNAL(clicked()), SLOT(resetZooming()));
-        toolButton->setToolTip("reset zooming");
-    }
-
-    for (int i = 0; i < 3; ++i) {
-        QToolButton *toolButton = new QToolButton;
-        toolButton->setText(QString('A' + i));
-        topFrame2->layout()->addWidget(toolButton);
-    }
-
-    topFrame1->layout()->addWidget(topFrame2);
+    taskController_ = new TaskController();
+    ctrlFrame->layout()->addWidget(taskController_);
 
     topHeaderScene_ = new TopHeaderScene(laneScene_, 50);
     TopHeaderView *topHeaderView = new TopHeaderView(topHeaderScene_);
-    topFrame1->layout()->addWidget(topHeaderView);
+    topFrame->layout()->addWidget(topHeaderView);
 
-    topSplitter_->addWidget(topFrame1);
+    topSplitter_->addWidget(topFrame);
 
     // ------------------------
 
@@ -196,17 +171,13 @@ void MainWindow::updateSplitters(int, int)
         botSplitter_->setSizes(topSplitter_->sizes());
 }
 
-void MainWindow::updateDateRange()
+void MainWindow::updateDateRange(bool rewind)
 {
-    laneScene_->setDateRange(baseDateEdit_->date(), dateSpanSpinBox_->value());
-}
-
-void MainWindow::showToday()
-{
-    baseDateEdit_->setDate(QDate::currentDate());
-    updateDateRange();
-    QScrollBar *hsbar = laneScene_->views().first()->horizontalScrollBar();
-    hsbar->setValue(hsbar->minimum());
+    laneScene_->setDateRange(timelineController_->baseDate(), timelineController_->dateSpan());
+    if (rewind) {
+        QScrollBar *hsbar = laneScene_->views().first()->horizontalScrollBar();
+        hsbar->setValue(hsbar->minimum());
+    }
 }
 
 void MainWindow::resetZooming()
