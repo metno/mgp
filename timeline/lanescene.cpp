@@ -36,7 +36,7 @@ void LaneScene::updateRoleTimeItems()
 
     // add items for new range
     for (int i = 0; i < dateSpan_; ++i) {
-        foreach (LaneItem *laneItem, laneItems()) {
+        for (int j = 0; j < laneItems().count(); ++j) {
             QGraphicsRectItem *roleTimeItem = new QGraphicsRectItem;
             roleTimeItem->setBrush(QBrush(QColor("#ffff00")));
             roleTimeItem->setOpacity(0.4);

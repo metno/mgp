@@ -55,7 +55,7 @@ void TaskItem::mousePressEvent(QGraphicsSceneMouseEvent *)
     setRandomColor();
 }
 
-void TaskItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
+void TaskItem::hoverEnterEvent(QGraphicsSceneHoverEvent *)
 {
     if (!scene()->views().isEmpty()) {
         const qreal w = 5;
@@ -67,7 +67,7 @@ void TaskItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
     hoverItem_->setVisible(true);
 }
 
-void TaskItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+void TaskItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
 {
     hoverItem_->setVisible(false);
 }
