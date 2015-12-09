@@ -1,6 +1,6 @@
 #include "mainwindow.h"
-#include "leftheaderscene.h"
-#include "leftheaderview.h"
+#include "rolesscene.h"
+#include "rolesview.h"
 #include "lanescene.h"
 #include "laneview.h"
 #include "timelinescene.h"
@@ -35,11 +35,11 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     botSplitter_ = new QSplitter;
 
-    leftHeaderScene_ = new LeftHeaderScene(0, 0, 100, 2000);
-    LeftHeaderView *leftHeaderView = new LeftHeaderView(leftHeaderScene_);
-    botSplitter_->addWidget(leftHeaderView);
+    rolesScene_ = new RolesScene(0, 0, 100, 2000);
+    RolesView *rolesView = new RolesView(rolesScene_);
+    botSplitter_->addWidget(rolesView);
 
-    laneScene_ = new LaneScene(leftHeaderScene_, baseDate, dateSpan);
+    laneScene_ = new LaneScene(rolesScene_, baseDate, dateSpan);
     LaneView *laneView = new LaneView(laneScene_);
     botSplitter_->addWidget(laneView);
 
@@ -120,11 +120,11 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     setLayout(mainLayout);
 
     connect(TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
-    connect(leftHeaderView, SIGNAL(resized()), SLOT(updateGeometry()));
+    connect(rolesView, SIGNAL(resized()), SLOT(updateGeometry()));
     connect(timelineView, SIGNAL(resized()), SLOT(updateGeometry()));
 
-    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), leftHeaderView->verticalScrollBar(), SLOT(setValue(int)));
-    connect(leftHeaderView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), rolesView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(rolesView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
 
     connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), timelineView->horizontalScrollBar(), SLOT(setValue(int)));
     connect(timelineView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
@@ -151,14 +151,14 @@ void MainWindow::showEvent(QShowEvent *)
 
 void MainWindow::updateFromTaskMgr()
 {
-    leftHeaderScene_->updateFromTaskMgr();
+    rolesScene_->updateFromTaskMgr();
     laneScene_->updateFromTaskMgr();
     timelineScene_->updateFromTaskMgr();
 }
 
 void MainWindow::updateGeometry()
 {
-    leftHeaderScene_->updateGeometry();
+    rolesScene_->updateGeometry();
     laneScene_->updateGeometry();
     timelineScene_->updateGeometry();
 }

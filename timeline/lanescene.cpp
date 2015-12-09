@@ -1,5 +1,5 @@
 #include "lanescene.h"
-#include "leftheaderscene.h"
+#include "rolesscene.h"
 #include "laneitem.h"
 #include "taskitem.h"
 #include "taskmanager.h"
@@ -7,9 +7,9 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
 
-LaneScene::LaneScene(LeftHeaderScene *leftHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
-    : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), leftHeaderScene->height(), parent)
-    , leftHeaderScene_(leftHeaderScene)
+LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
+    : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), rolesScene->height(), parent)
+    , rolesScene_(rolesScene)
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
     , currTimeMarker_(0)
@@ -91,8 +91,8 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
 
 void LaneScene::updateItemGeometry()
 {
-    const qreal lvpad = leftHeaderScene_->laneVerticalPadding();
-    const qreal lheight = leftHeaderScene_->laneHeight();
+    const qreal lvpad = rolesScene_->laneVerticalPadding();
+    const qreal lheight = rolesScene_->laneHeight();
 
     for (int i = 0; i < dateSpan_; ++i) {
         // update date item
@@ -185,20 +185,20 @@ void LaneScene::updateFromTaskMgr()
 
 void LaneScene::updateGeometry()
 {
-    // note: we assume that leftHeaderScene_ is up to date at this point
+    // note: we assume that rolesScene_ is up to date at this point
 
     // update scene rect height
     {
         const QRectF srect = sceneRect();
-        setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * leftHeaderScene_->laneHeight() + leftHeaderScene_->laneVerticalPadding());
+        setSceneRect(srect.x(), srect.y(), srect.width(), laneItems().size() * rolesScene_->laneHeight() + rolesScene_->laneVerticalPadding());
     }
 
     updateRoleTimeItems();
 
     updateItemGeometry();
 
-    const qreal lvpad = leftHeaderScene_->laneVerticalPadding();
-    const qreal lheight = leftHeaderScene_->laneHeight();
+    const qreal lvpad = rolesScene_->laneVerticalPadding();
+    const qreal lheight = rolesScene_->laneHeight();
     const long loSceneTimestamp = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
     const long hiSceneTimestamp = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
     Q_ASSERT(loSceneTimestamp < hiSceneTimestamp);

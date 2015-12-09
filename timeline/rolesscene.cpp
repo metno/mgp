@@ -1,12 +1,12 @@
-#include "leftheaderscene.h"
-#include "leftheaderlaneitem.h"
-#include "leftheaderview.h"
+#include "rolesscene.h"
+#include "roleslaneitem.h"
+#include "rolesview.h"
 #include "taskmanager.h"
 #include "common.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsView>
 
-LeftHeaderScene::LeftHeaderScene(qreal x, qreal y, qreal w, qreal h, QObject *parent)
+RolesScene::RolesScene(qreal x, qreal y, qreal w, qreal h, QObject *parent)
     : QGraphicsScene(x, y, w, h, parent)
 {
     // add background item
@@ -16,12 +16,12 @@ LeftHeaderScene::LeftHeaderScene(qreal x, qreal y, qreal w, qreal h, QObject *pa
     addItem(bgItem_);
 }
 
-void LeftHeaderScene::updateFromTaskMgr()
+void RolesScene::updateFromTaskMgr()
 {
     const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
 
     // remove header items for roles that no longer exist in the task manager
-    foreach (LeftHeaderLaneItem *hItem, headerItems()) {
+    foreach (RolesLaneItem *hItem, headerItems()) {
         if (!tmRoleIds.contains(hItem->roleId()))
             removeItem(hItem);
     }
@@ -36,7 +36,7 @@ void LeftHeaderScene::updateFromTaskMgr()
     updateGeometry();
 }
 
-void LeftHeaderScene::updateGeometry()
+void RolesScene::updateGeometry()
 {
     // update scene rect
     const QRectF srect = sceneRect();
@@ -47,7 +47,7 @@ void LeftHeaderScene::updateGeometry()
     const qreal lvpad = laneVerticalPadding();
     const qreal lheight = laneHeight();
     int i = 0;
-    foreach (LeftHeaderLaneItem *item, headerItems()) {
+    foreach (RolesLaneItem *item, headerItems()) {
         item->updateRect(QRectF(lhpad, i * lheight + lvpad, width() - 2 * lhpad, lheight - lvpad));
         i++;
     }
@@ -56,29 +56,29 @@ void LeftHeaderScene::updateGeometry()
     bgItem_->setRect(sceneRect());
 }
 
-QList<LeftHeaderLaneItem *> LeftHeaderScene::headerItems() const
+QList<RolesLaneItem *> RolesScene::headerItems() const
 {
-    QList<LeftHeaderLaneItem *> hItems;
+    QList<RolesLaneItem *> hItems;
     foreach (QGraphicsItem *item, items()) {
-        LeftHeaderLaneItem *hItem = dynamic_cast<LeftHeaderLaneItem *>(item);
+        RolesLaneItem *hItem = dynamic_cast<RolesLaneItem *>(item);
         if (hItem)
             hItems.append(hItem);
     }
     return hItems;
 }
 
-QList<qint64> LeftHeaderScene::headerItemRoleIds() const
+QList<qint64> RolesScene::headerItemRoleIds() const
 {
     QList<qint64> hiRoleIds;
     foreach (QGraphicsItem *item, items()) {
-        LeftHeaderLaneItem *hItem = dynamic_cast<LeftHeaderLaneItem *>(item);
+        RolesLaneItem *hItem = dynamic_cast<RolesLaneItem *>(item);
         if (hItem)
             hiRoleIds.append(hItem->roleId());
     }
     return hiRoleIds;
 }
 
-void LeftHeaderScene::addHeaderItem(qint64 roleId)
+void RolesScene::addHeaderItem(qint64 roleId)
 {
-    addItem(new LeftHeaderLaneItem(roleId));
+    addItem(new RolesLaneItem(roleId));
 }

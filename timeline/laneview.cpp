@@ -1,7 +1,7 @@
 #include "laneview.h"
 #include "lanescene.h"
-#include "leftheaderview.h"
-#include "leftheaderscene.h"
+#include "rolesview.h"
+#include "rolesscene.h"
 #include "wheelscaler.h"
 #include "common.h"
 #include <QResizeEvent>
@@ -14,7 +14,7 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setDragMode(QGraphicsView::ScrollHandDrag);
-    connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<LeftHeaderView *>(scene->leftHeaderScene_->views().first()), SLOT(updateScale(qreal, qreal)));
+    connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<RolesView *>(scene->rolesScene_->views().first()), SLOT(updateScale(qreal, qreal)));
 }
 
 void LaneView::updateScale(qreal sx, qreal sy)

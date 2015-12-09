@@ -1,4 +1,4 @@
-#include "leftheaderlaneitem.h"
+#include "roleslaneitem.h"
 #include "taskmanager.h"
 #include "role.h"
 #include "common.h"
@@ -10,7 +10,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
-LeftHeaderLaneItem::LeftHeaderLaneItem(qint64 roleId__)
+RolesLaneItem::RolesLaneItem(qint64 roleId__)
     : roleId_(roleId__)
 {
     setZValue(1);
@@ -38,7 +38,7 @@ LeftHeaderLaneItem::LeftHeaderLaneItem(qint64 roleId__)
     timeItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
 }
 
-void LeftHeaderLaneItem::updateRect(const QRectF &r)
+void RolesLaneItem::updateRect(const QRectF &r)
 {
     setRect(r);
     nameItem_->setPos(rect().x() + 5, rect().y());

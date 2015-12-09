@@ -1,17 +1,17 @@
-#ifndef LEFTHEADERSCENE_H
-#define LEFTHEADERSCENE_H
+#ifndef ROLESSCENE_H
+#define ROLESSCENE_H
 
 #include <QGraphicsScene>
 
 class QGraphicsRectItem;
-class LeftHeaderLaneItem;
+class RolesLaneItem;
 
-class LeftHeaderScene : public QGraphicsScene
+class RolesScene : public QGraphicsScene
 {
     Q_OBJECT
 
 public:
-    LeftHeaderScene(qreal, qreal, qreal, qreal, QObject * = 0);
+    RolesScene(qreal, qreal, qreal, qreal, QObject * = 0);
     static qreal laneHeight() { return 100; }
     static qreal laneHorizontalPadding() { return 5; }
     static qreal laneVerticalPadding() { return 5; }
@@ -22,9 +22,9 @@ public slots:
 
 private:
     QGraphicsRectItem *bgItem_;
-    QList<LeftHeaderLaneItem *> headerItems() const;
+    QList<RolesLaneItem *> headerItems() const;
     QList<qint64> headerItemRoleIds() const;
     void addHeaderItem(qint64);
 };
 
-#endif // LEFTHEADERSCENE_H
+#endif // ROLESSCENE_H

@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QDate>
 
-class LeftHeaderScene;
+class RolesScene;
 class LaneScene;
 class TimelineScene;
 class TimelineController;
@@ -22,7 +22,7 @@ public:
     MainWindow(const QDate &, int, QWidget * = 0);
 
 private:
-    LeftHeaderScene *leftHeaderScene_;
+    RolesScene *rolesScene_;
     LaneScene *laneScene_;
     TimelineScene *timelineScene_;
     QSplitter *topSplitter_;

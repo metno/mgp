@@ -1,10 +1,10 @@
-#include "leftheaderview.h"
-#include "leftheaderscene.h"
+#include "rolesview.h"
+#include "rolesscene.h"
 #include "wheelscaler.h"
 #include "common.h"
 #include <QResizeEvent>
 
-LeftHeaderView::LeftHeaderView(LeftHeaderScene *lhScene, QWidget *parent)
+RolesView::RolesView(RolesScene *lhScene, QWidget *parent)
     : QGraphicsView(lhScene, parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
@@ -12,13 +12,13 @@ LeftHeaderView::LeftHeaderView(LeftHeaderScene *lhScene, QWidget *parent)
     setDragMode(QGraphicsView::ScrollHandDrag);
 }
 
-void LeftHeaderView::updateScale(qreal, qreal sy)
+void RolesView::updateScale(qreal, qreal sy)
 {
     setTransform(QTransform::fromScale(1.0, sy)); // scale vertical dimension only
-    qobject_cast<LeftHeaderScene *>(scene())->updateGeometry();
+    qobject_cast<RolesScene *>(scene())->updateGeometry();
 }
 
-void LeftHeaderView::resizeEvent(QResizeEvent *event)
+void RolesView::resizeEvent(QResizeEvent *event)
 {
     emit resized();
     QGraphicsView::resizeEvent(event);
