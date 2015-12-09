@@ -8,8 +8,8 @@ class RolesScene;
 class LaneScene;
 class TimelineScene;
 class TimelineController;
-class RoleController;
-class TaskController;
+class RolesController;
+class TasksController;
 class QSplitter;
 class QDateEdit;
 class QSpinBox;
@@ -29,8 +29,8 @@ private:
     QSplitter *botSplitter_;
 
     TimelineController *timelineController_;
-    RoleController *roleController_;
-    TaskController *taskController_;
+    RolesController *rolesController_;
+    TasksController *tasksController_;
 
     virtual void keyPressEvent(QKeyEvent *);
     virtual void showEvent(QShowEvent *);

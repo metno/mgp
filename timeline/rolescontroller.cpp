@@ -1,10 +1,10 @@
-#include "rolecontroller.h"
+#include "rolescontroller.h"
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
 
-RoleController::RoleController(QWidget *parent)
+RolesController::RolesController(QWidget *parent)
     : QWidget(parent)
 {
     QFormLayout *formLayout = new QFormLayout;

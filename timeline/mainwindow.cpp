@@ -7,8 +7,8 @@
 #include "timelineview.h"
 #include "taskmanager.h"
 #include "timelinecontroller.h"
-#include "rolecontroller.h"
-#include "taskcontroller.h"
+#include "rolescontroller.h"
+#include "taskscontroller.h"
 #include "common.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -86,11 +86,11 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     connect(timelineController_, SIGNAL(updateDateRange(bool)), SLOT(updateDateRange(bool)));
     ctrlFrame->layout()->addWidget(timelineController_);
 
-    roleController_ = new RoleController();
-    ctrlFrame->layout()->addWidget(roleController_);
+    rolesController_ = new RolesController();
+    ctrlFrame->layout()->addWidget(rolesController_);
 
-    taskController_ = new TaskController();
-    ctrlFrame->layout()->addWidget(taskController_);
+    tasksController_ = new TasksController();
+    ctrlFrame->layout()->addWidget(tasksController_);
 
     timelineScene_ = new TimelineScene(laneScene_, 50);
     TimelineView *timelineView = new TimelineView(timelineScene_);

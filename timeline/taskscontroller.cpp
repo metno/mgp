@@ -1,10 +1,10 @@
-#include "taskcontroller.h"
+#include "taskscontroller.h"
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
 
-TaskController::TaskController(QWidget *parent)
+TasksController::TasksController(QWidget *parent)
     : QWidget(parent)
 {
     QFormLayout *formLayout = new QFormLayout;
