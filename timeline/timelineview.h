@@ -1,16 +1,16 @@
-#ifndef TOPHEADERVIEW_H
-#define TOPHEADERVIEW_H
+#ifndef TIMELINEVIEW_H
+#define TIMELINEVIEW_H
 
 #include <QGraphicsView>
 
-class TopHeaderScene;
+class TimelineScene;
 
-class TopHeaderView : public QGraphicsView
+class TimelineView : public QGraphicsView
 {
     Q_OBJECT
 
 public:
-    TopHeaderView(TopHeaderScene *, QWidget * = 0);
+    TimelineView(TimelineScene *, QWidget * = 0);
 
 public slots:
     void updateScale(qreal, qreal);
@@ -22,4 +22,4 @@ signals:
     void resized();
 };
 
-#endif // TOPHEADERVIEW_H
+#endif // TIMELINEVIEW_H

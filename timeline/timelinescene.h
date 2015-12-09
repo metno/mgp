@@ -1,5 +1,5 @@
-#ifndef TOPHEADERSCENE_H
-#define TOPHEADERSCENE_H
+#ifndef TIMELINESCENE_H
+#define TIMELINESCENE_H
 
 #include <QGraphicsScene>
 
@@ -7,13 +7,13 @@ class LaneScene;
 class QGraphicsRectItem;
 class QGraphicsTextItem;
 
-class TopHeaderScene : public QGraphicsScene
+class TimelineScene : public QGraphicsScene
 {
     Q_OBJECT
-    friend class TopHeaderView;
+    friend class TimelineView;
 
 public:
-    TopHeaderScene(LaneScene *, qreal, QObject * = 0);
+    TimelineScene(LaneScene *, qreal, QObject * = 0);
 
 public slots:
     void updateFromTaskMgr();
@@ -30,4 +30,4 @@ private slots:
     void updateDateRange();
 };
 
-#endif // TOPHEADERSCENE_H
+#endif // TIMELINESCENE_H

@@ -1,12 +1,12 @@
-#include "topheaderview.h"
-#include "topheaderscene.h"
+#include "timelineview.h"
+#include "timelinescene.h"
 #include "laneview.h"
 #include "lanescene.h"
 #include "wheelscaler.h"
 #include "common.h"
 #include <QResizeEvent>
 
-TopHeaderView::TopHeaderView(TopHeaderScene *thScene, QWidget *parent)
+TimelineView::TimelineView(TimelineScene *thScene, QWidget *parent)
     : QGraphicsView(thScene, parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -15,12 +15,12 @@ TopHeaderView::TopHeaderView(TopHeaderScene *thScene, QWidget *parent)
     connect(dynamic_cast<LaneView *>(thScene->laneScene_->views().first()), SIGNAL(scaled(qreal, qreal)), SLOT(updateScale(qreal, qreal)));
 }
 
-void TopHeaderView::updateScale(qreal sx, qreal)
+void TimelineView::updateScale(qreal sx, qreal)
 {
     setTransform(QTransform::fromScale(sx, 1.0)); // scale horizontal dimension only
 }
 
-void TopHeaderView::resizeEvent(QResizeEvent *event)
+void TimelineView::resizeEvent(QResizeEvent *event)
 {
     emit resized();
     QGraphicsView::resizeEvent(event);

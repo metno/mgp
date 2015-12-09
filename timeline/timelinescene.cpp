@@ -1,5 +1,5 @@
-#include "topheaderscene.h"
-#include "topheaderview.h"
+#include "timelinescene.h"
+#include "timelineview.h"
 #include "lanescene.h"
 #include "common.h"
 #include <QGraphicsRectItem>
@@ -7,7 +7,7 @@
 //#include <QGraphicsLineItem>
 #include <QGraphicsView>
 
-TopHeaderScene::TopHeaderScene(LaneScene *laneScene, qreal h, QObject *parent)
+TimelineScene::TimelineScene(LaneScene *laneScene, qreal h, QObject *parent)
     : QGraphicsScene(0, 0, laneScene->width(), h, parent)
     , laneScene_(laneScene)
 {
@@ -15,7 +15,7 @@ TopHeaderScene::TopHeaderScene(LaneScene *laneScene, qreal h, QObject *parent)
     connect(laneScene_, SIGNAL(dateRangeChanged()), SLOT(updateDateRange()));
 }
 
-void TopHeaderScene::updateItemGeometry()
+void TimelineScene::updateItemGeometry()
 {
     for (int i = 0; i < laneScene_->dateSpan(); ++i) {
         // update date rect- and text items
@@ -37,12 +37,12 @@ void TopHeaderScene::updateItemGeometry()
     }
 }
 
-void TopHeaderScene::updateFromTaskMgr()
+void TimelineScene::updateFromTaskMgr()
 {
     updateGeometry();
 }
 
-void TopHeaderScene::updateGeometry()
+void TimelineScene::updateGeometry()
 {
     // update scene rect
     if (!views().isEmpty()) {
@@ -52,7 +52,7 @@ void TopHeaderScene::updateGeometry()
     updateItemGeometry();
 }
 
-void TopHeaderScene::updateDateRange()
+void TimelineScene::updateDateRange()
 {
     // clear items for existing range
     foreach (QGraphicsRectItem *dateRectItem, dateRectItems_)

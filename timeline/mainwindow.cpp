@@ -3,8 +3,8 @@
 #include "leftheaderview.h"
 #include "lanescene.h"
 #include "laneview.h"
-#include "topheaderscene.h"
-#include "topheaderview.h"
+#include "timelinescene.h"
+#include "timelineview.h"
 #include "taskmanager.h"
 #include "timelinecontroller.h"
 #include "rolecontroller.h"
@@ -92,9 +92,9 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     taskController_ = new TaskController();
     ctrlFrame->layout()->addWidget(taskController_);
 
-    topHeaderScene_ = new TopHeaderScene(laneScene_, 50);
-    TopHeaderView *topHeaderView = new TopHeaderView(topHeaderScene_);
-    topFrame->layout()->addWidget(topHeaderView);
+    timelineScene_ = new TimelineScene(laneScene_, 50);
+    TimelineView *timelineView = new TimelineView(timelineScene_);
+    topFrame->layout()->addWidget(timelineView);
 
     topSplitter_->addWidget(topFrame);
 
@@ -121,13 +121,13 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     connect(TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
     connect(leftHeaderView, SIGNAL(resized()), SLOT(updateGeometry()));
-    connect(topHeaderView, SIGNAL(resized()), SLOT(updateGeometry()));
+    connect(timelineView, SIGNAL(resized()), SLOT(updateGeometry()));
 
     connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), leftHeaderView->verticalScrollBar(), SLOT(setValue(int)));
     connect(leftHeaderView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
 
-    connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), topHeaderView->horizontalScrollBar(), SLOT(setValue(int)));
-    connect(topHeaderView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
+    connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), timelineView->horizontalScrollBar(), SLOT(setValue(int)));
+    connect(timelineView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
 
     connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
     connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
@@ -153,14 +153,14 @@ void MainWindow::updateFromTaskMgr()
 {
     leftHeaderScene_->updateFromTaskMgr();
     laneScene_->updateFromTaskMgr();
-    topHeaderScene_->updateFromTaskMgr();
+    timelineScene_->updateFromTaskMgr();
 }
 
 void MainWindow::updateGeometry()
 {
     leftHeaderScene_->updateGeometry();
     laneScene_->updateGeometry();
-    topHeaderScene_->updateGeometry();
+    timelineScene_->updateGeometry();
 }
 
 void MainWindow::updateSplitters(int, int)

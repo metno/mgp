@@ -6,7 +6,7 @@
 
 class LeftHeaderScene;
 class LaneScene;
-class TopHeaderScene;
+class TimelineScene;
 class TimelineController;
 class RoleController;
 class TaskController;
@@ -24,7 +24,7 @@ public:
 private:
     LeftHeaderScene *leftHeaderScene_;
     LaneScene *laneScene_;
-    TopHeaderScene *topHeaderScene_;
+    TimelineScene *timelineScene_;
     QSplitter *topSplitter_;
     QSplitter *botSplitter_;
 
