@@ -7,8 +7,8 @@
 //#include <QGraphicsLineItem>
 #include <QGraphicsView>
 
-TimelineScene::TimelineScene(LaneScene *laneScene, qreal h, QObject *parent)
-    : QGraphicsScene(0, 0, laneScene->width(), h, parent)
+TimelineScene::TimelineScene(LaneScene *laneScene, qreal w, QObject *parent)
+    : QGraphicsScene(0, 0, w, laneScene->height(), parent)
     , laneScene_(laneScene)
 {
     updateDateRange();
@@ -19,10 +19,10 @@ void TimelineScene::updateItemGeometry()
 {
     for (int i = 0; i < laneScene_->dateSpan(); ++i) {
         // update date rect- and text items
-        const qreal x = sceneRect().x() + i * laneScene_->secsInDay();
-        const qreal y = sceneRect().y();
-        const qreal w = laneScene_->secsInDay();
-        const qreal h = sceneRect().height();
+        const qreal x = sceneRect().x();
+        const qreal y = sceneRect().y() + i * laneScene_->secsInDay();
+        const qreal w = sceneRect().width();
+        const qreal h = laneScene_->secsInDay();
         dateRectItems_.at(i)->setRect(QRectF(x, y, w, h));
         dateTextItems_.at(i)->setPos(dateRectItems_.at(i)->rect().x(), dateRectItems_.at(i)->rect().y());
 
@@ -30,8 +30,8 @@ void TimelineScene::updateItemGeometry()
         if (!views().isEmpty()) {
             for (int j = 0; j < 24; ++j) {
                 QGraphicsTextItem *item = timeTextItems_.at(i * 24 + j);
-                const qreal xt = x + j * (laneScene_->secsInDay() / 24.0) - 0 * views().first()->transform().m11();
-                item->setPos(xt, dateRectItems_.at(i)->rect().y() + dateRectItems_.at(i)->rect().height() - item->boundingRect().height());
+                const qreal yt = y + j * (laneScene_->secsInDay() / 24.0);
+                item->setPos(dateRectItems_.at(i)->rect().x() + dateRectItems_.at(i)->rect().width() - item->boundingRect().width(), yt);
             }
         }
     }
@@ -47,7 +47,7 @@ void TimelineScene::updateGeometry()
     // update scene rect
     if (!views().isEmpty()) {
         const QRectF srect = sceneRect();
-        setSceneRect(srect.x(), srect.y(), laneScene_->width(), views().first()->height() - 10);
+        setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, laneScene_->height());
     }
     updateItemGeometry();
 }

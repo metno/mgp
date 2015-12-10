@@ -11,8 +11,8 @@ class RolesScene : public QGraphicsScene
     Q_OBJECT
 
 public:
-    RolesScene(qreal, qreal, qreal, qreal, QObject * = 0);
-    static qreal laneHeight() { return 100; }
+    RolesScene(qreal, qreal, QObject * = 0);
+    static qreal laneWidth() { return 100; } // ### should this be wider?
     static qreal laneHorizontalPadding() { return 5; }
     static qreal laneVerticalPadding() { return 5; }
 

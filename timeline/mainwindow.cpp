@@ -33,20 +33,6 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     // ------------------------
 
-    botSplitter_ = new QSplitter;
-
-    rolesScene_ = new RolesScene(0, 0, 100, 2000);
-    RolesView *rolesView = new RolesView(rolesScene_);
-    botSplitter_->addWidget(rolesView);
-
-    laneScene_ = new LaneScene(rolesScene_, baseDate, dateSpan);
-    LaneView *laneView = new LaneView(laneScene_);
-    botSplitter_->addWidget(laneView);
-
-    botSplitter_->setSizes(QList<int>() << 100 << 400);
-
-    // ------------------------
-
     topSplitter_ = new QSplitter;
 
     QFrame *cornerFrame = new QFrame;
@@ -92,11 +78,26 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     tasksController_ = new TasksController();
     ctrlFrame->layout()->addWidget(tasksController_);
 
-    timelineScene_ = new TimelineScene(laneScene_, 50);
-    TimelineView *timelineView = new TimelineView(timelineScene_);
-    topFrame->layout()->addWidget(timelineView);
+    rolesScene_ = new RolesScene(2000, 100);
+    RolesView *rolesView = new RolesView(rolesScene_);
+    topFrame->layout()->addWidget(rolesView);
 
     topSplitter_->addWidget(topFrame);
+
+    // ------------------------
+
+    botSplitter_ = new QSplitter;
+
+    laneScene_ = new LaneScene(rolesScene_, baseDate, dateSpan);
+    LaneView *laneView = new LaneView(laneScene_);
+
+    timelineScene_ = new TimelineScene(laneScene_, 50);
+    TimelineView *timelineView = new TimelineView(timelineScene_);
+
+    botSplitter_->addWidget(timelineView);
+    botSplitter_->addWidget(laneView);
+
+    botSplitter_->setSizes(QList<int>() << 100 << 400);
 
     // ------------------------
 
@@ -123,16 +124,16 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     connect(rolesView, SIGNAL(resized()), SLOT(updateGeometry()));
     connect(timelineView, SIGNAL(resized()), SLOT(updateGeometry()));
 
-    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), rolesView->verticalScrollBar(), SLOT(setValue(int)));
-    connect(rolesView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(laneView->verticalScrollBar(), SIGNAL(valueChanged(int)), timelineView->verticalScrollBar(), SLOT(setValue(int)));
+    connect(timelineView->verticalScrollBar(), SIGNAL(valueChanged(int)), laneView->verticalScrollBar(), SLOT(setValue(int)));
 
-    connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), timelineView->horizontalScrollBar(), SLOT(setValue(int)));
-    connect(timelineView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
+    connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), rolesView->horizontalScrollBar(), SLOT(setValue(int)));
+    connect(rolesView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
 
     connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
     connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
 
-    resize(1500, 500);
+    resize(1000, 700);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
@@ -146,7 +147,7 @@ void MainWindow::showEvent(QShowEvent *)
     topSplitter_->setSizes(botSplitter_->sizes());
 
     // set initial scaling
-    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(0.01, 1.0);
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1.5, 0.01);
 }
 
 void MainWindow::updateFromTaskMgr()

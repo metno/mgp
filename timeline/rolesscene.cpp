@@ -6,8 +6,8 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsView>
 
-RolesScene::RolesScene(qreal x, qreal y, qreal w, qreal h, QObject *parent)
-    : QGraphicsScene(x, y, w, h, parent)
+RolesScene::RolesScene(qreal w, qreal h, QObject *parent)
+    : QGraphicsScene(0, 0, w, h, parent)
 {
     // add background item
     bgItem_ = new QGraphicsRectItem(sceneRect());
@@ -40,15 +40,15 @@ void RolesScene::updateGeometry()
 {
     // update scene rect
     const QRectF srect = sceneRect();
-    setSceneRect(srect.x(), srect.y(), views().first()->width() - 10, headerItems().size() * laneHeight() + laneVerticalPadding());
+    setSceneRect(srect.x(), srect.y(), headerItems().size() * laneWidth() + laneHorizontalPadding(), views().first()->height() - 10);
 
     // update header item rects
     const qreal lhpad = laneHorizontalPadding();
     const qreal lvpad = laneVerticalPadding();
-    const qreal lheight = laneHeight();
+    const qreal lwidth = laneWidth();
     int i = 0;
     foreach (RolesLaneItem *item, headerItems()) {
-        item->updateRect(QRectF(lhpad, i * lheight + lvpad, width() - 2 * lhpad, lheight - lvpad));
+        item->updateRect(QRectF(i * lwidth + lhpad, lvpad, lwidth - lhpad, height() - 2 * lvpad));
         i++;
     }
 

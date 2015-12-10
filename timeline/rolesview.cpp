@@ -4,17 +4,17 @@
 #include "common.h"
 #include <QResizeEvent>
 
-RolesView::RolesView(RolesScene *lhScene, QWidget *parent)
-    : QGraphicsView(lhScene, parent)
+RolesView::RolesView(RolesScene *rScene, QWidget *parent)
+    : QGraphicsView(rScene, parent)
 {
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setDragMode(QGraphicsView::ScrollHandDrag);
 }
 
-void RolesView::updateScale(qreal, qreal sy)
+void RolesView::updateScale(qreal sx, qreal)
 {
-    setTransform(QTransform::fromScale(1.0, sy)); // scale vertical dimension only
+    setTransform(QTransform::fromScale(sx, 1.0)); // scale horizontal dimension only
     qobject_cast<RolesScene *>(scene())->updateGeometry();
 }
 
