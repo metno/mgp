@@ -47,6 +47,15 @@ void LaneScene::updateRoleTimeItems()
     }
 }
 
+// Returns the vertical position for a timestamp.
+qreal LaneScene::timestampToVPos(long timestamp) const
+{
+    const long loSceneTimestamp = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
+    const long hiSceneTimestamp = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
+    Q_ASSERT(loSceneTimestamp < hiSceneTimestamp);
+    return ((timestamp - loSceneTimestamp) / qreal(hiSceneTimestamp - loSceneTimestamp)) * qreal(sceneRect().height());
+}
+
 void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
 {
     // clear date- and time items for existing range
@@ -135,15 +144,9 @@ void LaneScene::updateCurrTimeMarker()
         addItem(currTimeMarker_);
     }
 
-    const long loSceneTimestamp = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
-    const long hiSceneTimestamp = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
-    Q_ASSERT(loSceneTimestamp < hiSceneTimestamp);
-    const qreal sceneTimeFact = 1.0 / (hiSceneTimestamp - loSceneTimestamp);
-    const QRectF srect = sceneRect();
-
     const long currTimestamp = QDateTime::currentDateTime().toTime_t();
-    const qreal y = (currTimestamp - loSceneTimestamp) * sceneTimeFact * qreal(srect.height());
-    currTimeMarker_->setLine(srect.x(), y, srect.width(), y);
+    const qreal y = timestampToVPos(currTimestamp);
+    currTimeMarker_->setLine(sceneRect().x(), y, sceneRect().width(), y);
 }
 
 void LaneScene::updateFromTaskMgr()
@@ -197,11 +200,6 @@ void LaneScene::updateGeometry()
 
     const qreal lwidth = rolesScene_->laneWidth();
     const qreal lhpad = rolesScene_->laneHorizontalPadding();
-    const long loSceneTimestamp = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
-    const long hiSceneTimestamp = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
-    Q_ASSERT(loSceneTimestamp < hiSceneTimestamp);
-    const qreal sceneTimeFact = 1.0 / (hiSceneTimestamp - loSceneTimestamp);
-    const QRectF srect = sceneRect();
 
     int i = 0;
     foreach (LaneItem *lItem, laneItems()) {
@@ -214,8 +212,8 @@ void LaneScene::updateGeometry()
             const long loTimestamp = task->loDateTime().toTime_t();
             const long hiTimestamp = task->hiDateTime().toTime_t();
             Q_ASSERT(loTimestamp < hiTimestamp);
-            const qreal y1 = (loTimestamp - loSceneTimestamp) * sceneTimeFact * qreal(srect.height());
-            const qreal y2 = (hiTimestamp - loSceneTimestamp) * sceneTimeFact * qreal(srect.height());
+            const qreal y1 = timestampToVPos(loTimestamp);
+            const qreal y2 = timestampToVPos(hiTimestamp);
             tItem->setRect(i * lwidth + 2 * lhpad, y1, lwidth - 4 * lhpad, y2 - y1);
         }
 

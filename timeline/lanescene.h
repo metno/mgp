@@ -50,6 +50,8 @@ private:
 
     void updateRoleTimeItems();
 
+    qreal timestampToVPos(long) const;
+
 signals:
     void dateRangeChanged();
 };
