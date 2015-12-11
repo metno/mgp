@@ -46,8 +46,6 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
                 "font-weight:normal; color: #000000; "
                 "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #bbbbff, stop: 0.5 #bbeeff, stop: 1 #bbbbff)");
     cornerLayout->addWidget(appLabel, 0, 0, 1, 2);
-    cornerLayout->addWidget(new QPushButton("Filter"), 1, 0);
-    cornerLayout->addWidget(new QPushButton("Sort"), 1, 1);
     topSplitter_->addWidget(cornerFrame);
 
     QFrame *topFrame = new QFrame;

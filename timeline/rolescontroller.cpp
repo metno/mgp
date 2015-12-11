@@ -9,6 +9,7 @@ RolesController::RolesController(QWidget *parent)
 {
     QFormLayout *formLayout = new QFormLayout;
     formLayout->addRow("Visible:", new QLabel("<number>"));
+    formLayout->addRow("Sorting:", new QLabel("<...>"));
     formLayout->addRow("Filter:", new QLabel("<...>"));
     formLayout->addRow("Highlighting:", new QLabel("<...>"));
 
