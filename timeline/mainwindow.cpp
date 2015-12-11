@@ -164,10 +164,15 @@ void MainWindow::updateGeometry()
 
 void MainWindow::updateSplitters(int, int)
 {
-    if (sender() == botSplitter_)
+    if (sender() == botSplitter_) {
         topSplitter_->setSizes(botSplitter_->sizes());
-    else
+        if (topSplitter_->sizes() != botSplitter_->sizes())
+            botSplitter_->setSizes(topSplitter_->sizes());
+    } else {
         botSplitter_->setSizes(topSplitter_->sizes());
+        if (botSplitter_->sizes() != topSplitter_->sizes())
+            topSplitter_->setSizes(botSplitter_->sizes());
+    }
 }
 
 void MainWindow::updateDateRange(bool rewind)
