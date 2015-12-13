@@ -1,0 +1,7 @@
+1: Add view to the right to show events (EXTERNAL: (model run complete), INTERNAL: (task complete etc.))
+
+2: Add panel to show details for selected task.
+
+3: Ditto for selected role.
+
+4: For each role, organiize tasks into the fewest sublanes required to avoid overlapping in time,
