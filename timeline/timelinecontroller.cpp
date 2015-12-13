@@ -27,13 +27,6 @@ TimelineController::TimelineController(const QDate &baseDate, int dateSpan, QWid
     dateSpanSpinBox_->setValue(dateSpan);
     connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(updateDateSpan()));
 
-//    {
-//        QToolButton *toolButton = new QToolButton;
-//        toolButton->setText("T");
-//        qobject_cast<QHBoxLayout *>(layout())->insertWidget(0, toolButton);
-//        connect(toolButton, SIGNAL(clicked()), SLOT(showToday()));
-//        toolButton->setToolTip("show today's date");
-//    }
 
 //    for (int i = 0; i < 3; ++i) {
 //        QToolButton *toolButton = new QToolButton;
@@ -46,6 +39,11 @@ TimelineController::TimelineController(const QDate &baseDate, int dateSpan, QWid
     formLayout->addRow("Date span:", dateSpanSpinBox_);
     formLayout->addRow("Filter:", new QLabel("<...>"));
     formLayout->addRow("Highlighting:", new QLabel("<...>"));
+    QToolButton *todayButton = new QToolButton;
+    todayButton->setText("Today");
+    connect(todayButton, SIGNAL(clicked()), SLOT(showToday()));
+    todayButton->setToolTip("show today's date");
+    formLayout->addRow("", todayButton);
 
     QGroupBox *groupBox = new QGroupBox("Timeline");
     groupBox->setLayout(formLayout);
