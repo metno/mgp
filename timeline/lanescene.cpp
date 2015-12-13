@@ -98,10 +98,17 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     emit dateRangeChanged();
 }
 
-void LaneScene::updateItemGeometry()
+void LaneScene::updateBaseItemGeometry()
 {
     const qreal lwidth = rolesScene_->laneWidth();
     const qreal lhpad = rolesScene_->laneHorizontalPadding();
+
+    int i = 0;
+    foreach (LaneItem *lItem, laneItems()) {
+        // update lane item rect
+        lItem->setRect(i * lwidth + lhpad, 0, lwidth - lhpad, height());
+        i++;
+    }
 
     for (int i = 0; i < dateSpan_; ++i) {
         // update date item
@@ -132,6 +139,31 @@ void LaneScene::updateItemGeometry()
             const qreal ey = date_y + esecs;
             roleTimeItems_.at(i * laneItems().size() + j)->setRect(QRect(j * lwidth + lhpad, by, lwidth - lhpad, ey - by + 1));
         }
+    }
+}
+
+void LaneScene::updateTaskItemGeometry()
+{
+    const qreal lwidth = rolesScene_->laneWidth();
+    const qreal lhpad = rolesScene_->laneHorizontalPadding();
+
+    int i = 0;
+    foreach (LaneItem *lItem, laneItems()) {
+        updateTaskItemGeometryInLane(lItem, i++, lwidth, lhpad);
+    }
+}
+
+void LaneScene::updateTaskItemGeometryInLane(LaneItem *lItem, int index, int lwidth, int lhpad)
+{
+    // update task item rects
+    foreach (TaskItem *tItem, taskItems(lItem->roleId())) {
+        QSharedPointer<Task> task = TaskManager::instance()->findTask(tItem->taskId());
+        const long loTimestamp = task->loDateTime().toTime_t();
+        const long hiTimestamp = task->hiDateTime().toTime_t();
+        Q_ASSERT(loTimestamp < hiTimestamp);
+        const qreal y1 = timestampToVPos(loTimestamp);
+        const qreal y2 = timestampToVPos(hiTimestamp);
+        tItem->setRect(index * lwidth + 2 * lhpad, y1, lwidth - 4 * lhpad, y2 - y1);
     }
 }
 
@@ -195,31 +227,8 @@ void LaneScene::updateGeometry()
     }
 
     updateRoleTimeItems();
-
-    updateItemGeometry();
-
-    const qreal lwidth = rolesScene_->laneWidth();
-    const qreal lhpad = rolesScene_->laneHorizontalPadding();
-
-    int i = 0;
-    foreach (LaneItem *lItem, laneItems()) {
-        // update lane item rect
-        lItem->setRect(i * lwidth + lhpad, 0, lwidth - lhpad, height());
-
-        // update task item rects
-        foreach (TaskItem *tItem, taskItems(lItem->roleId())) {
-            QSharedPointer<Task> task = TaskManager::instance()->findTask(tItem->taskId());
-            const long loTimestamp = task->loDateTime().toTime_t();
-            const long hiTimestamp = task->hiDateTime().toTime_t();
-            Q_ASSERT(loTimestamp < hiTimestamp);
-            const qreal y1 = timestampToVPos(loTimestamp);
-            const qreal y2 = timestampToVPos(hiTimestamp);
-            tItem->setRect(i * lwidth + 2 * lhpad, y1, lwidth - 4 * lhpad, y2 - y1);
-        }
-
-        i++;
-    }
-
+    updateBaseItemGeometry();
+    updateTaskItemGeometry();
     updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
 }
 
