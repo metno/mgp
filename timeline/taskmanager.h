@@ -23,6 +23,7 @@ public:
     qint64 addTask(const QSharedPointer<Task> &);
     void assignTaskToRole(qint64, qint64);
     QList<qint64> assignedTasks(qint64) const;
+    void removeTask(qint64);
 
     void add5Roles(); // ### for testing
 
@@ -33,6 +34,8 @@ private:
     qint64 nextRoleId_;
     qint64 nextTaskId_;
     int testRoleIndex_; // ### for testing
+
+    void unassignTaskFromRole(qint64);
 
 signals:
     void updated();

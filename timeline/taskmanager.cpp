@@ -55,24 +55,29 @@ qint64 TaskManager::addTask(const QSharedPointer<Task> &task)
     return id;
 }
 
-void TaskManager::assignTaskToRole(qint64 taskId, qint64 roleId)
+void TaskManager::unassignTaskFromRole(qint64 taskId)
 {
-    if (!tasks_.contains(taskId)) return; // no such task
-    if (!roles_.contains(roleId)) return; // no such role
-
-    const QSharedPointer<Task> task = tasks_.value(taskId);
-    const QSharedPointer<Role> role = roles_.value(roleId);
+    Q_ASSERT(tasks_.contains(taskId));
 
     // unassign from original role if any
-    const qint64 origRoleId = task->roleId_;
+    const qint64 origRoleId = tasks_.value(taskId)->roleId_;
     if (origRoleId >= 0) {
         const QSharedPointer<Role> origRole = roles_.value(origRoleId);
         Q_ASSERT(origRole);
         origRole->taskIds_.removeOne(taskId);
     }
+}
+
+void TaskManager::assignTaskToRole(qint64 taskId, qint64 roleId)
+{
+    if (!tasks_.contains(taskId)) return; // no such task
+    if (!roles_.contains(roleId)) return; // no such role
+
+    unassignTaskFromRole(taskId);
 
     // assign to new role
-    task->roleId_ = roleId;
+    tasks_.value(taskId)->roleId_ = roleId;
+    const QSharedPointer<Role> role = roles_.value(roleId);
     Q_ASSERT(!role->taskIds_.contains(taskId));
     role->taskIds_.append(taskId);
 }
@@ -82,6 +87,14 @@ QList<qint64> TaskManager::assignedTasks(qint64 roleId) const
     if (!roles_.contains(roleId)) return QList<qint64>(); // no such role
 
     return roles_.value(roleId)->taskIds_;
+}
+
+void TaskManager::removeTask(qint64 taskId)
+{
+    if (!tasks_.contains(taskId)) return; // no such task
+    unassignTaskFromRole(taskId);
+    tasks_.remove(taskId);
+    emitUpdated();
 }
 
 void TaskManager::add5Roles()

@@ -4,7 +4,11 @@
 #include <QCursor>
 #include <QPen>
 #include <QGraphicsScene>
+#include <QGraphicsSceneMouseEvent>
 #include <QGraphicsView>
+#include <QAction>
+#include <QMenu>
+#include <QCursor>
 
 TaskItem::TaskItem(qint64 taskId__)
     : taskId_(taskId__)
@@ -17,7 +21,7 @@ TaskItem::TaskItem(qint64 taskId__)
     colors_.append(QColor(Qt::black));
     colors_.append(QColor(Qt::gray));
 
-    setRandomColor();
+    setBrush(QColor("#bbb"));
     setZValue(10);
     setCursor(Qt::ArrowCursor);
     setAcceptHoverEvents(true);
@@ -51,23 +55,18 @@ void TaskItem::setRandomColor()
 
 void TaskItem::mousePressEvent(QGraphicsSceneMouseEvent *)
 {
-    qDebug() << "mousePressEvent for task" << taskId_;
-    setRandomColor();
+//    qDebug() << "mousePressEvent for task" << taskId_;
 }
 
-void TaskItem::hoverEnterEvent(QGraphicsSceneHoverEvent *)
+void TaskItem::highlight(bool enabled)
 {
-    if (!scene()->views().isEmpty()) {
+    if (enabled) {
+        Q_ASSERT(!scene()->views().isEmpty());
         const qreal w = 5;
         const qreal addh = w / scene()->views().first()->transform().m11();
         const qreal addv = w / scene()->views().first()->transform().m22();
         hoverItem_->setRect(rect().adjusted(-addh, -addv, addh, addv));
     }
 
-    hoverItem_->setVisible(true);
-}
-
-void TaskItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
-{
-    hoverItem_->setVisible(false);
+    hoverItem_->setVisible(enabled);
 }

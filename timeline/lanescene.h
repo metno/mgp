@@ -9,6 +9,8 @@ class QGraphicsRectItem;
 class QGraphicsLineItem;
 class LaneItem;
 class TaskItem;
+class QGraphicsSceneMouseEvent;
+class QAction;
 
 class LaneScene : public QGraphicsScene
 {
@@ -38,6 +40,7 @@ private:
     void addLaneItem(qint64);
 
     QList<TaskItem *> taskItems(qint64 = -1) const;
+    QList<TaskItem *> taskItems(const QPointF &) const;
     QList<qint64> taskItemRoleIds() const;
     void addTaskItems(qint64);
 
@@ -53,6 +56,18 @@ private:
     void updateRoleTimeItems();
 
     qreal timestampToVPos(long) const;
+
+    void mouseMoveEvent(QGraphicsSceneMouseEvent *);
+    void mousePressEvent(QGraphicsSceneMouseEvent *);
+
+    QAction *editAction_;
+    QAction *removeAction_;
+
+    TaskItem *currTaskItem_;
+
+private slots:
+    void editCurrItem();
+    void removeCurrItem();
 
 signals:
     void dateRangeChanged();

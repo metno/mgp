@@ -11,13 +11,12 @@ public:
     TaskItem(qint64);
     qint64 taskId() const;
     qint64 roleId() const;
+    void highlight(bool);
 private:
     qint64 taskId_;
     QList<QColor> colors_;
     void setRandomColor();
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
-    virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *);
-    virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *);
     QGraphicsRectItem *hoverItem_;
 };
 

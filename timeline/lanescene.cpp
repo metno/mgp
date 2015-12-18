@@ -6,6 +6,9 @@
 #include "common.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
+#include <QGraphicsSceneMouseEvent>
+#include <QAction>
+#include <QMenu>
 
 LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
     : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), rolesScene->height(), parent)
@@ -13,8 +16,15 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
     , currTimeMarker_(0)
+    , currTaskItem_(0)
 {
     setDateRange(baseDate_, dateSpan_);
+
+    editAction_ = new QAction("Edit", 0);
+    connect(editAction_, SIGNAL(triggered()), SLOT(editCurrItem()));
+
+    removeAction_ = new QAction("Remove", 0);
+    connect(removeAction_, SIGNAL(triggered()), SLOT(removeCurrItem()));
 }
 
 QDate LaneScene::baseDate() const
@@ -271,6 +281,17 @@ QList<TaskItem *> LaneScene::taskItems(qint64 roleId) const
     return tItems;
 }
 
+QList<TaskItem *> LaneScene::taskItems(const QPointF &pos) const
+{
+    QList<TaskItem *> tItems;
+    foreach (QGraphicsItem *item, items(pos)) {
+        TaskItem *tItem = dynamic_cast<TaskItem *>(item);
+        if (tItem)
+            tItems.append(tItem);
+    }
+    return tItems;
+}
+
 // ### consider turning this into a template function (see laneItemRoleIds())
 QList<qint64> LaneScene::taskItemRoleIds() const
 {
@@ -287,4 +308,40 @@ void LaneScene::addTaskItems(qint64 roleId)
 {
     foreach (qint64 taskId, TaskManager::instance()->assignedTasks(roleId))
         addItem(new TaskItem(taskId));
+}
+
+void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
+    const QList<TaskItem *> hitTaskItems = taskItems(event->scenePos());
+    TaskItem *origCurrTaskItem = currTaskItem_;
+    currTaskItem_ = hitTaskItems.isEmpty() ? 0 : hitTaskItems.first();
+    if (origCurrTaskItem)
+        origCurrTaskItem->highlight(false);
+    if (currTaskItem_)
+        currTaskItem_->highlight(true);
+}
+
+void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    if ((event->button() == Qt::RightButton) && currTaskItem_) {
+        // open context menu
+        QMenu contextMenu;
+        contextMenu.addAction(editAction_);
+        contextMenu.addAction(removeAction_);
+        contextMenu.exec(QCursor::pos());
+    }
+}
+
+void LaneScene::editCurrItem()
+{
+    Q_ASSERT(currTaskItem_);
+    qDebug() << "editCurrItem() ..." << currTaskItem_;
+
+}
+
+void LaneScene::removeCurrItem()
+{
+    Q_ASSERT(currTaskItem_);
+    TaskManager::instance()->removeTask(currTaskItem_->taskId());
+    currTaskItem_ = 0;
 }
