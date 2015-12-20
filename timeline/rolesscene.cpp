@@ -82,3 +82,11 @@ void RolesScene::addHeaderItem(qint64 roleId)
 {
     addItem(new RolesLaneItem(roleId));
 }
+
+qint64 RolesScene::laneToRoleId(int laneIndex) const
+{
+    QList<qint64> roleIds = headerItemRoleIds();
+    if (laneIndex >= 0 && laneIndex < roleIds.size())
+        return roleIds.at(laneIndex);
+    return -1;
+}

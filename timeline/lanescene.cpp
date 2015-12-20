@@ -9,6 +9,8 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QAction>
 #include <QMenu>
+#include <QSharedPointer>
+#include <QDateTime>
 
 LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
     : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), rolesScene->height(), parent)
@@ -17,14 +19,28 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     , dateSpan_(dateSpan__)
     , currTimeMarker_(0)
     , currTaskItem_(0)
+    , currLaneIndex_(-1)
+    , insertTop_(-1)
+    , insertBottom_(-1)
 {
     setDateRange(baseDate_, dateSpan_);
 
-    editAction_ = new QAction("Edit", 0);
-    connect(editAction_, SIGNAL(triggered()), SLOT(editCurrItem()));
+    addTaskAction_ = new QAction("Add new task", 0);
+    connect(addTaskAction_, SIGNAL(triggered()), SLOT(addTask()));
 
-    removeAction_ = new QAction("Remove", 0);
-    connect(removeAction_, SIGNAL(triggered()), SLOT(removeCurrItem()));
+    editTaskAction_ = new QAction("Edit task", 0);
+    connect(editTaskAction_, SIGNAL(triggered()), SLOT(editTask()));
+
+    removeTaskAction_ = new QAction("Remove task", 0);
+    connect(removeTaskAction_, SIGNAL(triggered()), SLOT(removeTask()));
+
+    insertItem_ = new QGraphicsRectItem();
+    //insertItem_->setFlag(QGraphicsItem::ItemStacksBehindParent);
+    insertItem_->setBrush(QColor("#bfb"));
+    insertItem_->setPen(QPen(QColor("#8a8")));
+    insertItem_->setZValue(20);
+    insertItem_->setVisible(true);
+    addItem(insertItem_);
 }
 
 QDate LaneScene::baseDate() const
@@ -64,6 +80,16 @@ qreal LaneScene::timestampToVPos(long timestamp) const
     const long hiSceneTimestamp = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
     Q_ASSERT(loSceneTimestamp < hiSceneTimestamp);
     return ((timestamp - loSceneTimestamp) / qreal(hiSceneTimestamp - loSceneTimestamp)) * qreal(sceneRect().height());
+}
+
+// Returns the timestamp for a vertical position.
+long LaneScene::vPosToTimestamp(qreal y) const
+{
+    const long loSceneTimestamp = QDateTime(baseDate_, QTime(0, 0)).toTime_t();
+    const long hiSceneTimestamp = QDateTime(baseDate_.addDays(dateSpan_), QTime(0, 0)).toTime_t();
+    Q_ASSERT(loSceneTimestamp < hiSceneTimestamp);
+    qreal frac = y / qreal(sceneRect().height());
+    return loSceneTimestamp + frac * (hiSceneTimestamp - loSceneTimestamp);
 }
 
 void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
@@ -201,26 +227,38 @@ void LaneScene::updateFromTaskMgr()
             removeItem(lItem);
     }
 
-    // add lane items for unrepresented roles in the task manager
+    // add lane items for roles in the task manager that have no lane items
     const QList<qint64> liRoleIds = laneItemRoleIds();
     foreach (qint64 tmRoleId, tmRoleIds) {
         if (!liRoleIds.contains(tmRoleId))
             addLaneItem(tmRoleId);
     }
 
-    const QList<qint64> tmTaskIds = TaskManager::instance()->taskIds();
+    const QList<qint64> tmAllTaskIds = TaskManager::instance()->taskIds();
 
     // remove task items for tasks that no longer exist in the task manager
     foreach (TaskItem *tItem, taskItems()) {
-        if (!tmTaskIds.contains(tItem->taskId()))
+        if (!tmAllTaskIds.contains(tItem->taskId()))
             removeItem(tItem);
     }
 
-    // add task items for unrepresented roles in the task manager
-    const QList<qint64> tiRoleIds = taskItemRoleIds();
-    foreach (qint64 tmRoleId, tmRoleIds) {
-        if (!tiRoleIds.contains(tmRoleId))
-            addTaskItems(tmRoleId);
+    // ensure that each lane contains exactly the tasks that are assigned to the corresponding role
+    foreach (LaneItem *lItem, laneItems()) {
+        const qint64 roleId = lItem->roleId();
+        const QList<qint64> tmRoleTaskIds = TaskManager::instance()->assignedTasks(roleId);
+
+        // remove task items for tasks that are no longer assigned to this role
+        foreach (TaskItem *tItem, taskItems(roleId)) {
+            if (!tmRoleTaskIds.contains(tItem->taskId()))
+                removeItem(tItem);
+        }
+
+        // add task items for tasks in the task manager that are assigned to this role but have no task items
+        QList<qint64> itemRoleTaskIds = taskIds(taskItems(roleId));
+        foreach (qint64 taskId, tmRoleTaskIds) {
+            if (!itemRoleTaskIds.contains(taskId))
+                addItem(new TaskItem(taskId));
+        }
     }
 
     updateGeometry();
@@ -304,14 +342,17 @@ QList<qint64> LaneScene::taskItemRoleIds() const
     return tiRoleIds;
 }
 
-void LaneScene::addTaskItems(qint64 roleId)
+QList<qint64> LaneScene::taskIds(const QList<TaskItem *> &tItems) const
 {
-    foreach (qint64 taskId, TaskManager::instance()->assignedTasks(roleId))
-        addItem(new TaskItem(taskId));
+    QList<qint64> tIds;
+    foreach (TaskItem *tItem, tItems)
+        tIds.append(tItem->taskId());
+    return tIds;
 }
 
 void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
+    // for existing tasks, update which task is the current one
     const QList<TaskItem *> hitTaskItems = taskItems(event->scenePos());
     TaskItem *origCurrTaskItem = currTaskItem_;
     currTaskItem_ = hitTaskItems.isEmpty() ? 0 : hitTaskItems.first();
@@ -319,29 +360,67 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         origCurrTaskItem->highlight(false);
     if (currTaskItem_)
         currTaskItem_->highlight(true);
+
+    // update the insertion rectangle for a new task
+    QRect insertRect;
+    const int lwidth = rolesScene_->laneWidth();
+    const int lhpad = rolesScene_->laneHorizontalPadding();
+    const int scenex = event->scenePos().x();
+    currLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
+    if ((currLaneIndex_ >= 0) && (currLaneIndex_ < laneItems().size())) {
+        insertTop_ = event->scenePos().y();
+        const int height = 2 * secsInHour();
+        insertBottom_ = insertTop_ + height;
+        insertRect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
+        insertRect.setTop(insertTop_);
+        insertRect.setWidth(lwidth - 4 * lhpad);
+        insertRect.setHeight(height);
+        insertItem_->setRect(insertRect);
+        insertItem_->setVisible(true);
+    } else {
+        insertItem_->setVisible(false);
+    }
 }
 
 void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    if ((event->button() == Qt::RightButton) && currTaskItem_) {
+    if ((event->button() == Qt::RightButton)) {
         // open context menu
         QMenu contextMenu;
-        contextMenu.addAction(editAction_);
-        contextMenu.addAction(removeAction_);
-        contextMenu.exec(QCursor::pos());
+        contextMenu.addAction(addTaskAction_);
+        if (currTaskItem_) {
+            contextMenu.addAction(editTaskAction_);
+            contextMenu.addAction(removeTaskAction_);
+        }
+        contextMenu.exec(menuPos_ = QCursor::pos());
     }
 }
 
-void LaneScene::editCurrItem()
+void LaneScene::addTask()
 {
-    Q_ASSERT(currTaskItem_);
-    qDebug() << "editCurrItem() ..." << currTaskItem_;
+    const qint64 roleId = rolesScene_->laneToRoleId(currLaneIndex_);
+    const long loTimestamp = vPosToTimestamp(insertTop_);
+    const long hiTimestamp = vPosToTimestamp(insertBottom_);
+    qDebug() << "addTask(), roleId:" << roleId << ", start:" << loTimestamp << ", end:" << hiTimestamp;
 
+    const qint64 taskId = TaskManager::instance()
+            ->addTask(QSharedPointer<Task>(new Task("new task",
+                                                    QDateTime::fromTime_t(loTimestamp),
+                                                    QDateTime::fromTime_t(hiTimestamp))));
+    TaskManager::instance()->assignTaskToRole(taskId, roleId);
+    TaskManager::instance()->emitUpdated();
 }
 
-void LaneScene::removeCurrItem()
+void LaneScene::editTask()
+{
+    Q_ASSERT(currTaskItem_);
+    qDebug() << "editTask() ..." << currTaskItem_;
+}
+
+void LaneScene::removeTask()
 {
     Q_ASSERT(currTaskItem_);
     TaskManager::instance()->removeTask(currTaskItem_->taskId());
     currTaskItem_ = 0;
+    TaskManager::instance()->emitUpdated();
 }

@@ -42,7 +42,7 @@ private:
     QList<TaskItem *> taskItems(qint64 = -1) const;
     QList<TaskItem *> taskItems(const QPointF &) const;
     QList<qint64> taskItemRoleIds() const;
-    void addTaskItems(qint64);
+    QList<qint64> taskIds(const QList<TaskItem *> &) const;
 
     void updateBaseItemGeometry();
     void updateTaskItemGeometry();
@@ -56,18 +56,26 @@ private:
     void updateRoleTimeItems();
 
     qreal timestampToVPos(long) const;
+    long vPosToTimestamp(qreal) const;
 
     void mouseMoveEvent(QGraphicsSceneMouseEvent *);
     void mousePressEvent(QGraphicsSceneMouseEvent *);
 
-    QAction *editAction_;
-    QAction *removeAction_;
+    QAction *addTaskAction_;
+    QAction *editTaskAction_;
+    QAction *removeTaskAction_;
 
     TaskItem *currTaskItem_;
+    QPoint menuPos_;
+    QGraphicsRectItem *insertItem_;
+    int currLaneIndex_;
+    int insertTop_;
+    int insertBottom_;
 
 private slots:
-    void editCurrItem();
-    void removeCurrItem();
+    void addTask();
+    void editTask();
+    void removeTask();
 
 signals:
     void dateRangeChanged();

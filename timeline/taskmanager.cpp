@@ -94,7 +94,6 @@ void TaskManager::removeTask(qint64 taskId)
     if (!tasks_.contains(taskId)) return; // no such task
     unassignTaskFromRole(taskId);
     tasks_.remove(taskId);
-    emitUpdated();
 }
 
 void TaskManager::add5Roles()

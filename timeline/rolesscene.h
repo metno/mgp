@@ -15,6 +15,7 @@ public:
     static qreal laneWidth() { return 100; } // ### should this be wider?
     static qreal laneHorizontalPadding() { return 5; }
     static qreal laneVerticalPadding() { return 5; }
+    qint64 laneToRoleId(int) const;
 
 public slots:
     void updateFromTaskMgr();
