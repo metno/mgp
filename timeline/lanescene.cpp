@@ -401,7 +401,6 @@ void LaneScene::addTask()
     const qint64 roleId = rolesScene_->laneToRoleId(currLaneIndex_);
     const long loTimestamp = vPosToTimestamp(insertTop_);
     const long hiTimestamp = vPosToTimestamp(insertBottom_);
-    qDebug() << "addTask(), roleId:" << roleId << ", start:" << loTimestamp << ", end:" << hiTimestamp;
 
     const qint64 taskId = TaskManager::instance()
             ->addTask(QSharedPointer<Task>(new Task("new task",
