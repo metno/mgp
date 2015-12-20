@@ -40,6 +40,7 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     insertItem_->setPen(QPen(QColor("#8a8")));
     insertItem_->setZValue(20);
     insertItem_->setVisible(true);
+    insertItem_->setAcceptsHoverEvents(true);
     addItem(insertItem_);
 }
 
