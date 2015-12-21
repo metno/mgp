@@ -10,10 +10,10 @@
 
 LaneView::LaneView(LaneScene *scene, QWidget *parent)
     : QGraphicsView(scene, parent)
+    , panning_(false)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    setDragMode(QGraphicsView::ScrollHandDrag);
     connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<RolesView *>(scene->rolesScene_->views().first()), SLOT(updateScale(qreal, qreal)));
 }
 
@@ -50,4 +50,37 @@ void LaneView::wheelEvent(QWheelEvent *event)
     } else {
         QGraphicsView::wheelEvent(event);
     }
+}
+
+void LaneView::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::MiddleButton) {
+        panning_ = true;
+        panPrevX_ = event->x();
+        panPrevY_ = event->y();
+        setCursor(Qt::ClosedHandCursor);
+    }
+    QGraphicsView::mousePressEvent(event);
+}
+
+void LaneView::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::MiddleButton)
+    {
+        panning_ = false;
+        setCursor(Qt::ArrowCursor);
+    }
+    QGraphicsView::mouseReleaseEvent(event);
+}
+
+void LaneView::mouseMoveEvent(QMouseEvent *event)
+{
+    if (panning_)
+    {
+        horizontalScrollBar()->setValue(horizontalScrollBar()->value() - (event->x() - panPrevX_));
+        verticalScrollBar()->setValue(verticalScrollBar()->value() - (event->y() - panPrevY_));
+        panPrevX_ = event->x();
+        panPrevY_ = event->y();
+    }
+    QGraphicsView::mouseMoveEvent(event);
 }
