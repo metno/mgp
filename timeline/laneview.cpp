@@ -84,3 +84,19 @@ void LaneView::mouseMoveEvent(QMouseEvent *event)
     }
     QGraphicsView::mouseMoveEvent(event);
 }
+
+void LaneView::keyPressEvent(QKeyEvent *event)
+{
+    // MainWindow::instance()->handleKeyPressEvent(event); // to handle Control+Q for closing application etc. ... TBD
+    QGraphicsView::keyPressEvent(event); // propagate to scene
+}
+
+void LaneView::enterEvent(QEvent *)
+{
+    grabKeyboard();
+}
+
+void LaneView::leaveEvent(QEvent *)
+{
+    releaseKeyboard();
+}

@@ -58,8 +58,9 @@ private:
     qreal timestampToVPos(long) const;
     long vPosToTimestamp(qreal) const;
 
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *);
-    void mousePressEvent(QGraphicsSceneMouseEvent *);
+    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *);
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
 
     QAction *addTaskAction_;
     QAction *editTaskAction_;

@@ -445,6 +445,11 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
     }
 }
 
+void LaneScene::keyPressEvent(QKeyEvent *event)
+{
+    qDebug() << "LaneScene::keyPressEvent() ...";
+}
+
 void LaneScene::addTask()
 {
     const qint64 roleId = rolesScene_->laneToRoleId(currLaneIndex_);

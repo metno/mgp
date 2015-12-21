@@ -18,9 +18,12 @@ public slots:
 private:
     virtual void resizeEvent(QResizeEvent *);
     virtual void wheelEvent(QWheelEvent *);
-    virtual void mouseMoveEvent(QMouseEvent *);
     virtual void mousePressEvent(QMouseEvent *);
     virtual void mouseReleaseEvent(QMouseEvent *);
+    virtual void mouseMoveEvent(QMouseEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
+    virtual void enterEvent(QEvent *);
+    virtual void leaveEvent(QEvent *);
 
     bool panning_;
     int panPrevX_;
