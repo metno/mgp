@@ -34,14 +34,19 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     removeTaskAction_ = new QAction("Remove task", 0);
     connect(removeTaskAction_, SIGNAL(triggered()), SLOT(removeTask()));
 
-    insertItem_ = new QGraphicsRectItem();
-    //insertItem_->setFlag(QGraphicsItem::ItemStacksBehindParent);
-    insertItem_->setBrush(QColor("#bfb"));
-    insertItem_->setPen(QPen(QColor("#8a8")));
-    insertItem_->setZValue(20);
-    insertItem_->setVisible(true);
-    insertItem_->setAcceptsHoverEvents(true);
-    addItem(insertItem_);
+    hoverTimeMarker_ = new QGraphicsLineItem;
+    hoverTimeMarker_->setPen(QPen(QColor(0, 160, 0)));
+    hoverTimeMarker_->setZValue(20);
+    hoverTimeMarker_->setVisible(true);
+    hoverTimeMarker_->setAcceptsHoverEvents(true);
+    addItem(hoverTimeMarker_);
+
+    hoverRoleMarker_ = new QGraphicsRectItem;
+    hoverRoleMarker_->setBrush(QBrush(QColor(0, 255, 0, 16)));
+    hoverRoleMarker_->setPen(QPen(QBrush(QColor(0, 160, 0)), 2));
+    hoverRoleMarker_->setZValue(20);
+    hoverRoleMarker_->setVisible(true);
+    addItem(hoverRoleMarker_);
 }
 
 QDate LaneScene::baseDate() const
@@ -362,24 +367,25 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     if (currTaskItem_)
         currTaskItem_->highlight(true);
 
-    // update the insertion rectangle for a new task
-    QRect insertRect;
+    // update hover highlighting etc.
     const int lwidth = rolesScene_->laneWidth();
     const int lhpad = rolesScene_->laneHorizontalPadding();
     const int scenex = event->scenePos().x();
     currLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
     if ((currLaneIndex_ >= 0) && (currLaneIndex_ < laneItems().size())) {
+
+        // insertion position for adding new task
         insertTop_ = event->scenePos().y();
-        const int height = 2 * secsInHour();
-        insertBottom_ = insertTop_ + height;
-        insertRect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
-        insertRect.setTop(insertTop_);
-        insertRect.setWidth(lwidth - 4 * lhpad);
-        insertRect.setHeight(height);
-        insertItem_->setRect(insertRect);
-        insertItem_->setVisible(true);
+        insertBottom_ = insertTop_ + 2 * secsInHour(); // ### for now
+
+        hoverTimeMarker_->setLine(lhpad, insertTop_, sceneRect().width() - lhpad, insertTop_);
+        hoverRoleMarker_->setRect(currLaneIndex_ * lwidth + lhpad, 0, lwidth - lhpad, height());
+
+        hoverTimeMarker_->setVisible(true);
+        hoverRoleMarker_->setVisible(true);
     } else {
-        insertItem_->setVisible(false);
+        hoverTimeMarker_->setVisible(false);
+        hoverRoleMarker_->setVisible(false);
     }
 }
 

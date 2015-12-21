@@ -67,7 +67,9 @@ private:
 
     TaskItem *currTaskItem_;
     QPoint menuPos_;
-    QGraphicsRectItem *insertItem_;
+    QGraphicsLineItem *hoverTimeMarker_;
+    QGraphicsRectItem *hoverRoleMarker_;
+
     int currLaneIndex_;
     int insertTop_;
     int insertBottom_;
