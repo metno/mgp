@@ -62,12 +62,17 @@ private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
 
+    void setCurrTask(TaskItem *);
+    void clearCurrTask();
+    void updateCurrTaskItem(bool);
+
     QAction *addTaskAction_;
     QAction *editTaskAction_;
     QAction *removeTaskAction_;
 
-    TaskItem *hoverTaskItem_; // the task item (if any) currently hovered
-    TaskItem *currTaskItem_; // the task item (if any) currently selected
+    TaskItem *hoverTaskItem_; // task item (if any) currently hovered
+    TaskItem *currTaskItem_; // task item (if any) currently selected
+    qint64 pendingCurrTaskId_; // task ID that was just added and whose item should be set as current
     QPoint menuPos_;
     QGraphicsLineItem *hoverTimeMarker_;
     QGraphicsRectItem *hoverRoleMarker_;
@@ -78,9 +83,9 @@ private:
     int insertBottom_;
 
 private slots:
-    void addTask();
-    void editTask();
-    void removeTask();
+    void addNewTask();
+    void editCurrentTask();
+    void removeCurrentTask();
 
 signals:
     void dateRangeChanged();

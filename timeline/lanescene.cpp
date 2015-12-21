@@ -7,6 +7,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QKeyEvent>
 #include <QAction>
 #include <QMenu>
 #include <QSharedPointer>
@@ -20,6 +21,7 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     , currTimeMarker_(0)
     , hoverTaskItem_(0)
     , currTaskItem_(0)
+    , pendingCurrTaskId_(-1)
     , currLaneIndex_(-1)
     , insertTop_(-1)
     , insertBottom_(-1)
@@ -27,13 +29,13 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     setDateRange(baseDate_, dateSpan_);
 
     addTaskAction_ = new QAction("Add new task", 0);
-    connect(addTaskAction_, SIGNAL(triggered()), SLOT(addTask()));
+    connect(addTaskAction_, SIGNAL(triggered()), SLOT(addNewTask()));
 
     editTaskAction_ = new QAction("Edit task", 0);
-    connect(editTaskAction_, SIGNAL(triggered()), SLOT(editTask()));
+    connect(editTaskAction_, SIGNAL(triggered()), SLOT(editCurrentTask()));
 
     removeTaskAction_ = new QAction("Remove task", 0);
-    connect(removeTaskAction_, SIGNAL(triggered()), SLOT(removeTask()));
+    connect(removeTaskAction_, SIGNAL(triggered()), SLOT(removeCurrentTask()));
 
     hoverTimeMarker_ = new QGraphicsLineItem;
     hoverTimeMarker_->setPen(QPen(QColor(0, 160, 0)));
@@ -278,8 +280,14 @@ void LaneScene::updateFromTaskMgr()
         // add task items for tasks in the task manager that are assigned to this role but have no task items
         QList<qint64> itemRoleTaskIds = taskIds(taskItems(roleId));
         foreach (qint64 taskId, tmRoleTaskIds) {
-            if (!itemRoleTaskIds.contains(taskId))
-                addItem(new TaskItem(taskId));
+            if (!itemRoleTaskIds.contains(taskId)) {
+                TaskItem *taskItem = new TaskItem(taskId);
+                addItem(taskItem);
+                if (taskId == pendingCurrTaskId_) {
+                    pendingCurrTaskId_ = -1;
+                    setCurrTask(taskItem);
+                }
+            }
         }
     }
 
@@ -408,32 +416,11 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
-        if (hoverTaskItem_) {
-            if (hoverTaskItem_ != currTaskItem_) {
-                // make another task item current
-                currTaskItem_ = hoverTaskItem_;
-                currTaskItem_->setSelected(true);
+        updateCurrTaskItem(false);
 
-                // update highlighting
-                QSharedPointer<Task> currTask = TaskManager::instance()->findTask(currTaskItem_->taskId());
-                Q_ASSERT(currTask);
-                const qreal lwidth = rolesScene_->laneWidth();
-                const qreal lhpad = rolesScene_->laneHorizontalPadding();
-                const qreal lvpad = rolesScene_->laneVerticalPadding();
-                QRectF rect;
-                rect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
-                rect.setTop(timestampToVPos(currTask->loDateTime().toTime_t()) - 0 * lvpad);
-                rect.setWidth(lwidth - 4 * lhpad);
-                rect.setHeight((currTask->hiDateTime().toTime_t() - currTask->loDateTime().toTime_t()) + 1 + 0 * lvpad);
-                currTaskMarker_->setRect(rect);
-                currTaskMarker_->setVisible(true);
-            }
-        } else {
-            // make no task item current and update highlighting
-            currTaskItem_ = 0;
-            currTaskMarker_->setVisible(false);
-        }
     } else if (event->button() == Qt::RightButton) {
+        updateCurrTaskItem(true);
+
         // open context menu
         QMenu contextMenu;
         contextMenu.addAction(addTaskAction_);
@@ -447,10 +434,49 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
 void LaneScene::keyPressEvent(QKeyEvent *event)
 {
-    qDebug() << "LaneScene::keyPressEvent() ...";
+    if ((event->key() == Qt::Key_Delete) && currTaskItem_)
+        removeCurrentTask();
 }
 
-void LaneScene::addTask()
+void LaneScene::setCurrTask(TaskItem *taskItem)
+{
+    // make another task item current
+    currTaskItem_ = taskItem;
+    currTaskItem_->setSelected(true);
+
+    // update highlighting
+    QSharedPointer<Task> currTask = TaskManager::instance()->findTask(currTaskItem_->taskId());
+    Q_ASSERT(currTask);
+    const qreal lwidth = rolesScene_->laneWidth();
+    const qreal lhpad = rolesScene_->laneHorizontalPadding();
+    const qreal lvpad = rolesScene_->laneVerticalPadding();
+    QRectF rect;
+    rect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
+    rect.setTop(timestampToVPos(currTask->loDateTime().toTime_t()) - 0 * lvpad);
+    rect.setWidth(lwidth - 4 * lhpad);
+    rect.setHeight((currTask->hiDateTime().toTime_t() - currTask->loDateTime().toTime_t()) + 1 + 0 * lvpad);
+    currTaskMarker_->setRect(rect);
+    currTaskMarker_->setVisible(true);
+}
+
+void LaneScene::clearCurrTask()
+{
+    // make no task item current and update highlighting
+    currTaskItem_ = 0;
+    currTaskMarker_->setVisible(false);
+}
+
+void LaneScene::updateCurrTaskItem(bool ignoreMiss)
+{
+    if (hoverTaskItem_) {
+        if (hoverTaskItem_ != currTaskItem_)
+            setCurrTask(hoverTaskItem_);
+    } else if (!ignoreMiss) {
+        clearCurrTask();
+    }
+}
+
+void LaneScene::addNewTask()
 {
     const qint64 roleId = rolesScene_->laneToRoleId(currLaneIndex_);
     const long loTimestamp = vPosToTimestamp(insertTop_);
@@ -461,19 +487,21 @@ void LaneScene::addTask()
                                                     QDateTime::fromTime_t(loTimestamp),
                                                     QDateTime::fromTime_t(hiTimestamp))));
     TaskManager::instance()->assignTaskToRole(taskId, roleId);
+    pendingCurrTaskId_ = taskId;
     TaskManager::instance()->emitUpdated();
 }
 
-void LaneScene::editTask()
+void LaneScene::editCurrentTask()
 {
     Q_ASSERT(hoverTaskItem_);
     qDebug() << "editTask() ..." << hoverTaskItem_;
 }
 
-void LaneScene::removeTask()
+void LaneScene::removeCurrentTask()
 {
-    Q_ASSERT(hoverTaskItem_);
-    TaskManager::instance()->removeTask(hoverTaskItem_->taskId());
-    hoverTaskItem_ = 0;
+    Q_ASSERT(currTaskItem_);
+    TaskManager::instance()->removeTask(currTaskItem_->taskId());
+    currTaskItem_ = 0;
+    currTaskMarker_->setVisible(false);
     TaskManager::instance()->emitUpdated();
 }
