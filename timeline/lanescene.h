@@ -65,10 +65,12 @@ private:
     QAction *editTaskAction_;
     QAction *removeTaskAction_;
 
-    TaskItem *currTaskItem_;
+    TaskItem *hoverTaskItem_; // the task item (if any) currently hovered
+    TaskItem *currTaskItem_; // the task item (if any) currently selected
     QPoint menuPos_;
     QGraphicsLineItem *hoverTimeMarker_;
     QGraphicsRectItem *hoverRoleMarker_;
+    QGraphicsRectItem *currTaskMarker_;
 
     int currLaneIndex_;
     int insertTop_;
