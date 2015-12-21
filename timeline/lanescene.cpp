@@ -434,8 +434,11 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
 void LaneScene::keyPressEvent(QKeyEvent *event)
 {
-    if ((event->key() == Qt::Key_Delete) && currTaskItem_)
+    if ((event->key() == Qt::Key_Delete) && currTaskItem_) {
         removeCurrentTask();
+    } else if (event->key() == Qt::Key_Insert) {
+        addNewTask();
+    }
 }
 
 void LaneScene::setCurrTask(TaskItem *taskItem)
