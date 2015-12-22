@@ -187,10 +187,10 @@ void LaneScene::updateBaseItemGeometry()
         for (int j = 0; j < laneItems().size(); ++j) {
             LaneItem *lItem = laneItems().at(j);
 
-            const QTime btime = TaskManager::instance()->findRole(lItem->roleId())->beginTime();
+            const QTime btime = TaskManager::instance().findRole(lItem->roleId())->beginTime();
             const long bsecs = btime.hour() * 3600 + btime.minute() * 60 + btime.second();
 
-            const QTime etime = TaskManager::instance()->findRole(lItem->roleId())->endTime();
+            const QTime etime = TaskManager::instance().findRole(lItem->roleId())->endTime();
             long esecs = etime.hour() * 3600 + etime.minute() * 60 + etime.second();
             if (esecs <= bsecs)
                 esecs += secsInDay();
@@ -217,7 +217,7 @@ void LaneScene::updateTaskItemGeometryInLane(LaneItem *lItem, int index, int lwi
 {
     // update task item rects
     foreach (TaskItem *tItem, taskItems(lItem->roleId())) {
-        QSharedPointer<Task> task = TaskManager::instance()->findTask(tItem->taskId());
+        QSharedPointer<Task> task = TaskManager::instance().findTask(tItem->taskId());
         const long loTimestamp = task->loDateTime().toTime_t();
         const long hiTimestamp = task->hiDateTime().toTime_t();
         Q_ASSERT(loTimestamp < hiTimestamp);
@@ -243,7 +243,7 @@ void LaneScene::updateCurrTimeMarker()
 
 void LaneScene::updateFromTaskMgr()
 {
-    const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
+    const QList<qint64> tmRoleIds = TaskManager::instance().roleIds();
 
     // remove lane items for roles that no longer exist in the task manager
     foreach (LaneItem *lItem, laneItems()) {
@@ -258,7 +258,7 @@ void LaneScene::updateFromTaskMgr()
             addLaneItem(tmRoleId);
     }
 
-    const QList<qint64> tmAllTaskIds = TaskManager::instance()->taskIds();
+    const QList<qint64> tmAllTaskIds = TaskManager::instance().taskIds();
 
     // remove task items for tasks that no longer exist in the task manager
     foreach (TaskItem *tItem, taskItems()) {
@@ -269,7 +269,7 @@ void LaneScene::updateFromTaskMgr()
     // ensure that each lane contains exactly the tasks that are assigned to the corresponding role
     foreach (LaneItem *lItem, laneItems()) {
         const qint64 roleId = lItem->roleId();
-        const QList<qint64> tmRoleTaskIds = TaskManager::instance()->assignedTasks(roleId);
+        const QList<qint64> tmRoleTaskIds = TaskManager::instance().assignedTasks(roleId);
 
         // remove task items for tasks that are no longer assigned to this role
         foreach (TaskItem *tItem, taskItems(roleId)) {
@@ -448,7 +448,7 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     currTaskItem_->setSelected(true);
 
     // update highlighting
-    QSharedPointer<Task> currTask = TaskManager::instance()->findTask(currTaskItem_->taskId());
+    QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
     Q_ASSERT(currTask);
     const qreal lwidth = rolesScene_->laneWidth();
     const qreal lhpad = rolesScene_->laneHorizontalPadding();
@@ -486,12 +486,12 @@ void LaneScene::addNewTask()
     const long hiTimestamp = vPosToTimestamp(insertBottom_);
 
     const qint64 taskId = TaskManager::instance()
-            ->addTask(QSharedPointer<Task>(new Task("new task",
+            .addTask(QSharedPointer<Task>(new Task("new task",
                                                     QDateTime::fromTime_t(loTimestamp),
                                                     QDateTime::fromTime_t(hiTimestamp))));
-    TaskManager::instance()->assignTaskToRole(taskId, roleId);
+    TaskManager::instance().assignTaskToRole(taskId, roleId);
     pendingCurrTaskId_ = taskId;
-    TaskManager::instance()->emitUpdated();
+    TaskManager::instance().emitUpdated();
 }
 
 void LaneScene::editCurrentTask()
@@ -503,8 +503,8 @@ void LaneScene::editCurrentTask()
 void LaneScene::removeCurrentTask()
 {
     Q_ASSERT(currTaskItem_);
-    TaskManager::instance()->removeTask(currTaskItem_->taskId());
+    TaskManager::instance().removeTask(currTaskItem_->taskId());
     currTaskItem_ = 0;
     currTaskMarker_->setVisible(false);
-    TaskManager::instance()->emitUpdated();
+    TaskManager::instance().emitUpdated();
 }

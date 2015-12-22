@@ -133,7 +133,7 @@ MainWindow::MainWindow()
 
     setLayout(mainLayout);
 
-    connect(TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
+    connect(&TaskManager::instance(), SIGNAL(updated()), SLOT(updateFromTaskMgr()));
     connect(rolesView, SIGNAL(resized()), SLOT(updateGeometry()));
     connect(timelineView, SIGNAL(resized()), SLOT(updateGeometry()));
 
@@ -215,7 +215,7 @@ void MainWindow::resetZooming()
 
 void MainWindow::add5Roles()
 {
-    TaskManager::instance()->add5Roles();
+    TaskManager::instance().add5Roles();
 }
 
 void MainWindow::test2()

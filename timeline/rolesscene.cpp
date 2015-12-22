@@ -18,7 +18,7 @@ RolesScene::RolesScene(qreal w, qreal h, QObject *parent)
 
 void RolesScene::updateFromTaskMgr()
 {
-    const QList<qint64> tmRoleIds = TaskManager::instance()->roleIds();
+    const QList<qint64> tmRoleIds = TaskManager::instance().roleIds();
 
     // remove header items for roles that no longer exist in the task manager
     foreach (RolesLaneItem *hItem, headerItems()) {

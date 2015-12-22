@@ -22,7 +22,7 @@ RolesLaneItem::RolesLaneItem(qint64 roleId__)
     grad.setColorAt(1, QColor("#aaa"));
     setBrush(QBrush(grad));
 
-    QSharedPointer<Role> role = TaskManager::instance()->findRole(roleId_);
+    QSharedPointer<Role> role = TaskManager::instance().findRole(roleId_);
 
     const QString name = role ? role->name() : "<no name>";
     nameItem_ = new QGraphicsTextItem(name, this);

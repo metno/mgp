@@ -11,9 +11,9 @@
 class TaskManager : public QObject
 {
     Q_OBJECT
+
 public:   
-    TaskManager();
-    static TaskManager *instance();
+    static TaskManager &instance();
     void emitUpdated();
     QList<qint64> roleIds() const;
     QList<qint64> taskIds() const;
@@ -28,9 +28,10 @@ public:
     void add5Roles(); // ### for testing
 
 private:
+    TaskManager();
+
     QHash<qint64, QSharedPointer<Role> > roles_; // available roles
     QHash<qint64, QSharedPointer<Task> > tasks_; // available tasks
-    static TaskManager *self_;   // singleton instance pointer
     qint64 nextRoleId_;
     qint64 nextTaskId_;
     int testRoleIndex_; // ### for testing

@@ -40,7 +40,7 @@ qint64 TaskItem::taskId() const
 
 qint64 TaskItem::roleId() const
 {
-    QSharedPointer<Task> task = TaskManager::instance()->findTask(taskId());
+    QSharedPointer<Task> task = TaskManager::instance().findTask(taskId());
     return task ? task->roleId() : -1;
 }
 

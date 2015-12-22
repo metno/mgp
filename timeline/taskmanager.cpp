@@ -1,7 +1,5 @@
 #include "taskmanager.h"
 
-TaskManager *TaskManager::self_ = 0;
-
 TaskManager::TaskManager()
     : nextRoleId_(0)
     , nextTaskId_(0)
@@ -9,11 +7,10 @@ TaskManager::TaskManager()
 {
 }
 
-TaskManager *TaskManager::instance()
+TaskManager &TaskManager::instance()
 {
-  if (!TaskManager::self_)
-    TaskManager::self_ = new TaskManager();
-  return TaskManager::self_;
+    static TaskManager tm;
+    return tm;
 }
 
 void TaskManager::emitUpdated()
