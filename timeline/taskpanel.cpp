@@ -36,8 +36,8 @@ void TaskPanel::setContents(const Task *task)
 {
     if (task) {
         nameLabel_->setText(task->name());
-        summaryLabel_->setText("<dummy summary>" /*task->summary()*/);
-        descrLabel_->setText("<dummy description>" /*task->description()*/);
+        summaryLabel_->setText(task->summary());
+        descrLabel_->setText(task->description());
     } else {
         nameLabel_->setText("");
         summaryLabel_->setText("");

@@ -88,6 +88,7 @@ private slots:
     void addNewTask();
     void editCurrentTask();
     void removeCurrentTask();
+    void handleViewScaleUpdate();
 
 signals:
     void dateRangeChanged();

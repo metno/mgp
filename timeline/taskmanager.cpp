@@ -100,8 +100,8 @@ void TaskManager::updateTask(qint64 taskId, const QHash<QString, QString> &value
 
     Task *task = tasks_.value(taskId).data();
     task->setName(values.value("name"));
-//    task->setSummary(values.value("summary"));
-//    task->setDescription(values.value("description"));
+    task->setSummary(values.value("summary"));
+    task->setDescription(values.value("description"));
 
     emitUpdated();
 }

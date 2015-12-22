@@ -1,6 +1,8 @@
 #include "taskeditor.h"
 #include "task.h"
 #include <QLineEdit>
+#include <QTextEdit>
+#include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QDialogButtonBox>
@@ -23,33 +25,38 @@ TaskEditor::TaskEditor()
     mainLayout->addLayout(formLayout);
 
     formLayout->setLabelAlignment(Qt::AlignRight);
+    //formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    formLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
     nameEdit_ = new QLineEdit;
     formLayout->addRow("Name:", nameEdit_);
     summaryEdit_ = new QLineEdit;
     formLayout->addRow("Summary:", summaryEdit_);
-    descrEdit_ = new QLineEdit;
+    descrEdit_ = new QTextBrowser;
+    descrEdit_->setReadOnly(false);
     formLayout->addRow("Description:", descrEdit_);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
     connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), SLOT(reject()));
     connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), SLOT(accept()));
     mainLayout->addWidget(buttonBox);
+
+    resize(800, 300);
 }
 
 QHash<QString, QString> TaskEditor::edit(const Task *task)
 {
     // initialize fields
     nameEdit_->setText(task->name());
-    summaryEdit_->setText("<dummy summary>" /*task->summary()*/);
-    descrEdit_->setText("<dummy description>" /*task->description()*/);
+    summaryEdit_->setText(task->summary());
+    descrEdit_->setHtml(task->description());
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
         QHash<QString, QString> values;
         values.insert("name", nameEdit_->text().trimmed());
         values.insert("summary", summaryEdit_->text().trimmed());
-        values.insert("description", descrEdit_->text().trimmed());
+        values.insert("description", descrEdit_->toHtml().trimmed());
         return values;
     }
     return QHash<QString, QString>();

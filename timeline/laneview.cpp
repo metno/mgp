@@ -16,6 +16,7 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<RolesView *>(scene->rolesScene_->views().first()), SLOT(updateScale(qreal, qreal)));
+    connect(this, SIGNAL(scaled(qreal, qreal)), scene, SLOT(handleViewScaleUpdate()));
 }
 
 void LaneView::updateScale(qreal sx, qreal sy)

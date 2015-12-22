@@ -231,8 +231,8 @@ void LaneScene::updateTaskItemInLane(LaneItem *lItem, int index, int lwidth, int
 
         // update other properties
         tItem->updateName(task->name());
-        //tItem->updateSummary(task->name());
-        //tItem->updateDescription(task->name());
+        tItem->updateSummary(task->summary());
+        tItem->updateDescription(task->description());
     }
 }
 
@@ -521,9 +521,12 @@ void LaneScene::editCurrentTask()
 {
     Q_ASSERT(currTaskItem_);
     const qint64 taskId = currTaskItem_->taskId();
-    const QHash<QString, QString> values = TaskEditor::instance().edit(TaskManager::instance().findTask(taskId).data());
-    if (!values.isEmpty())
+    Task *task = TaskManager::instance().findTask(taskId).data();
+    const QHash<QString, QString> values = TaskEditor::instance().edit(task);
+    if (!values.isEmpty()) {
         TaskManager::instance().updateTask(taskId, values);
+        TaskPanel::instance().setContents(task);
+    }
 }
 
 void LaneScene::removeCurrentTask()
@@ -533,4 +536,11 @@ void LaneScene::removeCurrentTask()
     currTaskItem_ = 0;
     currTaskMarker_->setVisible(false);
     TaskManager::instance().emitUpdated();
+}
+
+void LaneScene::handleViewScaleUpdate()
+{
+    foreach (TaskItem *tItem, taskItems()) {
+        tItem->updateTextPositions();
+    }
 }

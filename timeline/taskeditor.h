@@ -6,6 +6,7 @@
 
 class Task;
 class QLineEdit;
+class QTextBrowser;
 
 class TaskEditor : public QDialog
 {
@@ -16,7 +17,7 @@ public:
     QHash<QString, QString> edit(const Task *);
     QLineEdit *nameEdit_;
     QLineEdit *summaryEdit_;
-    QLineEdit *descrEdit_;
+    QTextBrowser *descrEdit_;
 
 private:
     TaskEditor();

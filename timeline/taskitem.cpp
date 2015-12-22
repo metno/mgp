@@ -28,11 +28,20 @@ TaskItem::TaskItem(qint64 taskId__)
 
     QSharedPointer<Task> task = TaskManager::instance().findTask(taskId_);
     Q_ASSERT(task);
+
     nameItem_ = new QGraphicsTextItem(task->name(), this);
-    nameItem_->setFont(QFont("helvetica", 12, QFont::Bold));
+    nameItem_->setFont(QFont("helvetica", 14, QFont::Bold));
     nameItem_->setZValue(2);
     nameItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
-    nameItem_->setPos(rect().x() + 5, rect().y());
+    //nameItem_->setPos(rect().x() + 5, rect().y());
+
+    summaryItem_ = new QGraphicsTextItem(task->summary(), this);
+    summaryItem_->setFont(QFont("helvetica", 12, QFont::Normal));
+    summaryItem_->setZValue(2);
+    summaryItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+    //summaryItem_->setPos(rect().x() + 5, rect().y() + 5);
+
+    updateTextPositions();
 }
 
 qint64 TaskItem::taskId() const
@@ -67,7 +76,7 @@ void TaskItem::highlight(bool enabled)
 void TaskItem::updateRect(const QRectF &r)
 {
     setRect(r);
-    nameItem_->setPos(rect().x() + 5, rect().y());
+    updateTextPositions();
 }
 
 void TaskItem::updateName(const QString &name)
@@ -75,12 +84,26 @@ void TaskItem::updateName(const QString &name)
     nameItem_->setPlainText(name);
 }
 
-//void TaskItem::updateSummary(const QString &summary)
-//{
-//    summaryItem_->setPlainText(summary);
-//}
+void TaskItem::updateSummary(const QString &summary)
+{
+    summaryItem_->setPlainText(summary);
+}
 
-//void TaskItem::updateDescription(const QString &descr)
-//{
+void TaskItem::updateDescription(const QString &descr)
+{
 //    descrItem_->setPlainText(descr);
-//}
+}
+
+void TaskItem::updateTextPositions()
+{
+    int addh = 5; // for now
+    int addv_summary = 25; // for now (depends on font size etc.)
+    if (scene() && (!scene()->views().isEmpty())) {
+        addh /= scene()->views().first()->transform().m11();
+        addv_summary /= scene()->views().first()->transform().m22();
+    }
+    const int addv_name = addh;
+
+    nameItem_->setPos(rect().x() + addh, rect().y() + addv_name);
+    summaryItem_->setPos(rect().x() + addh, rect().y() + addv_summary);
+}
