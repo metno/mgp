@@ -93,6 +93,7 @@ MainWindow::MainWindow()
 
     rolesScene_ = new RolesScene(2000, 100);
     RolesView *rolesView = new RolesView(rolesScene_);
+    rolesView->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
     topFrame->layout()->addWidget(rolesView);
 
     topSplitter_->addWidget(topFrame);
