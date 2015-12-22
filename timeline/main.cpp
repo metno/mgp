@@ -48,8 +48,8 @@ int main(int argc, char *argv[])
     TaskManager::instance()->assignTaskToRole(taskId3, roleId4);
     TaskManager::instance()->assignTaskToRole(taskId5, roleId4);
 
-    MainWindow window(QDate(2015, 4, 1), 7);
-    window.show();
+    MainWindow::init(QDate(2015, 4, 1), 7);
+    MainWindow::instance().show();
 
     TaskManager::instance()->emitUpdated(); // ensure views are initialized
     return app.exec();

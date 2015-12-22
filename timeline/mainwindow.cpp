@@ -24,8 +24,22 @@
 #include <QToolButton>
 #include <QScrollBar>
 
-MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
-    : QWidget(parent)
+void MainWindow::init(const QDate &baseDate, int dateSpan)
+{
+    baseDate_ = baseDate;
+    dateSpan_ = dateSpan;
+    isInit_ = true;
+}
+
+MainWindow &MainWindow::instance()
+{
+    if (!isInit_)
+        qFatal("MainWindow not initialized");
+    static MainWindow mw;
+    return mw;
+}
+
+MainWindow::MainWindow()
 {
     setWindowTitle("MetOrg 0.0.0");
 
@@ -66,7 +80,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     //        toolButton->setToolTip("reset zooming");
     //    }
 
-    timelineController_ = new TimelineController(baseDate, dateSpan);
+    timelineController_ = new TimelineController(baseDate_, dateSpan_);
     connect(timelineController_, SIGNAL(updateDateRange(bool)), SLOT(updateDateRange(bool)));
     ctrlFrame->layout()->addWidget(timelineController_);
 
@@ -86,7 +100,7 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
 
     botSplitter_ = new QSplitter;
 
-    laneScene_ = new LaneScene(rolesScene_, baseDate, dateSpan);
+    laneScene_ = new LaneScene(rolesScene_, baseDate_, dateSpan_);
     LaneView *laneView = new LaneView(laneScene_);
 
     timelineScene_ = new TimelineScene(laneScene_, 50);
@@ -133,6 +147,15 @@ MainWindow::MainWindow(const QDate &baseDate, int dateSpan, QWidget *parent)
     connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
 
     resize(1000, 700);
+}
+
+bool MainWindow::isInit_ = false;
+QDate MainWindow::baseDate_ = QDate();
+int MainWindow::dateSpan_ = -1;
+
+void MainWindow::handleKeyPressEvent(QKeyEvent *event)
+{
+    keyPressEvent(event); // for now, propagate to private handler without filtering
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)

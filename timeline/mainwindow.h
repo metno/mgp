@@ -19,9 +19,16 @@ class MainWindow : public QWidget
     Q_OBJECT
 
 public:
-    MainWindow(const QDate &, int, QWidget * = 0);
+    static void init(const QDate &, int);
+    static MainWindow &instance();
+    void handleKeyPressEvent(QKeyEvent *);
 
 private:
+    static bool isInit_;
+    static QDate baseDate_;
+    static int dateSpan_;
+    MainWindow();
+
     RolesScene *rolesScene_;
     LaneScene *laneScene_;
     TimelineScene *timelineScene_;

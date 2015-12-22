@@ -4,6 +4,7 @@
 #include "rolesscene.h"
 #include "wheelscaler.h"
 #include "common.h"
+#include "mainwindow.h"
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QRectF>
@@ -87,7 +88,7 @@ void LaneView::mouseMoveEvent(QMouseEvent *event)
 
 void LaneView::keyPressEvent(QKeyEvent *event)
 {
-    // MainWindow::instance()->handleKeyPressEvent(event); // to handle Control+Q for closing application etc. ... TBD
+    MainWindow::instance().handleKeyPressEvent(event); // to handle Control+Q for closing application etc.
     QGraphicsView::keyPressEvent(event); // propagate to scene
 }
 
