@@ -3,6 +3,7 @@
 #include "laneitem.h"
 #include "taskitem.h"
 #include "taskmanager.h"
+#include "taskpanel.h"
 #include "common.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
@@ -25,6 +26,7 @@ LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSp
     , currLaneIndex_(-1)
     , insertTop_(-1)
     , insertBottom_(-1)
+    , nextNewTaskId_(0)
 {
     setDateRange(baseDate_, dateSpan_);
 
@@ -388,8 +390,14 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     hoverTaskItem_ = hitTaskItems.isEmpty() ? 0 : hitTaskItems.first();
     if (origHoverTaskItem)
         origHoverTaskItem->highlight(false);
-    if (hoverTaskItem_)
+    if (hoverTaskItem_) {
         hoverTaskItem_->highlight(true);
+        TaskPanel::instance().setContents(TaskManager::instance().findTask(hoverTaskItem_->taskId()).data());
+    } else if (currTaskItem_) {
+        TaskPanel::instance().setContents(TaskManager::instance().findTask(currTaskItem_->taskId()).data());
+    } else {
+        TaskPanel::instance().clearContents();
+    }
 
     // update hover highlighting etc.
     const int lwidth = rolesScene_->laneWidth();
@@ -447,7 +455,7 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     currTaskItem_ = taskItem;
     currTaskItem_->setSelected(true);
 
-    // update highlighting
+    // update highlighting etc.
     QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
     Q_ASSERT(currTask);
     const qreal lwidth = rolesScene_->laneWidth();
@@ -460,6 +468,7 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     rect.setHeight((currTask->hiDateTime().toTime_t() - currTask->loDateTime().toTime_t()) + 1 + 0 * lvpad);
     currTaskMarker_->setRect(rect);
     currTaskMarker_->setVisible(true);
+    TaskPanel::instance().setContents(currTask.data());
 }
 
 void LaneScene::clearCurrTask()
@@ -467,6 +476,7 @@ void LaneScene::clearCurrTask()
     // make no task item current and update highlighting
     currTaskItem_ = 0;
     currTaskMarker_->setVisible(false);
+    TaskPanel::instance().clearContents();
 }
 
 void LaneScene::updateCurrTaskItem(bool ignoreMiss)
@@ -486,7 +496,7 @@ void LaneScene::addNewTask()
     const long hiTimestamp = vPosToTimestamp(insertBottom_);
 
     const qint64 taskId = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task("new task",
+            .addTask(QSharedPointer<Task>(new Task(QString("new task %1").arg(nextNewTaskId_++),
                                                     QDateTime::fromTime_t(loTimestamp),
                                                     QDateTime::fromTime_t(hiTimestamp))));
     TaskManager::instance().assignTaskToRole(taskId, roleId);

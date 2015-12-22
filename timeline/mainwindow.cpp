@@ -6,6 +6,7 @@
 #include "timelinescene.h"
 #include "timelineview.h"
 #include "taskmanager.h"
+#include "taskpanel.h"
 #include "timelinecontroller.h"
 #include "rolescontroller.h"
 #include "taskscontroller.h"
@@ -116,6 +117,7 @@ MainWindow::MainWindow()
     QSplitter *vsplitter = new QSplitter(Qt::Vertical);
     vsplitter->addWidget(topSplitter_);
     vsplitter->addWidget(botSplitter_);
+    vsplitter->addWidget(&TaskPanel::instance());
 
     mainLayout->addWidget(vsplitter);
 

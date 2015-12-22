@@ -81,6 +81,7 @@ private:
     int currLaneIndex_;
     int insertTop_;
     int insertBottom_;
+    int nextNewTaskId_;
 
 private slots:
     void addNewTask();
