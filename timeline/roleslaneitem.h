@@ -12,6 +12,7 @@ public:
     RolesLaneItem(qint64);
     qint64 roleId() const { return roleId_; }
     void updateRect(const QRectF &);
+
 private:
     qint64 roleId_;
     QGraphicsTextItem *nameItem_;

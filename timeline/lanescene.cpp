@@ -225,7 +225,7 @@ void LaneScene::updateTaskItemGeometryInLane(LaneItem *lItem, int index, int lwi
         Q_ASSERT(loTimestamp < hiTimestamp);
         const qreal y1 = timestampToVPos(loTimestamp);
         const qreal y2 = timestampToVPos(hiTimestamp);
-        tItem->setRect(index * lwidth + 2 * lhpad, y1, lwidth - 4 * lhpad, y2 - y1);
+        tItem->updateRect(QRectF(index * lwidth + 2 * lhpad, y1, lwidth - 4 * lhpad, y2 - y1));
     }
 }
 

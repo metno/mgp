@@ -24,7 +24,7 @@ RolesLaneItem::RolesLaneItem(qint64 roleId__)
 
     QSharedPointer<Role> role = TaskManager::instance().findRole(roleId_);
 
-    const QString name = role ? role->name() : "<no name>";
+    const QString name = role ? role->name() : "<no name>"; // ### can role be null at this point?
     nameItem_ = new QGraphicsTextItem(name, this);
     nameItem_->setFont(QFont("helvetica", 14, QFont::Normal));
     nameItem_->setZValue(2);

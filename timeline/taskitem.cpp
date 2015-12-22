@@ -9,6 +9,8 @@
 #include <QAction>
 #include <QMenu>
 #include <QCursor>
+#include <QGraphicsTextItem>
+#include <QFont>
 
 TaskItem::TaskItem(qint64 taskId__)
     : taskId_(taskId__)
@@ -23,6 +25,14 @@ TaskItem::TaskItem(qint64 taskId__)
     hoverItem_->setBrush(QColor("#ff0"));
     hoverItem_->setPen(QPen(QColor("#880")));
     hoverItem_->setVisible(false);
+
+    QSharedPointer<Task> task = TaskManager::instance().findTask(taskId_);
+    Q_ASSERT(task);
+    nameItem_ = new QGraphicsTextItem(task->name(), this);
+    nameItem_->setFont(QFont("helvetica", 12, QFont::Bold));
+    nameItem_->setZValue(2);
+    nameItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+    nameItem_->setPos(rect().x() + 5, rect().y());
 }
 
 qint64 TaskItem::taskId() const
@@ -52,4 +62,10 @@ void TaskItem::highlight(bool enabled)
     }
 
     hoverItem_->setVisible(enabled);
+}
+
+void TaskItem::updateRect(const QRectF &r)
+{
+    setRect(r);
+    nameItem_->setPos(rect().x() + 5, rect().y());
 }

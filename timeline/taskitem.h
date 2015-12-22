@@ -5,6 +5,8 @@
 #include <QColor>
 #include <QBrush>
 
+class QGraphicsTextItem;
+
 class TaskItem : public QGraphicsRectItem
 {
 public:
@@ -12,10 +14,13 @@ public:
     qint64 taskId() const;
     qint64 roleId() const;
     void highlight(bool);
+    void updateRect(const QRectF &);
+
 private:
     qint64 taskId_;
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     QGraphicsRectItem *hoverItem_;
+    QGraphicsTextItem *nameItem_;
 };
 
 #endif // TASKITEM_H
