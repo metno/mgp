@@ -24,6 +24,7 @@ public:
     void assignTaskToRole(qint64, qint64);
     QList<qint64> assignedTasks(qint64) const;
     void removeTask(qint64);
+    void updateTask(qint64, const QHash<QString, QString> &);
 
     void add5Roles(); // ### for testing
 

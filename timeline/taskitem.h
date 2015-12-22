@@ -15,6 +15,9 @@ public:
     qint64 roleId() const;
     void highlight(bool);
     void updateRect(const QRectF &);
+    void updateName(const QString &);
+//    void updateSummary(const QString &);
+//    void updateDescription(const QString &);
 
 private:
     qint64 taskId_;

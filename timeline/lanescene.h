@@ -45,8 +45,8 @@ private:
     QList<qint64> taskIds(const QList<TaskItem *> &) const;
 
     void updateBaseItemGeometry();
-    void updateTaskItemGeometry();
-    void updateTaskItemGeometryInLane(LaneItem *, int, int, int);
+    void updateTaskItem();
+    void updateTaskItemInLane(LaneItem *, int, int, int);
     QDate baseDate_;
     int dateSpan_;
 

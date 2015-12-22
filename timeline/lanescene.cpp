@@ -4,6 +4,7 @@
 #include "taskitem.h"
 #include "taskmanager.h"
 #include "taskpanel.h"
+#include "taskeditor.h"
 #include "common.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
@@ -204,28 +205,34 @@ void LaneScene::updateBaseItemGeometry()
     }
 }
 
-void LaneScene::updateTaskItemGeometry()
+void LaneScene::updateTaskItem()
 {
     const qreal lwidth = rolesScene_->laneWidth();
     const qreal lhpad = rolesScene_->laneHorizontalPadding();
 
     int i = 0;
     foreach (LaneItem *lItem, laneItems()) {
-        updateTaskItemGeometryInLane(lItem, i++, lwidth, lhpad);
+        updateTaskItemInLane(lItem, i++, lwidth, lhpad);
     }
 }
 
-void LaneScene::updateTaskItemGeometryInLane(LaneItem *lItem, int index, int lwidth, int lhpad)
+void LaneScene::updateTaskItemInLane(LaneItem *lItem, int index, int lwidth, int lhpad)
 {
-    // update task item rects
     foreach (TaskItem *tItem, taskItems(lItem->roleId())) {
         QSharedPointer<Task> task = TaskManager::instance().findTask(tItem->taskId());
+
+        // update geometry
         const long loTimestamp = task->loDateTime().toTime_t();
         const long hiTimestamp = task->hiDateTime().toTime_t();
         Q_ASSERT(loTimestamp < hiTimestamp);
         const qreal y1 = timestampToVPos(loTimestamp);
         const qreal y2 = timestampToVPos(hiTimestamp);
         tItem->updateRect(QRectF(index * lwidth + 2 * lhpad, y1, lwidth - 4 * lhpad, y2 - y1));
+
+        // update other properties
+        tItem->updateName(task->name());
+        //tItem->updateSummary(task->name());
+        //tItem->updateDescription(task->name());
     }
 }
 
@@ -308,7 +315,7 @@ void LaneScene::updateGeometry()
 
     updateRoleTimeItems();
     updateBaseItemGeometry();
-    updateTaskItemGeometry();
+    updateTaskItem();
     updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
 }
 
@@ -506,8 +513,11 @@ void LaneScene::addNewTask()
 
 void LaneScene::editCurrentTask()
 {
-    Q_ASSERT(hoverTaskItem_);
-    qDebug() << "editTask() ..." << hoverTaskItem_;
+    Q_ASSERT(currTaskItem_);
+    const qint64 taskId = currTaskItem_->taskId();
+    const QHash<QString, QString> values = TaskEditor::instance().edit(TaskManager::instance().findTask(taskId).data());
+    if (!values.isEmpty())
+        TaskManager::instance().updateTask(taskId, values);
 }
 
 void LaneScene::removeCurrentTask()

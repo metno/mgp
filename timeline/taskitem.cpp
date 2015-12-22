@@ -69,3 +69,18 @@ void TaskItem::updateRect(const QRectF &r)
     setRect(r);
     nameItem_->setPos(rect().x() + 5, rect().y());
 }
+
+void TaskItem::updateName(const QString &name)
+{
+    nameItem_->setPlainText(name);
+}
+
+//void TaskItem::updateSummary(const QString &summary)
+//{
+//    summaryItem_->setPlainText(summary);
+//}
+
+//void TaskItem::updateDescription(const QString &descr)
+//{
+//    descrItem_->setPlainText(descr);
+//}
