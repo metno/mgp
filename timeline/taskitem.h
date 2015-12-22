@@ -14,8 +14,6 @@ public:
     void highlight(bool);
 private:
     qint64 taskId_;
-    QList<QColor> colors_;
-    void setRandomColor();
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     QGraphicsRectItem *hoverItem_;
 };

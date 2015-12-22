@@ -13,14 +13,6 @@
 TaskItem::TaskItem(qint64 taskId__)
     : taskId_(taskId__)
 {
-    colors_.append(QColor(Qt::red));
-    colors_.append(QColor(Qt::green));
-    colors_.append(QColor(Qt::blue));
-    colors_.append(QColor(Qt::cyan));
-    colors_.append(QColor(Qt::magenta));
-    colors_.append(QColor(Qt::black));
-    colors_.append(QColor(Qt::gray));
-
     setBrush(QColor("#bbb"));
     setZValue(10);
     setCursor(Qt::ArrowCursor);
@@ -42,15 +34,6 @@ qint64 TaskItem::roleId() const
 {
     QSharedPointer<Task> task = TaskManager::instance().findTask(taskId());
     return task ? task->roleId() : -1;
-}
-
-void TaskItem::setRandomColor()
-{
-    QColor newColor;
-    do {
-        newColor = colors_.at(qrand() % colors_.size());
-    } while (newColor == brush().color());
-    setBrush(QBrush(newColor));
 }
 
 void TaskItem::mousePressEvent(QGraphicsSceneMouseEvent *)
