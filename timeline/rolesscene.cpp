@@ -77,6 +77,11 @@ void RolesScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         if (hoverRolesLaneItem_)
             break;
     }
+
+    if (hoverRolesLaneItem_)
+        RolePanel::instance().setContents(TaskManager::instance().findRole(hoverRolesLaneItem_->roleId()).data());
+    else
+        RolePanel::instance().clearContents();
 }
 
 void RolesScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
