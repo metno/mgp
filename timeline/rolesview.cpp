@@ -9,7 +9,6 @@ RolesView::RolesView(RolesScene *rScene, QWidget *parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    setDragMode(QGraphicsView::ScrollHandDrag);
 }
 
 void RolesView::updateScale(qreal sx, qreal)

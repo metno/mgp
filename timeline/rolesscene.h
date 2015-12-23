@@ -5,6 +5,7 @@
 
 class QGraphicsRectItem;
 class RolesLaneItem;
+class QAction;
 
 class RolesScene : public QGraphicsScene
 {
@@ -23,9 +24,22 @@ public slots:
 
 private:
     QGraphicsRectItem *bgItem_;
+
+    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *);
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
+    virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
+
     QList<RolesLaneItem *> headerItems() const;
     QList<qint64> headerItemRoleIds() const;
     void addHeaderItem(qint64);
+
+    QAction *editRoleAction_;
+    QAction *removeRoleAction_;
+    RolesLaneItem *hoverRolesLaneItem_; // roles lane item (if any) currently hovered
+
+private slots:
+    void editHoveredRole();
+    void removeHoveredRole();
 };
 
 #endif // ROLESSCENE_H
