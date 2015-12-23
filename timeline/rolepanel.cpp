@@ -1,21 +1,20 @@
-#include "taskpanel.h"
-#include "task.h"
+#include "rolepanel.h"
+#include "role.h"
 #include <QLabel>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QGroupBox>
 #include <QFormLayout>
 
-TaskPanel &TaskPanel::instance()
+RolePanel &RolePanel::instance()
 {
-    static TaskPanel tp;
-    return tp;
+    static RolePanel rp;
+    return rp;
 }
 
-TaskPanel::TaskPanel()
+RolePanel::RolePanel()
     : formLayout_(new QFormLayout)
     , nameLabel_(new QLabel)
-    , summaryLabel_(new QLabel)
     , descrTextBrowser_(new QTextBrowser)
 {
     QVBoxLayout *mainLayout = new QVBoxLayout;
@@ -23,32 +22,29 @@ TaskPanel::TaskPanel()
 
     formLayout_->setLabelAlignment(Qt::AlignRight);
     formLayout_->addRow("Name:", nameLabel_);
-    formLayout_->addRow("Summary:", summaryLabel_);
     descrTextBrowser_->setReadOnly(true);
     descrTextBrowser_->setOpenExternalLinks(true);
     formLayout_->addRow("Description:", descrTextBrowser_);
 
-    QGroupBox *groupBox = new QGroupBox("Task Properties");
+    QGroupBox *groupBox = new QGroupBox("Role Properties");
     groupBox->setLayout(formLayout_);
     mainLayout->addWidget(groupBox);
 
     clearContents();
 }
 
-void TaskPanel::setContents(const Task *task)
+void RolePanel::setContents(const Role *role)
 {
-    if (task) {
-        nameLabel_->setText(task->name());
-        summaryLabel_->setText(task->summary());
-        descrTextBrowser_->setHtml(task->description());
+    if (role) {
+        nameLabel_->setText(role->name());
+        descrTextBrowser_->setHtml(role->description());
     } else {
         nameLabel_->setText("");
-        summaryLabel_->setText("");
         descrTextBrowser_->setHtml("");
     }
 }
 
-void TaskPanel::clearContents()
+void RolePanel::clearContents()
 {
     setContents(0);
 }

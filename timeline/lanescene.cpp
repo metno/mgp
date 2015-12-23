@@ -3,6 +3,7 @@
 #include "laneitem.h"
 #include "taskitem.h"
 #include "taskmanager.h"
+#include "rolepanel.h"
 #include "taskpanel.h"
 #include "taskeditor.h"
 #include "common.h"
@@ -399,11 +400,16 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         origHoverTaskItem->highlight(false);
     if (hoverTaskItem_) {
         hoverTaskItem_->highlight(true);
-        TaskPanel::instance().setContents(TaskManager::instance().findTask(hoverTaskItem_->taskId()).data());
+        Task *task = TaskManager::instance().findTask(hoverTaskItem_->taskId()).data();
+        TaskPanel::instance().setContents(task);
+        RolePanel::instance().setContents(TaskManager::instance().findRole(task->roleId()).data());
     } else if (currTaskItem_) {
-        TaskPanel::instance().setContents(TaskManager::instance().findTask(currTaskItem_->taskId()).data());
+        Task *task = TaskManager::instance().findTask(currTaskItem_->taskId()).data();
+        TaskPanel::instance().setContents(task);
+        RolePanel::instance().setContents(TaskManager::instance().findRole(task->roleId()).data());
     } else {
         TaskPanel::instance().clearContents();
+        RolePanel::instance().clearContents();
     }
 
     // update hover highlighting etc.
@@ -474,6 +480,7 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     const qreal lwidth = rolesScene_->laneWidth();
     const qreal lhpad = rolesScene_->laneHorizontalPadding();
     const qreal lvpad = rolesScene_->laneVerticalPadding();
+
     QRectF rect;
     rect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
     rect.setTop(timestampToVPos(currTask->loDateTime().toTime_t()) - 0 * lvpad);
@@ -482,6 +489,11 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     currTaskMarker_->setRect(rect);
     currTaskMarker_->setVisible(true);
     TaskPanel::instance().setContents(currTask.data());
+
+    const qint64 roleId = currTask->roleId();
+    Q_ASSERT(roleId == rolesScene_->laneToRoleId(currLaneIndex_));
+    QSharedPointer<Role> currRole = TaskManager::instance().findRole(roleId);
+    RolePanel::instance().setContents(currRole.data());
 }
 
 void LaneScene::clearCurrTask()
@@ -490,6 +502,7 @@ void LaneScene::clearCurrTask()
     currTaskItem_ = 0;
     currTaskMarker_->setVisible(false);
     TaskPanel::instance().clearContents();
+    RolePanel::instance().clearContents();
 }
 
 void LaneScene::updateCurrTaskItem(bool ignoreMiss)

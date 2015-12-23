@@ -10,8 +10,9 @@ class RoleProperties
     friend class Role;
 
 public:
-    RoleProperties(const QString &name, const QTime &loTime, const QTime &hiTime)
+    RoleProperties(const QString &name, const QString &description, const QTime &loTime, const QTime &hiTime)
         : name_(name)
+        , description_(description)
         , loTime_(loTime)
         , hiTime_(hiTime)
     {
@@ -19,6 +20,7 @@ public:
 
 private:
     QString name_;
+    QString description_;
     QTime loTime_;
     QTime hiTime_;
 };
@@ -29,6 +31,7 @@ class Role
 
 public:
     QString name() const;
+    QString description() const;
     QTime loTime() const;
     QTime hiTime() const;
 

@@ -108,8 +108,13 @@ void TaskManager::updateTask(qint64 taskId, const QHash<QString, QString> &value
 
 void TaskManager::add5Roles()
 {
-    for (int i = 0; i < 5; ++i)
-        addRole(RoleProperties(QString("test role %1").arg(testRoleIndex_++), QTime(3 + i, 0), QTime(11, 0)));
+    for (int i = 0; i < 5; ++i) {
+        addRole(RoleProperties(
+                    QString("test role %1").arg(testRoleIndex_),
+                    QString("description of test role %1").arg(testRoleIndex_),
+                    QTime(3 + i, 0), QTime(11, 0)));
+        testRoleIndex_++;
+    }
 
     emitUpdated();
 }

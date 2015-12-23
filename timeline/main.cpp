@@ -11,13 +11,13 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     qsrand(QDateTime::currentDateTime().toTime_t());
 
-    const qint64 roleId1 = TaskManager::instance().addRole(RoleProperties("role 1", QTime(8, 15), QTime(16, 0)));
-    const qint64 roleId2 = TaskManager::instance().addRole(RoleProperties("role 2", QTime(15, 0), QTime(23, 0)));
-    const qint64 roleId3 = TaskManager::instance().addRole(RoleProperties("role 3", QTime(15, 0), QTime(23, 0)));
-    const qint64 roleId4 = TaskManager::instance().addRole(RoleProperties("role 4", QTime(8, 15), QTime(16, 0)));
-    const qint64 roleId5 = TaskManager::instance().addRole(RoleProperties("role 5", QTime(8, 15), QTime(16, 0)));
-    const qint64 roleId6 = TaskManager::instance().addRole(RoleProperties("role 6", QTime(22, 0), QTime(6, 0)));
-    const qint64 roleId7 = TaskManager::instance().addRole(RoleProperties("role 7", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId1 = TaskManager::instance().addRole(RoleProperties("role 1", "description of role 1", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId2 = TaskManager::instance().addRole(RoleProperties("role 2", "description of role 2", QTime(15, 0), QTime(23, 0)));
+    const qint64 roleId3 = TaskManager::instance().addRole(RoleProperties("role 3", "description of role 3", QTime(15, 0), QTime(23, 0)));
+    const qint64 roleId4 = TaskManager::instance().addRole(RoleProperties("role 4", "description of role 4", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId5 = TaskManager::instance().addRole(RoleProperties("role 5", "description of role 5", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId6 = TaskManager::instance().addRole(RoleProperties("role 6", "description of role 6", QTime(22, 0), QTime(6, 0)));
+    const qint64 roleId7 = TaskManager::instance().addRole(RoleProperties("role 7", "description of role 7", QTime(8, 15), QTime(16, 0)));
 
     const qint64 taskId1 = TaskManager::instance().addTask(
                 TaskProperties(

@@ -10,6 +10,11 @@ QString Role::name() const
     return props_.name_;
 }
 
+QString Role::description() const
+{
+    return props_.description_;
+}
+
 QTime Role::loTime() const
 {
     return props_.loTime_;
