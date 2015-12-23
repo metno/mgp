@@ -154,7 +154,7 @@ MainWindow::MainWindow()
     connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
     connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
 
-    resize(1000, 700);
+    resize(1000, 1000);
 }
 
 bool MainWindow::isInit_ = false;
