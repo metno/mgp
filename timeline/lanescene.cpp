@@ -512,7 +512,7 @@ void LaneScene::addNewTask()
             .addTask(TaskProperties(
                          QString("new task %1").arg(nextNewTaskId_),
                          QString("summary of task %1").arg(nextNewTaskId_),
-                         QString("description of task %1\nanother line").arg(nextNewTaskId_),
+                         QString("description of task %1<br/>another line").arg(nextNewTaskId_),
                          QDateTime::fromTime_t(loTimestamp),
                          QDateTime::fromTime_t(hiTimestamp)));
     nextNewTaskId_++;

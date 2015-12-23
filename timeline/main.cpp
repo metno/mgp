@@ -21,28 +21,28 @@ int main(int argc, char *argv[])
 
     const qint64 taskId1 = TaskManager::instance().addTask(
                 TaskProperties(
-                    "task 1", "<summary for task 1>", "description of task 1\nanother line",
+                    "task 1", "<summary for task 1>", "description of task 1<br/>another line",
                     QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
                     QDateTime(QDate(2015, 4, 2), QTime(0, 0))));
     const qint64 taskId2 = TaskManager::instance().addTask(
                 TaskProperties(
-                    "task 2", "<summary for task 2>", "description of task 2\nanother line",
+                    "task 2", "<summary for task 2>", "description of task 2<br/>another line",
                     QDateTime(QDate(2015, 4, 1), QTime(12, 0)),
                     QDateTime(QDate(2015, 4, 2), QTime(0, 0))));
     const qint64 taskId3 = TaskManager::instance().addTask(
                 TaskProperties(
-                    "task 3", "<summary for task 3>", "description of task 3\nanother line",
+                    "task 3", "<summary for task 3>", "description of task 3<br/>another line",
                     QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
                     QDateTime(QDate(2015, 4, 1), QTime(12, 0))));
     const qint64 taskId4 = TaskManager::instance().addTask(
                 TaskProperties(
-                    "task 4", "<summary for task 4>", "description of task 4\nanother line",
+                    "task 4", "<summary for task 4>", "description of task 4<br/>another line",
                     QDateTime(QDate(2015, 4, 1), QTime(23, 45)),
                     QDateTime(QDate(2015, 4, 2), QTime(0, 15))));
 
     const qint64 taskId5 = TaskManager::instance().addTask(
                 TaskProperties(
-                    "task 5", "<summary for task 5>", "description of task 5\nanother line",
+                    "task 5", "<summary for task 5>", "description of task 5<br/>another line",
                     QDateTime(QDate(2015, 4, 2), QTime(0, 0)),
                     QDateTime(QDate(2015, 4, 2), QTime(1, 0))));
 
