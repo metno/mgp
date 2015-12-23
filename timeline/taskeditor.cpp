@@ -49,14 +49,14 @@ QHash<QString, QString> TaskEditor::edit(const Task *task)
     // initialize fields
     nameEdit_->setText(task->name());
     summaryEdit_->setText(task->summary());
-    descrEdit_->setHtml(task->description());
+    descrEdit_->setPlainText(task->description());
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
         QHash<QString, QString> values;
         values.insert("name", nameEdit_->text().trimmed());
         values.insert("summary", summaryEdit_->text().trimmed());
-        values.insert("description", descrEdit_->toHtml().trimmed());
+        values.insert("description", descrEdit_->toPlainText().trimmed());
         return values;
     }
     return QHash<QString, QString>();

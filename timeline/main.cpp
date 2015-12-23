@@ -31,7 +31,9 @@ int main(int argc, char *argv[])
                     QDateTime(QDate(2015, 4, 2), QTime(0, 0))));
     const qint64 taskId3 = TaskManager::instance().addTask(
                 TaskProperties(
-                    "task 3", "<summary for task 3>", "description of task 3<br/>another line",
+                    "task 3", "<summary for task 3>",
+                    "description of task 3<br/>another line <a href=\"http://en.wikipedia.org\">link</a>"
+                    " <span style=\"color:red; font-weight:bold\">red and bold text</span> normal text",
                     QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
                     QDateTime(QDate(2015, 4, 1), QTime(12, 0))));
     const qint64 taskId4 = TaskManager::instance().addTask(

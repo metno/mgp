@@ -22,7 +22,7 @@ private:
     QFormLayout *formLayout_;
     QLabel *nameLabel_;
     QLabel *summaryLabel_;
-    QTextBrowser *descrLabel_;
+    QTextBrowser *descrTextBrowser_;
 };
 
 #endif // TASKPANEL_H
