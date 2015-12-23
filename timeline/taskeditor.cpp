@@ -1,7 +1,6 @@
 #include "taskeditor.h"
 #include "task.h"
 #include <QLineEdit>
-#include <QTextEdit>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QFormLayout>
