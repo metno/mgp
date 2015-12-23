@@ -42,6 +42,8 @@ private:
     RoleProperties props_;
 
     void setName(const QString &);
+    void setLoTime(const QTime &);
+    void setHiTime(const QTime &);
     void setDescription(const QString &);
 };
 

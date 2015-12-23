@@ -23,19 +23,20 @@ RolesLaneItem::RolesLaneItem(qint64 roleId__)
     setBrush(QBrush(grad));
 
     QSharedPointer<Role> role = TaskManager::instance().findRole(roleId_);
+    Q_ASSERT(role);
 
-    const QString name = role ? role->name() : "<no name>"; // ### can role be null at this point?
-    nameItem_ = new QGraphicsTextItem(name, this);
+    nameItem_ = new QGraphicsTextItem("<no name>", this);
     nameItem_->setFont(QFont("helvetica", 14, QFont::Normal));
     nameItem_->setZValue(2);
     nameItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
 
-    const QString time = role ? QString("%1-%2").arg(role->loTime().toString("hh:mm")).arg(role->hiTime().toString("hh:mm")) : "<no time";
-    timeItem_ = new QGraphicsTextItem(time, this);
+    timeItem_ = new QGraphicsTextItem("<no time>", this);
     timeItem_->setFont(QFont("helvetica", 14, QFont::Normal));
     timeItem_->setDefaultTextColor(Qt::blue);
     timeItem_->setZValue(2);
     timeItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+
+    updateProperties();
 }
 
 void RolesLaneItem::updateRect(const QRectF &r)
@@ -47,7 +48,9 @@ void RolesLaneItem::updateRect(const QRectF &r)
                 rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
 }
 
-void RolesLaneItem::updateName(const QString &name)
+void RolesLaneItem::updateProperties()
 {
-    nameItem_->setPlainText(name);
+    QSharedPointer<Role> role = TaskManager::instance().findRole(roleId_);
+    nameItem_->setPlainText(role->name());
+    timeItem_->setPlainText(QString("%1-%2").arg(role->loTime().toString("hh:mm")).arg(role->hiTime().toString("hh:mm")));
 }

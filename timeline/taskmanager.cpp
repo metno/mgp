@@ -103,14 +103,16 @@ void TaskManager::removeTask(qint64 taskId)
     tasks_.remove(taskId);
 }
 
-void TaskManager::updateRole(qint64 roleId, const QHash<QString, QString> &values)
+void TaskManager::updateRole(qint64 roleId, const QHash<QString, QVariant> &values)
 {
     if (!roles_.contains(roleId)) return; // no such role
     if (values.isEmpty()) return; // no changes
 
     Role *role = roles_.value(roleId).data();
-    role->setName(values.value("name"));
-    role->setDescription(values.value("description"));
+    role->setName(values.value("name").toString());
+    role->setLoTime(values.value("loTime").toTime());
+    role->setHiTime(values.value("hiTime").toTime());
+    role->setDescription(values.value("description").toString());
 
     emitUpdated();
 }

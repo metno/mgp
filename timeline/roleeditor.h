@@ -3,9 +3,11 @@
 
 #include <QDialog>
 #include <QHash>
+#include <QVariant>
 
 class Role;
 class QLineEdit;
+class QTimeEdit;
 class QTextBrowser;
 
 class RoleEditor : public QDialog
@@ -14,8 +16,10 @@ class RoleEditor : public QDialog
 
 public:
     static RoleEditor &instance();
-    QHash<QString, QString> edit(const Role *);
+    QHash<QString, QVariant> edit(const Role *);
     QLineEdit *nameEdit_;
+    QTimeEdit *loTimeEdit_;
+    QTimeEdit *hiTimeEdit_;
     QTextBrowser *descrEdit_;
 
 private:

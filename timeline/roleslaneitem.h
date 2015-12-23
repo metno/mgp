@@ -4,6 +4,7 @@
 #include <QGraphicsRectItem>
 
 class QRectF;
+class QTime;
 class QGraphicsTextItem;
 
 class RolesLaneItem : public QGraphicsRectItem
@@ -12,7 +13,7 @@ public:
     RolesLaneItem(qint64);
     qint64 roleId() const { return roleId_; }
     void updateRect(const QRectF &);
-    void updateName(const QString &);
+    void updateProperties();
 
 private:
     qint64 roleId_;

@@ -61,7 +61,7 @@ void RolesScene::updateGeometryAndContents()
     int i = 0;
     foreach (RolesLaneItem *item, headerItems()) {
         item->updateRect(QRectF(i * lwidth + lhpad, lvpad, lwidth - lhpad, height() - 2 * lvpad));
-        item->updateName(TaskManager::instance().findRole(item->roleId())->name());
+        item->updateProperties();
         i++;
     }
 
@@ -144,7 +144,7 @@ void RolesScene::editHoveredRole()
     Q_ASSERT(hoverRolesLaneItem_);
     const qint64 roleId = hoverRolesLaneItem_->roleId();
     Role *role = TaskManager::instance().findRole(roleId).data();
-    const QHash<QString, QString> values = RoleEditor::instance().edit(role);
+    const QHash<QString, QVariant> values = RoleEditor::instance().edit(role);
     if (!values.isEmpty()) {
         TaskManager::instance().updateRole(roleId, values);
         RolePanel::instance().setContents(role);

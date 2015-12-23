@@ -1,6 +1,7 @@
 #include "roleeditor.h"
 #include "role.h"
 #include <QLineEdit>
+#include <QTimeEdit>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QFormLayout>
@@ -29,6 +30,15 @@ RoleEditor::RoleEditor()
 
     nameEdit_ = new QLineEdit;
     formLayout->addRow("Name:", nameEdit_);
+
+    loTimeEdit_ = new QTimeEdit;
+    loTimeEdit_->setDisplayFormat("hh:mm");
+    formLayout->addRow("Begins:", loTimeEdit_);
+
+    hiTimeEdit_ = new QTimeEdit;
+    hiTimeEdit_->setDisplayFormat("hh:mm");
+    formLayout->addRow("Ends:", hiTimeEdit_);
+
     descrEdit_ = new QTextBrowser;
     descrEdit_->setReadOnly(false);
     formLayout->addRow("Description:", descrEdit_);
@@ -41,7 +51,7 @@ RoleEditor::RoleEditor()
     resize(800, 300);
 }
 
-QHash<QString, QString> RoleEditor::edit(const Role *role)
+QHash<QString, QVariant> RoleEditor::edit(const Role *role)
 {
     // initialize fields
     nameEdit_->setText(role->name());
@@ -49,10 +59,12 @@ QHash<QString, QString> RoleEditor::edit(const Role *role)
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
-        QHash<QString, QString> values;
+        QHash<QString, QVariant> values;
         values.insert("name", nameEdit_->text().trimmed());
+        values.insert("loTime", loTimeEdit_->time());
+        values.insert("hiTime", hiTimeEdit_->time());
         values.insert("description", descrEdit_->toPlainText().trimmed());
         return values;
     }
-    return QHash<QString, QString>();
+    return QHash<QString, QVariant>();
 }

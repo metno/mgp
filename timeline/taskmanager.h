@@ -7,6 +7,7 @@
 #include <QList>
 #include <QSharedPointer>
 #include <QHash>
+#include <QVariant>
 
 class TaskManager : public QObject
 {
@@ -25,7 +26,7 @@ public:
     QList<qint64> assignedTasks(qint64) const;
     void removeRole(qint64);
     void removeTask(qint64);
-    void updateRole(qint64, const QHash<QString, QString> &);
+    void updateRole(qint64, const QHash<QString, QVariant> &);
     void updateTask(qint64, const QHash<QString, QString> &);
 
     void addNewRole(); // ### for now

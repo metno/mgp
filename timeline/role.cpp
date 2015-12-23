@@ -30,7 +30,17 @@ QTime Role::loTime() const
     return props_.loTime_;
 }
 
+void Role::setLoTime(const QTime &t)
+{
+    props_.loTime_ = t;
+}
+
 QTime Role::hiTime() const
 {
     return props_.hiTime_;
+}
+
+void Role::setHiTime(const QTime &t)
+{
+    props_.hiTime_ = t;
 }
