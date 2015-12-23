@@ -449,7 +449,7 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
             contextMenu.addAction(editTaskAction_);
             contextMenu.addAction(removeTaskAction_);
         }
-        contextMenu.exec(menuPos_ = QCursor::pos());
+        contextMenu.exec(QCursor::pos());
     }
 }
 

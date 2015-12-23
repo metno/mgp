@@ -74,7 +74,6 @@ private:
     TaskItem *hoverTaskItem_; // task item (if any) currently hovered
     TaskItem *currTaskItem_; // task item (if any) currently selected
     qint64 pendingCurrTaskId_; // task ID that was just added and whose item should be set as current
-    QPoint menuPos_;
     QGraphicsLineItem *hoverTimeMarker_;
     QGraphicsRectItem *hoverRoleMarker_;
     QGraphicsRectItem *currTaskMarker_;
