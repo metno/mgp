@@ -1,6 +1,7 @@
 #include "rolesview.h"
 #include "rolesscene.h"
 #include "wheelscaler.h"
+#include "rolepanel.h"
 #include "common.h"
 #include <QResizeEvent>
 
@@ -21,4 +22,9 @@ void RolesView::resizeEvent(QResizeEvent *event)
 {
     emit resized();
     QGraphicsView::resizeEvent(event);
+}
+
+void RolesView::leaveEvent(QEvent *)
+{
+    RolePanel::instance().clearContents();
 }

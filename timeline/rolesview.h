@@ -17,6 +17,7 @@ public slots:
 
 private:
     virtual void resizeEvent(QResizeEvent *);
+    virtual void leaveEvent(QEvent *);
 
 signals:
     void resized();
