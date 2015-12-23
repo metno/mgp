@@ -49,8 +49,7 @@ private slots:
     void updateSplitters(int, int);
     void resetZooming();
 
-    void add5Roles(); // ### for testing
-    void test2(); // ### for testing
+    void addNewRole(); // ### for testing
 };
 
 #endif // MAINWINDOW_H

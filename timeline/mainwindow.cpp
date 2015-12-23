@@ -128,14 +128,10 @@ MainWindow::MainWindow()
     mainLayout->addWidget(vsplitter);
 
     QHBoxLayout *testLayout = new QHBoxLayout;
-    QPushButton *testBtn_add5Roles = new QPushButton("Add 5 roles");
-    connect(testBtn_add5Roles, SIGNAL(clicked()), SLOT(add5Roles()));
-    testBtn_add5Roles->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    testLayout->addWidget(testBtn_add5Roles);
-    QPushButton *testBtn_test2 = new QPushButton("Test 2");
-    connect(testBtn_test2, SIGNAL(clicked()), SLOT(test2()));
-    testBtn_test2->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    testLayout->addWidget(testBtn_test2);
+    QPushButton *testBtn_addNewRole = new QPushButton("Add new role");
+    connect(testBtn_addNewRole, SIGNAL(clicked()), SLOT(addNewRole()));
+    testBtn_addNewRole->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    testLayout->addWidget(testBtn_addNewRole);
     testLayout->addStretch(1);
     mainLayout->addLayout(testLayout);
 
@@ -221,14 +217,7 @@ void MainWindow::resetZooming()
     qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1, 1);
 }
 
-void MainWindow::add5Roles()
+void MainWindow::addNewRole()
 {
-    TaskManager::instance().add5Roles();
-}
-
-void MainWindow::test2()
-{
-    qDebug() << "test2() (does nothing, just an example)";
-    // open modal dialog to get task attributes (start/end/color/title/summary/description), then, if Ok, call:
-    //TaskManager::instance()->addTask(<task attributes>);
+    TaskManager::instance().addNewRole();
 }

@@ -28,7 +28,7 @@ public:
     void updateRole(qint64, const QHash<QString, QString> &);
     void updateTask(qint64, const QHash<QString, QString> &);
 
-    void add5Roles(); // ### for testing
+    void addNewRole(); // ### for now
 
 private:
     TaskManager();
