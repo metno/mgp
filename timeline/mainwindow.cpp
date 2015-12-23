@@ -172,7 +172,7 @@ void MainWindow::showEvent(QShowEvent *)
     topSplitter_->setSizes(botSplitter_->sizes());
 
     // set initial scaling
-    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1.5, 0.01);
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(3, 0.01);
 }
 
 void MainWindow::updateFromTaskMgr()
