@@ -19,8 +19,8 @@ public:
     QList<qint64> taskIds() const;
     QSharedPointer<Role> findRole(qint64) const;
     QSharedPointer<Task> findTask(qint64) const;
-    qint64 addRole(const QSharedPointer<Role> &);
-    qint64 addTask(const QSharedPointer<Task> &);
+    qint64 addRole(const RoleProperties &);
+    qint64 addTask(const TaskProperties &);
     void assignTaskToRole(qint64, qint64);
     QList<qint64> assignedTasks(qint64) const;
     void removeTask(qint64);

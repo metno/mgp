@@ -190,10 +190,10 @@ void LaneScene::updateBaseItemGeometry()
         for (int j = 0; j < laneItems().size(); ++j) {
             LaneItem *lItem = laneItems().at(j);
 
-            const QTime btime = TaskManager::instance().findRole(lItem->roleId())->beginTime();
+            const QTime btime = TaskManager::instance().findRole(lItem->roleId())->loTime();
             const long bsecs = btime.hour() * 3600 + btime.minute() * 60 + btime.second();
 
-            const QTime etime = TaskManager::instance().findRole(lItem->roleId())->endTime();
+            const QTime etime = TaskManager::instance().findRole(lItem->roleId())->hiTime();
             long esecs = etime.hour() * 3600 + etime.minute() * 60 + etime.second();
             if (esecs <= bsecs)
                 esecs += secsInDay();
@@ -509,9 +509,13 @@ void LaneScene::addNewTask()
     const long hiTimestamp = vPosToTimestamp(insertBottom_);
 
     const qint64 taskId = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task(QString("new task %1").arg(nextNewTaskId_++),
-                                                    QDateTime::fromTime_t(loTimestamp),
-                                                    QDateTime::fromTime_t(hiTimestamp))));
+            .addTask(TaskProperties(
+                         QString("new task %1").arg(nextNewTaskId_),
+                         QString("summary of task %1").arg(nextNewTaskId_),
+                         QString("description of task %1\nanother line").arg(nextNewTaskId_),
+                         QDateTime::fromTime_t(loTimestamp),
+                         QDateTime::fromTime_t(hiTimestamp)));
+    nextNewTaskId_++;
     TaskManager::instance().assignTaskToRole(taskId, roleId);
     pendingCurrTaskId_ = taskId;
     TaskManager::instance().emitUpdated();

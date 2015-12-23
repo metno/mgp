@@ -38,17 +38,17 @@ QSharedPointer<Task> TaskManager::findTask(qint64 id) const
     return tasks_.value(id);
 }
 
-qint64 TaskManager::addRole(const QSharedPointer<Role> &role)
+qint64 TaskManager::addRole(const RoleProperties &props)
 {
     qint64 id = nextRoleId_++;
-    roles_.insert(id, role);
+    roles_.insert(id, QSharedPointer<Role>(new Role(props)));
     return id;
 }
 
-qint64 TaskManager::addTask(const QSharedPointer<Task> &task)
+qint64 TaskManager::addTask(const TaskProperties &props)
 {
     qint64 id = nextTaskId_++;
-    tasks_.insert(id, task);
+    tasks_.insert(id, QSharedPointer<Task>(new Task(props)));
     return id;
 }
 
@@ -109,7 +109,7 @@ void TaskManager::updateTask(qint64 taskId, const QHash<QString, QString> &value
 void TaskManager::add5Roles()
 {
     for (int i = 0; i < 5; ++i)
-        addRole(QSharedPointer<Role>(new Role(QString("test role %1").arg(testRoleIndex_++), QTime(3 + i, 0), QTime(11, 0))));
+        addRole(RoleProperties(QString("test role %1").arg(testRoleIndex_++), QTime(3 + i, 0), QTime(11, 0)));
 
     emitUpdated();
 }

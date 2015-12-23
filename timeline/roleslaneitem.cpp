@@ -30,7 +30,7 @@ RolesLaneItem::RolesLaneItem(qint64 roleId__)
     nameItem_->setZValue(2);
     nameItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
 
-    const QString time = role ? QString("%1-%2").arg(role->beginTime().toString("hh:mm")).arg(role->endTime().toString("hh:mm")) : "<no time";
+    const QString time = role ? QString("%1-%2").arg(role->loTime().toString("hh:mm")).arg(role->hiTime().toString("hh:mm")) : "<no time";
     timeItem_ = new QGraphicsTextItem(time, this);
     timeItem_->setFont(QFont("helvetica", 14, QFont::Normal));
     timeItem_->setDefaultTextColor(Qt::blue);

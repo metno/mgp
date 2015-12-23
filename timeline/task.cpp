@@ -1,41 +1,9 @@
 #include "task.h"
 
-Task::Task(const QString &name__, const QDateTime &loDateTime__, const QDateTime &hiDateTime__)
-    : name_(name__)
-    , roleId_(-1)
-    , loDateTime_(loDateTime__)
-    , hiDateTime_(hiDateTime__)
+Task::Task(const TaskProperties &props)
+    : roleId_(-1)
+    , props_(props)
 {
-}
-
-QString Task::name() const
-{
-    return name_;
-}
-
-void Task::setName(const QString &name__)
-{
-    name_ = name__;
-}
-
-QString Task::summary() const
-{
-    return summary_;
-}
-
-void Task::setSummary(const QString &summary__)
-{
-    summary_ = summary__;
-}
-
-QString Task::description() const
-{
-    return description_;
-}
-
-void Task::setDescription(const QString &description__)
-{
-    description_ = description__;
 }
 
 qint64 Task::roleId() const
@@ -43,12 +11,67 @@ qint64 Task::roleId() const
     return roleId_;
 }
 
+void Task::setRoleId(qint64 id)
+{
+    roleId_ = id;
+}
+
+QString Task::name() const
+{
+    return props_.name_;
+}
+
+void Task::setName(const QString &n)
+{
+    props_.name_ = n;
+}
+
+QString Task::summary() const
+{
+    return props_.summary_;
+}
+
+void Task::setSummary(const QString &s)
+{
+    props_.summary_ = s;
+}
+
+QString Task::description() const
+{
+    return props_.description_;
+}
+
+void Task::setDescription(const QString &d)
+{
+    props_.description_ = d;
+}
+
 QDateTime Task::loDateTime() const
 {
-    return loDateTime_;
+    return props_.loDateTime_;
+}
+
+void Task::setLoDateTime(const QDateTime &dt)
+{
+    props_.loDateTime_ = dt;
+}
+
+void Task::setLoUTCTimestamp(int t)
+{
+    props_.loDateTime_.setTime_t(t);
 }
 
 QDateTime Task::hiDateTime() const
 {
-    return hiDateTime_;
+    return props_.hiDateTime_;
+}
+
+void Task::setHiDateTime(const QDateTime &dt)
+{
+    props_.hiDateTime_ = dt;
+}
+
+void Task::setHiUTCTimestamp(int t)
+{
+    props_.hiDateTime_.setTime_t(t);
 }

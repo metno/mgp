@@ -1,23 +1,21 @@
 #include "role.h"
 
-Role::Role(const QString &name__, const QTime &beginTime__, const QTime &endTime__)
-    : name_(name__)
-    , beginTime_(beginTime__)
-    , endTime_(endTime__)
+Role::Role(const RoleProperties &props)
+    : props_(props)
 {
 }
 
 QString Role::name() const
 {
-    return name_;
+    return props_.name_;
 }
 
-QTime Role::beginTime() const
+QTime Role::loTime() const
 {
-    return beginTime_;
+    return props_.loTime_;
 }
 
-QTime Role::endTime() const
+QTime Role::hiTime() const
 {
-    return endTime_;
+    return props_.hiTime_;
 }

@@ -5,23 +5,38 @@
 #include <QList>
 #include <QTime>
 
+class RoleProperties
+{
+    friend class Role;
+
+public:
+    RoleProperties(const QString &name, const QTime &loTime, const QTime &hiTime)
+        : name_(name)
+        , loTime_(loTime)
+        , hiTime_(hiTime)
+    {
+    }
+
+private:
+    QString name_;
+    QTime loTime_;
+    QTime hiTime_;
+};
+
 class Role
 {
     friend class TaskManager;
 
 public:
-    Role(const QString &, const QTime &, const QTime &);
     QString name() const;
-    QTime beginTime() const;
-    QTime endTime() const;
+    QTime loTime() const;
+    QTime hiTime() const;
 
 private:
-    QString name_;
-    QList<qint64> taskIds_; // tasks assigned to this role
+    Role(const RoleProperties &);
 
-    // time interval in which the role is active
-    QTime beginTime_;
-    QTime endTime_;
+    QList<qint64> taskIds_; // tasks assigned to this role
+    RoleProperties props_;
 };
 
 #endif // ROLE_H

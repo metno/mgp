@@ -11,35 +11,40 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     qsrand(QDateTime::currentDateTime().toTime_t());
 
-    const qint64 roleId1 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 1", QTime(8, 15), QTime(16, 0))));
-    const qint64 roleId2 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 2", QTime(15, 0), QTime(23, 0))));
-    const qint64 roleId3 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 3", QTime(15, 0), QTime(23, 0))));
-    const qint64 roleId4 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 4", QTime(8, 15), QTime(16, 0))));
-    const qint64 roleId5 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 5", QTime(8, 15), QTime(16, 0))));
-    const qint64 roleId6 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 6", QTime(22, 0), QTime(6, 0))));
-    const qint64 roleId7 = TaskManager::instance().addRole(QSharedPointer<Role>(new Role("role 7", QTime(8, 15), QTime(16, 0))));
+    const qint64 roleId1 = TaskManager::instance().addRole(RoleProperties("role 1", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId2 = TaskManager::instance().addRole(RoleProperties("role 2", QTime(15, 0), QTime(23, 0)));
+    const qint64 roleId3 = TaskManager::instance().addRole(RoleProperties("role 3", QTime(15, 0), QTime(23, 0)));
+    const qint64 roleId4 = TaskManager::instance().addRole(RoleProperties("role 4", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId5 = TaskManager::instance().addRole(RoleProperties("role 5", QTime(8, 15), QTime(16, 0)));
+    const qint64 roleId6 = TaskManager::instance().addRole(RoleProperties("role 6", QTime(22, 0), QTime(6, 0)));
+    const qint64 roleId7 = TaskManager::instance().addRole(RoleProperties("role 7", QTime(8, 15), QTime(16, 0)));
 
-    const qint64 taskId1 = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task("task 1",
-                                                    QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
-                                                    QDateTime(QDate(2015, 4, 2), QTime(0, 0)))));
-    const qint64 taskId2 = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task("task 2",
-                                                    QDateTime(QDate(2015, 4, 1), QTime(12, 0)),
-                                                    QDateTime(QDate(2015, 4, 2), QTime(0, 0)))));
-    const qint64 taskId3 = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task("task 3",
-                                                    QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
-                                                    QDateTime(QDate(2015, 4, 1), QTime(12, 0)))));
-    const qint64 taskId4 = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task("task 4",
-                                                    QDateTime(QDate(2015, 4, 1), QTime(23, 45)),
-                                                    QDateTime(QDate(2015, 4, 2), QTime(0, 15)))));
+    const qint64 taskId1 = TaskManager::instance().addTask(
+                TaskProperties(
+                    "task 1", "<summary for task 1>", "description of task 1\nanother line",
+                    QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
+                    QDateTime(QDate(2015, 4, 2), QTime(0, 0))));
+    const qint64 taskId2 = TaskManager::instance().addTask(
+                TaskProperties(
+                    "task 2", "<summary for task 2>", "description of task 2\nanother line",
+                    QDateTime(QDate(2015, 4, 1), QTime(12, 0)),
+                    QDateTime(QDate(2015, 4, 2), QTime(0, 0))));
+    const qint64 taskId3 = TaskManager::instance().addTask(
+                TaskProperties(
+                    "task 3", "<summary for task 3>", "description of task 3\nanother line",
+                    QDateTime(QDate(2015, 4, 1), QTime(0, 0)),
+                    QDateTime(QDate(2015, 4, 1), QTime(12, 0))));
+    const qint64 taskId4 = TaskManager::instance().addTask(
+                TaskProperties(
+                    "task 4", "<summary for task 4>", "description of task 4\nanother line",
+                    QDateTime(QDate(2015, 4, 1), QTime(23, 45)),
+                    QDateTime(QDate(2015, 4, 2), QTime(0, 15))));
 
-    const qint64 taskId5 = TaskManager::instance()
-            .addTask(QSharedPointer<Task>(new Task("task 5",
-                                                    QDateTime(QDate(2015, 4, 2), QTime(0, 0)),
-                                                    QDateTime(QDate(2015, 4, 2), QTime(1, 0)))));
+    const qint64 taskId5 = TaskManager::instance().addTask(
+                TaskProperties(
+                    "task 5", "<summary for task 5>", "description of task 5\nanother line",
+                    QDateTime(QDate(2015, 4, 2), QTime(0, 0)),
+                    QDateTime(QDate(2015, 4, 2), QTime(1, 0))));
 
     TaskManager::instance().assignTaskToRole(taskId1, roleId2);
     TaskManager::instance().assignTaskToRole(taskId2, roleId2);
