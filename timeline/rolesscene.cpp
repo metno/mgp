@@ -154,9 +154,8 @@ void RolesScene::editHoveredRole()
 void RolesScene::removeHoveredRole()
 {
     Q_ASSERT(hoverRolesLaneItem_);
-//    TaskManager::instance().removeTask(currTaskItem_->taskId());
-//    currTaskItem_ = 0;
-//    currTaskMarker_->setVisible(false);
-//    TaskManager::instance().emitUpdated();
-    qDebug() << "RolesScene::removeHoveredRole() ...";
+    TaskManager::instance().removeRole(hoverRolesLaneItem_->roleId());
+    hoverRolesLaneItem_ = 0;
+    TaskManager::instance().emitUpdated();
+    RolePanel::instance().clearContents();
 }

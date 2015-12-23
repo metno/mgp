@@ -91,6 +91,7 @@ void TaskItem::updateSummary(const QString &summary)
 
 void TaskItem::updateDescription(const QString &descr)
 {
+    Q_UNUSED(descr);
 //    descrItem_->setPlainText(descr);
 }
 

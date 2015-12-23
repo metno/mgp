@@ -257,8 +257,17 @@ void LaneScene::updateFromTaskMgr()
 
     // remove lane items for roles that no longer exist in the task manager
     foreach (LaneItem *lItem, laneItems()) {
-        if (!tmRoleIds.contains(lItem->roleId()))
+        bool removed = false;
+        if (!tmRoleIds.contains(lItem->roleId())) {
             removeItem(lItem);
+            removed = true;
+        }
+        if (removed) {
+            currLaneIndex_ = -1;
+            hoverTaskItem_ = currTaskItem_ = 0;
+            hoverRoleMarker_->setVisible(false);
+            currTaskMarker_->setVisible(false);
+        }
     }
 
     // add lane items for roles in the task manager that have no lane items
@@ -270,9 +279,10 @@ void LaneScene::updateFromTaskMgr()
 
     const QList<qint64> tmAllTaskIds = TaskManager::instance().taskIds();
 
-    // remove task items for tasks that no longer exist in the task manager
+    // remove task items for tasks that ...
     foreach (TaskItem *tItem, taskItems()) {
-        if (!tmAllTaskIds.contains(tItem->taskId()))
+        if ((!tmAllTaskIds.contains(tItem->taskId())) // ... no longer exist in the task manager, or
+                || (TaskManager::instance().findTask(tItem->taskId())->roleId() == -1)) // is no longer assigned ro a role
             removeItem(tItem);
     }
 

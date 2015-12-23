@@ -23,6 +23,7 @@ public:
     qint64 addTask(const TaskProperties &);
     void assignTaskToRole(qint64, qint64);
     QList<qint64> assignedTasks(qint64) const;
+    void removeRole(qint64);
     void removeTask(qint64);
     void updateRole(qint64, const QHash<QString, QString> &);
     void updateTask(qint64, const QHash<QString, QString> &);

@@ -62,6 +62,7 @@ void TaskManager::unassignTaskFromRole(qint64 taskId)
         const QSharedPointer<Role> origRole = roles_.value(origRoleId);
         Q_ASSERT(origRole);
         origRole->taskIds_.removeOne(taskId);
+        tasks_.value(taskId)->roleId_ = -1;
     }
 }
 
@@ -84,6 +85,15 @@ QList<qint64> TaskManager::assignedTasks(qint64 roleId) const
     if (!roles_.contains(roleId)) return QList<qint64>(); // no such role
 
     return roles_.value(roleId)->taskIds_;
+}
+
+void TaskManager::removeRole(qint64 roleId)
+{
+    if (!roles_.contains(roleId)) return; // no such role
+    const QSharedPointer<Role> role = roles_.value(roleId);
+    foreach (qint64 taskId, role->taskIds_)
+        unassignTaskFromRole(taskId); // for now, we don't remove the tasks themselves
+    roles_.remove(roleId);
 }
 
 void TaskManager::removeTask(qint64 taskId)
