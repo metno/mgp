@@ -27,7 +27,7 @@ public:
 
 public slots:
     void updateFromTaskMgr();
-    void updateGeometry();
+    void updateGeometryAndContents();
 
 private:
     RolesScene *rolesScene_;
@@ -45,8 +45,8 @@ private:
     QList<qint64> taskIds(const QList<TaskItem *> &) const;
 
     void updateBaseItemGeometry();
-    void updateTaskItem();
-    void updateTaskItemInLane(LaneItem *, int, int, int);
+    void updateTaskItems();
+    void updateTaskItemsInLane(LaneItem *, int, int, int);
     QDate baseDate_;
     int dateSpan_;
 

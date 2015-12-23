@@ -189,8 +189,8 @@ void MainWindow::updateFromTaskMgr()
 
 void MainWindow::updateGeometry()
 {
-    rolesScene_->updateGeometry();
-    laneScene_->updateGeometry();
+    rolesScene_->updateGeometryAndContents();
+    laneScene_->updateGeometryAndContents();
     timelineScene_->updateGeometry();
 }
 

@@ -157,7 +157,7 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
         }
     }
 
-    updateGeometry();
+    updateGeometryAndContents();
 
     emit dateRangeChanged();
 }
@@ -206,18 +206,18 @@ void LaneScene::updateBaseItemGeometry()
     }
 }
 
-void LaneScene::updateTaskItem()
+void LaneScene::updateTaskItems()
 {
     const qreal lwidth = rolesScene_->laneWidth();
     const qreal lhpad = rolesScene_->laneHorizontalPadding();
 
     int i = 0;
     foreach (LaneItem *lItem, laneItems()) {
-        updateTaskItemInLane(lItem, i++, lwidth, lhpad);
+        updateTaskItemsInLane(lItem, i++, lwidth, lhpad);
     }
 }
 
-void LaneScene::updateTaskItemInLane(LaneItem *lItem, int index, int lwidth, int lhpad)
+void LaneScene::updateTaskItemsInLane(LaneItem *lItem, int index, int lwidth, int lhpad)
 {
     foreach (TaskItem *tItem, taskItems(lItem->roleId())) {
         QSharedPointer<Task> task = TaskManager::instance().findTask(tItem->taskId());
@@ -301,10 +301,10 @@ void LaneScene::updateFromTaskMgr()
         }
     }
 
-    updateGeometry();
+    updateGeometryAndContents();
 }
 
-void LaneScene::updateGeometry()
+void LaneScene::updateGeometryAndContents()
 {
     // note: we assume that rolesScene_ is up to date at this point
 
@@ -316,7 +316,7 @@ void LaneScene::updateGeometry()
 
     updateRoleTimeItems();
     updateBaseItemGeometry();
-    updateTaskItem();
+    updateTaskItems();
     updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
 }
 

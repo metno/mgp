@@ -14,7 +14,7 @@ RolesView::RolesView(RolesScene *rScene, QWidget *parent)
 void RolesView::updateScale(qreal sx, qreal)
 {
     setTransform(QTransform::fromScale(sx, 1.0)); // scale horizontal dimension only
-    qobject_cast<RolesScene *>(scene())->updateGeometry();
+    qobject_cast<RolesScene *>(scene())->updateGeometryAndContents();
 }
 
 void RolesView::resizeEvent(QResizeEvent *event)

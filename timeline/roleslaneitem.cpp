@@ -46,3 +46,8 @@ void RolesLaneItem::updateRect(const QRectF &r)
                 rect().x() + 5,
                 rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
 }
+
+void RolesLaneItem::updateName(const QString &name)
+{
+    nameItem_->setPlainText(name);
+}

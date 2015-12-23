@@ -20,7 +20,7 @@ public:
 
 public slots:
     void updateFromTaskMgr();
-    void updateGeometry();
+    void updateGeometryAndContents();
 
 private:
     QGraphicsRectItem *bgItem_;

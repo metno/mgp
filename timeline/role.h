@@ -40,6 +40,9 @@ private:
 
     QList<qint64> taskIds_; // tasks assigned to this role
     RoleProperties props_;
+
+    void setName(const QString &);
+    void setDescription(const QString &);
 };
 
 #endif // ROLE_H

@@ -2,6 +2,8 @@
 #include "roleslaneitem.h"
 #include "rolesview.h"
 #include "taskmanager.h"
+#include "rolepanel.h"
+#include "roleeditor.h"
 #include "common.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsView>
@@ -43,22 +45,23 @@ void RolesScene::updateFromTaskMgr()
             addHeaderItem(tmRoleId);
     }
 
-    updateGeometry();
+    updateGeometryAndContents();
 }
 
-void RolesScene::updateGeometry()
+void RolesScene::updateGeometryAndContents()
 {
     // update scene rect
     const QRectF srect = sceneRect();
     setSceneRect(srect.x(), srect.y(), headerItems().size() * laneWidth() + laneHorizontalPadding(), views().first()->height() - 10);
 
-    // update header item rects
+    // update header item rects and texts
     const qreal lhpad = laneHorizontalPadding();
     const qreal lvpad = laneVerticalPadding();
     const qreal lwidth = laneWidth();
     int i = 0;
     foreach (RolesLaneItem *item, headerItems()) {
         item->updateRect(QRectF(i * lwidth + lhpad, lvpad, lwidth - lhpad, height() - 2 * lvpad));
+        item->updateName(TaskManager::instance().findRole(item->roleId())->name());
         i++;
     }
 
@@ -133,20 +136,19 @@ qint64 RolesScene::laneToRoleId(int laneIndex) const
 
 void RolesScene::editHoveredRole()
 {
-//    Q_ASSERT(currTaskItem_);
-//    const qint64 taskId = currTaskItem_->taskId();
-//    Task *task = TaskManager::instance().findTask(taskId).data();
-//    const QHash<QString, QString> values = TaskEditor::instance().edit(task);
-//    if (!values.isEmpty()) {
-//        TaskManager::instance().updateTask(taskId, values);
-//        TaskPanel::instance().setContents(task);
-//    }
-    qDebug() << "RolesScene::editHoveredRole() ...";
+    Q_ASSERT(hoverRolesLaneItem_);
+    const qint64 roleId = hoverRolesLaneItem_->roleId();
+    Role *role = TaskManager::instance().findRole(roleId).data();
+    const QHash<QString, QString> values = RoleEditor::instance().edit(role);
+    if (!values.isEmpty()) {
+        TaskManager::instance().updateRole(roleId, values);
+        RolePanel::instance().setContents(role);
+    }
 }
 
 void RolesScene::removeHoveredRole()
 {
-//    Q_ASSERT(currTaskItem_);
+    Q_ASSERT(hoverRolesLaneItem_);
 //    TaskManager::instance().removeTask(currTaskItem_->taskId());
 //    currTaskItem_ = 0;
 //    currTaskMarker_->setVisible(false);
