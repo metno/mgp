@@ -1,6 +1,7 @@
 #include "taskpanel.h"
 #include "task.h"
 #include <QLabel>
+#include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QGroupBox>
 #include <QFormLayout>
@@ -15,7 +16,7 @@ TaskPanel::TaskPanel()
     : formLayout_(new QFormLayout)
     , nameLabel_(new QLabel)
     , summaryLabel_(new QLabel)
-    , descrLabel_(new QLabel)
+    , descrLabel_(new QTextBrowser)
 {
     QVBoxLayout *mainLayout = new QVBoxLayout;
     setLayout(mainLayout);
@@ -37,11 +38,11 @@ void TaskPanel::setContents(const Task *task)
     if (task) {
         nameLabel_->setText(task->name());
         summaryLabel_->setText(task->summary());
-        descrLabel_->setText(task->description());
+        descrLabel_->setHtml(task->description());
     } else {
         nameLabel_->setText("");
         summaryLabel_->setText("");
-        descrLabel_->setText("");
+        descrLabel_->setHtml("");
     }
 }
 

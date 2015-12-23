@@ -6,6 +6,7 @@
 class Task;
 class QFormLayout;
 class QLabel;
+class QTextBrowser;
 
 class TaskPanel : public QWidget
 {
@@ -21,7 +22,7 @@ private:
     QFormLayout *formLayout_;
     QLabel *nameLabel_;
     QLabel *summaryLabel_;
-    QLabel *descrLabel_;
+    QTextBrowser *descrLabel_;
 };
 
 #endif // TASKPANEL_H
