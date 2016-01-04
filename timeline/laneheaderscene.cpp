@@ -1,6 +1,6 @@
-#include "rolesscene.h"
-#include "roleslaneitem.h"
-#include "rolesview.h"
+#include "laneheaderscene.h"
+#include "laneheaderitem.h"
+#include "laneheaderview.h"
 #include "taskmanager.h"
 #include "rolepanel.h"
 #include "roleeditor.h"
@@ -11,9 +11,9 @@
 #include <QAction>
 #include <QMenu>
 
-RolesScene::RolesScene(qreal w, qreal h, QObject *parent)
+LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     : QGraphicsScene(0, 0, w, h, parent)
-    , hoverRolesLaneItem_(0)
+    , hoverLaneHeaderItem_(0)
 {
     // add background item
     bgItem_ = new QGraphicsRectItem(sceneRect());
@@ -21,19 +21,19 @@ RolesScene::RolesScene(qreal w, qreal h, QObject *parent)
     bgItem_->setZValue(-1);
     addItem(bgItem_);
 
-    editRoleAction_ = new QAction("Edit role", 0);
-    connect(editRoleAction_, SIGNAL(triggered()), SLOT(editHoveredRole()));
+    editLaneHeaderAction_ = new QAction("Edit lane header", 0);
+    connect(editLaneHeaderAction_, SIGNAL(triggered()), SLOT(editHoveredLaneHeader()));
 
-    removeRoleAction_ = new QAction("Remove role", 0);
-    connect(removeRoleAction_, SIGNAL(triggered()), SLOT(removeHoveredRole()));
+    removeLaneHeaderAction_ = new QAction("Remove lane header", 0);
+    connect(removeLaneHeaderAction_, SIGNAL(triggered()), SLOT(removeHoveredLaneHeader()));
 }
 
-void RolesScene::updateFromTaskMgr()
+void LaneHeaderScene::updateFromTaskMgr()
 {
     const QList<qint64> tmRoleIds = TaskManager::instance().roleIds();
 
     // remove header items for roles that no longer exist in the task manager
-    foreach (RolesLaneItem *hItem, headerItems()) {
+    foreach (LaneHeaderItem *hItem, headerItems()) {
         if (!tmRoleIds.contains(hItem->roleId()))
             removeItem(hItem);
     }
@@ -48,7 +48,7 @@ void RolesScene::updateFromTaskMgr()
     updateGeometryAndContents();
 }
 
-void RolesScene::updateGeometryAndContents()
+void LaneHeaderScene::updateGeometryAndContents()
 {
     // update scene rect
     const QRectF srect = sceneRect();
@@ -59,7 +59,7 @@ void RolesScene::updateGeometryAndContents()
     const qreal lvpad = laneVerticalPadding();
     const qreal lwidth = laneWidth();
     int i = 0;
-    foreach (RolesLaneItem *item, headerItems()) {
+    foreach (LaneHeaderItem *item, headerItems()) {
         item->updateRect(QRectF(i * lwidth + lhpad, lvpad, lwidth - lhpad, height() - 2 * lvpad));
         item->updateProperties();
         i++;
@@ -69,69 +69,69 @@ void RolesScene::updateGeometryAndContents()
     bgItem_->setRect(sceneRect());
 }
 
-void RolesScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+void LaneHeaderScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    // update hovered roles lane item
+    // update hovered lane header item
     foreach (QGraphicsItem *item, items(event->scenePos())) {
-        hoverRolesLaneItem_ = dynamic_cast<RolesLaneItem *>(item);
-        if (hoverRolesLaneItem_)
+        hoverLaneHeaderItem_ = dynamic_cast<LaneHeaderItem *>(item);
+        if (hoverLaneHeaderItem_)
             break;
     }
 
-    if (hoverRolesLaneItem_)
-        RolePanel::instance().setContents(TaskManager::instance().findRole(hoverRolesLaneItem_->roleId()).data());
+    if (hoverLaneHeaderItem_)
+        RolePanel::instance().setContents(TaskManager::instance().findRole(hoverLaneHeaderItem_->roleId()).data());
     else
         RolePanel::instance().clearContents();
 }
 
-void RolesScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
+void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     if (event->button() == Qt::RightButton) {
-        if (!hoverRolesLaneItem_)
+        if (!hoverLaneHeaderItem_)
             return;
 
         // open context menu
         QMenu contextMenu;
-        contextMenu.addAction(editRoleAction_);
-        contextMenu.addAction(removeRoleAction_);
+        contextMenu.addAction(editLaneHeaderAction_);
+        contextMenu.addAction(removeLaneHeaderAction_);
         contextMenu.exec(QCursor::pos());
     }
 }
 
-void RolesScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
+void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
-    if ((event->button() == Qt::LeftButton) && hoverRolesLaneItem_)
-        editHoveredRole();
+    if ((event->button() == Qt::LeftButton) && hoverLaneHeaderItem_)
+        editHoveredLaneHeader();
 }
 
-QList<RolesLaneItem *> RolesScene::headerItems() const
+QList<LaneHeaderItem *> LaneHeaderScene::headerItems() const
 {
-    QList<RolesLaneItem *> hItems;
+    QList<LaneHeaderItem *> hItems;
     foreach (QGraphicsItem *item, items()) {
-        RolesLaneItem *hItem = dynamic_cast<RolesLaneItem *>(item);
+        LaneHeaderItem *hItem = dynamic_cast<LaneHeaderItem *>(item);
         if (hItem)
             hItems.append(hItem);
     }
     return hItems;
 }
 
-QList<qint64> RolesScene::headerItemRoleIds() const
+QList<qint64> LaneHeaderScene::headerItemRoleIds() const
 {
     QList<qint64> hiRoleIds;
     foreach (QGraphicsItem *item, items()) {
-        RolesLaneItem *hItem = dynamic_cast<RolesLaneItem *>(item);
+        LaneHeaderItem *hItem = dynamic_cast<LaneHeaderItem *>(item);
         if (hItem)
             hiRoleIds.append(hItem->roleId());
     }
     return hiRoleIds;
 }
 
-void RolesScene::addHeaderItem(qint64 roleId)
+void LaneHeaderScene::addHeaderItem(qint64 roleId)
 {
-    addItem(new RolesLaneItem(roleId));
+    addItem(new LaneHeaderItem(roleId));
 }
 
-qint64 RolesScene::laneToRoleId(int laneIndex) const
+qint64 LaneHeaderScene::laneToRoleId(int laneIndex) const
 {
     QList<qint64> roleIds = headerItemRoleIds();
     if (laneIndex >= 0 && laneIndex < roleIds.size())
@@ -139,10 +139,10 @@ qint64 RolesScene::laneToRoleId(int laneIndex) const
     return -1;
 }
 
-void RolesScene::editHoveredRole()
+void LaneHeaderScene::editHoveredLaneHeader()
 {
-    Q_ASSERT(hoverRolesLaneItem_);
-    const qint64 roleId = hoverRolesLaneItem_->roleId();
+    Q_ASSERT(hoverLaneHeaderItem_);
+    const qint64 roleId = hoverLaneHeaderItem_->roleId();
     Role *role = TaskManager::instance().findRole(roleId).data();
     const QHash<QString, QVariant> values = RoleEditor::instance().edit(role);
     if (!values.isEmpty()) {
@@ -151,11 +151,11 @@ void RolesScene::editHoveredRole()
     }
 }
 
-void RolesScene::removeHoveredRole()
+void LaneHeaderScene::removeHoveredLaneHeader()
 {
-    Q_ASSERT(hoverRolesLaneItem_);
-    TaskManager::instance().removeRole(hoverRolesLaneItem_->roleId());
-    hoverRolesLaneItem_ = 0;
+    Q_ASSERT(hoverLaneHeaderItem_);
+    TaskManager::instance().removeRole(hoverLaneHeaderItem_->roleId());
+    hoverLaneHeaderItem_ = 0;
     TaskManager::instance().emitUpdated();
     RolePanel::instance().clearContents();
 }

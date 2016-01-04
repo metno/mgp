@@ -1,5 +1,5 @@
 #include "lanescene.h"
-#include "rolesscene.h"
+#include "laneheaderscene.h"
 #include "laneitem.h"
 #include "taskitem.h"
 #include "taskmanager.h"
@@ -16,9 +16,9 @@
 #include <QSharedPointer>
 #include <QDateTime>
 
-LaneScene::LaneScene(RolesScene *rolesScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
+LaneScene::LaneScene(LaneHeaderScene *rolesScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
     : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), rolesScene->height(), parent)
-    , rolesScene_(rolesScene)
+    , laneHeaderScene_(rolesScene)
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
     , currTimeMarker_(0)
@@ -164,8 +164,8 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
 
 void LaneScene::updateBaseItemGeometry()
 {
-    const qreal lwidth = rolesScene_->laneWidth();
-    const qreal lhpad = rolesScene_->laneHorizontalPadding();
+    const qreal lwidth = laneHeaderScene_->laneWidth();
+    const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
 
     int i = 0;
     foreach (LaneItem *lItem, laneItems()) {
@@ -208,8 +208,8 @@ void LaneScene::updateBaseItemGeometry()
 
 void LaneScene::updateTaskItems()
 {
-    const qreal lwidth = rolesScene_->laneWidth();
-    const qreal lhpad = rolesScene_->laneHorizontalPadding();
+    const qreal lwidth = laneHeaderScene_->laneWidth();
+    const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
 
     int i = 0;
     foreach (LaneItem *lItem, laneItems()) {
@@ -321,7 +321,7 @@ void LaneScene::updateGeometryAndContents()
     // update scene rect width
     {
         const QRectF srect = sceneRect();
-        setSceneRect(srect.x(), srect.y(), laneItems().size() * rolesScene_->laneWidth() + rolesScene_->laneHorizontalPadding(), srect.height());
+        setSceneRect(srect.x(), srect.y(), laneItems().size() * laneHeaderScene_->laneWidth() + laneHeaderScene_->laneHorizontalPadding(), srect.height());
     }
 
     updateRoleTimeItems();
@@ -423,8 +423,8 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     }
 
     // update hover highlighting etc.
-    const int lwidth = rolesScene_->laneWidth();
-    const int lhpad = rolesScene_->laneHorizontalPadding();
+    const int lwidth = laneHeaderScene_->laneWidth();
+    const int lhpad = laneHeaderScene_->laneHorizontalPadding();
     const int scenex = event->scenePos().x();
     currLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
     if ((currLaneIndex_ >= 0) && (currLaneIndex_ < laneItems().size())) {
@@ -487,9 +487,9 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     // update highlighting etc.
     QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
     Q_ASSERT(currTask);
-    const qreal lwidth = rolesScene_->laneWidth();
-    const qreal lhpad = rolesScene_->laneHorizontalPadding();
-    const qreal lvpad = rolesScene_->laneVerticalPadding();
+    const qreal lwidth = laneHeaderScene_->laneWidth();
+    const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
+    const qreal lvpad = laneHeaderScene_->laneVerticalPadding();
 
     QRectF rect;
     rect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
@@ -501,7 +501,7 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     TaskPanel::instance().setContents(currTask.data());
 
     const qint64 roleId = currTask->roleId();
-    Q_ASSERT(roleId == rolesScene_->laneToRoleId(currLaneIndex_));
+    Q_ASSERT(roleId == laneHeaderScene_->laneToRoleId(currLaneIndex_));
     QSharedPointer<Role> currRole = TaskManager::instance().findRole(roleId);
     RolePanel::instance().setContents(currRole.data());
 }
@@ -527,7 +527,7 @@ void LaneScene::updateCurrTaskItem(bool ignoreMiss)
 
 void LaneScene::addNewTask()
 {
-    const qint64 roleId = rolesScene_->laneToRoleId(currLaneIndex_);
+    const qint64 roleId = laneHeaderScene_->laneToRoleId(currLaneIndex_);
     const long loTimestamp = vPosToTimestamp(insertTop_);
     const long hiTimestamp = vPosToTimestamp(insertBottom_);
 

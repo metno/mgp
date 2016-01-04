@@ -4,7 +4,7 @@
 #include <QGraphicsScene>
 #include <QDate>
 
-class RolesScene;
+class LaneHeaderScene;
 class QGraphicsRectItem;
 class QGraphicsLineItem;
 class LaneItem;
@@ -18,7 +18,7 @@ class LaneScene : public QGraphicsScene
     friend class LaneView;
 
 public:
-    LaneScene(RolesScene *, const QDate &, int, QObject * = 0);
+    LaneScene(LaneHeaderScene *, const QDate &, int, QObject * = 0);
     QDate baseDate() const;
     int dateSpan() const;
     static int secsInHour() { return 3600; }
@@ -30,7 +30,7 @@ public slots:
     void updateGeometryAndContents();
 
 private:
-    RolesScene *rolesScene_;
+    LaneHeaderScene *laneHeaderScene_;
     QList<QGraphicsRectItem *> dateItems_;
     QList<QGraphicsLineItem *> timeItems_;
     QList<QGraphicsRectItem *> roleTimeItems_;

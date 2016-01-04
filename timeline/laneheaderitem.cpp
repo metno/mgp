@@ -1,4 +1,4 @@
-#include "roleslaneitem.h"
+#include "laneheaderitem.h"
 #include "taskmanager.h"
 #include "role.h"
 #include "common.h"
@@ -10,7 +10,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
-RolesLaneItem::RolesLaneItem(qint64 roleId__)
+LaneHeaderItem::LaneHeaderItem(qint64 roleId__)
     : roleId_(roleId__)
 {
     setZValue(1);
@@ -39,7 +39,7 @@ RolesLaneItem::RolesLaneItem(qint64 roleId__)
     updateProperties();
 }
 
-void RolesLaneItem::updateRect(const QRectF &r)
+void LaneHeaderItem::updateRect(const QRectF &r)
 {
     setRect(r);
     nameItem_->setPos(rect().x() + 5, rect().y());
@@ -48,7 +48,7 @@ void RolesLaneItem::updateRect(const QRectF &r)
                 rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
 }
 
-void RolesLaneItem::updateProperties()
+void LaneHeaderItem::updateProperties()
 {
     QSharedPointer<Role> role = TaskManager::instance().findRole(roleId_);
     nameItem_->setPlainText(role->name());
