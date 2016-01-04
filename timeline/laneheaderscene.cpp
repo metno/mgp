@@ -112,6 +112,16 @@ QList<LaneHeaderItem *> LaneHeaderScene::headerItems() const
         if (hItem)
             hItems.append(hItem);
     }
+
+    // before returning, the order of the list needs to be modified
+    // according to a 'final order' that may be changed interactively
+    // (thus supporting client-side moving of lanes (on the server, the
+    // lane-order is irrelevant, since each user should be allowed to
+    // define his/her own order!)) ... TBD
+    // NOTE: whenever this mapping changes (via mouse/key events in this
+    // LaneHeaderScene), a signal must be emitted so that the LaneScene can
+    // update itself.
+
     return hItems;
 }
 
