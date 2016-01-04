@@ -5,6 +5,7 @@
 #include "rolepanel.h"
 #include "roleeditor.h"
 #include "common.h"
+#include "misc.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsView>
 #include <QGraphicsSceneMouseEvent>
@@ -163,6 +164,8 @@ void LaneHeaderScene::editHoveredLane()
 
 void LaneHeaderScene::removeHoveredLane()
 {
+    if (!confirm("Really remove lane?"))
+        return;
     Q_ASSERT(hoverLaneHeaderItem_);
     TaskManager::instance().removeRole(hoverLaneHeaderItem_->roleId());
     hoverLaneHeaderItem_ = 0;

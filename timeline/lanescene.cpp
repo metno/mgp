@@ -7,6 +7,7 @@
 #include "taskpanel.h"
 #include "taskeditor.h"
 #include "common.h"
+#include "misc.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
 #include <QGraphicsSceneMouseEvent>
@@ -566,6 +567,8 @@ void LaneScene::editCurrentTask()
 
 void LaneScene::removeCurrentTask()
 {
+    if (!confirm("Really remove task?"))
+        return;
     Q_ASSERT(currTaskItem_);
     TaskManager::instance().removeTask(currTaskItem_->taskId());
     currTaskItem_ = 0;
