@@ -9,7 +9,6 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    qsrand(QDateTime::currentDateTime().toTime_t());
 
     const qint64 roleId1 = TaskManager::instance().addRole(RoleProperties("role 1", "description of role 1", QTime(8, 15), QTime(16, 0)));
     const qint64 roleId2 = TaskManager::instance().addRole(RoleProperties("role 2", "description of role 2", QTime(15, 0), QTime(23, 0)));
