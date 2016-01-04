@@ -51,8 +51,8 @@ private:
     LaneHeaderItem *hoverLaneHeaderItem_; // lane header item (if any) currently hovered
 
 private slots:
-    void editHoveredLaneHeader();
-    void removeHoveredLaneHeader();
+    void editHoveredLane();
+    void removeHoveredLane();
 };
 
 #endif // LANEHEADERSCENE_H

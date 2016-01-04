@@ -21,11 +21,11 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     bgItem_->setZValue(-1);
     addItem(bgItem_);
 
-    editLaneHeaderAction_ = new QAction("Edit lane header", 0);
-    connect(editLaneHeaderAction_, SIGNAL(triggered()), SLOT(editHoveredLaneHeader()));
+    editLaneHeaderAction_ = new QAction("Edit lane", 0);
+    connect(editLaneHeaderAction_, SIGNAL(triggered()), SLOT(editHoveredLane()));
 
-    removeLaneHeaderAction_ = new QAction("Remove lane header", 0);
-    connect(removeLaneHeaderAction_, SIGNAL(triggered()), SLOT(removeHoveredLaneHeader()));
+    removeLaneHeaderAction_ = new QAction("Remove lane", 0);
+    connect(removeLaneHeaderAction_, SIGNAL(triggered()), SLOT(removeHoveredLane()));
 }
 
 void LaneHeaderScene::updateFromTaskMgr()
@@ -101,7 +101,7 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     if ((event->button() == Qt::LeftButton) && hoverLaneHeaderItem_)
-        editHoveredLaneHeader();
+        editHoveredLane();
 }
 
 QList<LaneHeaderItem *> LaneHeaderScene::headerItems() const
@@ -149,7 +149,7 @@ qint64 LaneHeaderScene::laneToRoleId(int laneIndex) const
     return -1;
 }
 
-void LaneHeaderScene::editHoveredLaneHeader()
+void LaneHeaderScene::editHoveredLane()
 {
     Q_ASSERT(hoverLaneHeaderItem_);
     const qint64 roleId = hoverLaneHeaderItem_->roleId();
@@ -161,7 +161,7 @@ void LaneHeaderScene::editHoveredLaneHeader()
     }
 }
 
-void LaneHeaderScene::removeHoveredLaneHeader()
+void LaneHeaderScene::removeHoveredLane()
 {
     Q_ASSERT(hoverLaneHeaderItem_);
     TaskManager::instance().removeRole(hoverLaneHeaderItem_->roleId());
