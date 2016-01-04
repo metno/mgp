@@ -76,6 +76,7 @@ void TaskItem::highlight(bool enabled)
 void TaskItem::updateRect(const QRectF &r)
 {
     setRect(r);
+    summaryItem_->setTextWidth(scene()->views().first()->transform().m11() * r.width());
     updateTextPositions();
 }
 
