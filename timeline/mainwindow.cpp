@@ -83,7 +83,7 @@ MainWindow::MainWindow()
     //    }
 
     timelineController_ = new TimelineController(baseDate_, dateSpan_);
-    connect(timelineController_, SIGNAL(updateDateRange(bool)), SLOT(updateDateRange(bool)));
+    connect(timelineController_, SIGNAL(dateRangeUpdated(bool)), SLOT(updateDateRange(bool)));
     ctrlFrame->layout()->addWidget(timelineController_);
 
     rolesController_ = new RolesController();

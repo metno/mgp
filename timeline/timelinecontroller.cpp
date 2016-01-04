@@ -6,6 +6,10 @@
 #include <QToolButton>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QSharedPointer>
+#include <QSettings>
+
+extern QSharedPointer<QSettings> settings;
 
 TimelineController::TimelineController(const QDate &baseDate, int dateSpan, QWidget *parent)
     : QWidget(parent)
@@ -67,16 +71,29 @@ int TimelineController::dateSpan() const
 
 void TimelineController::updateBaseDate()
 {
-    emit updateDateRange(false);
+    updateDateRange(false);
 }
 
 void TimelineController::updateDateSpan()
 {
-    emit updateDateRange(false);
+    updateDateRange(false);
 }
 
 void TimelineController::showToday()
 {
     baseDateEdit_->setDate(QDate::currentDate());
-    emit updateDateRange(true);
+    updateDateRange(true);
+}
+
+void TimelineController::updateDateRange(bool rewind)
+{
+    // update settings file
+    if (settings) {
+        settings->setValue("baseDate", baseDateEdit_->date());
+        settings->setValue("dateSpan", dateSpanSpinBox_->value());
+        settings->sync();
+    }
+
+    // notify
+    emit dateRangeUpdated(rewind);
 }

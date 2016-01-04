@@ -19,6 +19,7 @@ public:
 private:
     QDateEdit *baseDateEdit_;
     QSpinBox *dateSpanSpinBox_;
+    void updateDateRange(bool);
 
 private slots:
     void updateBaseDate();
@@ -26,7 +27,7 @@ private slots:
     void showToday();
 
 signals:
-    void updateDateRange(bool);
+    void dateRangeUpdated(bool);
 };
 
 #endif // TIMELINECONTOLLER_H
