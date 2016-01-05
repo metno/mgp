@@ -55,6 +55,8 @@ QHash<QString, QVariant> RoleEditor::edit(const Role *role)
 {
     // initialize fields
     nameEdit_->setText(role->name());
+    loTimeEdit_->setTime(role->loTime());
+    hiTimeEdit_->setTime(role->hiTime());
     descrEdit_->setPlainText(role->description());
 
     // open dialog and return any edited values
