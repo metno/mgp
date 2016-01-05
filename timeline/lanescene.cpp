@@ -345,8 +345,8 @@ QList<LaneItem *> LaneScene::laneItems() const
     // (thus supporting client-side moving of lanes (on the server, the
     // lane-order is irrelevant, since each user should be allowed to
     // define his/her own order!)) ... TBD
-    // NOTE: This mapping should be kept and manipulated in the RolesScene.
-    // The RolesScene will emit a signal to notify about changes to the mapping.
+    // NOTE: This mapping should be kept and manipulated in the LaneHeaderScene.
+    // The LaneHeaderScene will emit a signal to notify about changes to the mapping.
     return lItems;
 }
 

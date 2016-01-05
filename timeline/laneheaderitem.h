@@ -26,6 +26,7 @@ private:
     qint64 roleId_;
     QGraphicsTextItem *nameItem_;
     QGraphicsTextItem *timeItem_;
+    QGraphicsTextItem *filterItem_;
 };
 
 #endif // LANEHEADERITEM_H

@@ -36,6 +36,13 @@ LaneHeaderItem::LaneHeaderItem(qint64 roleId__)
     timeItem_->setZValue(2);
     timeItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
 
+    filterItem_ = new QGraphicsTextItem("<filter>", this);
+    filterItem_->setFont(QFont("helvetica", 10, QFont::Normal));
+    filterItem_->setHtml("<div style='color:ff0000; background-color:#ffff00;'>&lt;filter&gt;</div>");
+    //filterItem_->setDefaultTextColor(Qt::white);
+    filterItem_->setZValue(2);
+    filterItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+
     updateProperties();
 }
 
@@ -45,6 +52,9 @@ void LaneHeaderItem::updateRect(const QRectF &r)
     nameItem_->setPos(rect().x() + 5, rect().y());
     timeItem_->setPos(
                 rect().x() + 5,
+                rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
+    filterItem_->setPos(
+                rect().x() + rect().width() - filterItem_->boundingRect().width() / scene()->views().first()->transform().m11(),
                 rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
 }
 
