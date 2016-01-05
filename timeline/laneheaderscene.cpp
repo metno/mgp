@@ -15,8 +15,8 @@
 
 LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     : QGraphicsScene(0, 0, w, h, parent)
-    , hoverLaneHeaderItem_(0)
-    , currLaneHeaderItem_(0)
+    , hoverItem_(0)
+    , currItem_(0)
     , currLaneIndex_(0)
     , contextMenuActive_(false)
 {
@@ -26,22 +26,22 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     bgItem_->setZValue(-1);
     addItem(bgItem_);
 
-    editLaneHeaderAction_ = new QAction("Edit lane", 0);
-    connect(editLaneHeaderAction_, SIGNAL(triggered()), SLOT(editHoveredLane()));
+    editAction_ = new QAction("Edit lane", 0);
+    connect(editAction_, SIGNAL(triggered()), SLOT(editHoveredLane()));
 
-    removeLaneHeaderAction_ = new QAction("Remove lane", 0);
-    connect(removeLaneHeaderAction_, SIGNAL(triggered()), SLOT(removeHoveredLane()));
+    removeAction_ = new QAction("Remove lane", 0);
+    connect(removeAction_, SIGNAL(triggered()), SLOT(removeHoveredLane()));
 
-    currLaneHeaderMarker_ = new QGraphicsRectItem;
-    currLaneHeaderMarker_->setBrush(QBrush(QColor(255, 0, 0, 16)));
+    currMarker_ = new QGraphicsRectItem;
+    currMarker_->setBrush(QBrush(QColor(255, 0, 0, 16)));
     {
         QPen pen(QBrush(QColor(255, 0, 0)), 2);
         pen.setCosmetic(true);
-        currLaneHeaderMarker_->setPen(pen);
+        currMarker_->setPen(pen);
     }
-    currLaneHeaderMarker_->setZValue(15);
-    currLaneHeaderMarker_->setVisible(false);
-    addItem(currLaneHeaderMarker_);
+    currMarker_->setZValue(15);
+    currMarker_->setVisible(false);
+    addItem(currMarker_);
 }
 
 void LaneHeaderScene::updateFromTaskMgr()
@@ -88,20 +88,20 @@ void LaneHeaderScene::updateGeometryAndContents()
 void LaneHeaderScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     // reset any existing highlighting
-    if (hoverLaneHeaderItem_)
-        hoverLaneHeaderItem_->highlight(false);
+    if (hoverItem_)
+        hoverItem_->highlight(false);
 
     // decide which lane header is hovered, if any
     foreach (QGraphicsItem *item, items(event->scenePos())) {
-        hoverLaneHeaderItem_ = dynamic_cast<LaneHeaderItem *>(item);
-        if (hoverLaneHeaderItem_)
+        hoverItem_ = dynamic_cast<LaneHeaderItem *>(item);
+        if (hoverItem_)
             break;
     }
 
     // update
-    if (hoverLaneHeaderItem_) {
-        hoverLaneHeaderItem_->highlight(true);
-        RolePanel::instance().setContents(TaskManager::instance().findRole(hoverLaneHeaderItem_->roleId()).data());
+    if (hoverItem_) {
+        hoverItem_->highlight(true);
+        RolePanel::instance().setContents(TaskManager::instance().findRole(hoverItem_->roleId()).data());
         const int scenex = event->scenePos().x();
         currLaneIndex_ = (scenex < 0) ? -1 : (scenex / laneWidth());
     } else {
@@ -118,13 +118,13 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
     } else if (event->button() == Qt::RightButton) {
         updateCurrLaneHeaderItem(true);
 
-        if (!hoverLaneHeaderItem_)
+        if (!hoverItem_)
             return;
 
         // open context menu
         QMenu contextMenu;
-        contextMenu.addAction(editLaneHeaderAction_);
-        contextMenu.addAction(removeLaneHeaderAction_);
+        contextMenu.addAction(editAction_);
+        contextMenu.addAction(removeAction_);
         contextMenuActive_ = true;
         contextMenu.exec(QCursor::pos());
         contextMenuActive_ = false;
@@ -133,20 +133,20 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
 void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
-    if ((event->button() == Qt::LeftButton) && hoverLaneHeaderItem_)
+    if ((event->button() == Qt::LeftButton) && hoverItem_)
         editHoveredLane();
 }
 
 void LaneHeaderScene::focusOutEvent(QFocusEvent *)
 {
-    currLaneHeaderItem_ = 0;
-    currLaneHeaderMarker_->setVisible(false);
+    currItem_ = 0;
+    currMarker_->setVisible(false);
 }
 
 void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
 {
     // make another lane header item current
-    currLaneHeaderItem_ = laneHeaderItem;
+    currItem_ = laneHeaderItem;
 
     // update highlighting etc.
     const qreal lwidth = laneWidth();
@@ -159,22 +159,22 @@ void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
     rect.setTop(lvpad);
     rect.setWidth(lwidth - lhpad);
     rect.setHeight(height() - 2 * lvpad);
-    currLaneHeaderMarker_->setRect(rect);
-    currLaneHeaderMarker_->setVisible(true);
+    currMarker_->setRect(rect);
+    currMarker_->setVisible(true);
 }
 
 void LaneHeaderScene::clearCurrLaneHeader()
 {
     // make no lane header item current and update highlighting
-    currLaneHeaderItem_ = 0;
-    currLaneHeaderMarker_->setVisible(false);
+    currItem_ = 0;
+    currMarker_->setVisible(false);
 }
 
 void LaneHeaderScene::updateCurrLaneHeaderItem(bool ignoreMiss)
 {
-    if (hoverLaneHeaderItem_) {
-        if (hoverLaneHeaderItem_ != currLaneHeaderItem_)
-            setCurrLaneHeader(hoverLaneHeaderItem_);
+    if (hoverItem_) {
+        if (hoverItem_ != currItem_)
+            setCurrLaneHeader(hoverItem_);
     } else if (!ignoreMiss) {
         clearCurrLaneHeader();
     }
@@ -227,8 +227,8 @@ qint64 LaneHeaderScene::laneToRoleId(int laneIndex) const
 
 void LaneHeaderScene::editHoveredLane()
 {
-    Q_ASSERT(hoverLaneHeaderItem_);
-    const qint64 roleId = hoverLaneHeaderItem_->roleId();
+    Q_ASSERT(hoverItem_);
+    const qint64 roleId = hoverItem_->roleId();
     Role *role = TaskManager::instance().findRole(roleId).data();
     const QHash<QString, QVariant> values = RoleEditor::instance().edit(role);
     if (!values.isEmpty()) {
@@ -241,9 +241,9 @@ void LaneHeaderScene::removeHoveredLane()
 {
     if (!confirm("Really remove lane?"))
         return;
-    Q_ASSERT(hoverLaneHeaderItem_);
-    TaskManager::instance().removeRole(hoverLaneHeaderItem_->roleId());
-    hoverLaneHeaderItem_ = 0;
+    Q_ASSERT(hoverItem_);
+    TaskManager::instance().removeRole(hoverItem_->roleId());
+    hoverItem_ = 0;
     TaskManager::instance().emitUpdated();
     RolePanel::instance().clearContents();
 }
@@ -252,7 +252,7 @@ void LaneHeaderScene::handleViewLeft()
 {
     if (contextMenuActive_)
         return;
-    if (hoverLaneHeaderItem_)
-        hoverLaneHeaderItem_->highlight(false);
-    hoverLaneHeaderItem_ = 0;
+    if (hoverItem_)
+        hoverItem_->highlight(false);
+    hoverItem_ = 0;
 }

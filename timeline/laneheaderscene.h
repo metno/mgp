@@ -53,11 +53,11 @@ private:
     QList<qint64> headerItemRoleIds() const;
     void addHeaderItem(qint64);
 
-    QAction *editLaneHeaderAction_;
-    QAction *removeLaneHeaderAction_;
-    LaneHeaderItem *hoverLaneHeaderItem_; // lane header item (if any) currently hovered
-    LaneHeaderItem *currLaneHeaderItem_; // lane header item (if any) currently selected
-    QGraphicsRectItem *currLaneHeaderMarker_;
+    QAction *editAction_;
+    QAction *removeAction_;
+    LaneHeaderItem *hoverItem_; // lane header item (if any) currently hovered
+    LaneHeaderItem *currItem_; // lane header item (if any) currently selected
+    QGraphicsRectItem *currMarker_;
 
     int currLaneIndex_;
     bool contextMenuActive_;
