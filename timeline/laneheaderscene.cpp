@@ -15,6 +15,8 @@
 LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     : QGraphicsScene(0, 0, w, h, parent)
     , hoverLaneHeaderItem_(0)
+    , currLaneHeaderItem_(0)
+    , currLaneIndex_(0)
 {
     // add background item
     bgItem_ = new QGraphicsRectItem(sceneRect());
@@ -27,6 +29,17 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
 
     removeLaneHeaderAction_ = new QAction("Remove lane", 0);
     connect(removeLaneHeaderAction_, SIGNAL(triggered()), SLOT(removeHoveredLane()));
+
+    currLaneHeaderMarker_ = new QGraphicsRectItem;
+    currLaneHeaderMarker_->setBrush(QBrush(QColor(255, 0, 0, 16)));
+    {
+        QPen pen(QBrush(QColor(255, 0, 0)), 2);
+        pen.setCosmetic(true);
+        currLaneHeaderMarker_->setPen(pen);
+    }
+    currLaneHeaderMarker_->setZValue(15);
+    currLaneHeaderMarker_->setVisible(false);
+    addItem(currLaneHeaderMarker_);
 }
 
 void LaneHeaderScene::updateFromTaskMgr()
@@ -72,22 +85,37 @@ void LaneHeaderScene::updateGeometryAndContents()
 
 void LaneHeaderScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    // update hovered lane header item
+    // reset any existing highlighting
+    if (hoverLaneHeaderItem_)
+        hoverLaneHeaderItem_->highlight(false);
+
+    // decide which lane header is hovered, if any
     foreach (QGraphicsItem *item, items(event->scenePos())) {
         hoverLaneHeaderItem_ = dynamic_cast<LaneHeaderItem *>(item);
         if (hoverLaneHeaderItem_)
             break;
     }
 
-    if (hoverLaneHeaderItem_)
+    // update
+    if (hoverLaneHeaderItem_) {
+        hoverLaneHeaderItem_->highlight(true);
         RolePanel::instance().setContents(TaskManager::instance().findRole(hoverLaneHeaderItem_->roleId()).data());
-    else
+        const int scenex = event->scenePos().x();
+        currLaneIndex_ = (scenex < 0) ? -1 : (scenex / laneWidth());
+    } else {
         RolePanel::instance().clearContents();
+        currLaneIndex_ = -1;
+    }
 }
 
 void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    if (event->button() == Qt::RightButton) {
+    if (event->button() == Qt::LeftButton) {
+        updateCurrLaneHeaderItem(false);
+
+    } else if (event->button() == Qt::RightButton) {
+        updateCurrLaneHeaderItem(true);
+
         if (!hoverLaneHeaderItem_)
             return;
 
@@ -103,6 +131,46 @@ void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     if ((event->button() == Qt::LeftButton) && hoverLaneHeaderItem_)
         editHoveredLane();
+}
+
+void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
+{
+    // make another lane header item current
+    currLaneHeaderItem_ = laneHeaderItem;
+    currLaneHeaderItem_->setSelected(true);
+
+    // update highlighting etc.
+//    QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
+//    Q_ASSERT(currTask);
+    const qreal lwidth = laneWidth();
+    const qreal lhpad = laneHorizontalPadding();
+    const qreal lvpad = laneVerticalPadding();
+
+    QRectF rect;
+    Q_ASSERT((currLaneIndex_ >= 0) && (currLaneIndex_ < headerItems().size()));
+    rect.setLeft(currLaneIndex_ * lwidth + lhpad);
+    rect.setTop(lvpad);
+    rect.setWidth(lwidth - lhpad);
+    rect.setHeight(height() - 2 * lvpad);
+    currLaneHeaderMarker_->setRect(rect);
+    currLaneHeaderMarker_->setVisible(true);
+}
+
+void LaneHeaderScene::clearCurrLaneHeader()
+{
+    // make no lane header item current and update highlighting
+    currLaneHeaderItem_ = 0;
+    currLaneHeaderMarker_->setVisible(false);
+}
+
+void LaneHeaderScene::updateCurrLaneHeaderItem(bool ignoreMiss)
+{
+    if (hoverLaneHeaderItem_) {
+        if (hoverLaneHeaderItem_ != currLaneHeaderItem_)
+            setCurrLaneHeader(hoverLaneHeaderItem_);
+    } else if (!ignoreMiss) {
+        clearCurrLaneHeader();
+    }
 }
 
 QList<LaneHeaderItem *> LaneHeaderScene::headerItems() const

@@ -22,6 +22,12 @@ LaneHeaderItem::LaneHeaderItem(qint64 roleId__)
     grad.setColorAt(1, QColor("#aaa"));
     setBrush(QBrush(grad));
 
+    hoverItem_ = new QGraphicsRectItem(this);
+    hoverItem_->setFlag(QGraphicsItem::ItemStacksBehindParent);
+    hoverItem_->setBrush(QColor("#ff0"));
+    hoverItem_->setPen(QPen(QColor("#880")));
+    hoverItem_->setVisible(false);
+
     QSharedPointer<Role> role = TaskManager::instance().findRole(roleId_);
     Q_ASSERT(role);
 
@@ -44,6 +50,19 @@ LaneHeaderItem::LaneHeaderItem(qint64 roleId__)
     filterItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
 
     updateProperties();
+}
+
+void LaneHeaderItem::highlight(bool enabled)
+{
+    if (enabled) {
+        Q_ASSERT(!scene()->views().isEmpty());
+        const qreal w = 5;
+        const qreal addh = w / scene()->views().first()->transform().m11();
+        const qreal addv = w / scene()->views().first()->transform().m22();
+        hoverItem_->setRect(rect().adjusted(-addh, -addv, addh, addv));
+    }
+
+    hoverItem_->setVisible(enabled);
 }
 
 void LaneHeaderItem::updateRect(const QRectF &r)

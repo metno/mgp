@@ -42,6 +42,10 @@ private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
 
+    void setCurrLaneHeader(LaneHeaderItem *);
+    void clearCurrLaneHeader();
+    void updateCurrLaneHeaderItem(bool);
+
     QList<LaneHeaderItem *> headerItems() const;
     QList<qint64> headerItemRoleIds() const;
     void addHeaderItem(qint64);
@@ -49,6 +53,10 @@ private:
     QAction *editLaneHeaderAction_;
     QAction *removeLaneHeaderAction_;
     LaneHeaderItem *hoverLaneHeaderItem_; // lane header item (if any) currently hovered
+    LaneHeaderItem *currLaneHeaderItem_; // lane header item (if any) currently selected
+    QGraphicsRectItem *currLaneHeaderMarker_;
+
+    int currLaneIndex_;
 
 private slots:
     void editHoveredLane();

@@ -19,6 +19,7 @@ class LaneHeaderItem : public QGraphicsRectItem
 public:
     LaneHeaderItem(qint64);
     qint64 roleId() const { return roleId_; }
+    void highlight(bool);
     void updateRect(const QRectF &);
     void updateProperties();
 
@@ -27,6 +28,7 @@ private:
     QGraphicsTextItem *nameItem_;
     QGraphicsTextItem *timeItem_;
     QGraphicsTextItem *filterItem_;
+    QGraphicsRectItem *hoverItem_;
 };
 
 #endif // LANEHEADERITEM_H
