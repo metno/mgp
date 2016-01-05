@@ -144,11 +144,8 @@ void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
 {
     // make another lane header item current
     currLaneHeaderItem_ = laneHeaderItem;
-    currLaneHeaderItem_->setSelected(true);
 
     // update highlighting etc.
-//    QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
-//    Q_ASSERT(currTask);
     const qreal lwidth = laneWidth();
     const qreal lhpad = laneHorizontalPadding();
     const qreal lvpad = laneVerticalPadding();
