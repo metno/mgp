@@ -240,3 +240,10 @@ void LaneHeaderScene::removeHoveredLane()
     TaskManager::instance().emitUpdated();
     RolePanel::instance().clearContents();
 }
+
+void LaneHeaderScene::handleViewLeft()
+{
+    if (hoverLaneHeaderItem_)
+        hoverLaneHeaderItem_->highlight(false);
+    hoverLaneHeaderItem_ = 0;
+}

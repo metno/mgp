@@ -31,6 +31,7 @@ private:
 
 signals:
     void scaled(qreal, qreal);
+    void viewLeft();
 };
 
 #endif // LANEVIEW_H

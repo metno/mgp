@@ -582,3 +582,10 @@ void LaneScene::handleViewScaleUpdate()
         tItem->updateTextPositions();
     }
 }
+
+void LaneScene::handleViewLeft()
+{
+    if (hoverTaskItem_)
+        hoverTaskItem_->highlight(false);
+    hoverTaskItem_ = 0;
+}

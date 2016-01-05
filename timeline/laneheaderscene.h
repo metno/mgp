@@ -24,6 +24,8 @@ class LaneHeaderScene : public QGraphicsScene
 {
     Q_OBJECT
 
+    friend class LaneHeaderView;
+
 public:
     LaneHeaderScene(qreal, qreal, QObject * = 0);
     static qreal laneWidth() { return 100; } // ### should this be wider?
@@ -61,6 +63,7 @@ private:
 private slots:
     void editHoveredLane();
     void removeHoveredLane();
+    void handleViewLeft();
 };
 
 #endif // LANEHEADERSCENE_H

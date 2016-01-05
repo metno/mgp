@@ -17,6 +17,7 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     connect(this, SIGNAL(scaled(qreal, qreal)), dynamic_cast<LaneHeaderView *>(scene->laneHeaderScene_->views().first()), SLOT(updateScale(qreal, qreal)));
     connect(this, SIGNAL(scaled(qreal, qreal)), scene, SLOT(handleViewScaleUpdate()));
+    connect(this, SIGNAL(viewLeft()), scene, SLOT(handleViewLeft()));
 }
 
 void LaneView::updateScale(qreal sx, qreal sy)
@@ -101,4 +102,5 @@ void LaneView::enterEvent(QEvent *)
 void LaneView::leaveEvent(QEvent *)
 {
     releaseKeyboard();
+    emit viewLeft();
 }

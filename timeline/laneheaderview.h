@@ -28,6 +28,7 @@ private:
 
 signals:
     void resized();
+    void viewLeft();
 };
 
 #endif // LANEHEADERVIEW_H

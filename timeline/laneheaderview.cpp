@@ -5,11 +5,12 @@
 #include "common.h"
 #include <QResizeEvent>
 
-LaneHeaderView::LaneHeaderView(LaneHeaderScene *rScene, QWidget *parent)
-    : QGraphicsView(rScene, parent)
+LaneHeaderView::LaneHeaderView(LaneHeaderScene *scene, QWidget *parent)
+    : QGraphicsView(scene, parent)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    connect(this, SIGNAL(viewLeft()), scene, SLOT(handleViewLeft()));
 }
 
 void LaneHeaderView::updateScale(qreal sx, qreal)
@@ -27,4 +28,5 @@ void LaneHeaderView::resizeEvent(QResizeEvent *event)
 void LaneHeaderView::leaveEvent(QEvent *)
 {
     RolePanel::instance().clearContents();
+    emit viewLeft();
 }

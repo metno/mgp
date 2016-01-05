@@ -88,6 +88,7 @@ private slots:
     void editCurrentTask();
     void removeCurrentTask();
     void handleViewScaleUpdate();
+    void handleViewLeft();
 
 signals:
     void dateRangeChanged();
