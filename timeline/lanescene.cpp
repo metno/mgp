@@ -30,6 +30,7 @@ LaneScene::LaneScene(LaneHeaderScene *rolesScene, const QDate &baseDate__, int d
     , insertTop_(-1)
     , insertBottom_(-1)
     , nextNewTaskId_(0)
+    , contextMenuActive_(false)
 {
     setDateRange(baseDate_, dateSpan_);
 
@@ -468,7 +469,9 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
             contextMenu.addAction(editTaskAction_);
             contextMenu.addAction(removeTaskAction_);
         }
+        contextMenuActive_ = true;
         contextMenu.exec(QCursor::pos());
+        contextMenuActive_ = false;
     }
 }
 
@@ -591,6 +594,8 @@ void LaneScene::handleViewScaleUpdate()
 
 void LaneScene::handleViewLeft()
 {
+    if (contextMenuActive_)
+        return;
     if (hoverTaskItem_)
         hoverTaskItem_->highlight(false);
     hoverTaskItem_ = 0;

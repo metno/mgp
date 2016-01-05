@@ -60,6 +60,7 @@ private:
     QGraphicsRectItem *currLaneHeaderMarker_;
 
     int currLaneIndex_;
+    bool contextMenuActive_;
 
 private slots:
     void editHoveredLane();

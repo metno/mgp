@@ -18,6 +18,7 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     , hoverLaneHeaderItem_(0)
     , currLaneHeaderItem_(0)
     , currLaneIndex_(0)
+    , contextMenuActive_(false)
 {
     // add background item
     bgItem_ = new QGraphicsRectItem(sceneRect());
@@ -124,7 +125,9 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         QMenu contextMenu;
         contextMenu.addAction(editLaneHeaderAction_);
         contextMenu.addAction(removeLaneHeaderAction_);
+        contextMenuActive_ = true;
         contextMenu.exec(QCursor::pos());
+        contextMenuActive_ = false;
     }
 }
 
@@ -247,6 +250,8 @@ void LaneHeaderScene::removeHoveredLane()
 
 void LaneHeaderScene::handleViewLeft()
 {
+    if (contextMenuActive_)
+        return;
     if (hoverLaneHeaderItem_)
         hoverLaneHeaderItem_->highlight(false);
     hoverLaneHeaderItem_ = 0;

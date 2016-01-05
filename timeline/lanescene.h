@@ -83,6 +83,7 @@ private:
     int insertTop_;
     int insertBottom_;
     int nextNewTaskId_;
+    bool contextMenuActive_;
 
 private slots:
     void addNewTask();
