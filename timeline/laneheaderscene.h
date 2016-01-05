@@ -43,6 +43,7 @@ private:
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
+    virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 
     void setCurrLaneHeader(LaneHeaderItem *);
@@ -63,8 +64,8 @@ private:
     bool contextMenuActive_;
 
 private slots:
-    void editHoveredLane();
-    void removeHoveredLane();
+    void editCurrentLane();
+    void removeCurrentLane();
     void handleViewLeft();
 };
 

@@ -26,11 +26,11 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     bgItem_->setZValue(-1);
     addItem(bgItem_);
 
-    editAction_ = new QAction("Edit lane", 0);
-    connect(editAction_, SIGNAL(triggered()), SLOT(editHoveredLane()));
+    editAction_ = new QAction("Edit", 0);
+    connect(editAction_, SIGNAL(triggered()), SLOT(editCurrentLane()));
 
-    removeAction_ = new QAction("Remove lane", 0);
-    connect(removeAction_, SIGNAL(triggered()), SLOT(removeHoveredLane()));
+    removeAction_ = new QAction("Remove", 0);
+    connect(removeAction_, SIGNAL(triggered()), SLOT(removeCurrentLane()));
 
     currMarker_ = new QGraphicsRectItem;
     currMarker_->setBrush(QBrush(QColor(255, 0, 0, 16)));
@@ -118,7 +118,7 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
     } else if (event->button() == Qt::RightButton) {
         updateCurrLaneHeaderItem(true);
 
-        if (!hoverItem_)
+        if (!currItem_)
             return;
 
         // open context menu
@@ -134,13 +134,19 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     if ((event->button() == Qt::LeftButton) && hoverItem_)
-        editHoveredLane();
+        editCurrentLane();
+}
+
+void LaneHeaderScene::focusInEvent(QFocusEvent *)
+{
+    if (currItem_)
+        currMarker_->setVisible(true);
 }
 
 void LaneHeaderScene::focusOutEvent(QFocusEvent *)
 {
-    currItem_ = 0;
-    currMarker_->setVisible(false);
+    if (!contextMenuActive_)
+        currMarker_->setVisible(false);
 }
 
 void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
@@ -225,10 +231,10 @@ qint64 LaneHeaderScene::laneToRoleId(int laneIndex) const
     return -1;
 }
 
-void LaneHeaderScene::editHoveredLane()
+void LaneHeaderScene::editCurrentLane()
 {
-    Q_ASSERT(hoverItem_);
-    const qint64 roleId = hoverItem_->roleId();
+    Q_ASSERT(currItem_);
+    const qint64 roleId = currItem_->roleId();
     Role *role = TaskManager::instance().findRole(roleId).data();
     const QHash<QString, QVariant> values = RoleEditor::instance().edit(role);
     if (!values.isEmpty()) {
@@ -237,13 +243,13 @@ void LaneHeaderScene::editHoveredLane()
     }
 }
 
-void LaneHeaderScene::removeHoveredLane()
+void LaneHeaderScene::removeCurrentLane()
 {
     if (!confirm("Really remove lane?"))
         return;
-    Q_ASSERT(hoverItem_);
-    TaskManager::instance().removeRole(hoverItem_->roleId());
-    hoverItem_ = 0;
+    Q_ASSERT(currItem_);
+    TaskManager::instance().removeRole(currItem_->roleId());
+    currItem_ = 0;
     TaskManager::instance().emitUpdated();
     RolePanel::instance().clearContents();
 }
