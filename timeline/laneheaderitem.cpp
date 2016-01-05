@@ -50,12 +50,11 @@ void LaneHeaderItem::updateRect(const QRectF &r)
 {
     setRect(r);
     nameItem_->setPos(rect().x() + 5, rect().y());
-    timeItem_->setPos(
-                rect().x() + 5,
-                rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
+    const qreal voffset = nameItem_->boundingRect().height() / scene()->views().first()->transform().m22();
+    timeItem_->setPos(rect().x() + 5, rect().y() + voffset);
     filterItem_->setPos(
                 rect().x() + rect().width() - filterItem_->boundingRect().width() / scene()->views().first()->transform().m11(),
-                rect().y() + nameItem_->boundingRect().height() / scene()->views().first()->transform().m22());
+                rect().y() + voffset);
 }
 
 void LaneHeaderItem::updateProperties()
