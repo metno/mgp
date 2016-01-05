@@ -8,7 +8,7 @@ class LaneHeaderScene;
 class LaneScene;
 class TimelineScene;
 class TimelineController;
-class RolesController;
+class LanesController;
 class TasksController;
 class QSplitter;
 class QDateEdit;
@@ -36,7 +36,7 @@ private:
     QSplitter *botSplitter_;
 
     TimelineController *timelineController_;
-    RolesController *rolesController_;
+    LanesController *lanesController_;
     TasksController *tasksController_;
 
     virtual void keyPressEvent(QKeyEvent *);

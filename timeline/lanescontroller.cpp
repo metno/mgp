@@ -1,10 +1,10 @@
-#include "rolescontroller.h"
+#include "lanescontroller.h"
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
 
-RolesController::RolesController(QWidget *parent)
+LanesController::LanesController(QWidget *parent)
     : QWidget(parent)
 {
     QFormLayout *formLayout = new QFormLayout;
@@ -13,7 +13,7 @@ RolesController::RolesController(QWidget *parent)
     formLayout->addRow("Filter:", new QLabel("<...>"));
     formLayout->addRow("Highlighting:", new QLabel("<...>"));
 
-    QGroupBox *groupBox = new QGroupBox("Roles");
+    QGroupBox *groupBox = new QGroupBox("Lanes");
     groupBox->setLayout(formLayout);
 
     QHBoxLayout *mainLayout = new QHBoxLayout;

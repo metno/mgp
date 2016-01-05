@@ -9,7 +9,7 @@
 #include "rolepanel.h"
 #include "taskpanel.h"
 #include "timelinecontroller.h"
-#include "rolescontroller.h"
+#include "lanescontroller.h"
 #include "taskscontroller.h"
 #include "common.h"
 #include <QVBoxLayout>
@@ -86,8 +86,8 @@ MainWindow::MainWindow()
     connect(timelineController_, SIGNAL(dateRangeUpdated(bool)), SLOT(updateDateRange(bool)));
     ctrlFrame->layout()->addWidget(timelineController_);
 
-    rolesController_ = new RolesController();
-    ctrlFrame->layout()->addWidget(rolesController_);
+    lanesController_ = new LanesController();
+    ctrlFrame->layout()->addWidget(lanesController_);
 
     tasksController_ = new TasksController();
     ctrlFrame->layout()->addWidget(tasksController_);
