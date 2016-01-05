@@ -9,6 +9,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsView>
 #include <QGraphicsSceneMouseEvent>
+#include <QFocusEvent>
 #include <QAction>
 #include <QMenu>
 
@@ -131,6 +132,12 @@ void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     if ((event->button() == Qt::LeftButton) && hoverLaneHeaderItem_)
         editHoveredLane();
+}
+
+void LaneHeaderScene::focusOutEvent(QFocusEvent *)
+{
+    currLaneHeaderItem_ = 0;
+    currLaneHeaderMarker_->setVisible(false);
 }
 
 void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)

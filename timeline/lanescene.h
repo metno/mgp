@@ -62,6 +62,7 @@ private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
+    virtual void focusOutEvent(QFocusEvent *);
 
     void setCurrTask(TaskItem *);
     void clearCurrTask();

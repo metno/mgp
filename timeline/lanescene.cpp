@@ -487,6 +487,12 @@ void LaneScene::keyPressEvent(QKeyEvent *event)
     }
 }
 
+void LaneScene::focusOutEvent(QFocusEvent *)
+{
+    currTaskItem_ = 0;
+    currTaskMarker_->setVisible(false);
+}
+
 void LaneScene::setCurrTask(TaskItem *taskItem)
 {
     // make another task item current
