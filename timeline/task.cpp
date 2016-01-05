@@ -1,5 +1,10 @@
 #include "task.h"
 
+Task::Task()
+    : roleId_(-1)
+{
+}
+
 Task::Task(const TaskProperties &props)
     : roleId_(-1)
     , props_(props)

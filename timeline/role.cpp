@@ -1,5 +1,9 @@
 #include "role.h"
 
+Role::Role()
+{
+}
+
 Role::Role(const RoleProperties &props)
     : props_(props)
 {

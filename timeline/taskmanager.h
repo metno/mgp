@@ -34,13 +34,17 @@ public:
 private:
     TaskManager();
 
+    static bool init_;
+    void loadFromSettings();
+    void updateSettings();
+
     QHash<qint64, QSharedPointer<Role> > roles_; // available roles
     QHash<qint64, QSharedPointer<Task> > tasks_; // available tasks
     qint64 nextRoleId_;
     qint64 nextTaskId_;
     int testRoleIndex_; // ### for testing
 
-    void unassignTaskFromRole(qint64);
+    void unassignTaskFromRole(qint64, bool = false);
 
 signals:
     void updated();

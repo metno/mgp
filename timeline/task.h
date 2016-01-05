@@ -9,6 +9,8 @@ class TaskProperties
     friend class Task;
 
 public:
+    TaskProperties() {}
+
     TaskProperties(
             const QString &name, const QString &summary, const QString description,
             const QDateTime &loDateTime, const QDateTime &hiDateTime)
@@ -52,6 +54,7 @@ public:
     QDateTime hiDateTime() const;
 
 private:
+    Task();
     Task(const TaskProperties &);
 
     qint64 roleId_; // role to which this task is assigned (< 0 if task is unnasigned)

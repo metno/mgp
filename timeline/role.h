@@ -10,6 +10,10 @@ class RoleProperties
     friend class Role;
 
 public:
+    RoleProperties()
+    {
+    }
+
     RoleProperties(const QString &name, const QString &description, const QTime &loTime, const QTime &hiTime)
         : name_(name)
         , description_(description)
@@ -36,15 +40,16 @@ public:
     QTime hiTime() const;
 
 private:
+    Role();
     Role(const RoleProperties &);
 
     QList<qint64> taskIds_; // tasks assigned to this role
     RoleProperties props_;
 
     void setName(const QString &);
+    void setDescription(const QString &);
     void setLoTime(const QTime &);
     void setHiTime(const QTime &);
-    void setDescription(const QString &);
 };
 
 #endif // ROLE_H
