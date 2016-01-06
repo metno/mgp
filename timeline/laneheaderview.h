@@ -24,6 +24,7 @@ public slots:
 
 private:
     virtual void resizeEvent(QResizeEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
     virtual void leaveEvent(QEvent *);
 
 signals:

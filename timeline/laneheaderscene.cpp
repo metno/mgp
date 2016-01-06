@@ -150,6 +150,14 @@ void LaneHeaderScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
         editCurrentLane();
 }
 
+void LaneHeaderScene::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Left)
+        moveCurrentLaneLeft();
+    else if (event->key() == Qt::Key_Right)
+        moveCurrentLaneRight();
+}
+
 void LaneHeaderScene::focusInEvent(QFocusEvent *)
 {
     if (currItem_)

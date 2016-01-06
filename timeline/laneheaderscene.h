@@ -44,6 +44,7 @@ private:
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
     virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 

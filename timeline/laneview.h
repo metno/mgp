@@ -22,7 +22,6 @@ private:
     virtual void mouseReleaseEvent(QMouseEvent *);
     virtual void mouseMoveEvent(QMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
-    virtual void enterEvent(QEvent *);
     virtual void leaveEvent(QEvent *);
 
     bool panning_;

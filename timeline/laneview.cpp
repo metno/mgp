@@ -94,13 +94,7 @@ void LaneView::keyPressEvent(QKeyEvent *event)
     QGraphicsView::keyPressEvent(event); // propagate to scene
 }
 
-void LaneView::enterEvent(QEvent *)
-{
-    grabKeyboard();
-}
-
 void LaneView::leaveEvent(QEvent *)
 {
-    releaseKeyboard();
     emit viewLeft();
 }
