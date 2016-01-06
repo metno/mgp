@@ -17,7 +17,6 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     : QGraphicsScene(0, 0, w, h, parent)
     , hoverItem_(0)
     , currItem_(0)
-    , currLaneIndex_(0)
     , contextMenuActive_(false)
 {
     // add background item
@@ -31,6 +30,12 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
 
     removeAction_ = new QAction("Remove", 0);
     connect(removeAction_, SIGNAL(triggered()), SLOT(removeCurrentLane()));
+
+    moveLeftAction_ = new QAction("Move left", 0);
+    connect(moveLeftAction_, SIGNAL(triggered()), SLOT(moveCurrentLaneLeft()));
+
+    moveRightAction_ = new QAction("Move right", 0);
+    connect(moveRightAction_, SIGNAL(triggered()), SLOT(moveCurrentLaneRight()));
 
     currMarker_ = new QGraphicsRectItem;
     currMarker_->setBrush(QBrush(QColor(255, 0, 0, 16)));
@@ -49,16 +54,21 @@ void LaneHeaderScene::updateFromTaskMgr()
     const QList<qint64> tmRoleIds = TaskManager::instance().roleIds();
 
     // remove header items for roles that no longer exist in the task manager
-    foreach (LaneHeaderItem *hItem, headerItems()) {
-        if (!tmRoleIds.contains(hItem->roleId()))
+    foreach (LaneHeaderItem *hItem, headerItems_) {
+        if (!tmRoleIds.contains(hItem->roleId())) {
             removeItem(hItem);
+            headerItems_.removeOne(hItem);
+        }
     }
 
     // add header items for unrepresented roles in the task manager
     const QList<qint64> hiRoleIds = headerItemRoleIds();
     foreach (qint64 tmRoleId, tmRoleIds) {
-        if (!hiRoleIds.contains(tmRoleId))
-            addHeaderItem(tmRoleId);
+        if (!hiRoleIds.contains(tmRoleId)) {
+            LaneHeaderItem *item = new LaneHeaderItem(tmRoleId);
+            addItem(item);
+            headerItems_.append(item);
+        }
     }
 
     updateGeometryAndContents();
@@ -68,14 +78,14 @@ void LaneHeaderScene::updateGeometryAndContents()
 {
     // update scene rect
     const QRectF srect = sceneRect();
-    setSceneRect(srect.x(), srect.y(), headerItems().size() * laneWidth() + laneHorizontalPadding(), views().first()->height() - 10);
+    setSceneRect(srect.x(), srect.y(), headerItems_.size() * laneWidth() + laneHorizontalPadding(), views().first()->height() - 10);
 
     // update header item rects and texts
     const qreal lhpad = laneHorizontalPadding();
     const qreal lvpad = laneVerticalPadding();
     const qreal lwidth = laneWidth();
     int i = 0;
-    foreach (LaneHeaderItem *item, headerItems()) {
+    foreach (LaneHeaderItem *item, headerItems_) {
         item->updateRect(QRectF(i * lwidth + lhpad, lvpad, lwidth - lhpad, height() - 2 * lvpad));
         item->updateProperties();
         i++;
@@ -102,11 +112,8 @@ void LaneHeaderScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     if (hoverItem_) {
         hoverItem_->highlight(true);
         RolePanel::instance().setContents(TaskManager::instance().findRole(hoverItem_->roleId()).data());
-        const int scenex = event->scenePos().x();
-        currLaneIndex_ = (scenex < 0) ? -1 : (scenex / laneWidth());
     } else {
         RolePanel::instance().clearContents();
-        currLaneIndex_ = -1;
     }
 }
 
@@ -125,6 +132,12 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         QMenu contextMenu;
         contextMenu.addAction(editAction_);
         contextMenu.addAction(removeAction_);
+
+        contextMenu.addAction(moveLeftAction_);
+        moveLeftAction_->setEnabled(headerItems_.indexOf(currItem_) > 0);
+        contextMenu.addAction(moveRightAction_);
+        moveRightAction_->setEnabled(headerItems_.indexOf(currItem_) < (headerItems_.size() - 1));
+
         contextMenuActive_ = true;
         contextMenu.exec(QCursor::pos());
         contextMenuActive_ = false;
@@ -149,10 +162,9 @@ void LaneHeaderScene::focusOutEvent(QFocusEvent *)
         currMarker_->setVisible(false);
 }
 
-void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
+void LaneHeaderScene::setCurrItem(LaneHeaderItem *item)
 {
-    // make another lane header item current
-    currItem_ = laneHeaderItem;
+    currItem_ = item;
 
     // update highlighting etc.
     const qreal lwidth = laneWidth();
@@ -160,8 +172,9 @@ void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
     const qreal lvpad = laneVerticalPadding();
 
     QRectF rect;
-    Q_ASSERT((currLaneIndex_ >= 0) && (currLaneIndex_ < headerItems().size()));
-    rect.setLeft(currLaneIndex_ * lwidth + lhpad);
+    const int currLaneIndex = headerItems_.indexOf(currItem_);
+    Q_ASSERT((currLaneIndex >= 0) && (currLaneIndex < headerItems_.size()));
+    rect.setLeft(currLaneIndex * lwidth + lhpad);
     rect.setTop(lvpad);
     rect.setWidth(lwidth - lhpad);
     rect.setHeight(height() - 2 * lvpad);
@@ -169,7 +182,7 @@ void LaneHeaderScene::setCurrLaneHeader(LaneHeaderItem *laneHeaderItem)
     currMarker_->setVisible(true);
 }
 
-void LaneHeaderScene::clearCurrLaneHeader()
+void LaneHeaderScene::clearCurrItem()
 {
     // make no lane header item current and update highlighting
     currItem_ = 0;
@@ -180,55 +193,31 @@ void LaneHeaderScene::updateCurrLaneHeaderItem(bool ignoreMiss)
 {
     if (hoverItem_) {
         if (hoverItem_ != currItem_)
-            setCurrLaneHeader(hoverItem_);
+            setCurrItem(hoverItem_);
     } else if (!ignoreMiss) {
-        clearCurrLaneHeader();
+        clearCurrItem();
     }
-}
-
-QList<LaneHeaderItem *> LaneHeaderScene::headerItems() const
-{
-    QList<LaneHeaderItem *> hItems;
-    foreach (QGraphicsItem *item, items()) {
-        LaneHeaderItem *hItem = dynamic_cast<LaneHeaderItem *>(item);
-        if (hItem)
-            hItems.append(hItem);
-    }
-
-    // before returning, the order of the list needs to be modified
-    // according to a 'final order' that may be changed interactively
-    // (thus supporting client-side moving of lanes (on the server, the
-    // lane-order is irrelevant, since each user should be allowed to
-    // define his/her own order!)) ... TBD
-    // NOTE: whenever this mapping changes (via mouse/key events in this
-    // LaneHeaderScene), a signal must be emitted so that the LaneScene can
-    // update itself.
-
-    return hItems;
 }
 
 QList<qint64> LaneHeaderScene::headerItemRoleIds() const
 {
     QList<qint64> hiRoleIds;
-    foreach (QGraphicsItem *item, items()) {
-        LaneHeaderItem *hItem = dynamic_cast<LaneHeaderItem *>(item);
-        if (hItem)
-            hiRoleIds.append(hItem->roleId());
-    }
+    foreach (LaneHeaderItem *item, headerItems_)
+        hiRoleIds.append(item->roleId());
     return hiRoleIds;
 }
 
-void LaneHeaderScene::addHeaderItem(qint64 roleId)
-{
-    addItem(new LaneHeaderItem(roleId));
-}
-
-qint64 LaneHeaderScene::laneToRoleId(int laneIndex) const
+qint64 LaneHeaderScene::laneIndexToRoleId(int i) const
 {
     QList<qint64> roleIds = headerItemRoleIds();
-    if (laneIndex >= 0 && laneIndex < roleIds.size())
-        return roleIds.at(laneIndex);
+    if (i >= 0 && i < roleIds.size())
+        return roleIds.at(i);
     return -1;
+}
+
+int LaneHeaderScene::roleIdToLaneIndex(qint64 id) const
+{
+    return headerItemRoleIds().indexOf(id);
 }
 
 void LaneHeaderScene::editCurrentLane()
@@ -243,22 +232,54 @@ void LaneHeaderScene::editCurrentLane()
     }
 }
 
+void LaneHeaderScene::clearHoverItem()
+{
+    if (hoverItem_)
+        hoverItem_->highlight(false);
+    hoverItem_ = 0;
+}
+
 void LaneHeaderScene::removeCurrentLane()
 {
     if (!confirm("Really remove lane?"))
         return;
     Q_ASSERT(currItem_);
     TaskManager::instance().removeRole(currItem_->roleId());
-    currItem_ = 0;
+    clearCurrItem();
+    clearHoverItem();
     TaskManager::instance().emitUpdated();
     RolePanel::instance().clearContents();
+}
+
+void LaneHeaderScene::moveCurrentLaneLeft()
+{
+    Q_ASSERT(headerItems_.contains(currItem_));
+    const int pos = headerItems_.indexOf(currItem_);
+    if (pos > 0) {
+        headerItems_.swap(pos, pos - 1);
+        updateGeometryAndContents();
+        clearHoverItem();
+        setCurrItem(currItem_); // update highlighting of current item
+        emit lanesSwapped(pos, pos - 1);
+    }
+}
+
+void LaneHeaderScene::moveCurrentLaneRight()
+{
+    Q_ASSERT(headerItems_.contains(currItem_));
+    const int pos = headerItems_.indexOf(currItem_);
+    if (pos < (headerItems_.size() - 1)) {
+        headerItems_.swap(pos, pos + 1);
+        updateGeometryAndContents();
+        clearHoverItem();
+        setCurrItem(currItem_); // update highlighting of current item
+        emit lanesSwapped(pos, pos + 1);
+    }
 }
 
 void LaneHeaderScene::handleViewLeft()
 {
     if (contextMenuActive_)
         return;
-    if (hoverItem_)
-        hoverItem_->highlight(false);
-    hoverItem_ = 0;
+    clearHoverItem();
 }

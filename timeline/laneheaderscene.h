@@ -31,7 +31,8 @@ public:
     static qreal laneWidth() { return 100; } // ### should this be wider?
     static qreal laneHorizontalPadding() { return 5; }
     static qreal laneVerticalPadding() { return 5; }
-    qint64 laneToRoleId(int) const;
+    qint64 laneIndexToRoleId(int) const;
+    int roleIdToLaneIndex(qint64) const;
 
 public slots:
     void updateFromTaskMgr();
@@ -46,27 +47,33 @@ private:
     virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 
-    void setCurrLaneHeader(LaneHeaderItem *);
-    void clearCurrLaneHeader();
+    void setCurrItem(LaneHeaderItem *);
+    void clearCurrItem();
     void updateCurrLaneHeaderItem(bool);
+    void clearHoverItem();
 
-    QList<LaneHeaderItem *> headerItems() const;
+    QList<LaneHeaderItem *> headerItems_;
     QList<qint64> headerItemRoleIds() const;
-    void addHeaderItem(qint64);
 
     QAction *editAction_;
     QAction *removeAction_;
+    QAction *moveLeftAction_;
+    QAction *moveRightAction_;
     LaneHeaderItem *hoverItem_; // lane header item (if any) currently hovered
     LaneHeaderItem *currItem_; // lane header item (if any) currently selected
     QGraphicsRectItem *currMarker_;
 
-    int currLaneIndex_;
     bool contextMenuActive_;
 
 private slots:
     void editCurrentLane();
     void removeCurrentLane();
+    void moveCurrentLaneLeft();
+    void moveCurrentLaneRight();
     void handleViewLeft();
+
+signals:
+    void lanesSwapped(int, int);
 };
 
 #endif // LANEHEADERSCENE_H

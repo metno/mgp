@@ -35,9 +35,8 @@ private:
     QList<QGraphicsLineItem *> timeItems_;
     QList<QGraphicsRectItem *> roleTimeItems_;
 
-    QList<LaneItem *> laneItems() const;
+    QList<LaneItem *> laneItems_;
     QList<qint64> laneItemRoleIds() const;
-    void addLaneItem(qint64);
 
     QList<TaskItem *> taskItems(qint64 = -1) const;
     QList<TaskItem *> taskItems(const QPointF &) const;
@@ -62,6 +61,7 @@ private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
+    virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 
     void setCurrTask(TaskItem *);
@@ -79,7 +79,7 @@ private:
     QGraphicsRectItem *hoverRoleMarker_;
     QGraphicsRectItem *currTaskMarker_;
 
-    int currLaneIndex_;
+    int hoverLaneIndex_;
     int insertTop_;
     int insertBottom_;
     int nextNewTaskId_;
@@ -91,6 +91,7 @@ private slots:
     void removeCurrentTask();
     void handleViewScaleUpdate();
     void handleViewLeft();
+    void handleLanesSwapped(int, int);
 
 signals:
     void dateRangeChanged();

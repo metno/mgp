@@ -17,16 +17,16 @@
 #include <QSharedPointer>
 #include <QDateTime>
 
-LaneScene::LaneScene(LaneHeaderScene *rolesScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
-    : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), rolesScene->height(), parent)
-    , laneHeaderScene_(rolesScene)
+LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
+    : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), laneHeaderScene->height(), parent)
+    , laneHeaderScene_(laneHeaderScene)
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
     , currTimeMarker_(0)
     , hoverTaskItem_(0)
     , currTaskItem_(0)
     , pendingCurrTaskId_(-1)
-    , currLaneIndex_(-1)
+    , hoverLaneIndex_(-1)
     , insertTop_(-1)
     , insertBottom_(-1)
     , nextNewTaskId_(0)
@@ -71,6 +71,8 @@ LaneScene::LaneScene(LaneHeaderScene *rolesScene, const QDate &baseDate__, int d
     currTaskMarker_->setZValue(15);
     currTaskMarker_->setVisible(false);
     addItem(currTaskMarker_);
+
+    connect(laneHeaderScene_, SIGNAL(lanesSwapped(int, int)), SLOT(handleLanesSwapped(int, int)));
 }
 
 QDate LaneScene::baseDate() const
@@ -92,7 +94,7 @@ void LaneScene::updateRoleTimeItems()
 
     // add items for new range
     for (int i = 0; i < dateSpan_; ++i) {
-        for (int j = 0; j < laneItems().count(); ++j) {
+        for (int j = 0; j < laneItems_.size(); ++j) {
             QGraphicsRectItem *roleTimeItem = new QGraphicsRectItem;
             roleTimeItem->setBrush(QBrush(QColor("#ffff00")));
             roleTimeItem->setOpacity(0.4);
@@ -170,7 +172,7 @@ void LaneScene::updateBaseItemGeometry()
     const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
 
     int i = 0;
-    foreach (LaneItem *lItem, laneItems()) {
+    foreach (LaneItem *lItem, laneItems_) {
         // update lane item rect
         lItem->setRect(i * lwidth + lhpad, 0, lwidth - lhpad, height());
         i++;
@@ -190,8 +192,8 @@ void LaneScene::updateBaseItemGeometry()
         }
 
         // update role time items
-        for (int j = 0; j < laneItems().size(); ++j) {
-            LaneItem *lItem = laneItems().at(j);
+        for (int j = 0; j < laneItems_.size(); ++j) {
+            LaneItem *lItem = laneItems_.at(j);
 
             const QTime btime = TaskManager::instance().findRole(lItem->roleId())->loTime();
             const long bsecs = btime.hour() * 3600 + btime.minute() * 60 + btime.second();
@@ -203,7 +205,7 @@ void LaneScene::updateBaseItemGeometry()
 
             const qreal by = date_y + bsecs;
             const qreal ey = date_y + esecs;
-            roleTimeItems_.at(i * laneItems().size() + j)->setRect(QRect(j * lwidth + lhpad, by, lwidth - lhpad, ey - by + 1));
+            roleTimeItems_.at(i * laneItems_.size() + j)->setRect(QRect(j * lwidth + lhpad, by, lwidth - lhpad, ey - by + 1));
         }
     }
 }
@@ -214,7 +216,7 @@ void LaneScene::updateTaskItems()
     const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
 
     int i = 0;
-    foreach (LaneItem *lItem, laneItems()) {
+    foreach (LaneItem *lItem, laneItems_) {
         updateTaskItemsInLane(lItem, i++, lwidth, lhpad);
     }
 }
@@ -258,14 +260,15 @@ void LaneScene::updateFromTaskMgr()
     const QList<qint64> tmRoleIds = TaskManager::instance().roleIds();
 
     // remove lane items for roles that no longer exist in the task manager
-    foreach (LaneItem *lItem, laneItems()) {
+    foreach (LaneItem *lItem, laneItems_) {
         bool removed = false;
         if (!tmRoleIds.contains(lItem->roleId())) {
             removeItem(lItem);
+            laneItems_.removeOne(lItem);
             removed = true;
         }
         if (removed) {
-            currLaneIndex_ = -1;
+            hoverLaneIndex_ = -1;
             hoverTaskItem_ = currTaskItem_ = 0;
             hoverRoleMarker_->setVisible(false);
             currTaskMarker_->setVisible(false);
@@ -275,8 +278,11 @@ void LaneScene::updateFromTaskMgr()
     // add lane items for roles in the task manager that have no lane items
     const QList<qint64> liRoleIds = laneItemRoleIds();
     foreach (qint64 tmRoleId, tmRoleIds) {
-        if (!liRoleIds.contains(tmRoleId))
-            addLaneItem(tmRoleId);
+        if (!liRoleIds.contains(tmRoleId)) {
+            LaneItem *item = new LaneItem(tmRoleId);
+            addItem(item);
+            laneItems_.append(item);
+        }
     }
 
     const QList<qint64> tmAllTaskIds = TaskManager::instance().taskIds();
@@ -284,12 +290,12 @@ void LaneScene::updateFromTaskMgr()
     // remove task items for tasks that ...
     foreach (TaskItem *tItem, taskItems()) {
         if ((!tmAllTaskIds.contains(tItem->taskId())) // ... no longer exist in the task manager, or
-                || (TaskManager::instance().findTask(tItem->taskId())->roleId() == -1)) // is no longer assigned ro a role
+                || (TaskManager::instance().findTask(tItem->taskId())->roleId() == -1)) // is no longer assigned to a role
             removeItem(tItem);
     }
 
     // ensure that each lane contains exactly the tasks that are assigned to the corresponding role
-    foreach (LaneItem *lItem, laneItems()) {
+    foreach (LaneItem *lItem, laneItems_) {
         const qint64 roleId = lItem->roleId();
         const QList<qint64> tmRoleTaskIds = TaskManager::instance().assignedTasks(roleId);
 
@@ -318,37 +324,18 @@ void LaneScene::updateFromTaskMgr()
 
 void LaneScene::updateGeometryAndContents()
 {
-    // note: we assume that rolesScene_ is up to date at this point
+    // note: we assume that laneHeaderScene_ is up to date at this point
 
     // update scene rect width
     {
         const QRectF srect = sceneRect();
-        setSceneRect(srect.x(), srect.y(), laneItems().size() * laneHeaderScene_->laneWidth() + laneHeaderScene_->laneHorizontalPadding(), srect.height());
+        setSceneRect(srect.x(), srect.y(), laneItems_.size() * laneHeaderScene_->laneWidth() + laneHeaderScene_->laneHorizontalPadding(), srect.height());
     }
 
     updateRoleTimeItems();
     updateBaseItemGeometry();
     updateTaskItems();
     updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
-}
-
-QList<LaneItem *> LaneScene::laneItems() const
-{
-    QList<LaneItem *> lItems;
-    foreach (QGraphicsItem *item, items()) {
-        LaneItem *lItem = dynamic_cast<LaneItem *>(item);
-        if (lItem)
-            lItems.append(lItem);
-    }
-
-    // before returning, the order of the list needs to be modified
-    // according to a 'final order' that may be changed interactively
-    // (thus supporting client-side moving of lanes (on the server, the
-    // lane-order is irrelevant, since each user should be allowed to
-    // define his/her own order!)) ... TBD
-    // NOTE: This mapping should be kept and manipulated in the LaneHeaderScene.
-    // The LaneHeaderScene will emit a signal to notify about changes to the mapping.
-    return lItems;
 }
 
 // ### consider turning this into a template function (see taskItemRoleIds())
@@ -361,11 +348,6 @@ QList<qint64> LaneScene::laneItemRoleIds() const
             liRoleIds.append(lItem->roleId());
     }
     return liRoleIds;
-}
-
-void LaneScene::addLaneItem(qint64 roleId)
-{
-    addItem(new LaneItem(roleId));
 }
 
 QList<TaskItem *> LaneScene::taskItems(qint64 roleId) const
@@ -436,15 +418,15 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     const int lwidth = laneHeaderScene_->laneWidth();
     const int lhpad = laneHeaderScene_->laneHorizontalPadding();
     const int scenex = event->scenePos().x();
-    currLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
-    if ((currLaneIndex_ >= 0) && (currLaneIndex_ < laneItems().size())) {
+    hoverLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
+    if ((hoverLaneIndex_ >= 0) && (hoverLaneIndex_ < laneItems_.size())) {
 
         // insertion position for adding new task
         insertTop_ = event->scenePos().y();
         insertBottom_ = insertTop_ + 2 * secsInHour(); // ### for now
 
         hoverTimeMarker_->setLine(lhpad, insertTop_, sceneRect().width() - lhpad, insertTop_);
-        hoverRoleMarker_->setRect(currLaneIndex_ * lwidth + lhpad, 0, lwidth - lhpad, height());
+        hoverRoleMarker_->setRect(hoverLaneIndex_ * lwidth + lhpad, 0, lwidth - lhpad, height());
 
         hoverTimeMarker_->setVisible(true);
         hoverRoleMarker_->setVisible(true);
@@ -490,17 +472,23 @@ void LaneScene::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void LaneScene::focusOutEvent(QFocusEvent *)
+void LaneScene::focusInEvent(QFocusEvent *)
 {
-    currTaskItem_ = 0;
-    currTaskMarker_->setVisible(false);
+    if (currTaskItem_)
+        setCurrTask(currTaskItem_);
 }
 
-void LaneScene::setCurrTask(TaskItem *taskItem)
+void LaneScene::focusOutEvent(QFocusEvent *)
 {
-    // make another task item current
-    currTaskItem_ = taskItem;
-    currTaskItem_->setSelected(true);
+    if (!contextMenuActive_)
+        clearCurrTask();
+}
+
+void LaneScene::setCurrTask(TaskItem *item)
+{
+    Q_ASSERT(item);
+
+    currTaskItem_ = item;
 
     // update highlighting etc.
     QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
@@ -510,7 +498,9 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     const qreal lvpad = laneHeaderScene_->laneVerticalPadding();
 
     QRectF rect;
-    rect.setLeft(currLaneIndex_ * lwidth + 2 * lhpad);
+    const int currLaneIndex = laneHeaderScene_->roleIdToLaneIndex(currTask->roleId());
+    Q_ASSERT((currLaneIndex >= 0) && (currLaneIndex < laneItems_.size()));
+    rect.setLeft(currLaneIndex * lwidth + 2 * lhpad);
     rect.setTop(timestampToVPos(currTask->loDateTime().toTime_t()) - 0 * lvpad);
     rect.setWidth(lwidth - 4 * lhpad);
     rect.setHeight((currTask->hiDateTime().toTime_t() - currTask->loDateTime().toTime_t()) + 1 + 0 * lvpad);
@@ -519,7 +509,6 @@ void LaneScene::setCurrTask(TaskItem *taskItem)
     TaskPanel::instance().setContents(currTask.data());
 
     const qint64 roleId = currTask->roleId();
-    Q_ASSERT(roleId == laneHeaderScene_->laneToRoleId(currLaneIndex_));
     QSharedPointer<Role> currRole = TaskManager::instance().findRole(roleId);
     RolePanel::instance().setContents(currRole.data());
 }
@@ -545,7 +534,7 @@ void LaneScene::updateCurrTaskItem(bool ignoreMiss)
 
 void LaneScene::addNewTask()
 {
-    const qint64 roleId = laneHeaderScene_->laneToRoleId(currLaneIndex_);
+    const qint64 roleId = laneHeaderScene_->laneIndexToRoleId(hoverLaneIndex_);
     const long loTimestamp = vPosToTimestamp(insertTop_);
     const long hiTimestamp = vPosToTimestamp(insertBottom_);
 
@@ -599,4 +588,15 @@ void LaneScene::handleViewLeft()
     if (hoverTaskItem_)
         hoverTaskItem_->highlight(false);
     hoverTaskItem_ = 0;
+}
+
+void LaneScene::handleLanesSwapped(int pos1, int pos2)
+{
+    Q_ASSERT((pos1 >= 0) && (pos1 < laneItems_.size()));
+    Q_ASSERT((pos2 >= 0) && (pos2 < laneItems_.size()));
+    Q_ASSERT(pos1 != pos2);
+    laneItems_.swap(pos1, pos2);
+    updateGeometryAndContents();
+    if (currTaskItem_)
+        setCurrTask(currTaskItem_); // update highlighting of current task
 }
