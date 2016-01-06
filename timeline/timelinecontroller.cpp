@@ -31,6 +31,8 @@ TimelineController::TimelineController(const QDate &baseDate, int dateSpan, QWid
     dateSpanSpinBox_->setValue(dateSpan);
     connect(dateSpanSpinBox_, SIGNAL(valueChanged(int)), SLOT(updateDateSpan()));
 
+    updateSettingsFile();
+
 
 //    for (int i = 0; i < 3; ++i) {
 //        QToolButton *toolButton = new QToolButton;
@@ -85,15 +87,17 @@ void TimelineController::showToday()
     updateDateRange(true);
 }
 
-void TimelineController::updateDateRange(bool rewind)
+void TimelineController::updateSettingsFile() const
 {
-    // update settings file
     if (settings) {
         settings->setValue("baseDate", baseDateEdit_->date());
         settings->setValue("dateSpan", dateSpanSpinBox_->value());
         settings->sync();
     }
+}
 
-    // notify
+void TimelineController::updateDateRange(bool rewind)
+{
+    updateSettingsFile();
     emit dateRangeUpdated(rewind);
 }

@@ -19,6 +19,7 @@ public:
 private:
     QDateEdit *baseDateEdit_;
     QSpinBox *dateSpanSpinBox_;
+    void updateSettingsFile() const;
     void updateDateRange(bool);
 
 private slots:
