@@ -156,7 +156,7 @@ void LaneHeaderScene::keyPressEvent(QKeyEvent *event)
         moveCurrentLaneLeft();
     else if (event->key() == Qt::Key_Right)
         moveCurrentLaneRight();
-    else if (event->key() == Qt::Key_Delete)
+    else if ((event->key() == Qt::Key_Delete) || (event->key() == Qt::Key_Backspace))
         removeCurrentLane();
 }
 
