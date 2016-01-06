@@ -132,10 +132,10 @@ MainWindow::MainWindow()
     mainLayout->addWidget(vsplitter);
 
     QHBoxLayout *testLayout = new QHBoxLayout;
-    QPushButton *testBtn_addNewRole = new QPushButton("Add new role");
-    connect(testBtn_addNewRole, SIGNAL(clicked()), SLOT(addNewRole()));
-    testBtn_addNewRole->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    testLayout->addWidget(testBtn_addNewRole);
+    QPushButton *testBtn_addNewLane = new QPushButton("Add new lane");
+    connect(testBtn_addNewLane, SIGNAL(clicked()), SLOT(addNewLane()));
+    testBtn_addNewLane->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    testLayout->addWidget(testBtn_addNewLane);
     testLayout->addStretch(1);
     mainLayout->addLayout(testLayout);
 
@@ -253,7 +253,9 @@ void MainWindow::resetZooming()
     qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1, 1);
 }
 
-void MainWindow::addNewRole()
+void MainWindow::addNewLane()
 {
+    // ### For now, assume that a lane always represents a role. Later, this will be just a special type of lane
+    // (typically with its filter set to "role=...")
     TaskManager::instance().addNewRole();
 }

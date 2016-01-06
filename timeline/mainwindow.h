@@ -50,7 +50,7 @@ private slots:
     void updateSplitters(int, int);
     void resetZooming();
 
-    void addNewRole(); // ### for testing
+    void addNewLane(); // ### for testing
 };
 
 #endif // MAINWINDOW_H
