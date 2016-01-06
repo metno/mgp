@@ -25,6 +25,10 @@
 #include <QSpinBox>
 #include <QToolButton>
 #include <QScrollBar>
+#include <QSharedPointer>
+#include <QSettings>
+
+extern QSharedPointer<QSettings> settings;
 
 void MainWindow::init(const QDate &baseDate, int dateSpan)
 {
@@ -173,7 +177,18 @@ void MainWindow::showEvent(QShowEvent *)
     topSplitter_->setSizes(botSplitter_->sizes());
 
     // set initial scaling
-    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(3, 0.01);
+    qreal hscale = 3;
+    qreal vscale = 0.01;
+    if (settings) {
+        bool ok;
+        qreal val = settings->value("hscale").toReal(&ok);
+        if (ok)
+           hscale = val;
+        val = settings->value("vscale").toReal(&ok);
+        if (ok)
+           vscale = val;
+    }
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(hscale, vscale);
 }
 
 void MainWindow::updateFromTaskMgr()

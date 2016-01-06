@@ -8,6 +8,10 @@
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QRectF>
+#include <QSharedPointer>
+#include <QSettings>
+
+extern QSharedPointer<QSettings> settings;
 
 LaneView::LaneView(LaneScene *scene, QWidget *parent)
     : QGraphicsView(scene, parent)
@@ -23,6 +27,11 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
 void LaneView::updateScale(qreal sx, qreal sy)
 {
     setTransform(QTransform::fromScale(sx, sy));
+    if (settings) {
+        settings->setValue("hscale", sx);
+        settings->setValue("vscale", sy);
+        settings->sync();
+    }
     emit scaled(sx, sy);
 }
 
