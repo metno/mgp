@@ -33,6 +33,7 @@ public:
     static qreal laneVerticalPadding() { return 5; }
     qint64 laneIndexToRoleId(int) const;
     int roleIdToLaneIndex(qint64) const;
+    bool hasAdjustedFromSettings() const;
 
 public slots:
     void updateFromTaskMgr();
@@ -52,6 +53,8 @@ private:
     void clearCurrItem();
     void updateCurrLaneHeaderItem(bool);
     void clearHoverItem();
+    void adjustFromSettings();
+    void updateSettings() const;
 
     QList<LaneHeaderItem *> headerItems_;
     QList<qint64> headerItemRoleIds() const;
@@ -65,6 +68,7 @@ private:
     QGraphicsRectItem *currMarker_;
 
     bool contextMenuActive_;
+    bool adjustedFromSettings_;
 
 private slots:
     void editCurrentLane();

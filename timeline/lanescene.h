@@ -40,7 +40,6 @@ private:
 
     QList<TaskItem *> taskItems(qint64 = -1) const;
     QList<TaskItem *> taskItems(const QPointF &) const;
-    QList<qint64> taskItemRoleIds() const;
     QList<qint64> taskIds(const QList<TaskItem *> &) const;
 
     void updateBaseItemGeometry();
@@ -67,6 +66,7 @@ private:
     void setCurrTask(TaskItem *);
     void clearCurrTask();
     void updateCurrTaskItem(bool);
+    void adjustFromSettings();
 
     QAction *addTaskAction_;
     QAction *editTaskAction_;
@@ -84,6 +84,7 @@ private:
     int insertBottom_;
     int nextNewTaskId_;
     bool contextMenuActive_;
+    bool adjustedFromSettings_;
 
 private slots:
     void addNewTask();

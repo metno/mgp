@@ -12,12 +12,17 @@
 #include <QFocusEvent>
 #include <QAction>
 #include <QMenu>
+#include <QSharedPointer>
+#include <QSettings>
+
+extern QSharedPointer<QSettings> settings;
 
 LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     : QGraphicsScene(0, 0, w, h, parent)
     , hoverItem_(0)
     , currItem_(0)
     , contextMenuActive_(false)
+    , adjustedFromSettings_(false)
 {
     // add background item
     bgItem_ = new QGraphicsRectItem(sceneRect());
@@ -71,6 +76,12 @@ void LaneHeaderScene::updateFromTaskMgr()
         }
     }
 
+    if (!adjustedFromSettings_) {
+        adjustFromSettings();
+        adjustedFromSettings_ = true;
+    }
+
+    updateSettings();
     updateGeometryAndContents();
 }
 
@@ -116,7 +127,7 @@ void LaneHeaderScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         RolePanel::instance().clearContents();
     }
 }
-
+extern QSharedPointer<QSettings> settings;
 void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
@@ -230,6 +241,11 @@ int LaneHeaderScene::roleIdToLaneIndex(qint64 id) const
     return headerItemRoleIds().indexOf(id);
 }
 
+bool LaneHeaderScene::hasAdjustedFromSettings() const
+{
+    return adjustedFromSettings_;
+}
+
 void LaneHeaderScene::editCurrentLane()
 {
     Q_ASSERT(currItem_);
@@ -247,6 +263,43 @@ void LaneHeaderScene::clearHoverItem()
     if (hoverItem_)
         hoverItem_->highlight(false);
     hoverItem_ = 0;
+}
+
+void LaneHeaderScene::adjustFromSettings()
+{
+    if (!settings)
+        return;
+
+    // ensure headerItems_ gets ordered correctly
+
+    QList<LaneHeaderItem *> sortedHeaderItems;
+    const int nlanes = settings->beginReadArray("lanes");
+    for (int i = 0; i < nlanes; ++i) {
+        settings->setArrayIndex(i);
+        const qint64 roleId = settings->value("roleId").toLongLong();
+        const int laneIndex = roleIdToLaneIndex(roleId);
+        if (laneIndex >= 0)
+            sortedHeaderItems.append(headerItems_.at(laneIndex));
+    }
+    settings->endArray();
+
+    if (sortedHeaderItems.size() == headerItems_.size())
+        headerItems_ = sortedHeaderItems;
+}
+
+void LaneHeaderScene::updateSettings() const
+{
+    if (!settings)
+        return;
+
+    settings->beginWriteArray("lanes");
+    for (int i = 0; i < headerItems_.size(); ++i) {
+        settings->setArrayIndex(i);
+        settings->setValue("roleId", headerItems_.at(i)->roleId());
+    }
+    settings->endArray();
+
+    settings->sync();
 }
 
 void LaneHeaderScene::removeCurrentLane()
@@ -267,6 +320,7 @@ void LaneHeaderScene::moveCurrentLaneLeft()
     const int pos = headerItems_.indexOf(currItem_);
     if (pos > 0) {
         headerItems_.swap(pos, pos - 1);
+        updateSettings();
         updateGeometryAndContents();
         clearHoverItem();
         setCurrItem(currItem_); // update highlighting of current item
@@ -280,6 +334,7 @@ void LaneHeaderScene::moveCurrentLaneRight()
     const int pos = headerItems_.indexOf(currItem_);
     if (pos < (headerItems_.size() - 1)) {
         headerItems_.swap(pos, pos + 1);
+        updateSettings();
         updateGeometryAndContents();
         clearHoverItem();
         setCurrItem(currItem_); // update highlighting of current item

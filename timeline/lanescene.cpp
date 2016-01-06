@@ -31,6 +31,7 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, 
     , insertBottom_(-1)
     , nextNewTaskId_(0)
     , contextMenuActive_(false)
+    , adjustedFromSettings_(false)
 {
     setDateRange(baseDate_, dateSpan_);
 
@@ -285,6 +286,11 @@ void LaneScene::updateFromTaskMgr()
         }
     }
 
+    if (!adjustedFromSettings_ && laneHeaderScene_->hasAdjustedFromSettings()) {
+        adjustFromSettings();
+        adjustedFromSettings_ = true;
+    }
+
     const QList<qint64> tmAllTaskIds = TaskManager::instance().taskIds();
 
     // remove task items for tasks that ...
@@ -338,16 +344,12 @@ void LaneScene::updateGeometryAndContents()
     updateCurrTimeMarker(); // ### called here for now; eventually to be called automatically every 10 secs or so
 }
 
-// ### consider turning this into a template function (see taskItemRoleIds())
 QList<qint64> LaneScene::laneItemRoleIds() const
 {
-    QList<qint64> liRoleIds;
-    foreach (QGraphicsItem *item, items()) {
-        LaneItem *lItem = dynamic_cast<LaneItem *>(item);
-        if (lItem)
-            liRoleIds.append(lItem->roleId());
-    }
-    return liRoleIds;
+    QList<qint64> roleIds;
+    foreach (LaneItem *item, laneItems_)
+        roleIds.append(item->roleId());
+    return roleIds;
 }
 
 QList<TaskItem *> LaneScene::taskItems(qint64 roleId) const
@@ -370,18 +372,6 @@ QList<TaskItem *> LaneScene::taskItems(const QPointF &pos) const
             tItems.append(tItem);
     }
     return tItems;
-}
-
-// ### consider turning this into a template function (see laneItemRoleIds())
-QList<qint64> LaneScene::taskItemRoleIds() const
-{
-    QList<qint64> tiRoleIds;
-    foreach (QGraphicsItem *item, items()) {
-        TaskItem *tItem = dynamic_cast<TaskItem *>(item);
-        if (tItem)
-            tiRoleIds.append(tItem->roleId());
-    }
-    return tiRoleIds;
 }
 
 QList<qint64> LaneScene::taskIds(const QList<TaskItem *> &tItems) const
@@ -530,6 +520,21 @@ void LaneScene::updateCurrTaskItem(bool ignoreMiss)
     } else if (!ignoreMiss) {
         clearCurrTask();
     }
+}
+
+void LaneScene::adjustFromSettings()
+{
+    // ensure laneItems_ gets ordered correctly
+
+    QList<LaneItem *> sortedLaneItems;
+    const QList<qint64> laneItemRoleIds_ = laneItemRoleIds();
+    for (int i = 0; i < laneItems_.size(); ++i) {
+        const qint64 roleId = laneHeaderScene_->laneIndexToRoleId(i);
+        sortedLaneItems.append(laneItems_.at(laneItemRoleIds_.indexOf(roleId)));
+    }
+
+    Q_ASSERT(sortedLaneItems.size() == laneItems_.size());
+    laneItems_ = sortedLaneItems;
 }
 
 void LaneScene::addNewTask()
