@@ -27,11 +27,14 @@ LaneView::LaneView(LaneScene *scene, QWidget *parent)
 void LaneView::updateScale(qreal sx, qreal sy)
 {
     setTransform(QTransform::fromScale(sx, sy));
+
+    // update settings
     if (settings) {
         settings->setValue("hscale", sx);
         settings->setValue("vscale", sy);
         settings->sync();
     }
+
     emit scaled(sx, sy);
 }
 

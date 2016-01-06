@@ -41,6 +41,7 @@ private:
 
     virtual void keyPressEvent(QKeyEvent *);
     virtual void showEvent(QShowEvent *);
+    virtual void resizeEvent(QResizeEvent *);
 
 private slots:
     void updateFromTaskMgr();

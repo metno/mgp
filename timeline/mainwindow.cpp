@@ -154,7 +154,19 @@ MainWindow::MainWindow()
     connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
     connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
 
-    resize(1000, 1000);
+    // set initial window size
+    int width_ = 1000;
+    int height_ = 1000;
+    if (settings) {
+        bool ok;
+        int val = settings->value("width").toInt(&ok);
+        if (ok)
+           width_ = val;
+        val = settings->value("height").toInt(&ok);
+        if (ok)
+           height_ = val;
+    }
+    resize(width_, height_);
 }
 
 bool MainWindow::isInit_ = false;
@@ -189,6 +201,15 @@ void MainWindow::showEvent(QShowEvent *)
            vscale = val;
     }
     qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(hscale, vscale);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *)
+{
+    // update settings
+    if (settings) {
+        settings->setValue("width", width());
+        settings->setValue("height", height());
+    }
 }
 
 void MainWindow::updateFromTaskMgr()
