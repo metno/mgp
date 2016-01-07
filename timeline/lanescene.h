@@ -9,6 +9,7 @@ class QGraphicsRectItem;
 class QGraphicsLineItem;
 class LaneItem;
 class TaskItem;
+class Task;
 class QGraphicsSceneMouseEvent;
 class QAction;
 
@@ -58,11 +59,13 @@ private:
 
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *);
+    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
     virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 
+    void updateCurrTaskMarkerRect(Task *);
     void setCurrTask(TaskItem *);
     void clearCurrTask();
     void updateCurrTaskItem(bool);
@@ -86,6 +89,11 @@ private:
     bool contextMenuActive_;
     bool taskRemovalActive_;
     bool adjustedFromSettings_;
+
+    bool draggingTask_;
+    QPointF basePos_;
+    long origLoTimestamp_;
+    long origHiTimestamp_;
 
 private slots:
     void addNewTask();

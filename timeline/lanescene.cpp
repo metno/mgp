@@ -33,6 +33,7 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, 
     , contextMenuActive_(false)
     , taskRemovalActive_(false)
     , adjustedFromSettings_(false)
+    , draggingTask_(false)
 {
     setDateRange(baseDate_, dateSpan_);
 
@@ -240,6 +241,8 @@ void LaneScene::updateTaskItemsInLane(LaneItem *lItem, int index, int lwidth, in
         tItem->updateName(task->name());
         tItem->updateSummary(task->summary());
         tItem->updateDescription(task->description());
+        if (tItem == currTaskItem_)
+            updateCurrTaskMarkerRect(task.data());
     }
 }
 
@@ -272,6 +275,7 @@ void LaneScene::updateFromTaskMgr()
         if (removed) {
             hoverLaneIndex_ = -1;
             hoverTaskItem_ = currTaskItem_ = 0;
+            draggingTask_ = 0;
             hoverRoleMarker_->setVisible(false);
             currTaskMarker_->setVisible(false);
         }
@@ -385,10 +389,10 @@ QList<qint64> LaneScene::taskIds(const QList<TaskItem *> &tItems) const
 
 void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    // for existing tasks, update which task is the current one
     const QList<TaskItem *> hitTaskItems = taskItems(event->scenePos());
     TaskItem *origHoverTaskItem = hoverTaskItem_;
     hoverTaskItem_ = hitTaskItems.isEmpty() ? 0 : hitTaskItems.first();
+
     if (origHoverTaskItem)
         origHoverTaskItem->highlight(false);
     if (hoverTaskItem_) {
@@ -405,14 +409,13 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         RolePanel::instance().clearContents();
     }
 
-    // update hover highlighting etc.
     const int lwidth = laneHeaderScene_->laneWidth();
     const int lhpad = laneHeaderScene_->laneHorizontalPadding();
     const int scenex = event->scenePos().x();
     hoverLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
     if ((hoverLaneIndex_ >= 0) && (hoverLaneIndex_ < laneItems_.size())) {
 
-        // insertion position for adding new task
+        // set insertion position for adding new task
         insertTop_ = event->scenePos().y();
         insertBottom_ = insertTop_ + 2 * secsInHour(); // ### for now
 
@@ -425,12 +428,32 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         hoverTimeMarker_->setVisible(false);
         hoverRoleMarker_->setVisible(false);
     }
+
+    // update dragged task
+    if (draggingTask_) {
+        const long deltaTimestamp = vPosToTimestamp(event->scenePos().y()) - vPosToTimestamp(basePos_.y());
+        Q_ASSERT(currTaskItem_);
+        const QDateTime loDateTime = QDateTime::fromTime_t(origLoTimestamp_ + deltaTimestamp);
+        const QDateTime hiDateTime = QDateTime::fromTime_t(origHiTimestamp_ + deltaTimestamp);
+
+        QHash<QString, QVariant> values;
+        values.insert("loDateTime", loDateTime);
+        values.insert("hiDateTime", hiDateTime);
+        TaskManager::instance().updateTask(currTaskItem_->taskId(), values);
+    }
 }
 
 void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
         updateCurrTaskItem(false);
+        if (currTaskItem_) {
+            draggingTask_ = true;
+            basePos_ = event->scenePos();
+            Task *task = TaskManager::instance().findTask(currTaskItem_->taskId()).data();
+            origLoTimestamp_ = task->loDateTime().toTime_t();
+            origHiTimestamp_ = task->hiDateTime().toTime_t();
+        }
 
     } else if (event->button() == Qt::RightButton) {
         updateCurrTaskItem(true);
@@ -446,6 +469,11 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         contextMenu.exec(QCursor::pos());
         contextMenuActive_ = false;
     }
+}
+
+void LaneScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *)
+{
+    draggingTask_ = false;
 }
 
 void LaneScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
@@ -475,6 +503,21 @@ void LaneScene::focusOutEvent(QFocusEvent *)
         clearCurrTask();
 }
 
+void LaneScene::updateCurrTaskMarkerRect(Task *currTask)
+{
+    const qreal lwidth = laneHeaderScene_->laneWidth();
+    const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
+    const qreal lvpad = laneHeaderScene_->laneVerticalPadding();
+    QRectF rect;
+    const int currLaneIndex = laneHeaderScene_->roleIdToLaneIndex(currTask->roleId());
+    Q_ASSERT((currLaneIndex >= 0) && (currLaneIndex < laneItems_.size()));
+    rect.setLeft(currLaneIndex * lwidth + 2 * lhpad);
+    rect.setTop(timestampToVPos(currTask->loDateTime().toTime_t()) - 0 * lvpad);
+    rect.setWidth(lwidth - 4 * lhpad);
+    rect.setHeight((currTask->hiDateTime().toTime_t() - currTask->loDateTime().toTime_t()) + 1 + 0 * lvpad);
+    currTaskMarker_->setRect(rect);
+}
+
 void LaneScene::setCurrTask(TaskItem *item)
 {
     Q_ASSERT(item);
@@ -484,19 +527,10 @@ void LaneScene::setCurrTask(TaskItem *item)
     // update highlighting etc.
     QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
     Q_ASSERT(currTask);
-    const qreal lwidth = laneHeaderScene_->laneWidth();
-    const qreal lhpad = laneHeaderScene_->laneHorizontalPadding();
-    const qreal lvpad = laneHeaderScene_->laneVerticalPadding();
 
-    QRectF rect;
-    const int currLaneIndex = laneHeaderScene_->roleIdToLaneIndex(currTask->roleId());
-    Q_ASSERT((currLaneIndex >= 0) && (currLaneIndex < laneItems_.size()));
-    rect.setLeft(currLaneIndex * lwidth + 2 * lhpad);
-    rect.setTop(timestampToVPos(currTask->loDateTime().toTime_t()) - 0 * lvpad);
-    rect.setWidth(lwidth - 4 * lhpad);
-    rect.setHeight((currTask->hiDateTime().toTime_t() - currTask->loDateTime().toTime_t()) + 1 + 0 * lvpad);
-    currTaskMarker_->setRect(rect);
+    updateCurrTaskMarkerRect(currTask.data());
     currTaskMarker_->setVisible(true);
+
     TaskPanel::instance().setContents(currTask.data());
 
     const qint64 roleId = currTask->roleId();
@@ -509,6 +543,7 @@ void LaneScene::clearCurrTask()
     // make no task item current and update highlighting
     currTaskItem_ = 0;
     currTaskMarker_->setVisible(false);
+    draggingTask_ = 0;
     TaskPanel::instance().clearContents();
     RolePanel::instance().clearContents();
 }
@@ -578,6 +613,7 @@ void LaneScene::removeCurrentTask()
         TaskManager::instance().removeTask(currTaskItem_->taskId());
         currTaskItem_ = 0;
         currTaskMarker_->setVisible(false);
+        draggingTask_ = 0;
         TaskManager::instance().emitUpdated();
     }
 

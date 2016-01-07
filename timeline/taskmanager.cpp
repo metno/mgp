@@ -230,14 +230,32 @@ void TaskManager::updateTask(qint64 taskId, const QHash<QString, QVariant> &valu
     if (values.isEmpty()) return; // no changes
 
     Task *task = tasks_.value(taskId).data();
-    task->setName(values.value("name").toString().trimmed());
-    task->setSummary(values.value("summary").toString().trimmed());
-    task->setLoDateTime(values.value("loDateTime").toDateTime());
-    task->setHiDateTime(values.value("hiDateTime").toDateTime());
-    task->setDescription(values.value("description").toString().trimmed());
+    bool updated = false;
+    if (values.value("name").isValid()) {
+        task->setName(values.value("name").toString().trimmed());
+        updated = true;
+    }
+    if (values.value("summary").isValid()) {
+        task->setSummary(values.value("summary").toString().trimmed());
+        updated = true;
+    }
+    if (values.value("loDateTime").isValid()) {
+        task->setLoDateTime(values.value("loDateTime").toDateTime());
+        updated = true;
+    }
+    if (values.value("hiDateTime").isValid()) {
+        task->setHiDateTime(values.value("hiDateTime").toDateTime());
+        updated = true;
+    }
+    if (values.value("description").isValid()) {
+        task->setDescription(values.value("description").toString().trimmed());
+        updated = true;
+    }
 
-    emitUpdated();
-    updateSettings();
+    if (updated) {
+        emitUpdated();
+        updateSettings();
+    }
 }
 
 void TaskManager::addNewRole()
