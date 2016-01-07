@@ -21,6 +21,8 @@ private:
     RolePanel();
     QFormLayout *formLayout_;
     QLabel *nameLabel_;
+    QLabel *loTimeLabel_;
+    QLabel *hiTimeLabel_;
     QTextBrowser *descrTextBrowser_;
 };
 

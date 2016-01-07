@@ -16,6 +16,8 @@ TaskPanel::TaskPanel()
     : formLayout_(new QFormLayout)
     , nameLabel_(new QLabel)
     , summaryLabel_(new QLabel)
+    , loDateTimeLabel_(new QLabel)
+    , hiDateTimeLabel_(new QLabel)
     , descrTextBrowser_(new QTextBrowser)
 {
     QVBoxLayout *mainLayout = new QVBoxLayout;
@@ -24,6 +26,8 @@ TaskPanel::TaskPanel()
     formLayout_->setLabelAlignment(Qt::AlignRight);
     formLayout_->addRow("Name:", nameLabel_);
     formLayout_->addRow("Summary:", summaryLabel_);
+    formLayout_->addRow("Begins:", loDateTimeLabel_);
+    formLayout_->addRow("Ends:", hiDateTimeLabel_);
     descrTextBrowser_->setReadOnly(true);
     descrTextBrowser_->setOpenExternalLinks(true);
     formLayout_->addRow("Description:", descrTextBrowser_);
@@ -35,15 +39,24 @@ TaskPanel::TaskPanel()
     clearContents();
 }
 
+static QString formatDateTime(const QDateTime &dt)
+{
+    return dt.toString("yyyy-MM-dd hh:mm");
+}
+
 void TaskPanel::setContents(const Task *task)
 {
     if (task) {
         nameLabel_->setText(task->name());
         summaryLabel_->setText(task->summary());
+        loDateTimeLabel_->setText(formatDateTime(task->loDateTime()));
+        hiDateTimeLabel_->setText(formatDateTime(task->hiDateTime()));
         descrTextBrowser_->setHtml(task->description());
     } else {
         nameLabel_->setText("");
         summaryLabel_->setText("");
+        loDateTimeLabel_->setText("");
+        hiDateTimeLabel_->setText("");
         descrTextBrowser_->setHtml("");
     }
 }

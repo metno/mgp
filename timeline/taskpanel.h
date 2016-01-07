@@ -22,6 +22,8 @@ private:
     QFormLayout *formLayout_;
     QLabel *nameLabel_;
     QLabel *summaryLabel_;
+    QLabel *loDateTimeLabel_;
+    QLabel *hiDateTimeLabel_;
     QTextBrowser *descrTextBrowser_;
 };
 
