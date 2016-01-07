@@ -13,6 +13,8 @@ class TasksController;
 class QSplitter;
 class QDateEdit;
 class QSpinBox;
+class QSplitter;
+class QString;
 
 class MainWindow : public QWidget
 {
@@ -32,8 +34,10 @@ private:
     LaneHeaderScene *laneHeaderScene_;
     LaneScene *laneScene_;
     TimelineScene *timelineScene_;
-    QSplitter *topSplitter_;
-    QSplitter *botSplitter_;
+    QSplitter *hsplitter1_;
+    QSplitter *hsplitter2_;
+    QSplitter *hsplitter3_;
+    QSplitter *vsplitter1_;
 
     TimelineController *timelineController_;
     LanesController *lanesController_;
@@ -43,11 +47,17 @@ private:
     virtual void showEvent(QShowEvent *);
     virtual void resizeEvent(QResizeEvent *);
 
+    QList<int> loadSplitterSizesFromSettings(const QString &, const QList<int> &);
+    void updateSplitterSettings(const QSplitter *, const QString &);
+    void updateAllSplitterSettings();
+
 private slots:
     void updateFromTaskMgr();
     void updateGeometry();
     void updateDateRange(bool = false);
-    void updateSplitters(int, int);
+    void updateHSplitter1or2(int, int);
+    void updateHSplitter3(int, int);
+    void updateVSplitter1(int, int);
     void resetZooming();
 
     void addNewLane(); // ### for testing

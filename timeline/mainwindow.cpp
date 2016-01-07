@@ -53,7 +53,7 @@ MainWindow::MainWindow()
 
     // ------------------------
 
-    topSplitter_ = new QSplitter;
+    hsplitter2_ = new QSplitter;
 
     QFrame *cornerFrame = new QFrame;
     QGridLayout *cornerLayout = new QGridLayout;
@@ -66,7 +66,7 @@ MainWindow::MainWindow()
                 "font-weight:normal; color: #000000; "
                 "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #bbbbff, stop: 0.5 #bbeeff, stop: 1 #bbbbff)");
     cornerLayout->addWidget(appLabel, 0, 0, 1, 2);
-    topSplitter_->addWidget(cornerFrame);
+    hsplitter2_->addWidget(cornerFrame);
 
     QFrame *topFrame = new QFrame;
     topFrame->setLayout(new QVBoxLayout);
@@ -101,11 +101,11 @@ MainWindow::MainWindow()
     laneHeaderView->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
     topFrame->layout()->addWidget(laneHeaderView);
 
-    topSplitter_->addWidget(topFrame);
+    hsplitter2_->addWidget(topFrame);
 
     // ------------------------
 
-    botSplitter_ = new QSplitter;
+    hsplitter1_ = new QSplitter;
 
     laneScene_ = new LaneScene(laneHeaderScene_, baseDate_, dateSpan_);
     LaneView *laneView = new LaneView(laneScene_);
@@ -113,23 +113,21 @@ MainWindow::MainWindow()
     timelineScene_ = new TimelineScene(laneScene_, 50);
     TimelineView *timelineView = new TimelineView(timelineScene_);
 
-    botSplitter_->addWidget(timelineView);
-    botSplitter_->addWidget(laneView);
-
-    botSplitter_->setSizes(QList<int>() << 100 << 400);
+    hsplitter1_->addWidget(timelineView);
+    hsplitter1_->addWidget(laneView);
 
     // ------------------------
 
-    QSplitter *vsplitter = new QSplitter(Qt::Vertical);
-    vsplitter->addWidget(topSplitter_);
-    vsplitter->addWidget(botSplitter_);
+    vsplitter1_ = new QSplitter(Qt::Vertical);
+    vsplitter1_->addWidget(hsplitter2_);
+    vsplitter1_->addWidget(hsplitter1_);
 
-    QSplitter *botSplitter2 = new QSplitter;
-    vsplitter->addWidget(botSplitter2);
-    botSplitter2->addWidget(&RolePanel::instance());
-    botSplitter2->addWidget(&TaskPanel::instance());
+    hsplitter3_ = new QSplitter;
+    vsplitter1_->addWidget(hsplitter3_);
+    hsplitter3_->addWidget(&RolePanel::instance());
+    hsplitter3_->addWidget(&TaskPanel::instance());
 
-    mainLayout->addWidget(vsplitter);
+    mainLayout->addWidget(vsplitter1_);
 
     QHBoxLayout *testLayout = new QHBoxLayout;
     QPushButton *testBtn_addNewLane = new QPushButton("Add new lane");
@@ -151,12 +149,14 @@ MainWindow::MainWindow()
     connect(laneView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneHeaderView->horizontalScrollBar(), SLOT(setValue(int)));
     connect(laneHeaderView->horizontalScrollBar(), SIGNAL(valueChanged(int)), laneView->horizontalScrollBar(), SLOT(setValue(int)));
 
-    connect(botSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
-    connect(topSplitter_, SIGNAL(splitterMoved(int,int)), SLOT(updateSplitters(int, int)));
+    connect(hsplitter1_, SIGNAL(splitterMoved(int,int)), SLOT(updateHSplitter1or2(int, int)));
+    connect(hsplitter2_, SIGNAL(splitterMoved(int,int)), SLOT(updateHSplitter1or2(int, int)));
+    connect(hsplitter3_, SIGNAL(splitterMoved(int,int)), SLOT(updateHSplitter3(int, int)));
+    connect(vsplitter1_, SIGNAL(splitterMoved(int,int)), SLOT(updateVSplitter1(int, int)));
 
     // set initial window size
-    int width_ = 1000;
-    int height_ = 1000;
+    int width_ = 1064;
+    int height_ = 989;
     if (settings) {
         bool ok;
         int val = settings->value("width").toInt(&ok);
@@ -167,6 +167,10 @@ MainWindow::MainWindow()
            height_ = val;
     }
     resize(width_, height_);
+
+    hsplitter1_->setSizes(loadSplitterSizesFromSettings("hsplitter1", QList<int>() << 178 << 858));
+    vsplitter1_->setSizes(loadSplitterSizesFromSettings("vsplitter1", QList<int>() << 257 << 487 << 178));
+    hsplitter3_->setSizes(loadSplitterSizesFromSettings("hsplitter3", QList<int>() << 518 << 518));
 }
 
 bool MainWindow::isInit_ = false;
@@ -186,7 +190,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
 void MainWindow::showEvent(QShowEvent *)
 {
-    topSplitter_->setSizes(botSplitter_->sizes());
+    hsplitter2_->setSizes(hsplitter1_->sizes());
 
     // set initial scaling
     qreal hscale = 3;
@@ -226,17 +230,79 @@ void MainWindow::updateGeometry()
     timelineScene_->updateGeometry();
 }
 
-void MainWindow::updateSplitters(int, int)
+QList<int> MainWindow::loadSplitterSizesFromSettings(const QString &name, const QList<int> &defaultSizes)
 {
-    if (sender() == botSplitter_) {
-        topSplitter_->setSizes(botSplitter_->sizes());
-        if (topSplitter_->sizes() != botSplitter_->sizes())
-            botSplitter_->setSizes(topSplitter_->sizes());
-    } else {
-        botSplitter_->setSizes(topSplitter_->sizes());
-        if (botSplitter_->sizes() != topSplitter_->sizes())
-            topSplitter_->setSizes(botSplitter_->sizes());
+    if (!settings)
+        return defaultSizes;
+
+    QList<int> sizes;
+    const int nsizes = settings->beginReadArray(name);
+    if (nsizes != defaultSizes.size()) {
+        settings->endArray();
+        return defaultSizes;
     }
+    for (int i = 0; i < nsizes; ++i) {
+        settings->setArrayIndex(i);
+        bool ok = false;
+        const int size = settings->value("size").toInt(&ok);
+        if (ok) {
+            sizes.append(size);
+        } else {
+            settings->endArray();
+            return defaultSizes;
+        }
+    }
+
+    settings->endArray();
+    return sizes;
+}
+
+void MainWindow::updateSplitterSettings(const QSplitter *splitter, const QString &name)
+{
+    if (!settings)
+        return;
+
+    settings->beginWriteArray(name);
+    int index = 0;
+    foreach (int size, splitter->sizes()) {
+        settings->setArrayIndex(index++);
+        settings->setValue("size", size);
+    }
+    settings->endArray();
+
+    settings->sync();
+}
+
+void MainWindow::updateAllSplitterSettings()
+{
+    updateSplitterSettings(hsplitter1_, "hsplitter1");
+    updateSplitterSettings(hsplitter3_, "hsplitter3");
+    updateSplitterSettings(vsplitter1_, "vsplitter1");
+}
+
+void MainWindow::updateHSplitter1or2(int, int)
+{
+    if (sender() == hsplitter1_) {
+        hsplitter2_->setSizes(hsplitter1_->sizes());
+        if (hsplitter2_->sizes() != hsplitter1_->sizes())
+            hsplitter1_->setSizes(hsplitter2_->sizes());
+    } else {
+        hsplitter1_->setSizes(hsplitter2_->sizes());
+        if (hsplitter1_->sizes() != hsplitter2_->sizes())
+            hsplitter2_->setSizes(hsplitter1_->sizes());
+    }
+
+    updateAllSplitterSettings();
+}
+
+void MainWindow::updateHSplitter3(int, int)
+{
+    updateAllSplitterSettings();
+}
+
+void MainWindow::updateVSplitter1(int, int)
+{
+    updateAllSplitterSettings();
 }
 
 void MainWindow::updateDateRange(bool rewind)
