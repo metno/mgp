@@ -32,6 +32,9 @@ TaskPanel::TaskPanel()
     descrTextBrowser_->setOpenExternalLinks(true);
     formLayout_->addRow("Description:", descrTextBrowser_);
 
+    for (int i = 0; i < formLayout_->rowCount(); ++i)
+        formLayout_->itemAt(i, QFormLayout::LabelRole)->widget()->setStyleSheet("font-weight:bold");
+
     QGroupBox *groupBox = new QGroupBox("Task Properties");
     groupBox->setLayout(formLayout_);
     mainLayout->addWidget(groupBox);
