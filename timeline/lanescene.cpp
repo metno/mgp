@@ -31,6 +31,7 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, 
     , insertBottom_(-1)
     , nextNewTaskId_(0)
     , contextMenuActive_(false)
+    , taskRemovalActive_(false)
     , adjustedFromSettings_(false)
 {
     setDateRange(baseDate_, dateSpan_);
@@ -470,7 +471,7 @@ void LaneScene::focusInEvent(QFocusEvent *)
 
 void LaneScene::focusOutEvent(QFocusEvent *)
 {
-    if (!contextMenuActive_)
+    if ((!contextMenuActive_) && (!taskRemovalActive_))
         clearCurrTask();
 }
 
@@ -570,13 +571,17 @@ void LaneScene::editCurrentTask()
 
 void LaneScene::removeCurrentTask()
 {
-    if (!confirm("Really remove task?"))
-        return;
-    Q_ASSERT(currTaskItem_);
-    TaskManager::instance().removeTask(currTaskItem_->taskId());
-    currTaskItem_ = 0;
-    currTaskMarker_->setVisible(false);
-    TaskManager::instance().emitUpdated();
+    taskRemovalActive_ = true;
+
+    if (confirm("Really remove task?")) {
+        Q_ASSERT(currTaskItem_);
+        TaskManager::instance().removeTask(currTaskItem_->taskId());
+        currTaskItem_ = 0;
+        currTaskMarker_->setVisible(false);
+        TaskManager::instance().emitUpdated();
+    }
+
+    taskRemovalActive_ = false;
 }
 
 void LaneScene::handleViewScaleUpdate()

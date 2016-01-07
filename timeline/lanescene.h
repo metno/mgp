@@ -84,6 +84,7 @@ private:
     int insertBottom_;
     int nextNewTaskId_;
     bool contextMenuActive_;
+    bool taskRemovalActive_;
     bool adjustedFromSettings_;
 
 private slots:
