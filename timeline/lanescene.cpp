@@ -10,6 +10,7 @@
 #include "misc.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
+#include <QGraphicsView>
 #include <QGraphicsSceneMouseEvent>
 #include <QKeyEvent>
 #include <QAction>
@@ -395,18 +396,42 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
     if (origHoverTaskItem)
         origHoverTaskItem->highlight(false);
+
+    QGraphicsView *view = views().first();
     if (hoverTaskItem_) {
         hoverTaskItem_->highlight(true);
         Task *task = TaskManager::instance().findTask(hoverTaskItem_->taskId()).data();
         TaskPanel::instance().setContents(task);
         RolePanel::instance().setContents(TaskManager::instance().findRole(task->roleId()).data());
-    } else if (currTaskItem_) {
-        Task *task = TaskManager::instance().findTask(currTaskItem_->taskId()).data();
-        TaskPanel::instance().setContents(task);
-        RolePanel::instance().setContents(TaskManager::instance().findRole(task->roleId()).data());
+
+        if (!draggingTask_) {
+            const int loPos = view->mapToGlobal(view->mapFromScene(hoverTaskItem_->rect().topLeft())).y();
+            const int hiPos = view->mapToGlobal(view->mapFromScene(hoverTaskItem_->rect().bottomLeft())).y();
+            const int tolerance = 5;
+            if (qAbs(event->screenPos().y() - loPos) < tolerance) {
+                dragMode_ = Lo;
+                view->setCursor(Qt::SizeVerCursor);
+            } else if (qAbs(event->screenPos().y() - hiPos) < tolerance) {
+                dragMode_ = Hi;
+                view->setCursor(Qt::SizeVerCursor);
+            } else {
+                dragMode_ = Both;
+                view->unsetCursor();
+            }
+        }
+
     } else {
-        TaskPanel::instance().clearContents();
-        RolePanel::instance().clearContents();
+        if (!draggingTask_)
+            view->unsetCursor();
+
+        if (currTaskItem_) {
+            Task *task = TaskManager::instance().findTask(currTaskItem_->taskId()).data();
+            TaskPanel::instance().setContents(task);
+            RolePanel::instance().setContents(TaskManager::instance().findRole(task->roleId()).data());
+        } else {
+            TaskPanel::instance().clearContents();
+            RolePanel::instance().clearContents();
+        }
     }
 
     const int lwidth = laneHeaderScene_->laneWidth();
@@ -433,13 +458,24 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     if (draggingTask_) {
         const long deltaTimestamp = vPosToTimestamp(event->scenePos().y()) - vPosToTimestamp(basePos_.y());
         Q_ASSERT(currTaskItem_);
-        const QDateTime loDateTime = QDateTime::fromTime_t(origLoTimestamp_ + deltaTimestamp);
-        const QDateTime hiDateTime = QDateTime::fromTime_t(origHiTimestamp_ + deltaTimestamp);
-
         QHash<QString, QVariant> values;
-        values.insert("loDateTime", loDateTime);
-        values.insert("hiDateTime", hiDateTime);
-        TaskManager::instance().updateTask(currTaskItem_->taskId(), values);
+        const long newLoTimestamp = origLoTimestamp_ + deltaTimestamp;
+        const long newHiTimestamp = origHiTimestamp_ + deltaTimestamp;
+        if (dragMode_ == Lo) {
+            if (newLoTimestamp < origHiTimestamp_)
+                values.insert("loDateTime", QDateTime::fromTime_t(newLoTimestamp));
+        } else if (dragMode_ == Hi) {
+            if (newHiTimestamp > origLoTimestamp_)
+                values.insert("hiDateTime", QDateTime::fromTime_t(newHiTimestamp));
+        } else {
+            Q_ASSERT(dragMode_ == Both);
+            Q_ASSERT(newLoTimestamp < newHiTimestamp);
+            values.insert("loDateTime", QDateTime::fromTime_t(newLoTimestamp));
+            values.insert("hiDateTime", QDateTime::fromTime_t(newHiTimestamp));
+        }
+
+        if (!values.isEmpty())
+            TaskManager::instance().updateTask(currTaskItem_->taskId(), values);
     }
 }
 

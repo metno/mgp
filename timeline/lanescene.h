@@ -91,6 +91,7 @@ private:
     bool adjustedFromSettings_;
 
     bool draggingTask_;
+    enum DragMode { Lo, Hi, Both } dragMode_;
     QPointF basePos_;
     long origLoTimestamp_;
     long origHiTimestamp_;
