@@ -7,6 +7,7 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 #include <QPushButton>
+#include <QMessageBox>
 
 TaskEditor &TaskEditor::instance()
 {
@@ -54,6 +55,11 @@ TaskEditor::TaskEditor()
     resize(800, 300);
 }
 
+static QString formatDateTime(const QDateTime &dt)
+{
+    return dt.toString("yyyy-MM-dd hh:mm");
+}
+
 QHash<QString, QVariant> TaskEditor::edit(const Task *task)
 {
     // initialize fields
@@ -65,6 +71,38 @@ QHash<QString, QVariant> TaskEditor::edit(const Task *task)
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
+        const QDateTime loDateTime = loDateTimeEdit_->dateTime();
+        const QDateTime hiDateTime = hiDateTimeEdit_->dateTime();
+        const QDateTime minDateTime(QDate(1970, 1, 1), QTime(0, 0), Qt::UTC); // see https://en.wikipedia.org/wiki/Unix_time
+        const QDateTime maxDateTime(QDate(2038, 1, 19), QTime(03, 14), Qt::UTC); // see https://en.wikipedia.org/wiki/Year_2038_problem
+
+        if (loDateTime < minDateTime) {
+            QMessageBox::warning(
+                        0, "Warning",
+                        QString("WARNING: %1 earlier than %2; operation is canceled")
+                        .arg(formatDateTime(loDateTime))
+                        .arg(formatDateTime(minDateTime)));
+            return QHash<QString, QVariant>();
+        }
+
+        if (hiDateTime > maxDateTime) {
+            QMessageBox::warning(
+                        0, "Warning",
+                        QString("WARNING: %1 later than %2; operation is canceled")
+                        .arg(formatDateTime(hiDateTime))
+                        .arg(formatDateTime(maxDateTime)));
+            return QHash<QString, QVariant>();
+        }
+
+        if (loDateTime >= hiDateTime) {
+            QMessageBox::warning(
+                        0, "Warning",
+                        QString("WARNING: %1 not earlier than %2; operation is canceled")
+                        .arg(formatDateTime(loDateTime))
+                        .arg(formatDateTime(hiDateTime)));
+            return QHash<QString, QVariant>();
+        }
+
         QHash<QString, QVariant> values;
         values.insert("name", nameEdit_->text().trimmed());
         values.insert("summary", summaryEdit_->text().trimmed());

@@ -7,6 +7,7 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 #include <QPushButton>
+#include <QMessageBox>
 
 RoleEditor &RoleEditor::instance()
 {
@@ -61,6 +62,17 @@ QHash<QString, QVariant> RoleEditor::edit(const Role *role)
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
+        const QTime loTime = loTimeEdit_->time();
+        const QTime hiTime = hiTimeEdit_->time();
+        if (loTime >= hiTime) {
+            QMessageBox::warning(
+                        0, "Warning",
+                        QString("WARNING: %1 not earlier than %2; operation is canceled")
+                        .arg(loTime.toString("hh:mm"))
+                        .arg(hiTime.toString("hh:mm")));
+            return QHash<QString, QVariant>();
+        }
+
         QHash<QString, QVariant> values;
         values.insert("name", nameEdit_->text().trimmed());
         values.insert("loTime", loTimeEdit_->time());
