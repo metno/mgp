@@ -27,7 +27,7 @@ public:
     void removeRole(qint64);
     void removeTask(qint64);
     void updateRole(qint64, const QHash<QString, QVariant> &);
-    void updateTask(qint64, const QHash<QString, QString> &);
+    void updateTask(qint64, const QHash<QString, QVariant> &);
 
     void addNewRole(); // ### for now
 

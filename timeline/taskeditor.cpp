@@ -1,6 +1,7 @@
 #include "taskeditor.h"
 #include "task.h"
 #include <QLineEdit>
+#include <QDateTimeEdit>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QFormLayout>
@@ -29,8 +30,18 @@ TaskEditor::TaskEditor()
 
     nameEdit_ = new QLineEdit;
     formLayout->addRow("Name:", nameEdit_);
+
     summaryEdit_ = new QLineEdit;
     formLayout->addRow("Summary:", summaryEdit_);
+
+    loDateTimeEdit_ = new QDateTimeEdit;
+    loDateTimeEdit_->setDisplayFormat("yyyy-MM-dd hh:mm");
+    formLayout->addRow("Begins:", loDateTimeEdit_);
+
+    hiDateTimeEdit_ = new QDateTimeEdit;
+    hiDateTimeEdit_->setDisplayFormat("yyyy-MM-dd hh:mm");
+    formLayout->addRow("Ends:", hiDateTimeEdit_);
+
     descrEdit_ = new QTextBrowser;
     descrEdit_->setReadOnly(false);
     formLayout->addRow("Description:", descrEdit_);
@@ -43,20 +54,24 @@ TaskEditor::TaskEditor()
     resize(800, 300);
 }
 
-QHash<QString, QString> TaskEditor::edit(const Task *task)
+QHash<QString, QVariant> TaskEditor::edit(const Task *task)
 {
     // initialize fields
     nameEdit_->setText(task->name());
     summaryEdit_->setText(task->summary());
+    loDateTimeEdit_->setDateTime(task->loDateTime());
+    hiDateTimeEdit_->setDateTime(task->hiDateTime());
     descrEdit_->setPlainText(task->description());
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
-        QHash<QString, QString> values;
+        QHash<QString, QVariant> values;
         values.insert("name", nameEdit_->text().trimmed());
         values.insert("summary", summaryEdit_->text().trimmed());
+        values.insert("loDateTime", loDateTimeEdit_->dateTime());
+        values.insert("hiDateTime", hiDateTimeEdit_->dateTime());
         values.insert("description", descrEdit_->toPlainText().trimmed());
         return values;
     }
-    return QHash<QString, QString>();
+    return QHash<QString, QVariant>();
 }

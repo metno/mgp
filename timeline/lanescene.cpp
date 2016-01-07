@@ -562,7 +562,7 @@ void LaneScene::editCurrentTask()
     Q_ASSERT(currTaskItem_);
     const qint64 taskId = currTaskItem_->taskId();
     Task *task = TaskManager::instance().findTask(taskId).data();
-    const QHash<QString, QString> values = TaskEditor::instance().edit(task);
+    const QHash<QString, QVariant> values = TaskEditor::instance().edit(task);
     if (!values.isEmpty()) {
         TaskManager::instance().updateTask(taskId, values);
         TaskPanel::instance().setContents(task);

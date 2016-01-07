@@ -215,7 +215,7 @@ void TaskManager::updateRole(qint64 roleId, const QHash<QString, QVariant> &valu
     if (values.isEmpty()) return; // no changes
 
     Role *role = roles_.value(roleId).data();
-    role->setName(values.value("name").toString());
+    role->setName(values.value("name").toString().trimmed());
     role->setLoTime(values.value("loTime").toTime());
     role->setHiTime(values.value("hiTime").toTime());
     role->setDescription(values.value("description").toString());
@@ -224,15 +224,17 @@ void TaskManager::updateRole(qint64 roleId, const QHash<QString, QVariant> &valu
     updateSettings();
 }
 
-void TaskManager::updateTask(qint64 taskId, const QHash<QString, QString> &values)
+void TaskManager::updateTask(qint64 taskId, const QHash<QString, QVariant> &values)
 {
     if (!tasks_.contains(taskId)) return; // no such task
     if (values.isEmpty()) return; // no changes
 
     Task *task = tasks_.value(taskId).data();
-    task->setName(values.value("name"));
-    task->setSummary(values.value("summary"));
-    task->setDescription(values.value("description"));
+    task->setName(values.value("name").toString().trimmed());
+    task->setSummary(values.value("summary").toString().trimmed());
+    task->setLoDateTime(values.value("loDateTime").toDateTime());
+    task->setHiDateTime(values.value("hiDateTime").toDateTime());
+    task->setDescription(values.value("description").toString().trimmed());
 
     emitUpdated();
     updateSettings();

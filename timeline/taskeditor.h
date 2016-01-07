@@ -3,9 +3,12 @@
 
 #include <QDialog>
 #include <QHash>
+#include <QVariant>
+#include <QString>
 
 class Task;
 class QLineEdit;
+class QDateTimeEdit;
 class QTextBrowser;
 
 class TaskEditor : public QDialog
@@ -14,9 +17,11 @@ class TaskEditor : public QDialog
 
 public:
     static TaskEditor &instance();
-    QHash<QString, QString> edit(const Task *);
+    QHash<QString, QVariant> edit(const Task *);
     QLineEdit *nameEdit_;
     QLineEdit *summaryEdit_;
+    QDateTimeEdit *loDateTimeEdit_;
+    QDateTimeEdit *hiDateTimeEdit_;
     QTextBrowser *descrEdit_;
 
 private:
