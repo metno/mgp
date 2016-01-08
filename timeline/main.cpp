@@ -23,8 +23,7 @@ int main(int argc, char *argv[])
         settings.clear();
     }
 
-    //QDate baseDate = QDate::currentDate();
-    QDate baseDate = QDate(1967, 4, 11);
+    QDate baseDate = QDate::currentDate();
     int dateSpan = 7;
     if (settings) {
         if (settings->value("baseDate").isValid()) {
