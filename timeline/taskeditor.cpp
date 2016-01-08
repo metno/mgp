@@ -1,5 +1,6 @@
 #include "taskeditor.h"
 #include "task.h"
+#include "common.h"
 #include <QLineEdit>
 #include <QDateTimeEdit>
 #include <QTextBrowser>
@@ -8,6 +9,7 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QMessageBox>
+#include <QColorDialog>
 
 TaskEditor &TaskEditor::instance()
 {
@@ -47,6 +49,10 @@ TaskEditor::TaskEditor()
     descrEdit_->setReadOnly(false);
     formLayout->addRow("Description:", descrEdit_);
 
+    colorEdit_ = new QPushButton("Edit");
+    connect(colorEdit_, SIGNAL(clicked()), SLOT(editColor()));
+    formLayout->addRow("Color:", colorEdit_);
+
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
     connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), SLOT(reject()));
     connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), SLOT(accept()));
@@ -68,6 +74,8 @@ QHash<QString, QVariant> TaskEditor::edit(const Task *task)
     loDateTimeEdit_->setDateTime(task->loDateTime());
     hiDateTimeEdit_->setDateTime(task->hiDateTime());
     descrEdit_->setPlainText(task->description());
+    if (task->color().isValid())
+        colorEdit_->setStyleSheet(QString("background-color: %1").arg(task->color().name()));
 
     // open dialog and return any edited values
     if (exec() == QDialog::Accepted) {
@@ -109,7 +117,15 @@ QHash<QString, QVariant> TaskEditor::edit(const Task *task)
         values.insert("loDateTime", loDateTimeEdit_->dateTime());
         values.insert("hiDateTime", hiDateTimeEdit_->dateTime());
         values.insert("description", descrEdit_->toPlainText().trimmed());
+        values.insert("color", color_);
         return values;
     }
     return QHash<QString, QVariant>();
+}
+
+void TaskEditor::editColor()
+{
+    color_ = QColorDialog::getColor();
+    if (color_.isValid())
+        colorEdit_->setStyleSheet(QString("background-color: %1").arg(color_.name()));
 }

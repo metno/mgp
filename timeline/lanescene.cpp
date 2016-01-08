@@ -262,6 +262,7 @@ void LaneScene::updateTaskItemsInLane(LaneItem *lItem, int index, int lwidth, in
         tItem->updateName(task->name());
         tItem->updateSummary(task->summary());
         tItem->updateDescription(task->description());
+        tItem->updateColor(task->color());
         if (tItem == currTaskItem_)
             updateCurrTaskMarkerRect(task.data());
     }

@@ -80,3 +80,13 @@ void Task::setHiUTCTimestamp(int t)
 {
     props_.hiDateTime_.setTime_t(t);
 }
+
+QColor Task::color() const
+{
+    return props_.color_;
+}
+
+void Task::setColor(const QColor &col)
+{
+    props_.color_ = col;
+}

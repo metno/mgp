@@ -15,7 +15,10 @@
 TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
     : taskId_(taskId__)
 {
-    setBrush(QColor("#bbb"));
+    QSharedPointer<Task> task = TaskManager::instance().findTask(taskId_);
+    Q_ASSERT(task);
+
+    setBrush(task->color().isValid() ? task->color() : defaultColor());
     setCursor(Qt::ArrowCursor);
     setAcceptHoverEvents(true);
 
@@ -24,9 +27,6 @@ TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
     hoverItem_->setBrush(QColor("#ff0"));
     hoverItem_->setPen(QPen(QColor("#880")));
     hoverItem_->setVisible(false);
-
-    QSharedPointer<Task> task = TaskManager::instance().findTask(taskId_);
-    Q_ASSERT(task);
 
     nameItem_ = new QGraphicsTextItem(task->name(), this);
     nameItem_->setFont(QFont("helvetica", 14, QFont::Bold));
@@ -94,6 +94,11 @@ void TaskItem::updateDescription(const QString &descr)
 {
     Q_UNUSED(descr);
 //    descrItem_->setPlainText(descr);
+}
+
+void TaskItem::updateColor(const QColor &color)
+{
+    setBrush(color.isValid() ? color : defaultColor());
 }
 
 void TaskItem::updateTextPositions()

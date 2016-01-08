@@ -5,11 +5,13 @@
 #include <QHash>
 #include <QVariant>
 #include <QString>
+#include <QColor>
 
 class Task;
 class QLineEdit;
 class QDateTimeEdit;
 class QTextBrowser;
+class QPushButton;
 
 class TaskEditor : public QDialog
 {
@@ -23,9 +25,14 @@ public:
     QDateTimeEdit *loDateTimeEdit_;
     QDateTimeEdit *hiDateTimeEdit_;
     QTextBrowser *descrEdit_;
+    QPushButton *colorEdit_;
+    QColor color_;
 
 private:
     TaskEditor();
+
+private slots:
+    void editColor();
 };
 
 #endif // TASKEDITOR_H

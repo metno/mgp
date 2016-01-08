@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QDateTime>
+#include <QColor>
 
 class TaskProperties
 {
@@ -13,21 +14,23 @@ public:
 
     TaskProperties(
             const QString &name, const QString &summary, const QString description,
-            const QDateTime &loDateTime, const QDateTime &hiDateTime)
+            const QDateTime &loDateTime, const QDateTime &hiDateTime, const QColor &color = QColor())
         : name_(name)
         , summary_(summary)
         , description_(description)
         , loDateTime_(loDateTime)
         , hiDateTime_(hiDateTime)
+        , color_(color)
     {
     }
 
     TaskProperties(
             const QString &name, const QString &summary, const QString description,
-            int loTimestamp, int hiTimestamp)
+            int loTimestamp, int hiTimestamp, const QColor &color = QColor())
         : name_(name)
         , summary_(summary)
         , description_(description)
+        , color_(color)
     {
         loDateTime_.setTime_t(loTimestamp);
         hiDateTime_.setTime_t(hiTimestamp);
@@ -39,6 +42,7 @@ private:
     QString description_;
     QDateTime loDateTime_; // start time
     QDateTime hiDateTime_; // end time
+    QColor color_;
 };
 
 class Task
@@ -52,6 +56,7 @@ public:
     QString description() const;
     QDateTime loDateTime() const;
     QDateTime hiDateTime() const;
+    QColor color() const;
 
 private:
     Task();
@@ -68,6 +73,7 @@ private:
     void setLoUTCTimestamp(int);
     void setHiDateTime(const QDateTime &);
     void setHiUTCTimestamp(int);
+    void setColor(const QColor &);
 };
 
 #endif // TASK_H

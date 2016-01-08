@@ -2,6 +2,7 @@
 #include "common.h"
 #include <QSharedPointer>
 #include <QSettings>
+#include <QColor>
 
 extern QSharedPointer<QSettings> settings;
 
@@ -50,6 +51,7 @@ void TaskManager::loadFromSettings()
         task->setDescription(settings->value("description").toString());
         task->setLoDateTime(settings->value("loDateTime").toDateTime());
         task->setHiDateTime(settings->value("hiDateTime").toDateTime());
+        task->setColor(settings->value("color").value<QColor>());
 
         const qint64 id = settings->value("id").toLongLong();
         tasks_.insert(id, QSharedPointer<Task>(task));
@@ -97,6 +99,7 @@ void TaskManager::updateSettings()
         settings->setValue("description", task->description());
         settings->setValue("loDateTime", task->loDateTime());
         settings->setValue("hiDateTime", task->hiDateTime());
+        settings->setValue("color", task->color());
     }
     settings->endArray();
 
@@ -250,6 +253,13 @@ void TaskManager::updateTask(qint64 taskId, const QHash<QString, QVariant> &valu
     if (values.value("description").isValid()) {
         task->setDescription(values.value("description").toString().trimmed());
         updated = true;
+    }
+    if (values.value("color").isValid()) {
+        const QColor color = values.value("color").value<QColor>();
+        if (color.isValid()) {
+            task->setColor(color);
+            updated = true;
+        }
     }
 
     if (updated) {

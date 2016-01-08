@@ -18,6 +18,7 @@ public:
     void updateName(const QString &);
     void updateSummary(const QString &);
     void updateDescription(const QString &);
+    void updateColor(const QColor &);
     void updateTextPositions();
     void updateFontSize(qreal);
 
@@ -28,6 +29,8 @@ private:
     QGraphicsTextItem *nameItem_;
     QGraphicsTextItem *summaryItem_;
     //QGraphicsTextItem *descrItem_;
+
+    static QColor defaultColor() { return QColor("#bbb"); }
 };
 
 #endif // TASKITEM_H
