@@ -76,6 +76,7 @@ private:
     void clearCurrTask();
     void updateCurrTaskItem(bool);
     void adjustFromSettings();
+    void cycleIntersectedTaskItems(bool);
     void bringToTop(TaskItem *);
 
     QAction *addTaskAction_;
@@ -111,7 +112,6 @@ private slots:
     void handleViewScaleUpdate();
     void handleViewLeft();
     void handleLanesSwapped(int, int);
-    void cycleIntersectedTaskItems(bool);
 
 signals:
     void dateRangeChanged();
