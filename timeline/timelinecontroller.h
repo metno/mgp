@@ -12,7 +12,7 @@ class TimelineController : public QWidget
     Q_OBJECT
 
 public:
-    TimelineController(const QDate &, int, QWidget * = 0);
+    TimelineController(const QDate &, const QDate &, const QDate &, int, int, int, QWidget * = 0);
     QDate baseDate() const;
     int dateSpan() const;
 

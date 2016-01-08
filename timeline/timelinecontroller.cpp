@@ -1,4 +1,5 @@
 #include "timelinecontroller.h"
+#include "common.h"
 #include <QDateEdit>
 #include <QSpinBox>
 #include <QLabel>
@@ -11,18 +12,20 @@
 
 extern QSharedPointer<QSettings> settings;
 
-TimelineController::TimelineController(const QDate &baseDate, int dateSpan, QWidget *parent)
+TimelineController::TimelineController(
+        const QDate &baseDate, const QDate &minBaseDate, const QDate &maxBaseDate,
+        int dateSpan, int minDateSpan, int maxDateSpan, QWidget *parent)
     : QWidget(parent)
 {
-    const int minDateSpan = 1;
-    const int maxDateSpan = 10;
-    if ((dateSpan < minDateSpan) || (dateSpan > maxDateSpan))
-        qWarning("date span (%d) outside valid range ([%d, %d])", dateSpan, minDateSpan, maxDateSpan);
-    dateSpan = qMin(qMax(dateSpan, minDateSpan), maxDateSpan);
-
-    // ------------------------
+    Q_ASSERT(baseDate >= minBaseDate);
+    Q_ASSERT(baseDate <= maxBaseDate);
+    Q_ASSERT(dateSpan >= minDateSpan);
+    Q_ASSERT(dateSpan <= maxDateSpan);
+    Q_ASSERT(minDateSpan > 0);
 
     baseDateEdit_ = new QDateEdit(baseDate);
+    baseDateEdit_->setMinimumDate(minBaseDate);
+    baseDateEdit_->setMaximumDate(maxBaseDate);
     baseDateEdit_->setDisplayFormat("yyyy-MM-dd");
     connect(baseDateEdit_, SIGNAL(dateChanged(const QDate &)), SLOT(updateBaseDate()));
 

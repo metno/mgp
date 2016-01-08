@@ -21,14 +21,18 @@ class MainWindow : public QWidget
     Q_OBJECT
 
 public:
-    static void init(const QDate &, int);
+    static void init(const QDate &, const QDate &, const QDate &, int, int, int);
     static MainWindow &instance();
     void handleKeyPressEvent(QKeyEvent *);
 
 private:
     static bool isInit_;
     static QDate baseDate_;
+    static QDate minBaseDate_;
+    static QDate maxBaseDate_;
     static int dateSpan_;
+    static int minDateSpan_;
+    static int maxDateSpan_;
     MainWindow();
 
     LaneHeaderScene *laneHeaderScene_;

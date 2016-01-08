@@ -30,10 +30,16 @@
 
 extern QSharedPointer<QSettings> settings;
 
-void MainWindow::init(const QDate &baseDate, int dateSpan)
+void MainWindow::init(
+        const QDate &baseDate, const QDate &minBaseDate, const QDate &maxBaseDate,
+        int dateSpan, int minDateSpan, int maxDateSpan)
 {
     baseDate_ = baseDate;
+    minBaseDate_ = minBaseDate;
+    maxBaseDate_ = maxBaseDate;
     dateSpan_ = dateSpan;
+    minDateSpan_ = minDateSpan;
+    maxDateSpan_ = maxDateSpan;
     isInit_ = true;
 }
 
@@ -86,7 +92,7 @@ MainWindow::MainWindow()
     //        toolButton->setToolTip("reset zooming");
     //    }
 
-    timelineController_ = new TimelineController(baseDate_, dateSpan_);
+    timelineController_ = new TimelineController(baseDate_, minBaseDate_, maxBaseDate_, dateSpan_, minDateSpan_, maxDateSpan_);
     connect(timelineController_, SIGNAL(dateRangeUpdated(bool)), SLOT(updateDateRange(bool)));
     ctrlFrame->layout()->addWidget(timelineController_);
 
@@ -175,7 +181,11 @@ MainWindow::MainWindow()
 
 bool MainWindow::isInit_ = false;
 QDate MainWindow::baseDate_ = QDate();
+QDate MainWindow::minBaseDate_ = QDate();
+QDate MainWindow::maxBaseDate_ = QDate();
 int MainWindow::dateSpan_ = -1;
+int MainWindow::minDateSpan_ = -1;
+int MainWindow::maxDateSpan_ = -1;
 
 void MainWindow::handleKeyPressEvent(QKeyEvent *event)
 {

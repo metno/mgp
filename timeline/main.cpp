@@ -23,7 +23,8 @@ int main(int argc, char *argv[])
         settings.clear();
     }
 
-    QDate baseDate = QDate::currentDate();
+    //QDate baseDate = QDate::currentDate();
+    QDate baseDate = QDate(1967, 4, 11);
     int dateSpan = 7;
     if (settings) {
         if (settings->value("baseDate").isValid()) {
@@ -48,7 +49,20 @@ int main(int argc, char *argv[])
     } else {
         qWarning() << "WARNING: no valid settings file found";
     }
-    MainWindow::init(baseDate, dateSpan);
+
+    const QDate minBaseDate(1980, 1, 1); // NOTE: must be > 1970-01-01 (see QDateTime::toTime_t())
+    const QDate maxBaseDate(2100, 1, 1); // NOTE: must be < 2106-02-07 (ditto)
+    if ((baseDate < minBaseDate) || (baseDate > maxBaseDate))
+        qWarning() << "WARNING: base date (" << baseDate << ") outside valid range ([" << minBaseDate << "," << maxBaseDate << "])";
+    baseDate = qMin(qMax(baseDate, minBaseDate), maxBaseDate);
+
+    const int minDateSpan = 1;
+    const int maxDateSpan = 10;
+    if ((dateSpan < minDateSpan) || (dateSpan > maxDateSpan))
+        qWarning("WARNING: date span (%d) outside valid range ([%d, %d])", dateSpan, minDateSpan, maxDateSpan);
+    dateSpan = qMin(qMax(dateSpan, minDateSpan), maxDateSpan);
+
+    MainWindow::init(baseDate, minBaseDate, maxBaseDate, dateSpan, minDateSpan, maxDateSpan);
 
     MainWindow::instance().show();
 
