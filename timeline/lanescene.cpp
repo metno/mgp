@@ -595,6 +595,7 @@ void LaneScene::setCurrTask(TaskItem *item)
     Q_ASSERT(item);
 
     currTaskItem_ = item;
+    bringToTop(currTaskItem_);
 
     // update highlighting etc.
     QSharedPointer<Task> currTask = TaskManager::instance().findTask(currTaskItem_->taskId());
@@ -747,5 +748,11 @@ void LaneScene::cycleIntersectedTaskItems(bool up)
     else
         taskItems_.insert(last, taskItems_.takeAt(first));
 
+    updateZValues();
+}
+
+void LaneScene::bringToTop(TaskItem *taskItem)
+{
+    taskItems_.append(taskItems_.takeAt(taskItems_.indexOf(taskItem)));
     updateZValues();
 }

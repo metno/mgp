@@ -76,6 +76,7 @@ private:
     void clearCurrTask();
     void updateCurrTaskItem(bool);
     void adjustFromSettings();
+    void bringToTop(TaskItem *);
 
     QAction *addTaskAction_;
     QAction *editTaskAction_;
