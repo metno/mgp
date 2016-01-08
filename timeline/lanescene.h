@@ -26,6 +26,8 @@ public:
     static int secsInDay() { return 24 * secsInHour(); }
     void setDateRange(const QDate &, int);
 
+    void updateFontSize(qreal);
+
     static qreal minHScale() { return 0.4; }
     static qreal maxHScale() { return 4; }
     static qreal minVScale() { return 0.001; }
@@ -110,6 +112,8 @@ private:
     long origLoTimestamp_;
     long origHiTimestamp_;
 
+    qreal fontSizeBaseFrac_;
+
 private slots:
     void addNewTask();
     void editCurrentTask();
@@ -120,6 +124,7 @@ private slots:
 
 signals:
     void dateRangeChanged();
+    void fontSizeUpdated(qreal);
 };
 
 #endif // LANESCENE_H

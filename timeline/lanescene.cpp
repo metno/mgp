@@ -17,6 +17,9 @@
 #include <QMenu>
 #include <QSharedPointer>
 #include <QDateTime>
+#include <QSettings>
+
+extern QSharedPointer<QSettings> settings;
 
 LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
     : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), laneHeaderScene->height(), parent)
@@ -37,6 +40,7 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, 
     , taskRemovalActive_(false)
     , adjustedFromSettings_(false)
     , draggingTask_(false)
+    , fontSizeBaseFrac_(0.5)
 {
     Q_ASSERT(taskItemLoZValue_ < (taskItemHiZValue_ - 1)); // ensure a wide enough range
 
@@ -172,6 +176,18 @@ void LaneScene::setDateRange(const QDate &baseDate__, int dateSpan__)
     updateGeometryAndContents();
 
     emit dateRangeChanged();
+}
+
+void LaneScene::updateFontSize(qreal frac)
+{
+    fontSizeBaseFrac_ = frac;
+    foreach (TaskItem *tItem, taskItems_)
+        tItem->updateFontSize(frac);
+    emit fontSizeUpdated(frac);
+
+    // update settings
+    if (settings)
+        settings->setValue("laneSceneFontSizeBaseFrac", frac);
 }
 
 void LaneScene::updateBaseItemGeometry()
@@ -329,7 +345,7 @@ void LaneScene::updateFromTaskMgr()
         QList<qint64> itemRoleTaskIds = taskIds(taskItems(roleId));
         foreach (qint64 taskId, tmRoleTaskIds) {
             if (!itemRoleTaskIds.contains(taskId)) {
-                TaskItem *taskItem = new TaskItem(taskId);
+                TaskItem *taskItem = new TaskItem(taskId, fontSizeBaseFrac_);
                 addItem(taskItem);
                 taskItems_.append(taskItem);
                 if (taskId == pendingCurrTaskId_) {

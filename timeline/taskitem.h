@@ -10,7 +10,7 @@ class QGraphicsTextItem;
 class TaskItem : public QGraphicsRectItem
 {
 public:
-    TaskItem(qint64);
+    TaskItem(qint64, qreal);
     qint64 taskId() const;
     qint64 roleId() const;
     void highlight(bool);
@@ -19,6 +19,7 @@ public:
     void updateSummary(const QString &);
     void updateDescription(const QString &);
     void updateTextPositions();
+    void updateFontSize(qreal);
 
 private:
     qint64 taskId_;

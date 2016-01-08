@@ -12,7 +12,7 @@
 #include <QGraphicsTextItem>
 #include <QFont>
 
-TaskItem::TaskItem(qint64 taskId__)
+TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
     : taskId_(taskId__)
 {
     setBrush(QColor("#bbb"));
@@ -41,6 +41,7 @@ TaskItem::TaskItem(qint64 taskId__)
     //summaryItem_->setPos(rect().x() + 5, rect().y() + 5);
 
     updateTextPositions();
+    updateFontSize(fontSizeBaseFrac);
 }
 
 qint64 TaskItem::taskId() const
@@ -107,4 +108,20 @@ void TaskItem::updateTextPositions()
 
     nameItem_->setPos(rect().x() + addh, rect().y() + addv_name);
     summaryItem_->setPos(rect().x() + addh, rect().y() + addv_summary);
+}
+
+void TaskItem::updateFontSize(qreal baseFrac)
+{
+    const int minSize = 6;
+    const int maxSize = 18;
+    const int nameSize = minSize + baseFrac * (maxSize - minSize);
+    const int summarySize = 0.8 * nameSize;
+
+    QFont font = nameItem_->font();
+    font.setPointSize(nameSize);
+    nameItem_->setFont(font);
+
+    font = summaryItem_->font();
+    font.setPointSize(summarySize);
+    summaryItem_->setFont(font);
 }

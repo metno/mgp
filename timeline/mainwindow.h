@@ -46,6 +46,7 @@ private:
 
     QSlider *hscaleSlider_;
     QSlider *vscaleSlider_;
+    QSlider *fontSizeSlider_;
 
     TimelineController *timelineController_;
     LanesController *lanesController_;
@@ -70,6 +71,8 @@ private slots:
     void handleHScaleSliderUpdate(int);
     void handleVScaleSliderUpdate(int);
     void handleViewScaled(qreal, qreal);
+    void handleFontSizeSliderUpdate(int);
+    void handleFontSizeUpdated(qreal);
 };
 
 #endif // MAINWINDOW_H

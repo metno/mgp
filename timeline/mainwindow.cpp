@@ -154,6 +154,11 @@ MainWindow::MainWindow()
     connect(vscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleVScaleSliderUpdate(int)));
     bottomLayout->addWidget(vscaleSlider_);
 
+    bottomLayout->addWidget(new QLabel("Font size:"));
+    fontSizeSlider_ = new QSlider(Qt::Horizontal);
+    connect(fontSizeSlider_, SIGNAL(valueChanged(int)), SLOT(handleFontSizeSliderUpdate(int)));
+    bottomLayout->addWidget(fontSizeSlider_);
+
     mainLayout->addLayout(bottomLayout);
 
     setLayout(mainLayout);
@@ -174,6 +179,7 @@ MainWindow::MainWindow()
     connect(vsplitter1_, SIGNAL(splitterMoved(int,int)), SLOT(updateVSplitter1(int, int)));
 
     connect(laneView, SIGNAL(scaled(qreal, qreal)), SLOT(handleViewScaled(qreal, qreal)));
+    connect(laneScene_, SIGNAL(fontSizeUpdated(qreal)), SLOT(handleFontSizeUpdated(qreal)));
 
     // set initial window size
     int width_ = 1064;
@@ -192,6 +198,16 @@ MainWindow::MainWindow()
     hsplitter1_->setSizes(loadSplitterSizesFromSettings("hsplitter1", QList<int>() << 178 << 858));
     vsplitter1_->setSizes(loadSplitterSizesFromSettings("vsplitter1", QList<int>() << 257 << 487 << 178));
     hsplitter3_->setSizes(loadSplitterSizesFromSettings("hsplitter3", QList<int>() << 518 << 518));
+
+    // set initial lane scene font size base fraction
+    qreal fontSizeBaseFrac = 0.5;
+    if (settings) {
+        bool ok;
+        qreal val = settings->value("laneSceneFontSizeBaseFrac").toReal(&ok);
+        if (ok)
+            fontSizeBaseFrac = qMin(qMax(val, 0.0), 1.0);
+    }
+    laneScene_->updateFontSize(fontSizeBaseFrac);
 }
 
 bool MainWindow::isInit_ = false;
@@ -371,4 +387,17 @@ void MainWindow::handleViewScaled(qreal sx, qreal sy)
     vscaleSlider_->blockSignals(true);
     vscaleSlider_->setValue(vscaleSlider_->minimum() + vfrac * (vscaleSlider_->maximum() - vscaleSlider_->minimum()));
     vscaleSlider_->blockSignals(false);
+}
+
+void MainWindow::handleFontSizeSliderUpdate(int val)
+{
+    const qreal frac = (qreal(val) - fontSizeSlider_->minimum()) / (fontSizeSlider_->maximum() - fontSizeSlider_->minimum());
+    laneScene_->updateFontSize(frac);
+}
+
+void MainWindow::handleFontSizeUpdated(qreal frac)
+{
+    fontSizeSlider_->blockSignals(true);
+    fontSizeSlider_->setValue(fontSizeSlider_->minimum() + frac * (fontSizeSlider_->maximum() - fontSizeSlider_->minimum()));
+    fontSizeSlider_->blockSignals(false);
 }
