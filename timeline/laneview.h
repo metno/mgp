@@ -14,6 +14,8 @@ public:
 
 public slots:
     void updateScale(qreal, qreal);
+    void updateHScale(qreal);
+    void updateVScale(qreal);
 
 private:
     virtual void resizeEvent(QResizeEvent *);
@@ -27,6 +29,8 @@ private:
     bool panning_;
     int panPrevX_;
     int panPrevY_;
+    qreal lastScaleX_;
+    qreal lastScaleY_;
 
 signals:
     void scaled(qreal, qreal);

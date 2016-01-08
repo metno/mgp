@@ -18,6 +18,7 @@
 #include <QFont>
 #include <QSplitter>
 #include <QPushButton>
+#include <QSlider>
 #include <QKeyEvent>
 #include <QScrollBar>
 #include <QFrame>
@@ -135,13 +136,25 @@ MainWindow::MainWindow()
 
     mainLayout->addWidget(vsplitter1_);
 
-    QHBoxLayout *testLayout = new QHBoxLayout;
+    QHBoxLayout *bottomLayout = new QHBoxLayout;
     QPushButton *testBtn_addNewLane = new QPushButton("Add new lane");
     connect(testBtn_addNewLane, SIGNAL(clicked()), SLOT(addNewLane()));
     testBtn_addNewLane->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    testLayout->addWidget(testBtn_addNewLane);
-    testLayout->addStretch(1);
-    mainLayout->addLayout(testLayout);
+    bottomLayout->addWidget(testBtn_addNewLane);
+
+    bottomLayout->addStretch(1);
+
+    bottomLayout->addWidget(new QLabel("Horizontal scaling:"));
+    hscaleSlider_ = new QSlider(Qt::Horizontal);
+    connect(hscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleHScaleSliderUpdate(int)));
+    bottomLayout->addWidget(hscaleSlider_);
+
+    bottomLayout->addWidget(new QLabel("Vertical scaling:"));
+    vscaleSlider_ = new QSlider(Qt::Horizontal);
+    connect(vscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleVScaleSliderUpdate(int)));
+    bottomLayout->addWidget(vscaleSlider_);
+
+    mainLayout->addLayout(bottomLayout);
 
     setLayout(mainLayout);
 
@@ -159,6 +172,8 @@ MainWindow::MainWindow()
     connect(hsplitter2_, SIGNAL(splitterMoved(int,int)), SLOT(updateHSplitter1or2(int, int)));
     connect(hsplitter3_, SIGNAL(splitterMoved(int,int)), SLOT(updateHSplitter3(int, int)));
     connect(vsplitter1_, SIGNAL(splitterMoved(int,int)), SLOT(updateVSplitter1(int, int)));
+
+    connect(laneView, SIGNAL(scaled(qreal, qreal)), SLOT(handleViewScaled(qreal, qreal)));
 
     // set initial window size
     int width_ = 1064;
@@ -324,14 +339,36 @@ void MainWindow::updateDateRange(bool rewind)
     }
 }
 
-void MainWindow::resetZooming()
-{
-    qobject_cast<LaneView *>(laneScene_->views().first())->updateScale(1, 1);
-}
-
 void MainWindow::addNewLane()
 {
     // ### For now, assume that a lane always represents a role. Later, this will be just a special type of lane
     // (typically with its filter set to "role=...")
     TaskManager::instance().addNewRole();
+}
+
+void MainWindow::handleHScaleSliderUpdate(int val)
+{
+    const qreal frac = (qreal(val) - hscaleSlider_->minimum()) / (hscaleSlider_->maximum() - hscaleSlider_->minimum());
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateHScale(
+                LaneScene::minHScale() + frac * (LaneScene::maxHScale() - LaneScene::minHScale()));
+}
+
+void MainWindow::handleVScaleSliderUpdate(int val)
+{
+    const qreal frac = (qreal(val) - vscaleSlider_->minimum()) / (vscaleSlider_->maximum() - vscaleSlider_->minimum());
+    qobject_cast<LaneView *>(laneScene_->views().first())->updateVScale(
+                LaneScene::minVScale() + frac * (LaneScene::maxVScale() - LaneScene::minVScale()));
+}
+
+void MainWindow::handleViewScaled(qreal sx, qreal sy)
+{
+    const qreal hfrac = (sx - LaneScene::minHScale()) / ((LaneScene::maxHScale() - LaneScene::minHScale()));
+    hscaleSlider_->blockSignals(true);
+    hscaleSlider_->setValue(hscaleSlider_->minimum() + hfrac * (hscaleSlider_->maximum() - hscaleSlider_->minimum()));
+    hscaleSlider_->blockSignals(false);
+
+    const qreal vfrac = (sy - LaneScene::minVScale()) / ((LaneScene::maxVScale() - LaneScene::minVScale()));
+    vscaleSlider_->blockSignals(true);
+    vscaleSlider_->setValue(vscaleSlider_->minimum() + vfrac * (vscaleSlider_->maximum() - vscaleSlider_->minimum()));
+    vscaleSlider_->blockSignals(false);
 }

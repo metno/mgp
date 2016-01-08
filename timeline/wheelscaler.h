@@ -10,7 +10,7 @@ class QWheelEvent;
 class WheelScaler
 {
 public:
-    static QPair<qreal, qreal> exec(QGraphicsView *, QWheelEvent *);
+    static QPair<qreal, qreal> exec(QGraphicsView *, QWheelEvent *, qreal, qreal, qreal, qreal);
 };
 
 #endif // WHEELSCALER_H

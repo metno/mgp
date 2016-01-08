@@ -26,6 +26,11 @@ public:
     static int secsInDay() { return 24 * secsInHour(); }
     void setDateRange(const QDate &, int);
 
+    static qreal minHScale() { return 0.4; }
+    static qreal maxHScale() { return 4; }
+    static qreal minVScale() { return 0.001; }
+    static qreal maxVScale() { return 0.05; }
+
 public slots:
     void updateFromTaskMgr();
     void updateGeometryAndContents();

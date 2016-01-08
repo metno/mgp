@@ -16,6 +16,8 @@ extern QSharedPointer<QSettings> settings;
 LaneView::LaneView(LaneScene *scene, QWidget *parent)
     : QGraphicsView(scene, parent)
     , panning_(false)
+    , lastScaleX_(-1)
+    , lastScaleY_(-1)
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
@@ -36,7 +38,21 @@ void LaneView::updateScale(qreal sx, qreal sy)
     }
 
     emit scaled(sx, sy);
+
+    lastScaleX_ = sx;
+    lastScaleY_ = sy;
 }
+
+void LaneView::updateHScale(qreal sx)
+{
+    updateScale(sx, lastScaleY_);
+}
+
+void LaneView::updateVScale(qreal sy)
+{
+    updateScale(lastScaleX_, sy);
+}
+
 
 void LaneView::resizeEvent(QResizeEvent *event)
 {
@@ -45,7 +61,8 @@ void LaneView::resizeEvent(QResizeEvent *event)
 
 void LaneView::wheelEvent(QWheelEvent *event)
 {
-    const QPair<qreal, qreal> scaleFactors = WheelScaler::exec(this, event);
+    const QPair<qreal, qreal> scaleFactors =
+            WheelScaler::exec(this, event, LaneScene::minHScale(), LaneScene::maxHScale(), LaneScene::minVScale(), LaneScene::maxVScale());
     if (scaleFactors.first > 0) {
         const QPoint vpos = mapFromGlobal(QCursor::pos());
         const QPointF spos = mapToScene(vpos);

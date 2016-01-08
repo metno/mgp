@@ -15,6 +15,7 @@ class QDateEdit;
 class QSpinBox;
 class QSplitter;
 class QString;
+class QSlider;
 
 class MainWindow : public QWidget
 {
@@ -43,6 +44,9 @@ private:
     QSplitter *hsplitter3_;
     QSplitter *vsplitter1_;
 
+    QSlider *hscaleSlider_;
+    QSlider *vscaleSlider_;
+
     TimelineController *timelineController_;
     LanesController *lanesController_;
     TasksController *tasksController_;
@@ -62,9 +66,10 @@ private slots:
     void updateHSplitter1or2(int, int);
     void updateHSplitter3(int, int);
     void updateVSplitter1(int, int);
-    void resetZooming();
-
-    void addNewLane(); // ### for testing
+    void addNewLane();
+    void handleHScaleSliderUpdate(int);
+    void handleVScaleSliderUpdate(int);
+    void handleViewScaled(qreal, qreal);
 };
 
 #endif // MAINWINDOW_H

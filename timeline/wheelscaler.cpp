@@ -3,7 +3,7 @@
 #include <QGraphicsView>
 #include <QWheelEvent>
 
-QPair<qreal, qreal> WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
+QPair<qreal, qreal> WheelScaler::exec(QGraphicsView *view, QWheelEvent *event, qreal minHScale, qreal maxHScale, qreal minVScale, qreal maxVScale)
 {
     const bool scaleHorizontal = event->modifiers() & Qt::ShiftModifier;
     const bool scaleVertical = event->modifiers() & Qt::ControlModifier;
@@ -15,9 +15,9 @@ QPair<qreal, qreal> WheelScaler::exec(QGraphicsView *view, QWheelEvent *event)
         qreal m22 = view->transform().m22(); // vertical scaling factor
 
         if (scaleHorizontal)
-            m11 = qMin(qMax(sfact * m11, 0.001), 4.0);
+            m11 = qMin(qMax(sfact * m11, minHScale), maxHScale);
         if (scaleVertical)
-            m22 = qMin(qMax(sfact * m22, 0.001), 4.0);
+            m22 = qMin(qMax(sfact * m22, minVScale), maxVScale);
 
         return qMakePair(m11, m22);
     }
