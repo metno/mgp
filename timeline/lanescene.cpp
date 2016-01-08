@@ -21,6 +21,8 @@
 LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, int dateSpan__, QObject *parent)
     : QGraphicsScene(0, 0, dateSpan__ * secsInDay(), laneHeaderScene->height(), parent)
     , laneHeaderScene_(laneHeaderScene)
+    , taskItemLoZValue_(10)
+    , taskItemHiZValue_(12)
     , baseDate_(baseDate__)
     , dateSpan_(dateSpan__)
     , currTimeMarker_(0)
@@ -36,6 +38,8 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, 
     , adjustedFromSettings_(false)
     , draggingTask_(false)
 {
+    Q_ASSERT(taskItemLoZValue_ < (taskItemHiZValue_ - 1)); // ensure a wide enough range
+
     setDateRange(baseDate_, dateSpan_);
 
     addTaskAction_ = new QAction("Add new task", 0);
@@ -302,8 +306,10 @@ void LaneScene::updateFromTaskMgr()
     // remove task items for tasks that ...
     foreach (TaskItem *tItem, taskItems()) {
         if ((!tmAllTaskIds.contains(tItem->taskId())) // ... no longer exist in the task manager, or
-                || (TaskManager::instance().findTask(tItem->taskId())->roleId() == -1)) // is no longer assigned to a role
+                || (TaskManager::instance().findTask(tItem->taskId())->roleId() == -1)) { // is no longer assigned to a role
             removeItem(tItem);
+            taskItems_.removeOne(tItem);
+        }
     }
 
     // ensure that each lane contains exactly the tasks that are assigned to the corresponding role
@@ -313,8 +319,10 @@ void LaneScene::updateFromTaskMgr()
 
         // remove task items for tasks that are no longer assigned to this role
         foreach (TaskItem *tItem, taskItems(roleId)) {
-            if (!tmRoleTaskIds.contains(tItem->taskId()))
+            if (!tmRoleTaskIds.contains(tItem->taskId())) {
                 removeItem(tItem);
+                taskItems_.removeOne(tItem);
+            }
         }
 
         // add task items for tasks in the task manager that are assigned to this role but have no task items
@@ -323,6 +331,7 @@ void LaneScene::updateFromTaskMgr()
             if (!itemRoleTaskIds.contains(taskId)) {
                 TaskItem *taskItem = new TaskItem(taskId);
                 addItem(taskItem);
+                taskItems_.append(taskItem);
                 if (taskId == pendingCurrTaskId_) {
                     pendingCurrTaskId_ = -1;
                     setCurrTask(taskItem);
@@ -331,6 +340,7 @@ void LaneScene::updateFromTaskMgr()
         }
     }
 
+    updateZValues();
     updateGeometryAndContents();
 }
 
@@ -361,9 +371,8 @@ QList<qint64> LaneScene::laneItemRoleIds() const
 QList<TaskItem *> LaneScene::taskItems(qint64 roleId) const
 {
     QList<TaskItem *> tItems;
-    foreach (QGraphicsItem *item, items()) {
-        TaskItem *tItem = dynamic_cast<TaskItem *>(item);
-        if (tItem && ((roleId < 0) || (tItem->roleId() == roleId)))
+    foreach (TaskItem *tItem, taskItems_) {
+        if ((roleId < 0) || (tItem->roleId() == roleId))
             tItems.append(tItem);
     }
     return tItems;
@@ -372,9 +381,18 @@ QList<TaskItem *> LaneScene::taskItems(qint64 roleId) const
 QList<TaskItem *> LaneScene::taskItems(const QPointF &pos) const
 {
     QList<TaskItem *> tItems;
-    foreach (QGraphicsItem *item, items(pos)) {
-        TaskItem *tItem = dynamic_cast<TaskItem *>(item);
-        if (tItem)
+    foreach (TaskItem *tItem, taskItems_) {
+        if (tItem->sceneBoundingRect().contains(pos))
+            tItems.append(tItem);
+    }
+    return tItems;
+}
+
+QList<TaskItem *> LaneScene::taskItems(const QRectF &rect) const
+{
+    QList<TaskItem *> tItems;
+    foreach (TaskItem *tItem, taskItems_) {
+        if (tItem->sceneBoundingRect().intersects(rect))
             tItems.append(tItem);
     }
     return tItems;
@@ -390,9 +408,23 @@ QList<qint64> LaneScene::taskIds(const QList<TaskItem *> &tItems) const
 
 void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    const QList<TaskItem *> hitTaskItems = taskItems(event->scenePos());
+    currPos_ = event->scenePos();
+
+    QList<TaskItem *> hitTaskItems = taskItems(currPos_);
     TaskItem *origHoverTaskItem = hoverTaskItem_;
-    hoverTaskItem_ = hitTaskItems.isEmpty() ? 0 : hitTaskItems.first();
+    if (hitTaskItems.isEmpty()) {
+        hoverTaskItem_ = 0;
+    } else {
+        // use the item with the highest z value, i.e. the one at the top
+        qreal hiZVal;
+        for (int i = 0; i < hitTaskItems.size(); ++i) {
+            TaskItem *item = hitTaskItems.at(i);
+            if ((i == 0) || (item->zValue() > hiZVal)) {
+                hiZVal = item->zValue();
+                hoverTaskItem_ = item;
+            }
+        }
+    }
 
     if (origHoverTaskItem)
         origHoverTaskItem->highlight(false);
@@ -436,12 +468,12 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
     const int lwidth = laneHeaderScene_->laneWidth();
     const int lhpad = laneHeaderScene_->laneHorizontalPadding();
-    const int scenex = event->scenePos().x();
+    const int scenex = currPos_.x();
     hoverLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
     if ((hoverLaneIndex_ >= 0) && (hoverLaneIndex_ < laneItems_.size())) {
 
         // set insertion position for adding new task
-        insertTop_ = event->scenePos().y();
+        insertTop_ = currPos_.y();
         insertBottom_ = insertTop_ + 2 * secsInHour(); // ### for now
 
         hoverTimeMarker_->setLine(lhpad, insertTop_, sceneRect().width() - lhpad, insertTop_);
@@ -456,7 +488,7 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
     // update dragged task
     if (draggingTask_) {
-        const long deltaTimestamp = vPosToTimestamp(event->scenePos().y()) - vPosToTimestamp(basePos_.y());
+        const long deltaTimestamp = vPosToTimestamp(currPos_.y()) - vPosToTimestamp(basePos_.y());
         Q_ASSERT(currTaskItem_);
         QHash<QString, QVariant> values;
         const long newLoTimestamp = origLoTimestamp_ + deltaTimestamp;
@@ -485,7 +517,7 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         updateCurrTaskItem(false);
         if (currTaskItem_) {
             draggingTask_ = true;
-            basePos_ = event->scenePos();
+            basePos_ = currPos_;
             Task *task = TaskManager::instance().findTask(currTaskItem_->taskId()).data();
             origLoTimestamp_ = task->loDateTime().toTime_t();
             origHiTimestamp_ = task->hiDateTime().toTime_t();
@@ -524,6 +556,10 @@ void LaneScene::keyPressEvent(QKeyEvent *event)
         removeCurrentTask();
     } else if (event->key() == Qt::Key_Insert) {
         addNewTask();
+    } else if (event->key() == Qt::Key_PageUp) {
+        cycleIntersectedTaskItems(true);
+    } else if (event->key() == Qt::Key_PageDown) {
+        cycleIntersectedTaskItems(false);
     }
 }
 
@@ -681,4 +717,35 @@ void LaneScene::handleLanesSwapped(int pos1, int pos2)
     updateGeometryAndContents();
     if (currTaskItem_)
         setCurrTask(currTaskItem_); // update highlighting of current task
+}
+
+void LaneScene::updateZValues()
+{
+    const qreal delta = (taskItems_.size() > 1)
+            ? (taskItemHiZValue_ - taskItemLoZValue_) / (taskItems_.size() - 1)
+            : 0;
+    for (int i = 0; i < taskItems_.size(); ++i)
+        taskItems_.at(i)->setZValue(taskItemLoZValue_ + i * delta);
+}
+
+void LaneScene::cycleIntersectedTaskItems(bool up)
+{
+    if (!hoverTaskItem_)
+        return;
+
+    // find task items that intersect the hovered item
+    QList<TaskItem *> isctTaskItems = taskItems(hoverTaskItem_->sceneBoundingRect());
+
+    if (isctTaskItems.size() < 2)
+        return;
+
+    const int first = taskItems_.indexOf(isctTaskItems.first());
+    const int last = taskItems_.indexOf(isctTaskItems.last());
+
+    if (up)
+        taskItems_.insert(first, taskItems_.takeAt(last));
+    else
+        taskItems_.insert(last, taskItems_.takeAt(first));
+
+    updateZValues();
 }

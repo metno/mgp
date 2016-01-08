@@ -39,13 +39,19 @@ private:
     QList<LaneItem *> laneItems_;
     QList<qint64> laneItemRoleIds() const;
 
+    QList<TaskItem *> taskItems_; // all task items with z values reflecting order
     QList<TaskItem *> taskItems(qint64 = -1) const;
     QList<TaskItem *> taskItems(const QPointF &) const;
+    QList<TaskItem *> taskItems(const QRectF &) const;
     QList<qint64> taskIds(const QList<TaskItem *> &) const;
+
+    const qreal taskItemLoZValue_;
+    const qreal taskItemHiZValue_;
 
     void updateBaseItemGeometry();
     void updateTaskItems();
     void updateTaskItemsInLane(LaneItem *, int, int, int);
+    void updateZValues();
     QDate baseDate_;
     int dateSpan_;
 
@@ -92,6 +98,7 @@ private:
 
     bool draggingTask_;
     enum DragMode { Lo, Hi, Both } dragMode_;
+    QPointF currPos_;
     QPointF basePos_;
     long origLoTimestamp_;
     long origHiTimestamp_;
@@ -103,6 +110,7 @@ private slots:
     void handleViewScaleUpdate();
     void handleViewLeft();
     void handleLanesSwapped(int, int);
+    void cycleIntersectedTaskItems(bool);
 
 signals:
     void dateRangeChanged();

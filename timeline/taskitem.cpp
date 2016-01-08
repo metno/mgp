@@ -16,7 +16,6 @@ TaskItem::TaskItem(qint64 taskId__)
     : taskId_(taskId__)
 {
     setBrush(QColor("#bbb"));
-    setZValue(10);
     setCursor(Qt::ArrowCursor);
     setAcceptHoverEvents(true);
 
