@@ -714,6 +714,7 @@ void LaneScene::handleViewScaleUpdate()
 {
     foreach (TaskItem *tItem, taskItems()) {
         tItem->updateTextPositions();
+        tItem->updateShadowPositions();
     }
 }
 

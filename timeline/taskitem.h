@@ -6,6 +6,7 @@
 #include <QBrush>
 
 class QGraphicsTextItem;
+class QGraphicsPathItem;
 
 class TaskItem : public QGraphicsRectItem
 {
@@ -21,6 +22,7 @@ public:
     void updateColor(const QColor &);
     void updateTextPositions();
     void updateFontSize(qreal);
+    void updateShadowPositions();
 
 private:
     qint64 taskId_;
@@ -29,6 +31,8 @@ private:
     QGraphicsTextItem *nameItem_;
     QGraphicsTextItem *summaryItem_;
     //QGraphicsTextItem *descrItem_;
+    QGraphicsPathItem *shadowItem1_;
+    QGraphicsPathItem *shadowItem2_;
 
     static QColor defaultColor() { return QColor("#bbb"); }
 };

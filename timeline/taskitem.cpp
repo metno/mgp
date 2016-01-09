@@ -11,6 +11,8 @@
 #include <QCursor>
 #include <QGraphicsTextItem>
 #include <QFont>
+#include <QGraphicsPathItem>
+#include <QPainterPath>
 
 TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
     : taskId_(taskId__)
@@ -19,6 +21,7 @@ TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
     Q_ASSERT(task);
 
     setBrush(task->color().isValid() ? task->color() : defaultColor());
+    setPen(QPen(QColor("#555")));
     setCursor(Qt::ArrowCursor);
     setAcceptHoverEvents(true);
 
@@ -40,8 +43,17 @@ TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
     summaryItem_->setFlag(QGraphicsItem::ItemIgnoresTransformations);
     //summaryItem_->setPos(rect().x() + 5, rect().y() + 5);
 
+    shadowItem1_ = new QGraphicsPathItem(this);
+    shadowItem1_->setPen(Qt::NoPen);
+    shadowItem1_->setZValue(1.5);
+
+    shadowItem2_ = new QGraphicsPathItem(this);
+    shadowItem2_->setPen(Qt::NoPen);
+    shadowItem2_->setZValue(1.5);
+
     updateTextPositions();
     updateFontSize(fontSizeBaseFrac);
+    updateShadowPositions();
 }
 
 qint64 TaskItem::taskId() const
@@ -78,6 +90,7 @@ void TaskItem::updateRect(const QRectF &r)
     setRect(r);
     summaryItem_->setTextWidth(scene()->views().first()->transform().m11() * r.width());
     updateTextPositions();
+    updateShadowPositions();
 }
 
 void TaskItem::updateName(const QString &name)
@@ -99,6 +112,8 @@ void TaskItem::updateDescription(const QString &descr)
 void TaskItem::updateColor(const QColor &color)
 {
     setBrush(color.isValid() ? color : defaultColor());
+    shadowItem1_->setBrush(brush().color().darker(120));
+    shadowItem2_->setBrush(brush().color().lighter(120));
 }
 
 void TaskItem::updateTextPositions()
@@ -129,4 +144,47 @@ void TaskItem::updateFontSize(qreal baseFrac)
     font = summaryItem_->font();
     font.setPointSize(summarySize);
     summaryItem_->setFont(font);
+}
+
+void TaskItem::updateShadowPositions()
+{
+    if ((!scene()) || (scene()->views().isEmpty()))
+        return;
+    const qreal tx = scene()->views().first()->transform().m11();
+    const qreal ty = scene()->views().first()->transform().m22();
+
+    const qreal size = 3;
+    const qreal sx = size / tx;
+    const qreal sy = size / ty;
+    const QRectF brect = boundingRect();
+    const QPointF topLeft = brect.topLeft();
+    const QPointF botRight = brect.bottomRight();
+
+    const qreal pad = 1;
+    const qreal px = pad / tx;
+    const qreal py = pad / ty;
+    const qreal x0 = topLeft.x() + px;
+    const qreal y0 = topLeft.y() + py;
+    const qreal x1 = botRight.x() - px;
+    const qreal y1 = botRight.y() - py;
+
+    QPainterPath path;
+    path.moveTo(x0, y0);
+    path.lineTo(x0, y1);
+    path.lineTo(x1, y1);
+    path.lineTo(x1 - sx, y1 - sy);
+    path.lineTo(x0 + sx, y1 - sy);
+    path.lineTo(x0 + sx, y0 + sy);
+    path.moveTo(x0, y0);
+    shadowItem1_->setPath(path);
+
+    path = QPainterPath();
+    path.moveTo(x0, y0);
+    path.lineTo(x1, y0);
+    path.lineTo(x1, y1);
+    path.lineTo(x1 - sx, y1 - sy);
+    path.lineTo(x1 - sx, y0 + sy);
+    path.lineTo(x0 + sx, y0 + sy);
+    path.moveTo(x0, y0);
+    shadowItem2_->setPath(path);
 }
