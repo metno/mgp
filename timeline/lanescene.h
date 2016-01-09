@@ -78,6 +78,7 @@ private:
     virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 
+    void handleLastMouseMoveEvent();
     void updateCurrTaskMarkerRect(Task *);
     void setCurrTask(TaskItem *);
     void clearCurrTask();
@@ -107,8 +108,9 @@ private:
 
     bool draggingTask_;
     enum DragMode { Lo, Hi, Both } dragMode_;
-    QPointF currPos_;
-    QPointF basePos_;
+    QPointF currScenePos_;
+    QPointF baseScenePos_;
+    QPoint currScreenPos_;
     long origLoTimestamp_;
     long origHiTimestamp_;
 

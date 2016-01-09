@@ -423,11 +423,10 @@ QList<qint64> LaneScene::taskIds(const QList<TaskItem *> &tItems) const
     return tIds;
 }
 
-void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+void LaneScene::handleLastMouseMoveEvent()
 {
-    currPos_ = event->scenePos();
 
-    QList<TaskItem *> hitTaskItems = taskItems(currPos_);
+    QList<TaskItem *> hitTaskItems = taskItems(currScenePos_);
     TaskItem *origHoverTaskItem = hoverTaskItem_;
     if (hitTaskItems.isEmpty()) {
         hoverTaskItem_ = 0;
@@ -457,10 +456,10 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             const int loPos = view->mapToGlobal(view->mapFromScene(hoverTaskItem_->rect().topLeft())).y();
             const int hiPos = view->mapToGlobal(view->mapFromScene(hoverTaskItem_->rect().bottomLeft())).y();
             const int tolerance = 5;
-            if (qAbs(event->screenPos().y() - loPos) < tolerance) {
+            if (qAbs(currScreenPos_.y() - loPos) < tolerance) {
                 dragMode_ = Lo;
                 view->setCursor(Qt::SizeVerCursor);
-            } else if (qAbs(event->screenPos().y() - hiPos) < tolerance) {
+            } else if (qAbs(currScreenPos_.y() - hiPos) < tolerance) {
                 dragMode_ = Hi;
                 view->setCursor(Qt::SizeVerCursor);
             } else {
@@ -485,12 +484,12 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
     const int lwidth = laneHeaderScene_->laneWidth();
     const int lhpad = laneHeaderScene_->laneHorizontalPadding();
-    const int scenex = currPos_.x();
+    const int scenex = currScenePos_.x();
     hoverLaneIndex_ = (scenex < 0) ? -1 : (scenex / lwidth);
     if ((hoverLaneIndex_ >= 0) && (hoverLaneIndex_ < laneItems_.size())) {
 
         // set insertion position for adding new task
-        insertTop_ = currPos_.y();
+        insertTop_ = currScenePos_.y();
         insertBottom_ = insertTop_ + 2 * secsInHour(); // ### for now
 
         hoverTimeMarker_->setLine(lhpad, insertTop_, sceneRect().width() - lhpad, insertTop_);
@@ -505,7 +504,7 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
     // update dragged task
     if (draggingTask_) {
-        const long deltaTimestamp = vPosToTimestamp(currPos_.y()) - vPosToTimestamp(basePos_.y());
+        const long deltaTimestamp = vPosToTimestamp(currScenePos_.y()) - vPosToTimestamp(baseScenePos_.y());
         Q_ASSERT(currTaskItem_);
         QHash<QString, QVariant> values;
         const long newLoTimestamp = origLoTimestamp_ + deltaTimestamp;
@@ -528,13 +527,21 @@ void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     }
 }
 
+void LaneScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
+    currScenePos_ = event->scenePos();
+    currScreenPos_ = event->screenPos();
+
+    handleLastMouseMoveEvent();
+}
+
 void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
         updateCurrTaskItem(false);
         if (currTaskItem_) {
             draggingTask_ = true;
-            basePos_ = currPos_;
+            baseScenePos_ = currScenePos_;
             Task *task = TaskManager::instance().findTask(currTaskItem_->taskId()).data();
             origLoTimestamp_ = task->loDateTime().toTime_t();
             origHiTimestamp_ = task->hiDateTime().toTime_t();
@@ -575,8 +582,14 @@ void LaneScene::keyPressEvent(QKeyEvent *event)
         addNewTask();
     } else if (event->key() == Qt::Key_PageUp) {
         cycleIntersectedTaskItems(true);
+        handleLastMouseMoveEvent();
+        if (!taskItems_.isEmpty())
+            setCurrTask(taskItems_.last());
     } else if (event->key() == Qt::Key_PageDown) {
         cycleIntersectedTaskItems(false);
+        handleLastMouseMoveEvent();
+        if (!taskItems_.isEmpty())
+            setCurrTask(taskItems_.last());
     }
 }
 
