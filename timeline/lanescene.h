@@ -1,15 +1,16 @@
 #ifndef LANESCENE_H
 #define LANESCENE_H
 
+#include "task.h"
 #include <QGraphicsScene>
 #include <QDate>
+#include <QSharedPointer>
 
 class LaneHeaderScene;
 class QGraphicsRectItem;
 class QGraphicsLineItem;
 class LaneItem;
 class TaskItem;
-class Task;
 class QGraphicsSceneMouseEvent;
 class QAction;
 
@@ -84,12 +85,16 @@ private:
     void clearCurrTask();
     void updateCurrTaskItem(bool);
     void adjustFromSettings();
+    void doRemoveCurrentTask();
     void cycleIntersectedTaskItems(bool);
     void bringToTop(TaskItem *);
 
     QAction *addTaskAction_;
     QAction *editTaskAction_;
     QAction *removeTaskAction_;
+    QAction *cutTaskAction_;
+    QAction *copyTaskAction_;
+    QAction *pasteTaskAction_;
 
     TaskItem *hoverTaskItem_; // task item (if any) currently hovered
     TaskItem *currTaskItem_; // task item (if any) currently selected
@@ -116,10 +121,15 @@ private:
 
     qreal fontSizeBaseFrac_;
 
+    QSharedPointer<Task> pastableTask_;
+
 private slots:
     void addNewTask();
     void editCurrentTask();
     void removeCurrentTask();
+    void cutCurrentTask();
+    void copyCurrentTask();
+    void pasteTask();
     void handleViewScaleUpdate();
     void handleViewLeft();
     void handleLanesSwapped(int, int);

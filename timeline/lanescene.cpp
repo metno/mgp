@@ -15,7 +15,6 @@
 #include <QKeyEvent>
 #include <QAction>
 #include <QMenu>
-#include <QSharedPointer>
 #include <QDateTime>
 #include <QSettings>
 
@@ -54,6 +53,18 @@ LaneScene::LaneScene(LaneHeaderScene *laneHeaderScene, const QDate &baseDate__, 
 
     removeTaskAction_ = new QAction("Remove task", 0);
     connect(removeTaskAction_, SIGNAL(triggered()), SLOT(removeCurrentTask()));
+
+    cutTaskAction_ = new QAction("Cut task", 0);
+    cutTaskAction_->setShortcut(Qt::CTRL + Qt::Key_X);
+    connect(cutTaskAction_, SIGNAL(triggered()), SLOT(cutCurrentTask()));
+
+    copyTaskAction_ = new QAction("Copy task", 0);
+    copyTaskAction_->setShortcut(Qt::CTRL + Qt::Key_C);
+    connect(copyTaskAction_, SIGNAL(triggered()), SLOT(copyCurrentTask()));
+
+    pasteTaskAction_ = new QAction("Paste task", 0);
+    pasteTaskAction_->setShortcut(Qt::CTRL + Qt::Key_V);
+    connect(pasteTaskAction_, SIGNAL(triggered()), SLOT(pasteTask()));
 
     hoverTimeMarker_ = new QGraphicsLineItem;
     hoverTimeMarker_->setPen(QPen(QColor(0, 160, 0)));
@@ -556,7 +567,11 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         if (hoverTaskItem_) {
             contextMenu.addAction(editTaskAction_);
             contextMenu.addAction(removeTaskAction_);
+            contextMenu.addAction(cutTaskAction_);
+            contextMenu.addAction(copyTaskAction_);
         }
+        contextMenu.addAction(pasteTaskAction_);
+        pasteTaskAction_->setEnabled(pastableTask_);
         contextMenuActive_ = true;
         contextMenu.exec(QCursor::pos());
         contextMenuActive_ = false;
@@ -580,6 +595,12 @@ void LaneScene::keyPressEvent(QKeyEvent *event)
         removeCurrentTask();
     } else if (event->key() == Qt::Key_Insert) {
         addNewTask();
+    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_X))  {
+        cutCurrentTask();
+    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_C))  {
+        copyCurrentTask();
+    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_V))  {
+        pasteTask();
     } else if (event->key() == Qt::Key_PageUp) {
         cycleIntersectedTaskItems(true);
         handleLastMouseMoveEvent();
@@ -707,20 +728,61 @@ void LaneScene::editCurrentTask()
     }
 }
 
+void LaneScene::doRemoveCurrentTask()
+{
+    Q_ASSERT(currTaskItem_);
+    TaskManager::instance().removeTask(currTaskItem_->taskId());
+    if (hoverTaskItem_ == currTaskItem_)
+        hoverTaskItem_ = 0;
+    currTaskItem_ = 0;
+    currTaskMarker_->setVisible(false);
+    draggingTask_ = 0;
+    TaskManager::instance().emitUpdated();
+}
+
 void LaneScene::removeCurrentTask()
 {
     taskRemovalActive_ = true;
-
-    if (confirm("Really remove task?")) {
-        Q_ASSERT(currTaskItem_);
-        TaskManager::instance().removeTask(currTaskItem_->taskId());
-        currTaskItem_ = 0;
-        currTaskMarker_->setVisible(false);
-        draggingTask_ = 0;
-        TaskManager::instance().emitUpdated();
-    }
-
+    if (confirm("Really remove task?"))
+        doRemoveCurrentTask();
     taskRemovalActive_ = false;
+}
+
+void LaneScene::cutCurrentTask()
+{
+    if (!currTaskItem_)
+        return;
+    pastableTask_ = TaskManager::instance().findTask(currTaskItem_->taskId());
+    doRemoveCurrentTask();
+}
+
+void LaneScene::copyCurrentTask()
+{
+    if (!currTaskItem_)
+        return;
+    pastableTask_ = TaskManager::instance().findTask(currTaskItem_->taskId());
+}
+
+void LaneScene::pasteTask()
+{
+    if (!pastableTask_)
+        return;
+
+    const int loTimestamp = vPosToTimestamp(currScenePos_.y());
+    const int hiTimestamp = loTimestamp + (pastableTask_->hiDateTime().toTime_t() - pastableTask_->loDateTime().toTime_t());
+    const qint64 taskId = TaskManager::instance().addTask(
+                TaskProperties(
+                    pastableTask_->name(),
+                    pastableTask_->summary(),
+                    pastableTask_->description(),
+                    loTimestamp,
+                    hiTimestamp,
+                    pastableTask_->color()
+                    ));
+
+    TaskManager::instance().assignTaskToRole(taskId, laneHeaderScene_->laneIndexToRoleId(hoverLaneIndex_));
+
+    TaskManager::instance().emitUpdated();
 }
 
 void LaneScene::handleViewScaleUpdate()
