@@ -561,20 +561,28 @@ void LaneScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
     } else if (event->button() == Qt::RightButton) {
         updateCurrTaskItem(true);
 
+        qDebug() << "opening context menu, hoverLaneIndex_:" << hoverLaneIndex_;
+
         // open context menu
         QMenu contextMenu;
-        contextMenu.addAction(addTaskAction_);
+        if (hoverLaneIndex_ >= 0)
+            contextMenu.addAction(addTaskAction_);
         if (hoverTaskItem_) {
             contextMenu.addAction(editTaskAction_);
             contextMenu.addAction(removeTaskAction_);
             contextMenu.addAction(cutTaskAction_);
             contextMenu.addAction(copyTaskAction_);
         }
-        contextMenu.addAction(pasteTaskAction_);
-        pasteTaskAction_->setEnabled(pastableTask_);
-        contextMenuActive_ = true;
-        contextMenu.exec(QCursor::pos());
-        contextMenuActive_ = false;
+        if (hoverLaneIndex_ >= 0) {
+            contextMenu.addAction(pasteTaskAction_);
+            pasteTaskAction_->setEnabled(pastableTask_);
+        }
+
+        if (!contextMenu.actions().isEmpty()) {
+            contextMenuActive_ = true;
+            contextMenu.exec(QCursor::pos());
+            contextMenuActive_ = false;
+        }
     }
 }
 
