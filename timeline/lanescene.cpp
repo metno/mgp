@@ -585,8 +585,12 @@ void LaneScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *)
 
 void LaneScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
-    if ((event->button() == Qt::LeftButton) && currTaskItem_)
-        editCurrentTask();
+    if (event->button() == Qt::LeftButton) {
+        if (currTaskItem_)
+            editCurrentTask();
+        else
+            addNewTask();
+    }
 }
 
 void LaneScene::keyPressEvent(QKeyEvent *event)
