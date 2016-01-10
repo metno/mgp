@@ -27,8 +27,8 @@ TaskItem::TaskItem(qint64 taskId__, qreal fontSizeBaseFrac)
 
     hoverItem_ = new QGraphicsRectItem(this);
     hoverItem_->setFlag(QGraphicsItem::ItemStacksBehindParent);
-    hoverItem_->setBrush(QColor("#ff0"));
-    hoverItem_->setPen(QPen(QColor("#880")));
+    hoverItem_->setBrush(QColor("#00a000"));
+    hoverItem_->setPen(QPen(QColor("#00a000")));
     hoverItem_->setVisible(false);
 
     nameItem_ = new QGraphicsTextItem(task->name(), this);
@@ -76,7 +76,7 @@ void TaskItem::highlight(bool enabled)
 {
     if (enabled) {
         Q_ASSERT(!scene()->views().isEmpty());
-        const qreal w = 5;
+        const qreal w = 2;
         const qreal addh = w / scene()->views().first()->transform().m11();
         const qreal addv = w / scene()->views().first()->transform().m22();
         hoverItem_->setRect(rect().adjusted(-addh, -addv, addh, addv));
