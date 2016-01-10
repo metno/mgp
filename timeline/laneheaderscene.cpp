@@ -30,16 +30,22 @@ LaneHeaderScene::LaneHeaderScene(qreal w, qreal h, QObject *parent)
     bgItem_->setZValue(-1);
     addItem(bgItem_);
 
-    editAction_ = new QAction("Edit", 0);
+    editAction_ = new QAction("Edit lane", 0);
     connect(editAction_, SIGNAL(triggered()), SLOT(editCurrentLane()));
 
-    removeAction_ = new QAction("Remove", 0);
+    removeAction_ = new QAction("Remove lane", 0);
     connect(removeAction_, SIGNAL(triggered()), SLOT(removeCurrentLane()));
 
-    moveLeftAction_ = new QAction("Move left", 0);
+    copyAction_ = new QAction("Copy lane (not yet implemented)", 0);
+    connect(copyAction_, SIGNAL(triggered()), SLOT(copyCurrentLane()));
+
+    pasteAction_ = new QAction("Paste lane (not yet implemented)", 0);
+    connect(pasteAction_, SIGNAL(triggered()), SLOT(pasteLane()));
+
+    moveLeftAction_ = new QAction("Move lane left", 0);
     connect(moveLeftAction_, SIGNAL(triggered()), SLOT(moveCurrentLaneLeft()));
 
-    moveRightAction_ = new QAction("Move right", 0);
+    moveRightAction_ = new QAction("Move lane right", 0);
     connect(moveRightAction_, SIGNAL(triggered()), SLOT(moveCurrentLaneRight()));
 
     currMarker_ = new QGraphicsRectItem;
@@ -143,6 +149,11 @@ void LaneHeaderScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         QMenu contextMenu;
         contextMenu.addAction(editAction_);
         contextMenu.addAction(removeAction_);
+
+        contextMenu.addAction(copyAction_);
+        copyAction_->setEnabled(false);
+        contextMenu.addAction(pasteAction_);
+        pasteAction_->setEnabled(false);
 
         contextMenu.addAction(moveLeftAction_);
         moveLeftAction_->setEnabled(headerItems_.indexOf(currItem_) > 0);
@@ -312,6 +323,16 @@ void LaneHeaderScene::removeCurrentLane()
     clearHoverItem();
     TaskManager::instance().emitUpdated();
     RolePanel::instance().clearContents();
+}
+
+void LaneHeaderScene::copyCurrentLane()
+{
+    // TBD
+}
+
+void LaneHeaderScene::pasteLane()
+{
+    // TBD
 }
 
 void LaneHeaderScene::moveCurrentLaneLeft()

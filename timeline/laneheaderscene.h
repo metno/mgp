@@ -61,6 +61,8 @@ private:
 
     QAction *editAction_;
     QAction *removeAction_;
+    QAction *copyAction_;
+    QAction *pasteAction_;
     QAction *moveLeftAction_;
     QAction *moveRightAction_;
     LaneHeaderItem *hoverItem_; // lane header item (if any) currently hovered
@@ -73,6 +75,8 @@ private:
 private slots:
     void editCurrentLane();
     void removeCurrentLane();
+    void copyCurrentLane();
+    void pasteLane();
     void moveCurrentLaneLeft();
     void moveCurrentLaneRight();
     void handleViewLeft();
