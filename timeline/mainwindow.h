@@ -67,6 +67,7 @@ private slots:
     void updateHSplitter1or2(int, int);
     void updateHSplitter3(int, int);
     void updateVSplitter1(int, int);
+    void openUserManual();
     void addNewLane();
     void handleHScaleSliderUpdate(int);
     void handleVScaleSliderUpdate(int);

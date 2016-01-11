@@ -11,6 +11,7 @@
 #include "timelinecontroller.h"
 #include "lanescontroller.h"
 #include "taskscontroller.h"
+#include "usermanualwindow.h"
 #include "common.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -28,6 +29,7 @@
 #include <QScrollBar>
 #include <QSharedPointer>
 #include <QSettings>
+#include <QApplication>
 
 extern QSharedPointer<QSettings> settings;
 
@@ -105,6 +107,10 @@ MainWindow::MainWindow()
     bottomFrame->setLayout(new QVBoxLayout);
 
     QHBoxLayout *bottomHLayout1 = new QHBoxLayout;
+    QPushButton *helpButton = new QPushButton("Help");
+    connect(helpButton, SIGNAL(clicked()), SLOT(openUserManual()));
+    bottomHLayout1->addWidget(helpButton);
+
     QPushButton *testBtn_addNewLane = new QPushButton("Add new lane");
     connect(testBtn_addNewLane, SIGNAL(clicked()), SLOT(addNewLane()));
     testBtn_addNewLane->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
@@ -234,8 +240,11 @@ void MainWindow::handleKeyPressEvent(QKeyEvent *event)
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if ((event->key() == Qt::Key_Escape) || ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_Q)))
-        close();
+    if ((event->key() == Qt::Key_Escape) || ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_Q))) {
+        qApp->quit();
+    } else if (event->key() == Qt::Key_F1) {
+        openUserManual();
+    }
 }
 
 void MainWindow::showEvent(QShowEvent *)
@@ -362,6 +371,12 @@ void MainWindow::updateDateRange(bool rewind)
         QScrollBar *hsbar = laneScene_->views().first()->horizontalScrollBar();
         hsbar->setValue(hsbar->minimum());
     }
+}
+
+void MainWindow::openUserManual()
+{
+    UserManualWindow::instance().show();
+    UserManualWindow::instance().raise();
 }
 
 void MainWindow::addNewLane()
