@@ -71,18 +71,66 @@ MainWindow::MainWindow()
     appLabel->setAlignment(Qt::AlignCenter);
     appLabel->setStyleSheet(
                 "font-weight:normal; color: #000000; "
-                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #bbbbff, stop: 0.5 #bbeeff, stop: 1 #bbbbff)");
+                "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #ffffdd, stop: 0.5 #ddffff, stop: 1 #77bb77)");
     cornerLayout->addWidget(appLabel, 0, 0, 1, 2);
     hsplitter2_->addWidget(cornerFrame);
+
+    laneHeaderScene_ = new LaneHeaderScene(2000, 100);
+    LaneHeaderView *laneHeaderView = new LaneHeaderView(laneHeaderScene_);
+    laneHeaderView->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
     QFrame *topFrame = new QFrame;
     topFrame->setLayout(new QVBoxLayout);
     topFrame->layout()->setContentsMargins(0, 0, 0, 0);
+    topFrame->layout()->addWidget(laneHeaderView);
+
+    hsplitter2_->addWidget(topFrame);
+
+    // ------------------------
+
+    hsplitter1_ = new QSplitter;
+
+    laneScene_ = new LaneScene(laneHeaderScene_, baseDate_, dateSpan_);
+    LaneView *laneView = new LaneView(laneScene_);
+
+    timelineScene_ = new TimelineScene(laneScene_, 50);
+    TimelineView *timelineView = new TimelineView(timelineScene_);
+
+    hsplitter1_->addWidget(timelineView);
+    hsplitter1_->addWidget(laneView);
+
+    // ---------------------------------
+
+    QFrame *bottomFrame = new QFrame;
+    bottomFrame->setLayout(new QVBoxLayout);
+
+    QHBoxLayout *bottomHLayout1 = new QHBoxLayout;
+    QPushButton *testBtn_addNewLane = new QPushButton("Add new lane");
+    connect(testBtn_addNewLane, SIGNAL(clicked()), SLOT(addNewLane()));
+    testBtn_addNewLane->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    bottomHLayout1->addWidget(testBtn_addNewLane);
+
+    bottomHLayout1->addStretch(1);
+
+    bottomHLayout1->addWidget(new QLabel("Horizontal scaling:"));
+    hscaleSlider_ = new QSlider(Qt::Horizontal);
+    connect(hscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleHScaleSliderUpdate(int)));
+    bottomHLayout1->addWidget(hscaleSlider_);
+
+    bottomHLayout1->addWidget(new QLabel("Vertical scaling:"));
+    vscaleSlider_ = new QSlider(Qt::Horizontal);
+    connect(vscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleVScaleSliderUpdate(int)));
+    bottomHLayout1->addWidget(vscaleSlider_);
+
+    bottomHLayout1->addWidget(new QLabel("Font size:"));
+    fontSizeSlider_ = new QSlider(Qt::Horizontal);
+    connect(fontSizeSlider_, SIGNAL(valueChanged(int)), SLOT(handleFontSizeSliderUpdate(int)));
+    bottomHLayout1->addWidget(fontSizeSlider_);
+
 
     QFrame *ctrlFrame = new QFrame;
     ctrlFrame->setLayout(new QHBoxLayout);
     ctrlFrame->layout()->setContentsMargins(0, 0, 0, 0);
-    topFrame->layout()->addWidget(ctrlFrame);
 
     // ### put this somewhere else (it doesn't belong only to timeline controller, since the reset applies to both dimensions)
     //    {
@@ -103,27 +151,10 @@ MainWindow::MainWindow()
     tasksController_ = new TasksController();
     ctrlFrame->layout()->addWidget(tasksController_);
 
-    laneHeaderScene_ = new LaneHeaderScene(2000, 100);
-    LaneHeaderView *laneHeaderView = new LaneHeaderView(laneHeaderScene_);
-    laneHeaderView->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-    topFrame->layout()->addWidget(laneHeaderView);
+    qobject_cast<QVBoxLayout *>(bottomFrame->layout())->addLayout(bottomHLayout1);
+    bottomFrame->layout()->addWidget(ctrlFrame);
 
-    hsplitter2_->addWidget(topFrame);
-
-    // ------------------------
-
-    hsplitter1_ = new QSplitter;
-
-    laneScene_ = new LaneScene(laneHeaderScene_, baseDate_, dateSpan_);
-    LaneView *laneView = new LaneView(laneScene_);
-
-    timelineScene_ = new TimelineScene(laneScene_, 50);
-    TimelineView *timelineView = new TimelineView(timelineScene_);
-
-    hsplitter1_->addWidget(timelineView);
-    hsplitter1_->addWidget(laneView);
-
-    // ------------------------
+    // ----------------------------
 
     vsplitter1_ = new QSplitter(Qt::Vertical);
     vsplitter1_->addWidget(hsplitter2_);
@@ -134,32 +165,10 @@ MainWindow::MainWindow()
     hsplitter3_->addWidget(&RolePanel::instance());
     hsplitter3_->addWidget(&TaskPanel::instance());
 
+    vsplitter1_->addWidget(bottomFrame);
+
     mainLayout->addWidget(vsplitter1_);
 
-    QHBoxLayout *bottomLayout = new QHBoxLayout;
-    QPushButton *testBtn_addNewLane = new QPushButton("Add new lane");
-    connect(testBtn_addNewLane, SIGNAL(clicked()), SLOT(addNewLane()));
-    testBtn_addNewLane->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    bottomLayout->addWidget(testBtn_addNewLane);
-
-    bottomLayout->addStretch(1);
-
-    bottomLayout->addWidget(new QLabel("Horizontal scaling:"));
-    hscaleSlider_ = new QSlider(Qt::Horizontal);
-    connect(hscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleHScaleSliderUpdate(int)));
-    bottomLayout->addWidget(hscaleSlider_);
-
-    bottomLayout->addWidget(new QLabel("Vertical scaling:"));
-    vscaleSlider_ = new QSlider(Qt::Horizontal);
-    connect(vscaleSlider_, SIGNAL(valueChanged(int)), SLOT(handleVScaleSliderUpdate(int)));
-    bottomLayout->addWidget(vscaleSlider_);
-
-    bottomLayout->addWidget(new QLabel("Font size:"));
-    fontSizeSlider_ = new QSlider(Qt::Horizontal);
-    connect(fontSizeSlider_, SIGNAL(valueChanged(int)), SLOT(handleFontSizeSliderUpdate(int)));
-    bottomLayout->addWidget(fontSizeSlider_);
-
-    mainLayout->addLayout(bottomLayout);
 
     setLayout(mainLayout);
 
@@ -196,7 +205,7 @@ MainWindow::MainWindow()
     resize(width_, height_);
 
     hsplitter1_->setSizes(loadSplitterSizesFromSettings("hsplitter1", QList<int>() << 178 << 858));
-    vsplitter1_->setSizes(loadSplitterSizesFromSettings("vsplitter1", QList<int>() << 257 << 487 << 178));
+    vsplitter1_->setSizes(loadSplitterSizesFromSettings("vsplitter1", QList<int>() << 78 << 421 << 224 << 226));
     hsplitter3_->setSizes(loadSplitterSizesFromSettings("hsplitter3", QList<int>() << 518 << 518));
 
     // set initial lane scene font size base fraction
