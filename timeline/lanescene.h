@@ -76,8 +76,6 @@ private:
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent *);
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
-    virtual void focusInEvent(QFocusEvent *);
-    virtual void focusOutEvent(QFocusEvent *);
 
     void handleLastMouseMoveEvent();
     void updateCurrTaskMarkerRect(Task *);

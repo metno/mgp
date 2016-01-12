@@ -626,18 +626,6 @@ void LaneScene::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void LaneScene::focusInEvent(QFocusEvent *)
-{
-    if (currTaskItem_)
-        setCurrTask(currTaskItem_);
-}
-
-void LaneScene::focusOutEvent(QFocusEvent *)
-{
-    if ((!contextMenuActive_) && (!taskRemovalActive_))
-        clearCurrTask();
-}
-
 void LaneScene::updateCurrTaskMarkerRect(Task *currTask)
 {
     const qreal lwidth = laneHeaderScene_->laneWidth();
@@ -812,6 +800,11 @@ void LaneScene::handleViewLeft()
     if (hoverTaskItem_)
         hoverTaskItem_->highlight(false);
     hoverTaskItem_ = 0;
+
+    if (currTaskItem_)
+        TaskPanel::instance().setContents(TaskManager::instance().findTask(currTaskItem_->taskId()).data());
+    else
+        clearCurrTask();
 }
 
 void LaneScene::handleLanesSwapped(int pos1, int pos2)
