@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET = earthsphereviewer 
+TARGET = mgpview 
 QT += opengl 
 DEPENDPATH += .
 INCLUDEPATH += .
