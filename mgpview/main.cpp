@@ -1,6 +1,5 @@
-#include "glwidget.h"
+#include "mainwindow.h"
 #include <QApplication>
-#include <QDebug>
 #include <GL/glut.h>
 
 int main(int argc, char *argv[])
@@ -8,8 +7,8 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     glutInit(&argc, argv);
 
-    GLWidget *glw = new GLWidget;
-    glw->show();
+    MainWindow::init();
+    MainWindow::instance().show();
 
     return app.exec();
 }

@@ -1,12 +1,14 @@
 #include "glwidget.h"
 #include "util3d.h"
 #include "gfxutils.h"
-#include <qstring.h>
-#include <qcursor.h>
-#include <qmessagebox.h>
+#include "common.h"
+//#include <qstring.h>
+//#include <qcursor.h>
+//#include <qmessagebox.h>
 #include <GL/glut.h>
-
 #include <QMouseEvent>
+#include <QMenu>
+#include <QAction>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -18,19 +20,23 @@ const double
 
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent)
-    , dolly_(1)
+    , dolly_(0.7)
     , heading_(0.5)
     , incl_(1)
-    , curr_base_dragging_(false)
     , cam_kf_slave_mode_(false)
+    , curr_base_dragging_(false)
     , focus_lat_(0.893) // London
     , focus_lon_(0.013)
     , focus_alt_(0)     // Surface
-    , focus_lock_to_curr_(false)
 {
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
     last_cam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+    focusOnCurrPosAction_ = new QAction("Focus on this position", 0);
+    connect(focusOnCurrPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
+
+
 
     // Create global popup menu ...
 //    global_menu_ = new QPopupMenu(this);
@@ -110,7 +116,7 @@ void GLWidget::initializeGL()
 }
 
 
-void GLWidget::resizeGL(int w, int h)
+void GLWidget::resizeGL(int, int)
 {
     updateGL();
 }
@@ -118,8 +124,6 @@ void GLWidget::resizeGL(int w, int h)
 
 void GLWidget::paintGL()
 {
-    int i;
-
     GfxUtils& gfx_util = GfxUtils::instance();
 
     // Set viewport ...
@@ -198,7 +202,7 @@ void GLWidget::paintGL()
 
 
 void GLWidget::computeRay(
-    int x, int y, _4DPoint& eye, _4DPoint& ray)
+    int x, int y, _4DPoint &eye, _4DPoint &ray)
 {
     // Transform window coordinates into world coordinates ...
     GLint viewport[4];
@@ -215,7 +219,7 @@ void GLWidget::computeRay(
 
     // Compute ray from eye through the pixel ...
     CartesianKeyFrame ckf = computeCamera();
-    _3DPoint* eye2 = ckf.getEye();
+    _3DPoint *eye2 = ckf.getEye();
     ray.set(wx - eye2->x(), wy - eye2->y(), wz - eye2->z());
     ray.normalize();
     eye.set(eye2->x(), eye2->y(), eye2->z());
@@ -223,7 +227,7 @@ void GLWidget::computeRay(
 
 
 void GLWidget::computePixel(
-    double wx, double wy, double wz, int& x, int& y)
+    double wx, double wy, double wz, int &x, int &y)
 {
     // Transform world coordinates into window coordinates ...
     GLint viewport[4];
@@ -309,78 +313,33 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     computeRay(event->x(), event->y(), eye, ray);
     double wx, wy, wz;
 
-    // Process intersections in prioritized order ...
-//    if (intersectKeyFrame(eye, ray, isct_kf_))
-//    {
-//    if (event->button() == Qt::LeftButton)
-//	{
-//	    seq_->getKeyFrameList().setCurrent(isct_kf_);
-//	    updateGL();
-//	}
-//	else if (event->button() == RightButton)
-//	{
-//	    kf_menu_->setItemEnabled(
-//		remove_item_, seq_->getKeyFrameList().getSize() > 2);
-//	    kf_menu_->exec(QCursor::pos());
-//	}
-//    }
-//    else if (intersectCurrentKeyFrameBase(eye, ray))
-//    {
-//	isct_kf_ = seq_->getKeyFrameList().getCurrentIndex();
-
-//	if (event->button() == LeftButton)
-//	    curr_base_dragging_ = true;
-//	else if (event->button() == RightButton)
-//	{
-//	    kf_menu_->setItemEnabled(
-//		remove_item_, seq_->getKeyFrameList().getSize() > 2);
-//	    kf_menu_->exec(QCursor::pos());
-//	}
-//    }
-//    else if (intersectEarth(eye, ray, wx, wy, wz))
-//    {
-//    Math::computeLatLon(wx, wy, wz, lat_, lon_);
-//	lon_ = fmod(lon_ + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
-
     if (intersectEarth(eye, ray, wx, wy, wz)) {
+        // update current surface position
         Math::computeLatLon(wx, wy, wz, lat_, lon_);
         lon_ = fmod(lon_ + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
-
-        if (event->button() == Qt::LeftButton)
-        {
-            fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
-                    (lat_ / M_PI) * 180, (lon_ / M_PI) * 180);
-        }
     }
 
-    //	else if (event->button() == RightButton)
-//	{
-//	    focus_menu_->setItemEnabled(explicit_focus_item_, true);
-//	    global_menu_->exec(QCursor::pos());
-//	}
-//    }
-//    else
-//    {
-//	// fprintf(stderr, "no object intersected\n");
-//	if (event->button() == RightButton)
-//	{
-//	    focus_menu_->setItemEnabled(explicit_focus_item_, false);
-//	    global_menu_->exec(QCursor::pos());
-//	}
-//    }
+    if (event->button() == Qt::LeftButton) {
+        fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
+                (lat_ / M_PI) * 180, (lon_ / M_PI) * 180);
+    } else if (event->button() == Qt::RightButton) {
+        QMenu contextMenu;
+        contextMenu.addAction(focusOnCurrPosAction_);
+        contextMenu.exec(QCursor::pos());
+    }
 }
 
 
-void GLWidget::mouseReleaseEvent(QMouseEvent* event)
+void GLWidget::mouseReleaseEvent(QMouseEvent *)
 {
     bool was_dragging = curr_base_dragging_;
     curr_base_dragging_ = false;
-    if (focus_lock_to_curr_ && was_dragging)
-	updateGL();
+    if (was_dragging)
+        updateGL();
 }
 
 
-void GLWidget::mouseMoveEvent(QMouseEvent* event)
+void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (!curr_base_dragging_) return;
 
@@ -400,7 +359,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
 }
 
 
-void GLWidget::enterEvent(QEvent* event)
+void GLWidget::enterEvent(QEvent *event)
 {
     updateGL();
 }
@@ -474,6 +433,11 @@ void GLWidget::setDolly(double dolly)
     updateGL();
 }
 
+double GLWidget::dolly() const
+{
+    return dolly_;
+}
+
 
 void GLWidget::setHeading(double heading)
 {
@@ -489,11 +453,11 @@ void GLWidget::setInclination(double incl)
 }
 
 
-void GLWidget::drawCalled(QObject* ip_ckf)
+void GLWidget::drawCalled(QObject *ip_ckf)
 {
-/* FOR SOME REASON, THE NEXT LINE CRASHES!
-    CartesianKeyFrame* last_cam =
-    dynamic_cast<CartesianKeyFrame*>(ip_ckf);
+/* FOR SOME REASON THE NEXT LINE CRASHES!
+    CartesianKeyFrame *last_cam =
+    dynamic_cast<CartesianKeyFrame *>(ip_ckf);
     if (!last_cam)
     throw ProgrammingError(
 	    __FILE__, __LINE__, "failed to cast to CartesianKeyFrame");
@@ -501,15 +465,14 @@ void GLWidget::drawCalled(QObject* ip_ckf)
 */
 
     // Use this line for now:
-    last_cam_ = *((CartesianKeyFrame*)ip_ckf);
+    last_cam_ = *((CartesianKeyFrame *)ip_ckf);
 
     updateGL();
 }
 
 
-void GLWidget::setFocusToSurfacePoint()
+void GLWidget::focusOnCurrPos()
 {
-    focus_lock_to_curr_ = false;
     focus_lat_ = lat_;
     focus_lon_ = lon_;
     focus_alt_ = 0;

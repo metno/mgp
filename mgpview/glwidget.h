@@ -1,12 +1,10 @@
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
-//#include <qgl.h>
-//#include <qpopupmenu.h>
-//#include <MeEarthSphereSequence.h>
-
 #include "cartesiankeyframe.h"
 #include <QGLWidget>
+
+class QAction;
 
 class GLWidget : public QGLWidget
 {
@@ -19,7 +17,8 @@ public:
     void setCameraFocus(double x, double y, double z, bool update_gl = true);
 
     /** Sets the normalized dolly value, clamping to range [0, 1]. */
-    void setDolly(double dolly);
+    void setDolly(double dolly);    
+    double dolly() const;
 
     /** Sets the normalized heading value, clamping to range [0, 1]. */
     void setHeading(double heading);
@@ -36,10 +35,10 @@ private:
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL();
-    void mousePressEvent(QMouseEvent*);
-    void mouseReleaseEvent(QMouseEvent*);
-    void mouseMoveEvent(QMouseEvent*);
-    void enterEvent(QEvent*);
+    void mousePressEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *);
+    void mouseMoveEvent(QMouseEvent *);
+    void enterEvent(QEvent *);
 /*
     void keyPressEvent(QKeyEvent*);
     void keyReleaseEvent(QKeyEvent*);
@@ -50,20 +49,20 @@ private:
      */
     CartesianKeyFrame computeCamera();
 
-    void computeRay(int x, int y, _4DPoint& eye, _4DPoint& ray);
-    void computePixel(double wx, double wy, double wz, int& x, int& y);
+    void computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray);
+    void computePixel(double wx, double wy, double wz, int &x, int &y);
     void drawLabel(const char s[], int x, int y, float r, float g, float b);
     bool intersectCartesianKeyFrame(
-    _4DPoint& eye, _4DPoint& ray, CartesianKeyFrame& ckf);
+    _4DPoint &eye, _4DPoint &ray, CartesianKeyFrame &ckf);
 //    bool intersectKeyFrameBase(
-//    _4DPoint& eye, _4DPoint& ray, KeyFrame& kf);
-    bool intersectInsertKeyFrame(_4DPoint& eye, _4DPoint& ray);
-    bool intersectInsertKeyFrameBase(_4DPoint& eye, _4DPoint& ray);
-    bool intersectKeyFrame(_4DPoint& eye, _4DPoint& ray, int& i);
-    bool intersectCurrentKeyFrameBase(_4DPoint& eye, _4DPoint& ray);
+//    _4DPoint &eye, _4DPoint &ray, KeyFrame &kf);
+    bool intersectInsertKeyFrame(_4DPoint &eye, _4DPoint &ray);
+    bool intersectInsertKeyFrameBase(_4DPoint &eye, _4DPoint &ray);
+    bool intersectKeyFrame(_4DPoint &eye, _4DPoint &ray, int &i);
+    bool intersectCurrentKeyFrameBase(_4DPoint &eye, _4DPoint &ray);
     bool intersectEarth(
-    _4DPoint& eye, _4DPoint& ray, double& wx, double& wy,
-	double& wz);
+    _4DPoint &eye, _4DPoint &ray, double &wx, double &wy,
+    double &wz);
     void insert(bool after);
 
     double min(double a, double b) {return a < b ? a : b;}
@@ -85,19 +84,20 @@ private:
     bool cam_kf_slave_mode_;
 
     bool curr_base_dragging_;
-    double lat_, lon_;
+    double lat_, lon_; // current surface position ### rename to currLat_ and currLon_ ... TBD
     int isct_kf_, remove_item_, insert_before_item_, insert_after_item_,
 	explicit_focus_item_, gravity_focus_item_, current_kf_focus_item_,
 	draw_kf_labels_item_, draw_camera_item_, draw_focus_point_item_,
 	draw_focus_point_label_item_;
 
     double focus_lat_, focus_lon_, focus_alt_;
-    bool focus_lock_to_curr_;
-    //QPopupMenu* global_menu_, * focus_menu_, * vis_menu_, * kf_menu_;
+
+    QAction *focusOnCurrPosAction_;
 
 private slots:
-    void drawCalled(QObject* ckf);
-    void setFocusToSurfacePoint();
+    void drawCalled(QObject *ckf);
+    void focusOnCurrPos();
+
 //    void toggleLabels();
 //    void toggleCameraIndicator();
 //    void toggleFocusPoint();
