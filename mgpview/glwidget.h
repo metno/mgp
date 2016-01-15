@@ -3,6 +3,7 @@
 
 #include "cartesiankeyframe.h"
 #include <QGLWidget>
+#include <QPair>
 
 class QAction;
 
@@ -19,6 +20,9 @@ public:
     /** Sets the normalized dolly value, clamping to range [0, 1]. */
     void setDolly(double dolly);    
     double dolly() const;
+
+    void setCurrentFocusPos(double, double);
+    QPair<double, double> currentFocusPos() const;
 
     /** Sets the normalized heading value, clamping to range [0, 1]. */
     void setHeading(double heading);
@@ -84,15 +88,22 @@ private:
     bool cam_kf_slave_mode_;
 
     bool curr_base_dragging_;
-    double lat_, lon_; // current surface position ### rename to currLat_ and currLon_ ... TBD
+
+    // current surface position ### rename to currLat_ and currLon_ ... TBD
+    double lon_; // [-PI/2, PI/2]
+    double lat_; // [-PI, PI]
+
     int isct_kf_, remove_item_, insert_before_item_, insert_after_item_,
 	explicit_focus_item_, gravity_focus_item_, current_kf_focus_item_,
 	draw_kf_labels_item_, draw_camera_item_, draw_focus_point_item_,
 	draw_focus_point_label_item_;
 
-    double focus_lat_, focus_lon_, focus_alt_;
+    // current focus position
+    double focus_lon_;
+    double focus_lat_;
+    double focus_alt_;
 
-    QAction *focusOnCurrPosAction_;
+    QAction *focusOnCurrSurfPosAction_;
 
 private slots:
     void drawCalled(QObject *ckf);
@@ -108,7 +119,7 @@ private slots:
 //    void sizeChanged();
 
 signals:
-    void updateCurrentLatLon();
+    void focusPosChanged();
 };
 
 #endif // GLWIDGET_H

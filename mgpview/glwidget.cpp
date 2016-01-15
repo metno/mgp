@@ -25,18 +25,20 @@ GLWidget::GLWidget(QWidget *parent)
     , incl_(1)
     , cam_kf_slave_mode_(false)
     , curr_base_dragging_(false)
-    , focus_lat_(0.893) // London
-    , focus_lon_(0.013)
+    , lon_(0.013) // London
+    , lat_(0.893)
+    , focus_lon_(lon_)
+    , focus_lat_(lat_)
     , focus_alt_(0)     // Surface
 {
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
     last_cam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
 
-    focusOnCurrPosAction_ = new QAction("Focus on this position", 0);
-    connect(focusOnCurrPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
+    focusOnCurrSurfPosAction_ = new QAction("Focus on this position", 0);
+    connect(focusOnCurrSurfPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
 
-
+    focusOnCurrPos();
 
     // Create global popup menu ...
 //    global_menu_ = new QPopupMenu(this);
@@ -166,36 +168,37 @@ void GLWidget::paintGL()
     gfx_util.drawCoastContours(eye, min_dolly_, max_dolly_);
     glShadeModel(GL_SMOOTH);
 
-    // Draw  lat/lon circles ...
+    // Draw lat/lon circles ...
     glShadeModel(GL_FLAT);
     gfx_util.drawLatLonCircles(eye, min_dolly_, max_dolly_);
     glShadeModel(GL_SMOOTH);
 
+    // Draw current surface point ...
+    {
+        const double
+                r = GfxUtils::instance().getEarthRadius(),
+                x = r * cos(lat_) * cos(lon_),
+                y = r * cos(lat_) * sin(lon_),
+                z = r * sin(lat_);
+        gfx_util.drawSphere(x, y, z, 0.005 * r, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
+    }
 
-//    if (vis_menu_->isItemChecked(draw_focus_point_item_) &&
-//	(!focus_lock_to_curr_))
-//    {
-	// Draw focus point ...
-	const double
-	    earth_radius =
-        GfxUtils::instance().getEarthRadius(),
-	    focus_x = earth_radius * cos(focus_lat_) * cos(focus_lon_),
-	    focus_y = earth_radius * cos(focus_lat_) * sin(focus_lon_),
-	    focus_z = earth_radius * sin(focus_lat_);
-	gfx_util.drawSphere(
-	    focus_x, focus_y, focus_z, 0.01 * earth_radius, 0.7, 0.6, 0.4, 0.8,
-	    18, 36, GL_SMOOTH);
-//    }
+    // Draw focus point ...
+    {
+        const double
+                r = GfxUtils::instance().getEarthRadius(),
+                x = r * cos(focus_lat_) * cos(focus_lon_),
+                y = r * cos(focus_lat_) * sin(focus_lon_),
+                z = r * sin(focus_lat_);
+        gfx_util.drawSphere(x, y, z, 0.005 * r, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
+    }
 
-//    if (vis_menu_->isItemChecked(draw_focus_point_label_item_))
-//    {
-	// Draw bottom string indicating focus point ...
+    // Draw bottom string indicating focus point ...
 	QString s;
 	s.sprintf(
 	    "Focus: lat = %.3f, lon = %.3f",
 	    (focus_lat_ / M_PI) * 180, (focus_lon_ / M_PI) * 180);
     gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, 1, 1, 0);
-//    }
 
     glFlush();
 }
@@ -322,9 +325,10 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
         fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
                 (lat_ / M_PI) * 180, (lon_ / M_PI) * 180);
+        updateGL();
     } else if (event->button() == Qt::RightButton) {
         QMenu contextMenu;
-        contextMenu.addAction(focusOnCurrPosAction_);
+        contextMenu.addAction(focusOnCurrSurfPosAction_);
         contextMenu.exec(QCursor::pos());
     }
 }
@@ -349,17 +353,16 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
     if (intersectEarth(eye, ray, wx, wy, wz))
     {
-	double lat, lon;
-    Math::computeLatLon(wx, wy, wz, lat, lon);
-	lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
+        double lat, lon;
+        Math::computeLatLon(wx, wy, wz, lat, lon);
+        lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
 
-	updateGL();
-	emit updateCurrentLatLon();
+        updateGL();
     }
 }
 
 
-void GLWidget::enterEvent(QEvent *event)
+void GLWidget::enterEvent(QEvent *)
 {
     updateGL();
 }
@@ -409,6 +412,7 @@ CartesianKeyFrame GLWidget::computeCamera()
     _4DPoint up(0, 0, 1);
     up.mulMatPoint(m_up);
 
+
     // Insert into key frame ...
     CartesianKeyFrame ckf;
     ckf.setEye(eye.get(0), eye.get(1), eye.get(2));
@@ -436,6 +440,18 @@ void GLWidget::setDolly(double dolly)
 double GLWidget::dolly() const
 {
     return dolly_;
+}
+
+void GLWidget::setCurrentFocusPos(double lon, double lat)
+{
+    focus_lon_ = min(max(lon, -M_PI), M_PI);
+    focus_lat_ = min(max(lat, -M_PI / 2), M_PI / 2);
+    updateGL();
+}
+
+QPair<double, double> GLWidget::currentFocusPos() const
+{
+    return qMakePair(focus_lon_, focus_lat_);
 }
 
 
@@ -477,6 +493,7 @@ void GLWidget::focusOnCurrPos()
     focus_lon_ = lon_;
     focus_alt_ = 0;
     updateGL();
+    emit focusPosChanged();
 }
 
 

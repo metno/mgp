@@ -28,11 +28,14 @@ private:
     virtual void wheelEvent(QWheelEvent *);
 
     void syncZoomSlider();
+    void syncLonSlider();
+    void syncLatSlider();
 
 private slots:
     void handleZoomValueChanged(int);
     void handleLonValueChanged(int);
     void handleLatValueChanged(int);
+    void handleFocusPosChanged();
 };
 
 #endif // MAINWINDOW_H
