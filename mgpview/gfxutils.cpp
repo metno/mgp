@@ -1,21 +1,19 @@
-// -*- c++ -*-
-
-#include <qgl.h>
+//#include <qgl.h>
 #include <GL/glut.h>
-#include "earthspheregfxutil.h"
+#include "gfxutils.h"
 #include "coast_data.h"
 
 #include <stdio.h> // 4 TESTING!
 
-const double EarthSphereSequenceGfxUtil::earth_radius_ = 6378000;
+const double GfxUtils::earth_radius_ = 6378000;
 
-EarthSphereSequenceGfxUtil::EarthSphereSequenceGfxUtil()
+GfxUtils::GfxUtils()
 {
     createCoast();
 }
 
 
-EarthSphereSequenceGfxUtil::~EarthSphereSequenceGfxUtil()
+GfxUtils::~GfxUtils()
 {
     delete[] points_;
     delete[] polys_;
@@ -26,7 +24,7 @@ EarthSphereSequenceGfxUtil::~EarthSphereSequenceGfxUtil()
 // vtkEarthSource class!
 //
 void
-EarthSphereSequenceGfxUtil::createCoast()
+GfxUtils::createCoast()
 {
     int on_ratio = 1;
 
@@ -121,7 +119,7 @@ EarthSphereSequenceGfxUtil::createCoast()
 
 
 void
-EarthSphereSequenceGfxUtil::drawCoastContours(
+GfxUtils::drawCoastContours(
     _3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     glColor3f(0.0, 0.0, 0.0);
@@ -149,7 +147,7 @@ EarthSphereSequenceGfxUtil::drawCoastContours(
 }
 
 void
-EarthSphereSequenceGfxUtil::drawSphere(
+GfxUtils::drawSphere(
     double x, double y, double z, double radius, float r, float g, float b,
     float amb, int phi_res, int theta_res, GLenum shade_model)
 {
@@ -184,7 +182,7 @@ EarthSphereSequenceGfxUtil::drawSphere(
 
 
 void
-EarthSphereSequenceGfxUtil::drawLine(
+GfxUtils::drawLine(
     double x0, double y0, double z0, double x1, double y1, double z1,
     double scale_fact, float r, float g, float b, double width)
 {
@@ -200,7 +198,7 @@ EarthSphereSequenceGfxUtil::drawLine(
 
 
 void
-EarthSphereSequenceGfxUtil::drawCone(
+GfxUtils::drawCone(
     double x0, double y0, double z0, double x1, double y1, double z1,
     double base, double length, float r, float g, float b, float amb,
     bool reverse)
@@ -251,7 +249,7 @@ EarthSphereSequenceGfxUtil::drawCone(
 
 
 void
-EarthSphereSequenceGfxUtil::drawCameraSphere(
+GfxUtils::drawCameraSphere(
     double x, double y, double z, double radius, float r, float g, float b)
 {
     glPushMatrix();
@@ -269,7 +267,7 @@ EarthSphereSequenceGfxUtil::drawCameraSphere(
 
 
 void
-EarthSphereSequenceGfxUtil::drawBaseCircle(
+GfxUtils::drawBaseCircle(
     double radius, float r, float g, float b)
 {
     const int res = 36;
@@ -285,7 +283,7 @@ EarthSphereSequenceGfxUtil::drawBaseCircle(
 
 
 double
-EarthSphereSequenceGfxUtil::computeRaise(
+GfxUtils::computeRaise(
     _3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     const double eye_dist = sqrt(
@@ -305,7 +303,7 @@ EarthSphereSequenceGfxUtil::computeRaise(
 
 
 void
-EarthSphereSequenceGfxUtil::drawLatLonCircles(
+GfxUtils::drawLatLonCircles(
     _3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     int i;
@@ -369,7 +367,7 @@ EarthSphereSequenceGfxUtil::drawLatLonCircles(
 
 
 //void
-//EarthSphereSequenceGfxUtil::drawCartesianKeyFrame(
+//GfxUtils::drawCartesianKeyFrame(
 //    CartesianKeyFrame& ckf, float r, float g, float b, bool draw_eye_line,
 //    bool regular, bool camera_indicator)
 //{
@@ -420,7 +418,7 @@ EarthSphereSequenceGfxUtil::drawLatLonCircles(
 
 
 void
-EarthSphereSequenceGfxUtil::drawBottomString(
+GfxUtils::drawBottomString(
     const char* s, int win_width, int win_height, int row, int col, float r,
     float g, float b)
 {

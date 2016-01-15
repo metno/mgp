@@ -1,5 +1,5 @@
-#ifndef EXTERNALVIEW_H
-#define EXTERNALVIEW_H
+#ifndef GLWIDGET_H
+#define GLWIDGET_H
 
 //#include <qgl.h>
 //#include <qpopupmenu.h>
@@ -8,29 +8,12 @@
 #include "cartesiankeyframe.h"
 #include <QGLWidget>
 
-
-/**
- * This class represents the external view of the key frame sequence.
- *
- * <strong>MORE DETAILS TO COME!</strong>
- *
- * <strong>NOTICE:</strong> Since this class is used as a custom widget in
- * Qt Designer, it has to be outside the 'Me' namespace (more specifically,
- * the Qt User Interface Compiler (uic) generates code that refers to the
- * 'ExternalView' class name outside the 'Me' namespace).
- *
- * \ingroup earthspheresequence_gui
- *
- * @author Jo Asplin
- * @version $Id: ExternalView.h,v 1.18 2002/05/21 15:51:36 joa Exp $
- * @since 3.0
- */
-class ExternalView : public QGLWidget
+class GLWidget : public QGLWidget
 {
 Q_OBJECT
 
 public:
-    ExternalView(QWidget *parent = 0);
+    GLWidget(QWidget *parent = 0);
 
     /** Sets the focus (lookat) point of the camera. */
     void setCameraFocus(double x, double y, double z, bool update_gl = true);
@@ -128,4 +111,4 @@ signals:
     void updateCurrentLatLon();
 };
 
-#endif // EXTERNALVIEW_H
+#endif // GLWIDGET_H

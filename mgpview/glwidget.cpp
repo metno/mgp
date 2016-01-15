@@ -1,27 +1,22 @@
-//#include <qdockwindow.h>
+#include "glwidget.h"
+#include "util3d.h"
+#include "gfxutils.h"
 #include <qstring.h>
 #include <qcursor.h>
 #include <qmessagebox.h>
 #include <GL/glut.h>
-#include "externalview.h"
-#include "util3d.h"
-//#include <MeMathError.h>
-//#include <MeProgrammingError.h>
-#include "earthspheregfxutil.h"
 
 #include <QMouseEvent>
-
-//#include <MeGui.h>
 
 #include <stdio.h> // 4 TESTING!
 
 const double
-   ExternalView::min_dolly_ =
-      0.05 * EarthSphereSequenceGfxUtil::getEarthRadius(),
-   ExternalView::max_dolly_ =
-      5    * EarthSphereSequenceGfxUtil::getEarthRadius();
+   GLWidget::min_dolly_ =
+      0.05 * GfxUtils::getEarthRadius(),
+   GLWidget::max_dolly_ =
+      5    * GfxUtils::getEarthRadius();
 
-ExternalView::ExternalView(QWidget *parent)
+GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent)
     , dolly_(1)
     , heading_(0.5)
@@ -34,7 +29,7 @@ ExternalView::ExternalView(QWidget *parent)
     , focus_lock_to_curr_(false)
 {
     setFocusPolicy(Qt::StrongFocus);
-    focus_.setPoint(EarthSphereSequenceGfxUtil::getEarthRadius(), 0, 0);
+    focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
     last_cam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
 
     // Create global popup menu ...
@@ -106,7 +101,7 @@ ExternalView::ExternalView(QWidget *parent)
 }
 
 
-void ExternalView::initializeGL()
+void GLWidget::initializeGL()
 {
     glClearColor(0, 0, 0, 0);
     glEnable(GL_DEPTH_TEST);
@@ -115,17 +110,17 @@ void ExternalView::initializeGL()
 }
 
 
-void ExternalView::resizeGL(int w, int h)
+void GLWidget::resizeGL(int w, int h)
 {
     updateGL();
 }
 
 
-void ExternalView::paintGL()
+void GLWidget::paintGL()
 {
     int i;
 
-    EarthSphereSequenceGfxUtil& gfx_util = EarthSphereSequenceGfxUtil::instance();
+    GfxUtils& gfx_util = GfxUtils::instance();
 
     // Set viewport ...
     glViewport(0, 0, width(), height());
@@ -179,7 +174,7 @@ void ExternalView::paintGL()
 	// Draw focus point ...
 	const double
 	    earth_radius =
-        EarthSphereSequenceGfxUtil::instance().getEarthRadius(),
+        GfxUtils::instance().getEarthRadius(),
 	    focus_x = earth_radius * cos(focus_lat_) * cos(focus_lon_),
 	    focus_y = earth_radius * cos(focus_lat_) * sin(focus_lon_),
 	    focus_z = earth_radius * sin(focus_lat_);
@@ -202,7 +197,7 @@ void ExternalView::paintGL()
 }
 
 
-void ExternalView::computeRay(
+void GLWidget::computeRay(
     int x, int y, _4DPoint& eye, _4DPoint& ray)
 {
     // Transform window coordinates into world coordinates ...
@@ -227,7 +222,7 @@ void ExternalView::computeRay(
 }
 
 
-void ExternalView::computePixel(
+void GLWidget::computePixel(
     double wx, double wy, double wz, int& x, int& y)
 {
     // Transform world coordinates into window coordinates ...
@@ -246,7 +241,7 @@ void ExternalView::computePixel(
 }
 
 
-void ExternalView::drawLabel(
+void GLWidget::drawLabel(
     const char s[], int x, int y, float r, float g, float b)
 {
     // Assuming matrix mode = model-view and depth-test enabled!
@@ -293,14 +288,14 @@ void ExternalView::drawLabel(
 }
 
 
-bool ExternalView::intersectEarth(
+bool GLWidget::intersectEarth(
     _4DPoint& eye, _4DPoint& ray, double& wx, double& wy, double& wz)
 {
     if (Math::raySphereIntersect(
 	eye.x(), eye.y(), eye.z(),
 	ray.x(), ray.y(), ray.z(),
 	0, 0, 0,
-    EarthSphereSequenceGfxUtil::instance().getEarthRadius(),
+    GfxUtils::instance().getEarthRadius(),
 	wx, wy, wz))
 	return true;
     else
@@ -308,7 +303,7 @@ bool ExternalView::intersectEarth(
 }
 
 
-void ExternalView::mousePressEvent(QMouseEvent *event)
+void GLWidget::mousePressEvent(QMouseEvent *event)
 {
     _4DPoint eye, ray;
     computeRay(event->x(), event->y(), eye, ray);
@@ -376,7 +371,7 @@ void ExternalView::mousePressEvent(QMouseEvent *event)
 }
 
 
-void ExternalView::mouseReleaseEvent(QMouseEvent* event)
+void GLWidget::mouseReleaseEvent(QMouseEvent* event)
 {
     bool was_dragging = curr_base_dragging_;
     curr_base_dragging_ = false;
@@ -385,7 +380,7 @@ void ExternalView::mouseReleaseEvent(QMouseEvent* event)
 }
 
 
-void ExternalView::mouseMoveEvent(QMouseEvent* event)
+void GLWidget::mouseMoveEvent(QMouseEvent* event)
 {
     if (!curr_base_dragging_) return;
 
@@ -405,16 +400,16 @@ void ExternalView::mouseMoveEvent(QMouseEvent* event)
 }
 
 
-void ExternalView::enterEvent(QEvent* event)
+void GLWidget::enterEvent(QEvent* event)
 {
     updateGL();
 }
 
 
-CartesianKeyFrame ExternalView::computeCamera()
+CartesianKeyFrame GLWidget::computeCamera()
 {
     const double
-            radius = focus_alt_ + EarthSphereSequenceGfxUtil::instance().getEarthRadius(),
+            radius = focus_alt_ + GfxUtils::instance().getEarthRadius(),
             focus_x = radius * cos(focus_lat_) * cos(focus_lon_),
             focus_y = radius * cos(focus_lat_) * sin(focus_lon_),
             focus_z = radius * sin(focus_lat_);
@@ -466,35 +461,35 @@ CartesianKeyFrame ExternalView::computeCamera()
 }
 
 
-void ExternalView::setCameraFocus(double x, double y, double z, bool update_gl)
+void GLWidget::setCameraFocus(double x, double y, double z, bool update_gl)
 {
     focus_.setPoint(x, y, z);
     if (update_gl) updateGL();
 }
 
 
-void ExternalView::setDolly(double dolly)
+void GLWidget::setDolly(double dolly)
 {
     dolly_ = min(max(dolly, 0), 1);
     updateGL();
 }
 
 
-void ExternalView::setHeading(double heading)
+void GLWidget::setHeading(double heading)
 {
     heading_ = min(max(heading, 0), 1);
     updateGL();
 }
 
 
-void ExternalView::setInclination(double incl)
+void GLWidget::setInclination(double incl)
 {
     incl_ = min(max(incl, 0), 1);
     updateGL();
 }
 
 
-void ExternalView::drawCalled(QObject* ip_ckf)
+void GLWidget::drawCalled(QObject* ip_ckf)
 {
 /* FOR SOME REASON, THE NEXT LINE CRASHES!
     CartesianKeyFrame* last_cam =
@@ -512,7 +507,7 @@ void ExternalView::drawCalled(QObject* ip_ckf)
 }
 
 
-void ExternalView::setFocusToSurfacePoint()
+void GLWidget::setFocusToSurfacePoint()
 {
     focus_lock_to_curr_ = false;
     focus_lat_ = lat_;
@@ -522,32 +517,32 @@ void ExternalView::setFocusToSurfacePoint()
 }
 
 
-//void ExternalView::toggleVisMenuItem(int item)
+//void GLWidget::toggleVisMenuItem(int item)
 //{
 //    vis_menu_->setItemChecked(item, !vis_menu_->isItemChecked(item));
 //    updateGL();
 //}
 
 
-//void ExternalView::toggleLabels()
+//void GLWidget::toggleLabels()
 //{
 //    toggleVisMenuItem(draw_kf_labels_item_);
 //}
 
 
-//void ExternalView::toggleCameraIndicator()
+//void GLWidget::toggleCameraIndicator()
 //{
 //    toggleVisMenuItem(draw_camera_item_);
 //}
 
 
-//void ExternalView::toggleFocusPoint()
+//void GLWidget::toggleFocusPoint()
 //{
 //    toggleVisMenuItem(draw_focus_point_item_);
 //}
 
 
-//void ExternalView::toggleFocusPointLabel()
+//void GLWidget::toggleFocusPointLabel()
 //{
 //    toggleVisMenuItem(draw_focus_point_label_item_);
 //}

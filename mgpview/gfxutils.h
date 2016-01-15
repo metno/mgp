@@ -1,16 +1,16 @@
-#ifndef MEEARTHSPHERESEQUENCEGFXUTIL_H
-#define MEEARTHSPHERESEQUENCEGFXUTIL_H
+#ifndef GFXUTILS_H
+#define GFXUTILS_H
 
 //#include <qgl.h>
 #include "util3d.h"
 #include "cartesiankeyframe.h"
 
-class EarthSphereSequenceGfxUtil
+class GfxUtils
 {
 public:
-    static EarthSphereSequenceGfxUtil &instance()
+    static GfxUtils &instance()
 	{
-        static EarthSphereSequenceGfxUtil obj;
+        static GfxUtils obj;
         return obj;
 	}
 
@@ -67,8 +67,8 @@ private:
      * Private constructor/destructor. (This class can only be constructed/
      * destructed by the singleton object.)
      */
-    EarthSphereSequenceGfxUtil();
-    ~EarthSphereSequenceGfxUtil();
+    GfxUtils();
+    ~GfxUtils();
 
     // Methods and variables relevant for coast contours.
     void createCoast();
@@ -83,4 +83,4 @@ private:
 	_3DPoint* eye, double min_eye_dist, double max_eye_dist);
 };
 
-#endif // MEEARTHSPHERESEQUENCEGFXUTIL_H
+#endif // GFXUTILS_H
