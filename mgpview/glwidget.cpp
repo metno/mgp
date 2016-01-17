@@ -6,7 +6,6 @@
 //#include <qcursor.h>
 //#include <qmessagebox.h>
 #include <GL/glut.h>
-#include <QMouseEvent>
 #include <QMenu>
 #include <QAction>
 
@@ -24,19 +23,27 @@ GLWidget::GLWidget(QWidget *parent)
     , heading_(0.5)
     , incl_(1)
     , cam_kf_slave_mode_(false)
-    , curr_base_dragging_(false)
     , lon_(0.013) // London
     , lat_(0.893)
     , focus_lon_(lon_)
     , focus_lat_(lat_)
     , focus_alt_(0)     // Surface
+    , dragging_(false)
 {
+    setMouseTracking(true);
+
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
     last_cam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
 
-    focusOnCurrSurfPosAction_ = new QAction("Focus on this position", 0);
-    connect(focusOnCurrSurfPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
+    setCurrPosToThisPosAction_ = new QAction("Set current pos to this pos", 0);
+    connect(setCurrPosToThisPosAction_, SIGNAL(triggered()), SLOT(setCurrPosToThisPos()));
+
+    focusOnThisPosAction_ = new QAction("Focus on this pos", 0);
+    connect(focusOnThisPosAction_, SIGNAL(triggered()), SLOT(focusOnThisPos()));
+
+    focusOnCurrPosAction_ = new QAction("Focus on current pos", 0);
+    connect(focusOnCurrPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
 
     focusOnCurrPos();
 
@@ -168,6 +175,11 @@ void GLWidget::paintGL()
     gfx_util.drawCoastContours(eye, min_dolly_, max_dolly_);
     glShadeModel(GL_SMOOTH);
 
+    // Draw ENOR FIR area ...
+    glShadeModel(GL_FLAT);
+    gfx_util.drawENORFIR(eye, min_dolly_, max_dolly_);
+    glShadeModel(GL_SMOOTH);
+
     // Draw lat/lon circles ...
     glShadeModel(GL_FLAT);
     gfx_util.drawLatLonCircles(eye, min_dolly_, max_dolly_);
@@ -193,12 +205,10 @@ void GLWidget::paintGL()
         gfx_util.drawSphere(x, y, z, 0.005 * r, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
     }
 
-    // Draw bottom string indicating focus point ...
-	QString s;
-	s.sprintf(
-	    "Focus: lat = %.3f, lon = %.3f",
-	    (focus_lat_ / M_PI) * 180, (focus_lon_ / M_PI) * 180);
-    gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, 1, 1, 0);
+    // indicate geographical mouse position
+    QString s;
+    s.sprintf("lon = %.3f, lat = %.3f", (mouseLon_ / M_PI) * 180, (mouseLat_ / M_PI) * 180);
+    gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
 
     glFlush();
 }
@@ -316,19 +326,37 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     computeRay(event->x(), event->y(), eye, ray);
     double wx, wy, wz;
 
+    double lat;
+    double lon;
+    bool intersected = false;
     if (intersectEarth(eye, ray, wx, wy, wz)) {
-        // update current surface position
-        Math::computeLatLon(wx, wy, wz, lat_, lon_);
-        lon_ = fmod(lon_ + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
+        intersected = true;
+        Math::computeLatLon(wx, wy, wz, lat, lon);
+        lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
     }
 
-    if (event->button() == Qt::LeftButton) {
-        fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
-                (lat_ / M_PI) * 180, (lon_ / M_PI) * 180);
+    if (intersected && (event->button() == Qt::LeftButton)) {
+        if (event->modifiers() & Qt::ControlModifier) {
+            // update current surface position
+            lat_ = lat;
+            lon_ = lon;
+        } else {
+            // start drag lat/lon focus
+            dragBaseX_ = event->x();
+            dragBaseY_ = event->y();
+            dragBaseFocusLon_ = focus_lon_;
+            dragBaseFocusLat_ = focus_lat_;
+            dragging_ = true;
+        }
+
+//        fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
+//                (lat_ / M_PI) * 180, (lon_ / M_PI) * 180);
         updateGL();
     } else if (event->button() == Qt::RightButton) {
         QMenu contextMenu;
-        contextMenu.addAction(focusOnCurrSurfPosAction_);
+        contextMenu.addAction(setCurrPosToThisPosAction_);
+        contextMenu.addAction(focusOnThisPosAction_);
+        contextMenu.addAction(focusOnCurrPosAction_);
         contextMenu.exec(QCursor::pos());
     }
 }
@@ -336,27 +364,36 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *)
 {
-    bool was_dragging = curr_base_dragging_;
-    curr_base_dragging_ = false;
-    if (was_dragging)
-        updateGL();
+//    bool was_dragging = dragging_;
+    dragging_ = false;
+//    if (was_dragging)
+//        updateGL();
 }
-
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!curr_base_dragging_) return;
-
     double wx, wy, wz;
     _4DPoint eye, ray;
     computeRay(event->x(), event->y(), eye, ray);
 
     if (intersectEarth(eye, ray, wx, wy, wz))
     {
-        double lat, lon;
-        Math::computeLatLon(wx, wy, wz, lat, lon);
-        lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
-
+        Math::computeLatLon(wx, wy, wz, mouseLat_, mouseLon_);
+        mouseLon_ = fmod(mouseLon_ + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
+        if (dragging_) {
+            const int dx = event->x() - dragBaseX_;
+            const int dy = event->y() - dragBaseY_;
+            const double scale = 1.0 / 5000.0;
+            const double deltaLon = -dx * scale * M_PI;
+            const double deltaLat = dy * scale * M_PI;
+            double newLon = dragBaseFocusLon_ + deltaLon;
+            if (newLon < -M_PI)
+                newLon += 2 * M_PI;
+            else if (newLon > M_PI)
+                newLon -= 2 * M_PI;
+            setCurrentFocusPos(newLon, dragBaseFocusLat_ + deltaLat);
+            emit focusPosChanged();
+        }
         updateGL();
     }
 }
@@ -486,6 +523,21 @@ void GLWidget::drawCalled(QObject *ip_ckf)
     updateGL();
 }
 
+void GLWidget::setCurrPosToThisPos()
+{
+    lat_ = mouseLat_;
+    lon_ = mouseLon_;
+    updateGL();
+}
+
+void GLWidget::focusOnThisPos()
+{
+    focus_lat_ = mouseLat_;
+    focus_lon_ = mouseLon_;
+    focus_alt_ = 0;
+    updateGL();
+    emit focusPosChanged();
+}
 
 void GLWidget::focusOnCurrPos()
 {
@@ -495,7 +547,6 @@ void GLWidget::focusOnCurrPos()
     updateGL();
     emit focusPosChanged();
 }
-
 
 //void GLWidget::toggleVisMenuItem(int item)
 //{

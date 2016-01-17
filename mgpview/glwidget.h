@@ -4,6 +4,7 @@
 #include "cartesiankeyframe.h"
 #include <QGLWidget>
 #include <QPair>
+#include <QMouseEvent>
 
 class QAction;
 
@@ -87,8 +88,6 @@ private:
 
     bool cam_kf_slave_mode_;
 
-    bool curr_base_dragging_;
-
     // current surface position ### rename to currLat_ and currLon_ ... TBD
     double lon_; // [-PI/2, PI/2]
     double lat_; // [-PI, PI]
@@ -103,10 +102,24 @@ private:
     double focus_lat_;
     double focus_alt_;
 
-    QAction *focusOnCurrSurfPosAction_;
+    // current mouse position
+    double mouseLon_;
+    double mouseLat_;
+
+    int dragBaseX_;
+    int dragBaseY_;
+    double dragBaseFocusLon_;
+    double dragBaseFocusLat_;
+    bool dragging_;
+
+    QAction *setCurrPosToThisPosAction_;
+    QAction *focusOnThisPosAction_;
+    QAction *focusOnCurrPosAction_;
 
 private slots:
     void drawCalled(QObject *ckf);
+    void setCurrPosToThisPos();
+    void focusOnThisPos();
     void focusOnCurrPos();
 
 //    void toggleLabels();

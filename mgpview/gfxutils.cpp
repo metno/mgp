@@ -1,7 +1,8 @@
-//#include <qgl.h>
-#include <GL/glut.h>
 #include "gfxutils.h"
+#include "common.h"
 #include "coast_data.h"
+#include <GL/glut.h>
+#include <QFile>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -10,6 +11,7 @@ const double GfxUtils::earth_radius_ = 6378000;
 GfxUtils::GfxUtils()
 {
     createCoast();
+    createENORFIR();
 }
 
 
@@ -144,6 +146,54 @@ GfxUtils::drawCoastContours(
 	}
 	glEnd();
     }
+}
+
+void GfxUtils::createENORFIR()
+{
+    const QString fname("ENORfirCoordinates.csv");
+    QFile file(fname);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "WARNING: failed to open" << fname << "; ENOR FIR not shown";
+        return;
+    }
+
+    while (!file.atEnd()) {
+        const QByteArray line = file.readLine();
+        // format: "enor",2249,58.9612,10.9868    (i.e. <name>,<index>,<lat>,<lon>
+        QRegExp rx("([^,]+),([^,]+)$");
+        if (rx.indexIn(line) >= 0) {
+            bool ok = false;
+            const qreal lat = rx.cap(1).toDouble(&ok);
+            if (!ok)
+                continue;
+            const qreal lon = rx.cap(2).toDouble(&ok);
+            if (!ok)
+                continue;
+
+            enorLon_.append((lon / 180) * M_PI);
+            enorLat_.append((lat / 90) * (M_PI / 2));
+        }
+    }
+}
+
+// ### similar to drawCoastContours() ... refactor!
+void
+GfxUtils::drawENORFIR(
+    _3DPoint* eye, double min_eye_dist, double max_eye_dist)
+{
+    glColor3f(0.0, 0.8, 0.8);
+    glLineWidth(2.0);
+
+    const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
+
+    Q_ASSERT(enorLon_.size() == enorLat_.size());
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < enorLon_.size(); ++i) {
+        double x, y, z;
+        Math::sphericalToCartesian(raise_fact * earth_radius_, enorLon_.at(i), enorLat_.at(i), x, y, z);
+        glVertex3d(x, y, z);
+    }
+    glEnd();
 }
 
 void
@@ -419,11 +469,8 @@ GfxUtils::drawLatLonCircles(
 
 void
 GfxUtils::drawBottomString(
-    const char* s, int win_width, int win_height, int row, int col, float r,
-    float g, float b)
+    const QString &s, int win_width, int win_height, int row, int col, const QColor &textColor, const QColor &bgColor)
 {
-    glColor3f(r, g, b);
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix(); // Save projection matrix
 
@@ -435,18 +482,35 @@ GfxUtils::drawBottomString(
 
     glLoadIdentity();
 
+    const int // (values in pixels)
+            dx       =  8,
+            dy       = 13,
+            offset_x =  0,
+            offset_y =  0,
+            inner_pad_y    =  0,
+            outer_pad = 4;
+
     glDisable(GL_DEPTH_TEST);
 
-    // Draw string ...
-    const int // (values in pixels)
-        dx       =  8,
-        dy       = 13,
-        offset_x =  2,
-        offset_y =  2,
-        pad_y    =  0;
-    glRasterPos2f(offset_x + col * dx, offset_y + row * (dy + pad_y));
-    for (int i = 0; s[i]; i++)
-        glutBitmapCharacter(GLUT_BITMAP_8_BY_13, s[i]);
+    // draw background
+    const int
+            x0 = offset_x + col * dx,
+            y0 = offset_y + row * (dy + inner_pad_y),
+            x1 = x0 + s.size() * dx + 2 * outer_pad,
+            y1 = y0 + dy + 2 * outer_pad;
+    glColor3f(bgColor.redF(), bgColor.greenF(), bgColor.blueF());
+    glBegin(GL_QUADS);
+    glVertex2f(x0, y0);
+    glVertex2f(x1, y0);
+    glVertex2f(x1, y1);
+    glVertex2f(x0, y1);
+    glEnd();
+
+    // draw string
+    glColor3f(textColor.redF(), textColor.greenF(), textColor.blueF()); // note: glColor*() must be called before glRasterPos*()!
+    glRasterPos2f(offset_x + outer_pad + col * dx, offset_y + outer_pad + row * (dy + inner_pad_y));
+    for (int i = 0; i < s.size(); i++)
+        glutBitmapCharacter(GLUT_BITMAP_8_BY_13, s.toLatin1()[i]);
 
     glEnable(GL_DEPTH_TEST);
 

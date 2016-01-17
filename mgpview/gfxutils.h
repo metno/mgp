@@ -1,9 +1,11 @@
 #ifndef GFXUTILS_H
 #define GFXUTILS_H
 
-//#include <qgl.h>
+#include <qgl.h>
 #include "util3d.h"
 #include "cartesiankeyframe.h"
+#include <QList>
+#include <QString>
 
 class GfxUtils
 {
@@ -20,6 +22,13 @@ public:
     void drawCoastContours(
 	_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_,
 	double max_eye_dist = 5 * earth_radius_);
+
+    /** Draws ENOR FIR on the earth sphere. The farther the eye
+     * is from the earth surface, the more the contours are raised above the
+     * surface. */
+    void drawENORFIR(
+    _3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_,
+    double max_eye_dist = 5 * earth_radius_);
 
     /** Draws a sphere. */
     void drawSphere(
@@ -59,8 +68,7 @@ public:
     static double getEarthRadius() {return earth_radius_;}
 
     void drawBottomString(
-	const char* s, int win_width, int win_height, int row, int col,
-	float r, float g, float b);
+    const QString &, int, int, int, int, const QColor &, const QColor &);
 
 private:
     /**
@@ -75,6 +83,11 @@ private:
     _3DPoint* points_;
     DynPoly* polys_;
     int n_polys_;
+
+    // Methods and variables relevant for ENOR FIR.
+    void createENORFIR();
+    QList<qreal> enorLon_;
+    QList<qreal> enorLat_;
 
     /** Earth radius in meters. */
     static const double earth_radius_;
