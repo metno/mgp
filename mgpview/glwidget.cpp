@@ -29,11 +29,13 @@ GLWidget::GLWidget(QWidget *parent)
     , heading_(0.5)
     , incl_(1)
     , cam_kf_slave_mode_(false)
-    , lon_(0.013) // London
-    , lat_(0.893)
-    , focus_lon_(lon_)
-    , focus_lat_(lat_)
+    , currLon_(0.013) // London
+    , currLat_(0.893)
+    , focus_lon_(currLon_)
+    , focus_lat_(currLat_)
     , focus_alt_(0)     // Surface
+    , mouseLon_(0)
+    , mouseLat_(0)
     , dragging_(false)
 {
     setMouseTracking(true);
@@ -198,9 +200,9 @@ void GLWidget::paintGL()
     {
         const double
                 r = GfxUtils::instance().getEarthRadius(),
-                x = r * cos(lat_) * cos(lon_),
-                y = r * cos(lat_) * sin(lon_),
-                z = r * sin(lat_);
+                x = r * cos(currLat_) * cos(currLon_),
+                y = r * cos(currLat_) * sin(currLon_),
+                z = r * sin(currLat_);
         gfx_util.drawSphere(x, y, z, 0.005 * r, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
     }
 
@@ -214,10 +216,19 @@ void GLWidget::paintGL()
         gfx_util.drawSphere(x, y, z, 0.005 * r, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
     }
 
-    // indicate geographical mouse position
-    QString s;
-    s.sprintf("lon = %.3f, lat = %.3f", (mouseLon_ / M_PI) * 180, (mouseLat_ / M_PI) * 180);
-    gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
+    // show mouse position
+    {
+        QString s;
+        s.sprintf("mouse: lon = %.3f, lat = %.3f", (mouseLon_ / M_PI) * 180, (mouseLat_ / M_PI) * 180);
+        gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
+    }
+
+    // show current position
+    {
+        QString s;
+        s.sprintf("curr pos: lon = %.3f, lat = %.3f", (currLon_ / M_PI) * 180, (currLat_ / M_PI) * 180);
+        gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
+    }
 
     glFlush();
 }
@@ -347,8 +358,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     if (intersected && (event->button() == Qt::LeftButton)) {
         if (event->modifiers() & Qt::ControlModifier) {
             // update current surface position
-            lat_ = lat;
-            lon_ = lon;
+            currLat_ = lat;
+            currLon_ = lon;
         } else {
             // start drag lat/lon focus
             dragBaseX_ = event->x();
@@ -425,8 +436,8 @@ void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
     if (intersected && (event->button() == Qt::LeftButton)) {
         // update current surface position
-        lat_ = lat;
-        lon_ = lon;
+        currLat_ = lat;
+        currLon_ = lon;
         updateGL();
     }
 }
@@ -568,13 +579,13 @@ void GLWidget::setCurrPosFromDialog()
     QDoubleSpinBox lonSpinBox;
     lonSpinBox.setMinimum(-180);
     lonSpinBox.setMaximum(180);
-    lonSpinBox.setValue((lon_ / M_PI) * 180);
+    lonSpinBox.setValue((currLon_ / M_PI) * 180);
     formLayout.addRow("Longitude:", &lonSpinBox);
 
     QDoubleSpinBox latSpinBox;
     latSpinBox.setMinimum(-90);
     latSpinBox.setMaximum(90);
-    latSpinBox.setValue((lat_ / (M_PI / 2)) * 90);
+    latSpinBox.setValue((currLat_ / (M_PI / 2)) * 90);
     formLayout.addRow("Latitude:", &latSpinBox);
 
     QDialogButtonBox buttonBox(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
@@ -583,16 +594,16 @@ void GLWidget::setCurrPosFromDialog()
     mainLayout.addWidget(&buttonBox);
 
     if (dialog.exec() == QDialog::Accepted) {
-        lon_ = (lonSpinBox.value() / 180) * M_PI;
-        lat_ = (latSpinBox.value() / 90) * (M_PI / 2);
+        currLon_ = (lonSpinBox.value() / 180) * M_PI;
+        currLat_ = (latSpinBox.value() / 90) * (M_PI / 2);
         updateGL();
     }
 }
 
 void GLWidget::setCurrPosToThisPos()
 {
-    lat_ = mouseLat_;
-    lon_ = mouseLon_;
+    currLat_ = mouseLat_;
+    currLon_ = mouseLon_;
     updateGL();
 }
 
@@ -607,8 +618,8 @@ void GLWidget::focusOnThisPos()
 
 void GLWidget::focusOnCurrPos()
 {
-    focus_lat_ = lat_;
-    focus_lon_ = lon_;
+    focus_lat_ = currLat_;
+    focus_lon_ = currLon_;
     focus_alt_ = 0;
     updateGL();
     emit focusPosChanged();

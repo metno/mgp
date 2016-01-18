@@ -90,9 +90,9 @@ private:
 
     bool cam_kf_slave_mode_;
 
-    // current surface position ### rename to currLat_ and currLon_ ... TBD
-    double lon_; // [-PI/2, PI/2]
-    double lat_; // [-PI, PI]
+    // current surface position
+    double currLon_; // [-PI/2, PI/2]
+    double currLat_; // [-PI, PI]
 
     int isct_kf_, remove_item_, insert_before_item_, insert_after_item_,
 	explicit_focus_item_, gravity_focus_item_, current_kf_focus_item_,

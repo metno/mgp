@@ -67,8 +67,7 @@ public:
 
     static double getEarthRadius() {return earth_radius_;}
 
-    void drawBottomString(
-    const QString &, int, int, int, int, const QColor &, const QColor &);
+    void drawBottomString(const QString &, int, int, int, int, const QColor &, const QColor &, bool = true);
 
 private:
     /**

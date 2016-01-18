@@ -468,9 +468,7 @@ GfxUtils::drawLatLonCircles(
 //}
 
 
-void
-GfxUtils::drawBottomString(
-    const QString &s, int win_width, int win_height, int row, int col, const QColor &textColor, const QColor &bgColor)
+void GfxUtils::drawBottomString(const QString &s, int win_width, int win_height, int row, int col, const QColor &textColor, const QColor &bgColor, bool alignLeft)
 {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix(); // Save projection matrix
@@ -486,16 +484,16 @@ GfxUtils::drawBottomString(
     const int // (values in pixels)
             dx       =  8,
             dy       = 13,
-            offset_x =  0,
+            offset_x = 0,
             offset_y =  0,
-            inner_pad_y    =  0,
+            inner_pad_y =  0,
             outer_pad = 4;
 
     glDisable(GL_DEPTH_TEST);
 
     // draw background
     const int
-            x0 = offset_x + col * dx,
+            x0 = alignLeft ? (offset_x + col * dx) : (win_width - offset_x - 2 * outer_pad - (col + s.size()) * dx),
             y0 = offset_y + row * (dy + inner_pad_y),
             x1 = x0 + s.size() * dx + 2 * outer_pad,
             y1 = y0 + dy + 2 * outer_pad;
@@ -509,7 +507,9 @@ GfxUtils::drawBottomString(
 
     // draw string
     glColor3f(textColor.redF(), textColor.greenF(), textColor.blueF()); // note: glColor*() must be called before glRasterPos*()!
-    glRasterPos2f(offset_x + outer_pad + col * dx, offset_y + outer_pad + row * (dy + inner_pad_y));
+    glRasterPos2f(
+                alignLeft ? (offset_x + outer_pad + col * dx) : (win_width - offset_x - outer_pad - (col + s.size()) * dx),
+                offset_y + outer_pad + row * (dy + inner_pad_y));
     for (int i = 0; i < s.size(); i++)
         glutBitmapCharacter(GLUT_BITMAP_8_BY_13, s.toLatin1()[i]);
 
