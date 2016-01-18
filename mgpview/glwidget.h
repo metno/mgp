@@ -114,12 +114,14 @@ private:
     double dragBaseFocusLat_;
     bool dragging_;
 
+    QAction *setCurrPosFromDialogAction_;
     QAction *setCurrPosToThisPosAction_;
     QAction *focusOnThisPosAction_;
     QAction *focusOnCurrPosAction_;
 
 private slots:
     void drawCalled(QObject *ckf);
+    void setCurrPosFromDialog();
     void setCurrPosToThisPos();
     void focusOnThisPos();
     void focusOnCurrPos();

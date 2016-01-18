@@ -8,6 +8,12 @@
 #include <GL/glut.h>
 #include <QMenu>
 #include <QAction>
+#include <QDoubleSpinBox>
+#include <QDialog>
+#include <QFormLayout>
+#include <QVBoxLayout>
+#include <QDialogButtonBox>
+#include <QPushButton>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -35,6 +41,9 @@ GLWidget::GLWidget(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
     last_cam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+    setCurrPosFromDialogAction_ = new QAction("Set current pos from dialog", 0);
+    connect(setCurrPosFromDialogAction_, SIGNAL(triggered()), SLOT(setCurrPosFromDialog()));
 
     setCurrPosToThisPosAction_ = new QAction("Set current pos to this pos", 0);
     connect(setCurrPosToThisPosAction_, SIGNAL(triggered()), SLOT(setCurrPosToThisPos()));
@@ -354,6 +363,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         updateGL();
     } else if (event->button() == Qt::RightButton) {
         QMenu contextMenu;
+        contextMenu.addAction(setCurrPosFromDialogAction_);
         contextMenu.addAction(setCurrPosToThisPosAction_);
         contextMenu.addAction(focusOnThisPosAction_);
         contextMenu.addAction(focusOnCurrPosAction_);
@@ -542,6 +552,41 @@ void GLWidget::drawCalled(QObject *ip_ckf)
     last_cam_ = *((CartesianKeyFrame *)ip_ckf);
 
     updateGL();
+}
+
+void GLWidget::setCurrPosFromDialog()
+{
+    QDialog dialog;
+    dialog.setWindowTitle("Set current position");
+    QVBoxLayout mainLayout;
+
+    dialog.setLayout(&mainLayout);
+
+    QFormLayout formLayout;
+    mainLayout.addLayout(&formLayout);
+
+    QDoubleSpinBox lonSpinBox;
+    lonSpinBox.setMinimum(-180);
+    lonSpinBox.setMaximum(180);
+    lonSpinBox.setValue((lon_ / M_PI) * 180);
+    formLayout.addRow("Longitude:", &lonSpinBox);
+
+    QDoubleSpinBox latSpinBox;
+    latSpinBox.setMinimum(-90);
+    latSpinBox.setMaximum(90);
+    latSpinBox.setValue((lat_ / (M_PI / 2)) * 90);
+    formLayout.addRow("Latitude:", &latSpinBox);
+
+    QDialogButtonBox buttonBox(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+    connect(buttonBox.button(QDialogButtonBox::Cancel), SIGNAL(clicked()), &dialog, SLOT(reject()));
+    connect(buttonBox.button(QDialogButtonBox::Ok), SIGNAL(clicked()), &dialog, SLOT(accept()));
+    mainLayout.addWidget(&buttonBox);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        lon_ = (lonSpinBox.value() / 180) * M_PI;
+        lat_ = (latSpinBox.value() / 90) * (M_PI / 2);
+        updateGL();
+    }
 }
 
 void GLWidget::setCurrPosToThisPos()
