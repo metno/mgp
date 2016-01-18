@@ -19,37 +19,24 @@ public:
     /** Draws coast contours on the earth sphere. The farther the eye
      * is from the earth surface, the more the contours are raised above the
      * surface. */
-    void drawCoastContours(
-	_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_,
-	double max_eye_dist = 5 * earth_radius_);
+    void drawCoastContours(_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_, double max_eye_dist = 5 * earth_radius_);
 
     /** Draws ENOR FIR on the earth sphere. The farther the eye
      * is from the earth surface, the more the contours are raised above the
      * surface. */
-    void drawENORFIR(
-    _3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_,
-    double max_eye_dist = 5 * earth_radius_);
+    void drawENORFIR(_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_, double max_eye_dist = 5 * earth_radius_);
 
     /** Draws a sphere. */
-    void drawSphere(
-	double x, double y, double z, double radius, float r, float g, float b,
-	float amb, int phi_res, int theta_res, GLenum shade_model);
+    void drawSphere(double x, double y, double z, double radius, float r, float g, float b, float amb, int phi_res, int theta_res, GLenum shade_model);
 
     /** Draws a line. */
-    void drawLine(
-	double x0, double y0, double z0, double x1, double y1, double z1,
-	double scale_fact, float r, float g, float b, double width = 1);
+    void drawLine(double x0, double y0, double z0, double x1, double y1, double z1, double scale_fact, float r, float g, float b, double width = 1);
 
     /** Draws a cone. */
-    void drawCone(
-	double x0, double y0, double z0, double x1, double y1, double z1,
-	double base, double length, float r, float g, float b, float amb,
-	bool reverse = false);
+    void drawCone(double x0, double y0, double z0, double x1, double y1, double z1, double base, double length, float r, float g, float b, float amb, bool reverse = false);
 
     /** Draws a black/white camera sphere. */
-    void drawCameraSphere(
-	double x, double y, double z, double radius, float r, float g,
-	float b);
+    void drawCameraSphere(double x, double y, double z, double radius, float r, float g, float b);
 
     /** Draws a base circle in the xy-plane centered around the z-axis. */
     void drawBaseCircle(double radius, float r, float g, float b);
@@ -57,8 +44,7 @@ public:
     /** Draws the lat/lon circles of the earth surface. The farther the eye
      * is from the earth surface, the more the circles are raised above the
      * surface. */
-    void drawLatLonCircles(
-	_3DPoint* eye, double min_eye_dist, double max_eye_dist);
+    void drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_eye_dist);
 
 //    /** Draws a cartesian key frame. */
 //    void drawCartesianKeyFrame(
@@ -91,8 +77,7 @@ private:
     /** Earth radius in meters. */
     static const double earth_radius_;
 
-    double computeRaise(
-	_3DPoint* eye, double min_eye_dist, double max_eye_dist);
+    double computeRaise(_3DPoint* eye, double min_eye_dist, double max_eye_dist);
 };
 
 #endif // GFXUTILS_H

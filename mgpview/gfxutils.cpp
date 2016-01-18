@@ -14,19 +14,16 @@ GfxUtils::GfxUtils()
     createENORFIR();
 }
 
-
 GfxUtils::~GfxUtils()
 {
     delete[] points_;
     delete[] polys_;
 }
 
-
 // NOTE: The following function is based on code found in the
 // vtkEarthSource class!
 //
-void
-GfxUtils::createCoast()
+void GfxUtils::createCoast()
 {
     int on_ratio = 1;
 
@@ -119,10 +116,7 @@ GfxUtils::createCoast()
 //    fprintf(stderr, "n_polys_ = %d\n", n_polys_);
 }
 
-
-void
-GfxUtils::drawCoastContours(
-    _3DPoint* eye, double min_eye_dist, double max_eye_dist)
+void GfxUtils::drawCoastContours(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     glColor3f(0.0, 0.0, 0.0);
     glLineWidth(1.0);
@@ -177,9 +171,7 @@ void GfxUtils::createENORFIR()
 }
 
 // ### similar to drawCoastContours() ... refactor!
-void
-GfxUtils::drawENORFIR(
-    _3DPoint* eye, double min_eye_dist, double max_eye_dist)
+void GfxUtils::drawENORFIR(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     glColor3f(0.0, 0.8, 0.8);
     glLineWidth(2.0);
@@ -197,10 +189,7 @@ GfxUtils::drawENORFIR(
     glEnd();
 }
 
-void
-GfxUtils::drawSphere(
-    double x, double y, double z, double radius, float r, float g, float b,
-    float amb, int phi_res, int theta_res, GLenum shade_model)
+void GfxUtils::drawSphere(double x, double y, double z, double radius, float r, float g, float b, float amb, int phi_res, int theta_res, GLenum shade_model)
 {
     GLfloat mat_diffuse[] = {r, g, b, 1.0};
     glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
@@ -231,11 +220,7 @@ GfxUtils::drawSphere(
     glDisable(GL_LIGHTING);
 }
 
-
-void
-GfxUtils::drawLine(
-    double x0, double y0, double z0, double x1, double y1, double z1,
-    double scale_fact, float r, float g, float b, double width)
+void GfxUtils::drawLine(double x0, double y0, double z0, double x1, double y1, double z1, double scale_fact, float r, float g, float b, double width)
 {
     glColor3f(r, g, b);
     glLineWidth(width);
@@ -247,12 +232,7 @@ GfxUtils::drawLine(
     glEnd();
 }
 
-
-void
-GfxUtils::drawCone(
-    double x0, double y0, double z0, double x1, double y1, double z1,
-    double base, double length, float r, float g, float b, float amb,
-    bool reverse)
+void GfxUtils::drawCone(double x0, double y0, double z0, double x1, double y1, double z1, double base, double length, float r, float g, float b, float amb, bool reverse)
 {
     GLfloat mat_diffuse[] = {r, g, b, 1.0};
     glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
@@ -298,10 +278,7 @@ GfxUtils::drawCone(
     glDisable(GL_LIGHTING);
 }
 
-
-void
-GfxUtils::drawCameraSphere(
-    double x, double y, double z, double radius, float r, float g, float b)
+void GfxUtils::drawCameraSphere(double x, double y, double z, double radius, float r, float g, float b)
 {
     glPushMatrix();
     glTranslated(x, y, z);
@@ -316,10 +293,7 @@ GfxUtils::drawCameraSphere(
     glPopMatrix();
 }
 
-
-void
-GfxUtils::drawBaseCircle(
-    double radius, float r, float g, float b)
+void GfxUtils::drawBaseCircle(double radius, float r, float g, float b)
 {
     const int res = 36;
     const double delta_theta = (2 * M_PI) / res;
@@ -332,10 +306,7 @@ GfxUtils::drawBaseCircle(
     glEnd();
 }
 
-
-double
-GfxUtils::computeRaise(
-    _3DPoint* eye, double min_eye_dist, double max_eye_dist)
+double GfxUtils::computeRaise(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     const double eye_dist = sqrt(
 	eye->x() * eye->x() +
@@ -352,10 +323,7 @@ GfxUtils::computeRaise(
 	(max_raise - min_raise);
 }
 
-
-void
-GfxUtils::drawLatLonCircles(
-    _3DPoint* eye, double min_eye_dist, double max_eye_dist)
+void GfxUtils::drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     int i;
     const double
@@ -416,7 +384,6 @@ GfxUtils::drawLatLonCircles(
     }
 }
 
-
 //void
 //GfxUtils::drawCartesianKeyFrame(
 //    CartesianKeyFrame& ckf, float r, float g, float b, bool draw_eye_line,
@@ -466,7 +433,6 @@ GfxUtils::drawLatLonCircles(
 //	    1.2 * (regular ? regular_radius : expanded_radius), 0, 1, 1);
 //    }
 //}
-
 
 void GfxUtils::drawBottomString(const QString &s, int win_width, int win_height, int row, int col, const QColor &textColor, const QColor &bgColor, bool alignLeft)
 {

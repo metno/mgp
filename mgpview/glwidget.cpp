@@ -18,9 +18,9 @@
 #include <stdio.h> // 4 TESTING!
 
 const double
-   GLWidget::min_dolly_ =
+   GLWidget::minDolly_ =
       0.05 * GfxUtils::getEarthRadius(),
-   GLWidget::max_dolly_ =
+   GLWidget::maxDolly_ =
       5    * GfxUtils::getEarthRadius();
 
 GLWidget::GLWidget(QWidget *parent)
@@ -28,11 +28,11 @@ GLWidget::GLWidget(QWidget *parent)
     , dolly_(0.7)
     , heading_(0.5)
     , incl_(1)
-    , cam_kf_slave_mode_(false)
+    , camKfSlaveMode_(false)
     , currLon_(0.013) // London
     , currLat_(0.893)
-    , focus_lon_(currLon_)
-    , focus_lat_(currLat_)
+    , focusLon_(currLon_)
+    , focusLat_(currLat_)
     , focus_alt_(0)     // Surface
     , mouseLon_(0)
     , mouseLat_(0)
@@ -42,7 +42,7 @@ GLWidget::GLWidget(QWidget *parent)
 
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
-    last_cam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
+    lastCam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
 
     setCurrPosFromDialogAction_ = new QAction("Set current pos from dialog", 0);
     connect(setCurrPosFromDialogAction_, SIGNAL(triggered()), SLOT(setCurrPosFromDialog()));
@@ -183,17 +183,17 @@ void GLWidget::paintGL()
 
     // Draw coast contours ...
     glShadeModel(GL_FLAT);
-    gfx_util.drawCoastContours(eye, min_dolly_, max_dolly_);
+    gfx_util.drawCoastContours(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
     // Draw ENOR FIR area ...
     glShadeModel(GL_FLAT);
-    gfx_util.drawENORFIR(eye, min_dolly_, max_dolly_);
+    gfx_util.drawENORFIR(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
     // Draw lat/lon circles ...
     glShadeModel(GL_FLAT);
-    gfx_util.drawLatLonCircles(eye, min_dolly_, max_dolly_);
+    gfx_util.drawLatLonCircles(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
     // Draw current surface point ...
@@ -210,9 +210,9 @@ void GLWidget::paintGL()
     {
         const double
                 r = GfxUtils::instance().getEarthRadius(),
-                x = r * cos(focus_lat_) * cos(focus_lon_),
-                y = r * cos(focus_lat_) * sin(focus_lon_),
-                z = r * sin(focus_lat_);
+                x = r * cos(focusLat_) * cos(focusLon_),
+                y = r * cos(focusLat_) * sin(focusLon_),
+                z = r * sin(focusLat_);
         gfx_util.drawSphere(x, y, z, 0.005 * r, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
     }
 
@@ -364,8 +364,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
             // start drag lat/lon focus
             dragBaseX_ = event->x();
             dragBaseY_ = event->y();
-            dragBaseFocusLon_ = focus_lon_;
-            dragBaseFocusLat_ = focus_lat_;
+            dragBaseFocusLon_ = focusLon_;
+            dragBaseFocusLat_ = focusLat_;
             dragging_ = true;
         }
 
@@ -451,9 +451,9 @@ CartesianKeyFrame GLWidget::computeCamera()
 {
     const double
             radius = focus_alt_ + GfxUtils::instance().getEarthRadius(),
-            focus_x = radius * cos(focus_lat_) * cos(focus_lon_),
-            focus_y = radius * cos(focus_lat_) * sin(focus_lon_),
-            focus_z = radius * sin(focus_lat_);
+            focus_x = radius * cos(focusLat_) * cos(focusLon_),
+            focus_y = radius * cos(focusLat_) * sin(focusLon_),
+            focus_z = radius * sin(focusLat_);
     setCameraFocus(focus_x, focus_y, focus_z, false);
 
     // Compute matrix for rotating x-axis according to inclination and
@@ -482,7 +482,7 @@ CartesianKeyFrame GLWidget::computeCamera()
     m_eye.mulMatLeft(m_tsl);
     m_eye.mulMatLeft(m_rot2);
     _4DPoint eye(
-	min_dolly_ + pow(dolly_, 2) * (max_dolly_ - min_dolly_), 0, 0);
+    minDolly_ + pow(dolly_, 2) * (maxDolly_ - minDolly_), 0, 0);
     eye.mulMatPoint(m_eye);
 
     // Compute up-vector ...
@@ -523,14 +523,14 @@ double GLWidget::dolly() const
 
 void GLWidget::setCurrentFocusPos(double lon, double lat)
 {
-    focus_lon_ = min(max(lon, -M_PI), M_PI);
-    focus_lat_ = min(max(lat, -M_PI / 2), M_PI / 2);
+    focusLon_ = min(max(lon, -M_PI), M_PI);
+    focusLat_ = min(max(lat, -M_PI / 2), M_PI / 2);
     updateGL();
 }
 
 QPair<double, double> GLWidget::currentFocusPos() const
 {
-    return qMakePair(focus_lon_, focus_lat_);
+    return qMakePair(focusLon_, focusLat_);
 }
 
 
@@ -560,7 +560,7 @@ void GLWidget::drawCalled(QObject *ip_ckf)
 */
 
     // Use this line for now:
-    last_cam_ = *((CartesianKeyFrame *)ip_ckf);
+    lastCam_ = *((CartesianKeyFrame *)ip_ckf);
 
     updateGL();
 }
@@ -609,8 +609,8 @@ void GLWidget::setCurrPosToThisPos()
 
 void GLWidget::focusOnThisPos()
 {
-    focus_lat_ = mouseLat_;
-    focus_lon_ = mouseLon_;
+    focusLat_ = mouseLat_;
+    focusLon_ = mouseLon_;
     focus_alt_ = 0;
     updateGL();
     emit focusPosChanged();
@@ -618,8 +618,8 @@ void GLWidget::focusOnThisPos()
 
 void GLWidget::focusOnCurrPos()
 {
-    focus_lat_ = currLat_;
-    focus_lon_ = currLon_;
+    focusLat_ = currLat_;
+    focusLon_ = currLon_;
     focus_alt_ = 0;
     updateGL();
     emit focusPosChanged();

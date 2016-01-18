@@ -16,7 +16,7 @@ public:
     GLWidget(QWidget *parent = 0);
 
     /** Sets the focus (lookat) point of the camera. */
-    void setCameraFocus(double x, double y, double z, bool update_gl = true);
+    void setCameraFocus(double, double, double, bool = true);
 
     /** Sets the normalized dolly value, clamping to range [0, 1]. */
     void setDolly(double dolly);    
@@ -33,7 +33,7 @@ public:
 
     void enableInsertion(bool on);
 
-    void setCamKFSLaveMode(bool on) {cam_kf_slave_mode_ = on;}
+    void setCamKFSLaveMode(bool on) {camKfSlaveMode_ = on;}
 
 private:
 
@@ -81,27 +81,27 @@ private:
     _3DPoint focus_;
     double dolly_, heading_, incl_;
 
-    static const double min_dolly_, max_dolly_;
+    static const double minDolly_, maxDolly_;
 
     /** The camera used the last time the draw() method of the current
      * earth-sphere sequence was called.
      */
-    CartesianKeyFrame last_cam_;
+    CartesianKeyFrame lastCam_;
 
-    bool cam_kf_slave_mode_;
+    bool camKfSlaveMode_;
 
     // current surface position
     double currLon_; // [-PI/2, PI/2]
     double currLat_; // [-PI, PI]
 
-    int isct_kf_, remove_item_, insert_before_item_, insert_after_item_,
-	explicit_focus_item_, gravity_focus_item_, current_kf_focus_item_,
-	draw_kf_labels_item_, draw_camera_item_, draw_focus_point_item_,
-	draw_focus_point_label_item_;
+    int isctKf_, removeItem_, insertBeforeItem_, insertAfterItem_,
+    explicitFocusItem_, gravityFocusItem_, currentKfFocusItem_,
+    drawKfLabelsItem_, drawCameraItem_, drawFocusPointItem_,
+    drawFocusPointLabelItem_;
 
     // current focus position
-    double focus_lon_;
-    double focus_lat_;
+    double focusLon_;
+    double focusLat_;
     double focus_alt_;
 
     // current mouse position
