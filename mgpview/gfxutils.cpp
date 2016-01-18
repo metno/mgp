@@ -191,6 +191,7 @@ GfxUtils::drawENORFIR(
     for (int i = 0; i < enorLon_.size(); ++i) {
         double x, y, z;
         Math::sphericalToCartesian(raise_fact * earth_radius_, enorLon_.at(i), enorLat_.at(i), x, y, z);
+        Math::sphericalToCartesian(raise_fact * earth_radius_, enorLat_.at(i), enorLon_.at(i), x, y, z);
         glVertex3d(x, y, z);
     }
     glEnd();
