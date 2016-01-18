@@ -322,18 +322,18 @@ bool GLWidget::intersectEarth(
 
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
+    // --- BEGIN simular code, instance #1 ----
     _4DPoint eye, ray;
     computeRay(event->x(), event->y(), eye, ray);
-    double wx, wy, wz;
 
-    double lat;
-    double lon;
+    double wx, wy, wz, lat, lon;
     bool intersected = false;
     if (intersectEarth(eye, ray, wx, wy, wz)) {
         intersected = true;
         Math::computeLatLon(wx, wy, wz, lat, lon);
         lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
     }
+    // --- END simular code, instance #1 ----
 
     if (intersected && (event->button() == Qt::LeftButton)) {
         if (event->modifiers() & Qt::ControlModifier) {
@@ -372,10 +372,10 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *)
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    double wx, wy, wz;
     _4DPoint eye, ray;
     computeRay(event->x(), event->y(), eye, ray);
 
+    double wx, wy, wz;
     if (intersectEarth(eye, ray, wx, wy, wz))
     {
         Math::computeLatLon(wx, wy, wz, mouseLat_, mouseLon_);
@@ -398,12 +398,33 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
+void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    // --- BEGIN simular code, instance #2 ----
+    _4DPoint eye, ray;
+    computeRay(event->x(), event->y(), eye, ray);
+
+    double wx, wy, wz, lat, lon;
+    bool intersected = false;
+    if (intersectEarth(eye, ray, wx, wy, wz)) {
+        intersected = true;
+        Math::computeLatLon(wx, wy, wz, lat, lon);
+        lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
+    }
+    // --- END simular code, instance #2 ----
+
+    if (intersected && (event->button() == Qt::LeftButton)) {
+        // update current surface position
+        lat_ = lat;
+        lon_ = lon;
+        updateGL();
+    }
+}
 
 void GLWidget::enterEvent(QEvent *)
 {
     updateGL();
 }
-
 
 CartesianKeyFrame GLWidget::computeCamera()
 {
