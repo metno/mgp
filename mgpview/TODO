@@ -1,0 +1,26 @@
+TODO:
+
+1: Design a control panel with the following components:
+
+   a: A base polygon (either a pre-defined polygon, such as ENOR FIR, or a custom polygon).
+
+   b: Eight optional conditions for removing parts of the base polygon:
+      - E OF <lon>
+      - W OF <lon>
+      - N OF <lat>
+      - S OF <lat>
+      - NE OF <line>
+      - NW OF <line> (where <line> is great circle between two lon/lat points)
+      - SE OF <line>
+      - SW OF <line>
+
+   c: A button (named 'Apply'?) for executing the removal operations and displaying the resulting polygon(s).
+
+
+      Note 1: Any subset of these eight conditions may be active. If none are active, the result is the entire base polygon.
+      Note 2: The result may be empty (e.g. when specifying N OF a longitude located north of the northern tip of the base polygon).
+      Note 3: The result may contain more than one polygon (if the base polygon is not a convex hull?)
+      Note 4: Some combinations may be ambiguous and/or contain singularities (a base polygon containing the pole, intersects itself etc.)
+      Note 5: The custom polygon should be interactively placable by hitting the Insert key while hovering the mouse etc.
+              The points should later be movable by dragging the mouse.
+      Note 6: Ditto for each line of the "{NE|NW|SE|SW} OF" conditions.

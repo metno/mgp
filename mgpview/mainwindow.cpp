@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "glwidget.h"
+#include "controlpanel.h"
 #include "common.h"
 #include <QSlider>
 #include <QApplication>
@@ -164,7 +165,7 @@ void MainWindow::handleFocusPosChanged()
 
 void MainWindow::openControlPanel()
 {
-    qDebug() << "openControlPanel() ...";
+    ControlPanel::instance().open();
 }
 
 void MainWindow::openPreferences()
