@@ -35,6 +35,9 @@ public:
 
     void setCamKFSLaveMode(bool on) {camKfSlaveMode_ = on;}
 
+    void setBallSizeFrac(float);
+    float ballSizeFrac() const;
+
 private:
 
     virtual void initializeGL();
@@ -118,6 +121,10 @@ private:
     QAction *setCurrPosToThisPosAction_;
     QAction *focusOnThisPosAction_;
     QAction *focusOnCurrPosAction_;
+
+    float ballSize_;
+    float minBallSize_;
+    float maxBallSize_;
 
 private slots:
     void drawCalled(QObject *ckf);

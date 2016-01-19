@@ -9,6 +9,10 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QFrame>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QFormLayout>
+#include <QDialogButtonBox>
 
 void MainWindow::init()
 {
@@ -64,17 +68,19 @@ MainWindow::MainWindow()
     QFrame *botPanel = new QFrame;
     botPanel->setLayout(new QHBoxLayout);
 
-    QPushButton *button1 = new QPushButton("1");
-    botPanel->layout()->addWidget(button1);
+    QPushButton *ctrlPanelButton = new QPushButton("Control Panel");
+    connect(ctrlPanelButton, SIGNAL(clicked()), SLOT(openControlPanel()));
+    botPanel->layout()->addWidget(ctrlPanelButton);
 
-    QPushButton *button2 = new QPushButton("2");
-    botPanel->layout()->addWidget(button2);
+    QPushButton *prefsButton = new QPushButton("Preferences");
+    connect(prefsButton, SIGNAL(clicked()), SLOT(openPreferences()));
+    botPanel->layout()->addWidget(prefsButton);
 
     qobject_cast<QHBoxLayout *>(botPanel->layout())->addStretch(1);
 
-    QPushButton *closeButton = new QPushButton("Close");
-    connect(closeButton, SIGNAL(pressed()), qApp, SLOT(quit()));
-    botPanel->layout()->addWidget(closeButton);
+    QPushButton *quitButton = new QPushButton("Quit");
+    connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
+    botPanel->layout()->addWidget(quitButton);
 
     mainLayout->addWidget(botPanel, 2, 0, 1, 3);
 
@@ -91,8 +97,12 @@ void MainWindow::handleKeyPressEvent(QKeyEvent *event)
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if ((event->key() == Qt::Key_Escape) || ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_Q))) {
+    if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_Q)) {
         qApp->quit();
+    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_P)) {
+        openPreferences();
+    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_C)) {
+        openControlPanel();
     }
 }
 
@@ -150,4 +160,38 @@ void MainWindow::handleFocusPosChanged()
 {
     syncLonSlider();
     syncLatSlider();
+}
+
+void MainWindow::openControlPanel()
+{
+    qDebug() << "openControlPanel() ...";
+}
+
+void MainWindow::openPreferences()
+{
+    QDialog dialog;
+    dialog.setWindowTitle("Preferences");
+    QVBoxLayout mainLayout;
+
+    dialog.setLayout(&mainLayout);
+
+    QFormLayout formLayout;
+    mainLayout.addLayout(&formLayout);
+
+    QSlider bsSlider(Qt::Horizontal);
+    bsSlider.setValue(bsSlider.minimum() + glw_->ballSizeFrac() * (bsSlider.maximum() - bsSlider.minimum()));
+    connect(&bsSlider, SIGNAL(valueChanged(int)), SLOT(ballSizeSliderValueChanged(int)));
+    formLayout.addRow("Ball size:", &bsSlider);
+
+    QDialogButtonBox buttonBox(QDialogButtonBox::Close);
+    connect(buttonBox.button(QDialogButtonBox::Close), SIGNAL(clicked()), &dialog, SLOT(accept()));
+    mainLayout.addWidget(&buttonBox);
+
+    dialog.exec();
+}
+
+void MainWindow::ballSizeSliderValueChanged(int)
+{
+    QSlider *bsSlider = qobject_cast<QSlider *>(sender());
+    glw_->setBallSizeFrac(float(bsSlider->value() - bsSlider->minimum()) / (bsSlider->maximum() - bsSlider->minimum()));
 }

@@ -37,6 +37,9 @@ GLWidget::GLWidget(QWidget *parent)
     , mouseLon_(0)
     , mouseLat_(0)
     , dragging_(false)
+    , ballSize_(0.005 * GfxUtils::getEarthRadius())
+    , minBallSize_(0.001 * GfxUtils::getEarthRadius())
+    , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
 {
     setMouseTracking(true);
 
@@ -203,7 +206,7 @@ void GLWidget::paintGL()
                 x = r * cos(currLat_) * cos(currLon_),
                 y = r * cos(currLat_) * sin(currLon_),
                 z = r * sin(currLat_);
-        gfx_util.drawSphere(x, y, z, 0.005 * r, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
+        gfx_util.drawSphere(x, y, z, ballSize_, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
     }
 
     // Draw focus point ...
@@ -213,7 +216,7 @@ void GLWidget::paintGL()
                 x = r * cos(focusLat_) * cos(focusLon_),
                 y = r * cos(focusLat_) * sin(focusLon_),
                 z = r * sin(focusLat_);
-        gfx_util.drawSphere(x, y, z, 0.005 * r, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
+        gfx_util.drawSphere(x, y, z, ballSize_, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
     }
 
     // show mouse position
@@ -623,6 +626,17 @@ void GLWidget::focusOnCurrPos()
     focus_alt_ = 0;
     updateGL();
     emit focusPosChanged();
+}
+
+void GLWidget::setBallSizeFrac(float frac)
+{
+    ballSize_ = minBallSize_ + min(max(frac, 0), 1) * (maxBallSize_ - minBallSize_);
+    updateGL();
+}
+
+float GLWidget::ballSizeFrac() const
+{
+    return (ballSize_ - minBallSize_) / (maxBallSize_ - minBallSize_);
 }
 
 //void GLWidget::toggleVisMenuItem(int item)
