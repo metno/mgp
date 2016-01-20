@@ -91,6 +91,11 @@ MainWindow::MainWindow()
 
 bool MainWindow::isInit_ = false;
 
+GLWidget *MainWindow::glWidget() const
+{
+    return glw_;
+}
+
 void MainWindow::handleKeyPressEvent(QKeyEvent *event)
 {
     keyPressEvent(event); // for now, propagate to private handler without filtering

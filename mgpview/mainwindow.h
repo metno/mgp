@@ -15,11 +15,12 @@ public:
     static void init();
     static MainWindow &instance();
     void handleKeyPressEvent(QKeyEvent *);
+    GLWidget *glWidget() const;
 
 private:
     static bool isInit_;
     MainWindow();
-    GLWidget * glw_;
+    GLWidget *glw_;
     QSlider *zoomSlider_;
     QSlider *lonSlider_;
     QSlider *latSlider_;

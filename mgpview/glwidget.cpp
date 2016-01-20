@@ -639,6 +639,12 @@ float GLWidget::ballSizeFrac() const
     return (ballSize_ - minBallSize_) / (maxBallSize_ - minBallSize_);
 }
 
+void GLWidget::updateFilter(Filter::Type type, bool enabled, bool current, const QVariant &value)
+{
+    qDebug() << "GLWidget::updateFilter(); type:" << Filter::typeName(type)
+             << ", enabled:" << enabled << ", current:" << current << ", value:" << value;
+}
+
 //void GLWidget::toggleVisMenuItem(int item)
 //{
 //    vis_menu_->setItemChecked(item, !vis_menu_->isItemChecked(item));

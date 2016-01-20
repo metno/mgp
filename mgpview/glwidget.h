@@ -2,9 +2,12 @@
 #define GLWIDGET_H
 
 #include "cartesiankeyframe.h"
+#include "controlpanel.h"
 #include <QGLWidget>
 #include <QPair>
 #include <QMouseEvent>
+#include <QLineF>
+#include <QVariant>
 
 class QAction;
 
@@ -38,8 +41,10 @@ public:
     void setBallSizeFrac(float);
     float ballSizeFrac() const;
 
-private:
+public slots:
+    void updateFilter(Filter::Type, bool, bool, const QVariant &);
 
+private:
     virtual void initializeGL();
     virtual void resizeGL(int w, int h);
     virtual void paintGL();
