@@ -25,7 +25,6 @@ MainWindow &MainWindow::instance()
     if (!isInit_)
         qFatal("MainWindow not initialized");
     static MainWindow mw;
-
     return mw;
 }
 
@@ -35,7 +34,7 @@ MainWindow::MainWindow()
 
     QGridLayout *mainLayout = new QGridLayout;
 
-    // add GL widget
+    // add GL widget    
     glw_ = new GLWidget;
     mainLayout->addWidget(glw_, 1, 1);
 
@@ -87,6 +86,8 @@ MainWindow::MainWindow()
 
     setLayout(mainLayout);
     resize(800, 800);
+
+    ControlPanel::instance().initialize();
 }
 
 bool MainWindow::isInit_ = false;

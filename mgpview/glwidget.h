@@ -41,9 +41,6 @@ public:
     void setBallSizeFrac(float);
     float ballSizeFrac() const;
 
-public slots:
-    void updateFilter(Filter::Type, bool, bool, const QVariant &);
-
 private:
     virtual void initializeGL();
     virtual void resizeGL(int w, int h);
@@ -67,6 +64,7 @@ private:
     void computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray);
     void computePixel(double wx, double wy, double wz, int &x, int &y);
     void drawLabel(const char s[], int x, int y, float r, float g, float b);
+    bool intersectsEarth(QMouseEvent *event, double &lon, double &lat);
     bool intersectCartesianKeyFrame(
     _4DPoint &eye, _4DPoint &ray, CartesianKeyFrame &ckf);
 //    bool intersectKeyFrameBase(
@@ -75,9 +73,6 @@ private:
     bool intersectInsertKeyFrameBase(_4DPoint &eye, _4DPoint &ray);
     bool intersectKeyFrame(_4DPoint &eye, _4DPoint &ray, int &i);
     bool intersectCurrentKeyFrameBase(_4DPoint &eye, _4DPoint &ray);
-    bool intersectEarth(
-    _4DPoint &eye, _4DPoint &ray, double &wx, double &wy,
-    double &wz);
     void insert(bool after);
 
     double min(double a, double b) {return a < b ? a : b;}
@@ -116,11 +111,14 @@ private:
     double mouseLon_;
     double mouseLat_;
 
+    bool hoveringFilter_;
+
     int dragBaseX_;
     int dragBaseY_;
-    double dragBaseFocusLon_;
-    double dragBaseFocusLat_;
-    bool dragging_;
+    double dragBaseLon_;
+    double dragBaseLat_;
+    bool draggingFilter_;
+    bool draggingFocus_;
 
     QAction *setCurrPosFromDialogAction_;
     QAction *setCurrPosToThisPosAction_;

@@ -39,12 +39,15 @@ public:
     void drawCameraSphere(double x, double y, double z, double radius, float r, float g, float b);
 
     /** Draws a base circle in the xy-plane centered around the z-axis. */
-    void drawBaseCircle(double radius, float r, float g, float b);
+    void drawBaseCircle(double radius, float r, float g, float b, float lineWidth = 1.0);
 
     /** Draws the lat/lon circles of the earth surface. The farther the eye
      * is from the earth surface, the more the circles are raised above the
      * surface. */
     void drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_eye_dist);
+
+    void drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &);
+    void drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &);
 
 //    /** Draws a cartesian key frame. */
 //    void drawCartesianKeyFrame(

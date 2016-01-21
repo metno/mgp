@@ -17,14 +17,16 @@ Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : type_(type)
     , enabledCheckBox_(enabledCheckBox)
     , currCheckBox_(currCheckBox)
+    , dragged_(false)
 {
-    connect(enabledCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
-    connect(currCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    connect(enabledCheckBox_, SIGNAL(stateChanged(int)), &ControlPanel::instance(), SLOT(updateGLWidget()));
+    connect(currCheckBox_, SIGNAL(stateChanged(int)), &ControlPanel::instance(), SLOT(updateGLWidget()));
 }
 
 QString Filter::typeName(Type type)
 {
     switch (type) {
+    case  None: return  "none";
     case  E_OF: return  "E OF";
     case  W_OF: return  "W OF";
     case  N_OF: return  "N OF";
@@ -37,17 +39,12 @@ QString Filter::typeName(Type type)
     }
 }
 
-void Filter::updateGLWidget()
-{
-    MainWindow::instance().glWidget()->updateFilter(type_, enabledCheckBox_->isChecked(), currCheckBox_->isChecked(), value());
-}
-
 LonOrLatFilter::LonOrLatFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox, QDoubleSpinBox *valSpinBox, double defaultValue)
     : Filter(type, enabledCheckBox, currCheckBox)
     , valSpinBox_(valSpinBox)
 {
-    if ((type == W_OF) || (type == E_OF)) {
+    if ((type == E_OF) || (type == W_OF)) {
         valSpinBox_->setMinimum(-180);
         valSpinBox_->setMaximum(180);
     } else {
@@ -55,7 +52,7 @@ LonOrLatFilter::LonOrLatFilter(
         valSpinBox_->setMaximum(90);
     }
     valSpinBox_->setValue(defaultValue);
-    connect(valSpinBox_, SIGNAL(valueChanged(double)), SLOT(updateGLWidget()));
+    connect(valSpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
 }
 
 Filter *LonOrLatFilter::create(QGridLayout *layout, int row, Type type, double defaultValue)
@@ -85,6 +82,28 @@ QVariant LonOrLatFilter::value() const
     return valSpinBox_->value();
 }
 
+bool LonOrLatFilter::startDragging(double lon_, double lat_)
+{
+    const double lon = (lon_ / M_PI) * 180;
+    const double lat = (lat_ / (M_PI / 2)) * 90;
+
+    const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
+    const double tolerance = 1; // ### should depend on the camera so that the pixel distance is the same (i.e. the closer
+                                // ### zoom in, the smaller the tolerance!)
+    return (dragged_ = (qAbs(val - valSpinBox_->value()) <= tolerance));
+}
+
+void LonOrLatFilter::updateDragging(double lon_, double lat_)
+{
+    Q_ASSERT(dragged_);
+
+    const double lon = (lon_ / M_PI) * 180;
+    const double lat = (lat_ / (M_PI / 2)) * 90;
+
+    const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
+    valSpinBox_->setValue(val);
+}
+
 FreeLineFilter::FreeLineFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox,
         QDoubleSpinBox *lon1SpinBox, QDoubleSpinBox *lat1SpinBox, QDoubleSpinBox *lon2SpinBox, QDoubleSpinBox *lat2SpinBox,
@@ -99,10 +118,10 @@ FreeLineFilter::FreeLineFilter(
     lat1SpinBox_->setValue(defaultValue.y1());
     lon2SpinBox_->setValue(defaultValue.x2());
     lat2SpinBox_->setValue(defaultValue.y2());
-    connect(lon1SpinBox_, SIGNAL(valueChanged(double)), SLOT(updateGLWidget()));
-    connect(lat1SpinBox_, SIGNAL(valueChanged(double)), SLOT(updateGLWidget()));
-    connect(lon2SpinBox_, SIGNAL(valueChanged(double)), SLOT(updateGLWidget()));
-    connect(lat2SpinBox_, SIGNAL(valueChanged(double)), SLOT(updateGLWidget()));
+    connect(lon1SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
+    connect(lat1SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
+    connect(lon2SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
+    connect(lat2SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
 }
 
 Filter *FreeLineFilter::create(QGridLayout *layout, int row, Type type, const QLineF &defaultValue)
@@ -140,13 +159,39 @@ QVariant FreeLineFilter::value() const
     return QLineF(QPointF(lon1SpinBox_->value(), lat1SpinBox_->value()), QPointF(lon2SpinBox_->value(), lat2SpinBox_->value()));
 }
 
+bool FreeLineFilter::startDragging(double lon_, double lat_)
+{
+    const double lon = (lon_ / M_PI) * 180;
+    const double lat = (lat_ / (M_PI / 2)) * 90;
+
+    return false; // ### FOR NOW
+}
+
+void FreeLineFilter::updateDragging(double lon_, double lat_)
+{
+    const double lon = (lon_ / M_PI) * 180;
+    const double lat = (lat_ / (M_PI / 2)) * 90;
+
+    // ### NO EFFECT FOR NOW
+}
+
 ControlPanel &ControlPanel::instance()
 {
     static ControlPanel cp;
     return cp;
 }
 
+void ControlPanel::open()
+{
+    setVisible(true);
+    raise();
+}
+
 ControlPanel::ControlPanel()
+{
+}
+
+void ControlPanel::initialize()
 {
     setWindowTitle("Control Panel");
     QVBoxLayout *mainLayout = new QVBoxLayout;
@@ -217,10 +262,47 @@ void ControlPanel::keyPressEvent(QKeyEvent *event)
     MainWindow::instance().handleKeyPressEvent(event);
 }
 
-void ControlPanel::open()
+bool ControlPanel::enabled(Filter::Type type) const
 {
-    setVisible(true);
-    raise();
+    return filters_.contains(type) ? filters_.value(type)->enabledCheckBox_->isChecked() : false;
+}
+
+QVariant ControlPanel::value(Filter::Type type) const
+{
+    return filters_.value(type)->value();
+}
+
+// Checks if dragging any of the enabled filters can be started at this pos (i.e. if the pos is sufficiently close to one of the
+// draggable control points of the filter. If so, the filter should record which control point the drag operation
+// (implemented by updateFilterDragging()) would apply to, mark itself as 'dragged' and return true.
+// Otherwise, the filter would return false. INVARIANT: 0 or 1 filter may be draggable at any time.
+bool ControlPanel::startFilterDragging(double lon, double lat) const
+{
+    // ensure no filter is currently being dragged
+    foreach (Filter *filter, filters_)
+        filter->dragged_ = false;
+
+    // find the first enabled filter that can be dragged at this pos
+    // (NOTE: for better control, we could consider the current filter only (could be useful to get to a filter whose
+    // control point is hidden beneath the control point of another filter))
+    foreach (Filter *filter, filters_) {
+        if (filter->enabledCheckBox_->isChecked() && filter->startDragging(lon, lat))
+            return true;
+    }
+
+    return false; // no match
+}
+
+// If there is a draggable filter, tell this filter to update its draggable control point with this pos, and update the GLWidget.
+void ControlPanel::updateFilterDragging(double lon, double lat)
+{
+    foreach (Filter *filter, filters_) {
+        if (filter->dragged_) {
+            filter->updateDragging(lon, lat);
+            //updateGLWidget(); necessary? I.e., does updating the filter value already result in an update?
+            return;
+        }
+    }
 }
 
 void ControlPanel::apply()
@@ -238,4 +320,9 @@ void ControlPanel::apply()
 void ControlPanel::close()
 {
     setVisible(false);
+}
+
+void ControlPanel::updateGLWidget()
+{
+    MainWindow::instance().glWidget()->updateGL();
 }

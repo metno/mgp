@@ -14,6 +14,7 @@
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 #include <QPushButton>
+#include <QColor>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -34,9 +35,11 @@ GLWidget::GLWidget(QWidget *parent)
     , focusLon_(currLon_)
     , focusLat_(currLat_)
     , focus_alt_(0)     // Surface
+    , hoveringFilter_(false)
     , mouseLon_(0)
     , mouseLat_(0)
-    , dragging_(false)
+    , draggingFilter_(false)
+    , draggingFocus_(false)
     , ballSize_(0.005 * GfxUtils::getEarthRadius())
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
     , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
@@ -149,17 +152,17 @@ void GLWidget::paintGL()
 {
     GfxUtils& gfx_util = GfxUtils::instance();
 
-    // Set viewport ...
+    // set viewport
     glViewport(0, 0, width(), height());
 
-    // Set projection ...
+    // set projection
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(
 	30, (double)width() / height(), 0.01 * gfx_util.getEarthRadius(),
 	10 * gfx_util.getEarthRadius());
 
-    // Set light and camera ...
+    // set light and camera
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     //
@@ -176,30 +179,30 @@ void GLWidget::paintGL()
 	      eye->x() + tgt->x(), eye->y() + tgt->y(), eye->z() + tgt->z(),
 	      up->x(),             up->y(),             up->z());
 
-    // Clear buffers ...
+    // clear buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Draw earth base sphere ...
+    // draw earth base sphere
     gfx_util.drawSphere(
 	0, 0, 0, gfx_util.getEarthRadius(), 0.7, 0.7, 0.7, 0.7, 36, 72,
 	GL_SMOOTH);
 
-    // Draw coast contours ...
+    // draw coast contours
     glShadeModel(GL_FLAT);
     gfx_util.drawCoastContours(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
-    // Draw ENOR FIR area ...
+    // draw ENOR FIR area
     glShadeModel(GL_FLAT);
     gfx_util.drawENORFIR(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
-    // Draw lat/lon circles ...
+    // draw lat/lon circles
     glShadeModel(GL_FLAT);
     gfx_util.drawLatLonCircles(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
-    // Draw current surface point ...
+    // draw current surface point
     {
         const double
                 r = GfxUtils::instance().getEarthRadius(),
@@ -209,7 +212,7 @@ void GLWidget::paintGL()
         gfx_util.drawSphere(x, y, z, ballSize_, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
     }
 
-    // Draw focus point ...
+    // draw focus point
     {
         const double
                 r = GfxUtils::instance().getEarthRadius(),
@@ -218,6 +221,41 @@ void GLWidget::paintGL()
                 z = r * sin(focusLat_);
         gfx_util.drawSphere(x, y, z, ballSize_, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
     }
+
+    // --- BEGIN draw filters --------------------------------
+    if (ControlPanel::instance().enabled(Filter::E_OF)) {
+        bool ok = false;
+        gfx_util.drawLonCircle(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::E_OF).toDouble(&ok),
+                    QColor::fromRgbF(0, 1, 1));
+        Q_ASSERT(ok);
+    }
+
+    if (ControlPanel::instance().enabled(Filter::W_OF)) {
+        bool ok = false;
+        gfx_util.drawLonCircle(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::W_OF).toDouble(&ok),
+                    QColor::fromRgbF(1, 0, 0));
+        Q_ASSERT(ok);
+    }
+
+    if (ControlPanel::instance().enabled(Filter::N_OF)) {
+        bool ok = false;
+        gfx_util.drawLatCircle(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::N_OF).toDouble(&ok),
+                    QColor::fromRgbF(0, 1, 1));
+        Q_ASSERT(ok);
+    }
+
+    if (ControlPanel::instance().enabled(Filter::S_OF)) {
+        bool ok = false;
+        gfx_util.drawLatCircle(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::S_OF).toDouble(&ok),
+                    QColor::fromRgbF(1, 0, 0));
+        Q_ASSERT(ok);
+    }
+
+    // --- END draw filters --------------------------------
 
     // show mouse position
     {
@@ -237,8 +275,7 @@ void GLWidget::paintGL()
 }
 
 
-void GLWidget::computeRay(
-    int x, int y, _4DPoint &eye, _4DPoint &ray)
+void GLWidget::computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray)
 {
     // Transform window coordinates into world coordinates ...
     GLint viewport[4];
@@ -249,9 +286,7 @@ void GLWidget::computeRay(
     glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
     glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
     real_y = viewport[3] - (GLint)y;
-    gluUnProject(
-	(GLdouble)x, (GLdouble)real_y, 0.0, mvmatrix, projmatrix, viewport,
-	&wx, &wy, &wz);
+    gluUnProject((GLdouble)x, (GLdouble)real_y, 0.0, mvmatrix, projmatrix, viewport, &wx, &wy, &wz);
 
     // Compute ray from eye through the pixel ...
     CartesianKeyFrame ckf = computeCamera();
@@ -279,7 +314,6 @@ void GLWidget::computePixel(
     x = (int)dx;
     y = (int)dy;
 }
-
 
 void GLWidget::drawLabel(
     const char s[], int x, int y, float r, float g, float b)
@@ -327,49 +361,52 @@ void GLWidget::drawLabel(
     glPopMatrix(); // Restore model-view matrix
 }
 
-
-bool GLWidget::intersectEarth(
-    _4DPoint& eye, _4DPoint& ray, double& wx, double& wy, double& wz)
+bool GLWidget::intersectsEarth(QMouseEvent *event, double &lon, double &lat)
 {
-    if (Math::raySphereIntersect(
-	eye.x(), eye.y(), eye.z(),
-	ray.x(), ray.y(), ray.z(),
-	0, 0, 0,
-    GfxUtils::instance().getEarthRadius(),
-	wx, wy, wz))
-	return true;
-    else
-	return false;
-}
-
-
-void GLWidget::mousePressEvent(QMouseEvent *event)
-{
-    // --- BEGIN simular code, instance #1 ----
     _4DPoint eye, ray;
     computeRay(event->x(), event->y(), eye, ray);
 
-    double wx, wy, wz, lat, lon;
-    bool intersected = false;
-    if (intersectEarth(eye, ray, wx, wy, wz)) {
-        intersected = true;
+    double wx, wy, wz;
+    if (Math::raySphereIntersect(
+                eye.x(), eye.y(), eye.z(),
+                ray.x(), ray.y(), ray.z(),
+                0, 0, 0,
+                GfxUtils::instance().getEarthRadius(),
+                wx, wy, wz)) {
         Math::computeLatLon(wx, wy, wz, lat, lon);
         lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
+        return true;
     }
-    // --- END simular code, instance #1 ----
 
-    if (intersected && (event->button() == Qt::LeftButton)) {
+    return false;
+}
+
+void GLWidget::mousePressEvent(QMouseEvent *event)
+{
+    double lon, lat;
+    if (intersectsEarth(event, lon, lat) && (event->button() == Qt::LeftButton)) {
+//        const Filter::Type filterType = ControlPanel::instance().intersectsCurrFilter((lon / M_PI) * 180, (lat / (M_PI / 2)) * 90);
+//        qDebug() << "curr filter hit:" << Filter::typeName(filterType);
+
         if (event->modifiers() & Qt::ControlModifier) {
             // update current surface position
             currLat_ = lat;
             currLon_ = lon;
         } else {
-            // start drag lat/lon focus
+            // start dragging ...
             dragBaseX_ = event->x();
             dragBaseY_ = event->y();
-            dragBaseFocusLon_ = focusLon_;
-            dragBaseFocusLat_ = focusLat_;
-            dragging_ = true;
+            if (hoveringFilter_) {
+                // ... filter
+                draggingFilter_ = true;
+                dragBaseLon_ = mouseLon_;
+                dragBaseLat_ = mouseLat_;
+            } else {
+                // ... camera (i.e. lat/lon focus)
+                draggingFocus_ = true;
+                dragBaseLon_ = focusLon_;
+                dragBaseLat_ = focusLat_;
+            }
         }
 
 //        fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
@@ -385,59 +422,46 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
-
 void GLWidget::mouseReleaseEvent(QMouseEvent *)
 {
-//    bool was_dragging = dragging_;
-    dragging_ = false;
-//    if (was_dragging)
-//        updateGL();
+    draggingFilter_ = draggingFocus_ = false;
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    _4DPoint eye, ray;
-    computeRay(event->x(), event->y(), eye, ray);
+    if (!intersectsEarth(event, mouseLon_, mouseLat_))
+        return;
 
-    double wx, wy, wz;
-    if (intersectEarth(eye, ray, wx, wy, wz))
-    {
-        Math::computeLatLon(wx, wy, wz, mouseLat_, mouseLon_);
-        mouseLon_ = fmod(mouseLon_ + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
-        if (dragging_) {
-            const int dx = event->x() - dragBaseX_;
-            const int dy = event->y() - dragBaseY_;
-            const double scale = 1.0 / 5000.0;
-            const double deltaLon = -dx * scale * M_PI;
-            const double deltaLat = dy * scale * M_PI;
-            double newLon = dragBaseFocusLon_ + deltaLon;
-            if (newLon < -M_PI)
-                newLon += 2 * M_PI;
-            else if (newLon > M_PI)
-                newLon -= 2 * M_PI;
-            setCurrentFocusPos(newLon, dragBaseFocusLat_ + deltaLat);
-            emit focusPosChanged();
-        }
-        updateGL();
+    if (draggingFilter_) {
+        ControlPanel::instance().updateFilterDragging(mouseLon_, mouseLat_);
+
+    } else if (draggingFocus_) {
+        const int dx = event->x() - dragBaseX_;
+        const int dy = event->y() - dragBaseY_;
+        const double scale = 1.0 / 3000.0;
+        const double deltaLon = -dx * scale * M_PI;
+        const double deltaLat = dy * scale * M_PI;
+        double newLon = dragBaseLon_ + deltaLon;
+        if (newLon < -M_PI)
+            newLon += 2 * M_PI;
+        else if (newLon > M_PI)
+            newLon -= 2 * M_PI;
+        const double newLat = dragBaseLat_ + deltaLat;
+
+        setCurrentFocusPos(newLon, newLat);
+        emit focusPosChanged();
+
+    } else {
+        hoveringFilter_ = ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_);
     }
+
+    updateGL();
 }
 
 void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    // --- BEGIN simular code, instance #2 ----
-    _4DPoint eye, ray;
-    computeRay(event->x(), event->y(), eye, ray);
-
-    double wx, wy, wz, lat, lon;
-    bool intersected = false;
-    if (intersectEarth(eye, ray, wx, wy, wz)) {
-        intersected = true;
-        Math::computeLatLon(wx, wy, wz, lat, lon);
-        lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
-    }
-    // --- END simular code, instance #2 ----
-
-    if (intersected && (event->button() == Qt::LeftButton)) {
+    double lon, lat;
+    if (intersectsEarth(event, lon, lat) && (event->button() == Qt::LeftButton)) {
         // update current surface position
         currLat_ = lat;
         currLon_ = lon;
@@ -637,12 +661,6 @@ void GLWidget::setBallSizeFrac(float frac)
 float GLWidget::ballSizeFrac() const
 {
     return (ballSize_ - minBallSize_) / (maxBallSize_ - minBallSize_);
-}
-
-void GLWidget::updateFilter(Filter::Type type, bool enabled, bool current, const QVariant &value)
-{
-    qDebug() << "GLWidget::updateFilter(); type:" << Filter::typeName(type)
-             << ", enabled:" << enabled << ", current:" << current << ", value:" << value;
 }
 
 //void GLWidget::toggleVisMenuItem(int item)
