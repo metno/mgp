@@ -72,6 +72,7 @@ public:
     bool enabled(Filter::Type) const;
     QVariant value(Filter::Type) const;
     bool filtersEditableOnSphere() const;
+    void toggleFiltersEditableOnSphere();
     bool startFilterDragging(double, double) const;
     void updateFilterDragging(double, double);
 

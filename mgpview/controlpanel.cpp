@@ -282,6 +282,11 @@ bool ControlPanel::filtersEditableOnSphere() const
     return filtersEditableOnSphereCheckBox_->isChecked();
 }
 
+void ControlPanel::toggleFiltersEditableOnSphere()
+{
+    filtersEditableOnSphereCheckBox_->toggle();
+}
+
 // If we're in 'filters editable on sphere' mode and the current filter is enabled, this function initializes
 // dragging of that filter at the given pos.
 bool ControlPanel::startFilterDragging(double lon, double lat) const
