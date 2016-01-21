@@ -293,16 +293,16 @@ void GfxUtils::drawCameraSphere(double x, double y, double z, double radius, flo
     glPopMatrix();
 }
 
-void GfxUtils::drawBaseCircle(double radius, float r, float g, float b, float lineWidth)
+void GfxUtils::drawBaseCircle(double radius, float r, float g, float b, float lineWidth, double thetaBegin, double thetaEnd)
 {
     const int res = 128;
-    const double delta_theta = (2 * M_PI) / res;
-    double theta = 0;
+    const double deltaTheta = (2 * M_PI) / res;
+    double theta = thetaBegin;
     glColor3f(r, g, b);
     glLineWidth(lineWidth);
-    glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < res; i++, theta += delta_theta)
-	glVertex3d(radius * cos(theta), radius * sin(theta), 0);
+    glBegin(GL_LINE_STRIP);
+    for (int i = 0; (i < res) && (theta <= thetaEnd); i++, theta += deltaTheta)
+        glVertex3d(radius * cos(theta), radius * sin(theta), 0);
     glEnd();
 }
 
@@ -403,16 +403,14 @@ void GfxUtils::drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_
 void GfxUtils::drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &color)
 {
     const double raise = computeRaise(eye, min_eye_dist, max_eye_dist);
-//    const double phi = (lon / 180) * M_PI;
     const float r = color.redF();
     const float g = color.greenF();
     const float b = color.blueF();
 
     glPushMatrix();
-    //glRotated(phi, 0, 0, 1);
     glRotated(lon, 0, 0, 1);
     glRotated(90, 1, 0, 0);
-    drawBaseCircle(earth_radius_ + raise, r, g, b, 2.0);
+    drawBaseCircle(earth_radius_ + raise, r, g, b, 2.0, -M_PI / 2, M_PI / 2);
     glPopMatrix();
 }
 

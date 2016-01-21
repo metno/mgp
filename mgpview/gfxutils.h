@@ -39,7 +39,8 @@ public:
     void drawCameraSphere(double x, double y, double z, double radius, float r, float g, float b);
 
     /** Draws a base circle in the xy-plane centered around the z-axis. */
-    void drawBaseCircle(double radius, float r, float g, float b, float lineWidth = 1.0);
+    void drawBaseCircle(
+            double radius, float r, float g, float b, float lineWidth = 1.0, double thetaBegin = 0, double thetaEnd = 2 * M_PI);
 
     /** Draws the lat/lon circles of the earth surface. The farther the eye
      * is from the earth surface, the more the circles are raised above the

@@ -9,9 +9,7 @@ TODO:
    must decide (in startDragging) which of the two endpoints is closest to the mouse lon/lat pos and update this
    endpoint in the subsequent calls to updateDragging.
 
-1: Show only a half-circle for the E_OF and W_OF filters.
-
-2: Design a control panel with the following components:
+1: Design a control panel with the following components:
 
    a: A base polygon (either a pre-defined polygon, such as ENOR FIR, or a custom polygon).
 
