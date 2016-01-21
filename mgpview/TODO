@@ -1,6 +1,17 @@
 TODO:
 
-1: Design a control panel with the following components:
+0: Don't require the user to hit a filter on the earth sphere with the mouse (this can be hard in practice!).
+   Instead, make the current filter the only editable filter and introduce 'edit mode' (in effect iff there is
+   a current filter (note that this must allow for no filter to be current so that we can use left-clicking to
+   change the camera instead!)) . In edit mode, left-clicking mousePress and mouseMove always directs the mouse
+   lon/lat to the current filter which then must figure out how to best make use of the pos. For LonOrLat filters,
+   this is trivial (is is only a single "control point", namely the lon or lat value); for FreeLineFilters, the filter
+   must decide (in startDragging) which of the two endpoints is closest to the mouse lon/lat pos and update this
+   endpoint in the subsequent calls to updateDragging.
+
+1: Show only a half-circle for the E_OF and W_OF filters.
+
+2: Design a control panel with the following components:
 
    a: A base polygon (either a pre-defined polygon, such as ENOR FIR, or a custom polygon).
 
