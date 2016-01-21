@@ -88,9 +88,10 @@ bool LonOrLatFilter::startDragging(double lon_, double lat_)
     const double lat = (lat_ / (M_PI / 2)) * 90;
 
     const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
-    const double tolerance = 1; // ### should depend on the camera so that the pixel distance is the same (i.e. the closer
-                                // ### zoom in, the smaller the tolerance!)
-    return (dragged_ = (qAbs(val - valSpinBox_->value()) <= tolerance));
+    valSpinBox_->setValue(val);
+
+    dragged_ = true;
+    return true;
 }
 
 void LonOrLatFilter::updateDragging(double lon_, double lat_)
@@ -208,24 +209,28 @@ void ControlPanel::initialize()
     // header
     filterLayout->addWidget(new QLabel("Filters:"), 0, 0, 1, 5);
     filterLayout->itemAtPosition(0, 0)->widget()->setStyleSheet("font-weight:bold; font-size:16px");
-    filterLayout->addWidget(new QLabel("Type"), 1, 0, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Enabled"), 1, 1, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Current"), 1, 2, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Value"), 1, 3, 1, 2, Qt::AlignHCenter);
+
+    filtersEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
+    filterLayout->addWidget(filtersEditableOnSphereCheckBox_, 1, 0, 1, 5, Qt::AlignLeft);
+
+    filterLayout->addWidget(new QLabel("Type"), 2, 0, Qt::AlignHCenter);
+    filterLayout->addWidget(new QLabel("Enabled"), 2, 1, Qt::AlignHCenter);
+    filterLayout->addWidget(new QLabel("Current"), 2, 2, Qt::AlignHCenter);
+    filterLayout->addWidget(new QLabel("Value"), 2, 3, 1, 2, Qt::AlignHCenter);
     for (int i = 0; i < 4; ++i)
-        filterLayout->itemAtPosition(1, i)->widget()->setStyleSheet("font-weight:bold");
+        filterLayout->itemAtPosition(2, i)->widget()->setStyleSheet("font-weight:bold");
 
     // lon|lat filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 2, Filter::E_OF, 7.2));
-    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 3, Filter::W_OF, 9.5));
-    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 4, Filter::N_OF, 60.3));
-    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 5, Filter::S_OF, 62.8));
+    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 3, Filter::E_OF, 7.2));
+    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 4, Filter::W_OF, 9.5));
+    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 5, Filter::N_OF, 60.3));
+    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 6, Filter::S_OF, 62.8));
 
     // line filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::NE_OF, FreeLineFilter::create(filterLayout, 6, Filter::NE_OF, QLineF(QPointF(4, 70), QPointF(10, 50))));
-    filters_.insert(Filter::NW_OF, FreeLineFilter::create(filterLayout, 7, Filter::NW_OF, QLineF(QPointF(4, 50), QPointF(10, 70))));
-    filters_.insert(Filter::SE_OF, FreeLineFilter::create(filterLayout, 8, Filter::SE_OF, QLineF(QPointF(4, 50), QPointF(10, 70))));
-    filters_.insert(Filter::SW_OF, FreeLineFilter::create(filterLayout, 9, Filter::SW_OF, QLineF(QPointF(4, 70), QPointF(10, 50))));
+    filters_.insert(Filter::NE_OF, FreeLineFilter::create(filterLayout, 7, Filter::NE_OF, QLineF(QPointF(4, 70), QPointF(10, 50))));
+    filters_.insert(Filter::NW_OF, FreeLineFilter::create(filterLayout, 8, Filter::NW_OF, QLineF(QPointF(4, 50), QPointF(10, 70))));
+    filters_.insert(Filter::SE_OF, FreeLineFilter::create(filterLayout, 9, Filter::SE_OF, QLineF(QPointF(4, 50), QPointF(10, 70))));
+    filters_.insert(Filter::SW_OF, FreeLineFilter::create(filterLayout, 19, Filter::SW_OF, QLineF(QPointF(4, 70), QPointF(10, 50))));
 
     // ensure exclusive/radio behavior for the 'current' state
     QButtonGroup *currBtnGroup = new QButtonGroup;
@@ -272,22 +277,26 @@ QVariant ControlPanel::value(Filter::Type type) const
     return filters_.value(type)->value();
 }
 
-// Checks if dragging any of the enabled filters can be started at this pos (i.e. if the pos is sufficiently close to one of the
-// draggable control points of the filter. If so, the filter should record which control point the drag operation
-// (implemented by updateFilterDragging()) would apply to, mark itself as 'dragged' and return true.
-// Otherwise, the filter would return false. INVARIANT: 0 or 1 filter may be draggable at any time.
+bool ControlPanel::filtersEditableOnSphere() const
+{
+    return filtersEditableOnSphereCheckBox_->isChecked();
+}
+
+// If we're in 'filters editable on sphere' mode and the current filter is enabled, this function initializes
+// dragging of that filter at the given pos.
 bool ControlPanel::startFilterDragging(double lon, double lat) const
 {
-    // ensure no filter is currently being dragged
+    if (!filtersEditableOnSphereCheckBox_->isChecked())
+        return false; // wrong mode (hm ... should this be a Q_ASSERT() instead?)
+
+    // ensure no filter is currently considered as being dragged
     foreach (Filter *filter, filters_)
         filter->dragged_ = false;
 
-    // find the first enabled filter that can be dragged at this pos
-    // (NOTE: for better control, we could consider the current filter only (could be useful to get to a filter whose
-    // control point is hidden beneath the control point of another filter))
+    // apply the operation to the current filter if it is enabled
     foreach (Filter *filter, filters_) {
-        if (filter->enabledCheckBox_->isChecked() && filter->startDragging(lon, lat))
-            return true;
+        if (filter->currCheckBox_->isChecked())
+            return (filter->enabledCheckBox_->isChecked() && filter->startDragging(lon, lat));
     }
 
     return false; // no match

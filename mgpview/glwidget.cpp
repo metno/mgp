@@ -35,7 +35,6 @@ GLWidget::GLWidget(QWidget *parent)
     , focusLon_(currLon_)
     , focusLat_(currLat_)
     , focus_alt_(0)     // Surface
-    , hoveringFilter_(false)
     , mouseLon_(0)
     , mouseLat_(0)
     , draggingFilter_(false)
@@ -396,7 +395,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
             // start dragging ...
             dragBaseX_ = event->x();
             dragBaseY_ = event->y();
-            if (hoveringFilter_) {
+            if (ControlPanel::instance().filtersEditableOnSphere()
+                    && ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_)) {
                 // ... filter
                 draggingFilter_ = true;
                 dragBaseLon_ = mouseLon_;
@@ -451,8 +451,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
         setCurrentFocusPos(newLon, newLat);
         emit focusPosChanged();
 
-    } else {
-        hoveringFilter_ = ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_);
     }
 
     updateGL();

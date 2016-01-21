@@ -71,6 +71,7 @@ public:
     void open();
     bool enabled(Filter::Type) const;
     QVariant value(Filter::Type) const;
+    bool filtersEditableOnSphere() const;
     bool startFilterDragging(double, double) const;
     void updateFilterDragging(double, double);
 
@@ -78,6 +79,7 @@ private:
     ControlPanel();
     virtual void keyPressEvent(QKeyEvent *);
 
+    QCheckBox *filtersEditableOnSphereCheckBox_;
     QHash<Filter::Type, Filter *> filters_;
 
 private slots:

@@ -111,8 +111,6 @@ private:
     double mouseLon_;
     double mouseLat_;
 
-    bool hoveringFilter_;
-
     int dragBaseX_;
     int dragBaseY_;
     double dragBaseLon_;
