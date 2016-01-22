@@ -347,7 +347,6 @@ void ControlPanel::updateFilterDragging(double lon, double lat)
     foreach (Filter *filter, filters_) {
         if (filter->dragged_) {
             filter->updateDragging(lon, lat);
-            //updateGLWidget(); necessary? I.e., does updating the filter value already result in an update?
             return;
         }
     }
