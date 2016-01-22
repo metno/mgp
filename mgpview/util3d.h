@@ -90,6 +90,7 @@ public:
     static double angle(double x, double y);
     static double min(double a, double b) {return a < b ? a : b;}
     static double max(double a, double b) {return a > b ? a : b;}
+    static double distance(double lon1, double lat1, double lon2, double lat2);
 
     // OBSOLETE:
     static double* sphericalToCartesian(

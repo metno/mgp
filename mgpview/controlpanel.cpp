@@ -114,11 +114,24 @@ FreeLineFilter::FreeLineFilter(
     , lat1SpinBox_(lat1SpinBox)
     , lon2SpinBox_(lon2SpinBox)
     , lat2SpinBox_(lat2SpinBox)
+    , firstEndpointDragged_(false)
 {
+    lon1SpinBox_->setMinimum(-180);
+    lon1SpinBox_->setMaximum(180);
     lon1SpinBox_->setValue(defaultValue.x1());
+
+    lat1SpinBox_->setMinimum(-90);
+    lat1SpinBox_->setMaximum(90);
     lat1SpinBox_->setValue(defaultValue.y1());
+
+    lon2SpinBox_->setMinimum(-180);
+    lon2SpinBox_->setMaximum(180);
     lon2SpinBox_->setValue(defaultValue.x2());
+
+    lat2SpinBox_->setMinimum(-90);
+    lat2SpinBox_->setMaximum(90);
     lat2SpinBox_->setValue(defaultValue.y2());
+
     connect(lon1SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
     connect(lat1SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
     connect(lon2SpinBox_, SIGNAL(valueChanged(double)), &ControlPanel::instance(), SLOT(updateGLWidget()));
@@ -164,16 +177,37 @@ bool FreeLineFilter::startDragging(double lon_, double lat_)
 {
     const double lon = (lon_ / M_PI) * 180;
     const double lat = (lat_ / (M_PI / 2)) * 90;
+    const double dist1 = Math::distance(lon, lat, lon1SpinBox_->value(), lat1SpinBox_->value());
+    const double dist2 = Math::distance(lon, lat, lon2SpinBox_->value(), lat2SpinBox_->value());
 
-    return false; // ### FOR NOW
+    if (dist1 < dist2) {
+        firstEndpointDragged_ = true;
+        lon1SpinBox_->setValue(lon);
+        lat1SpinBox_->setValue(lat);
+    } else {
+        firstEndpointDragged_ = false;
+        lon2SpinBox_->setValue(lon);
+        lat2SpinBox_->setValue(lat);
+    }
+
+    dragged_ = true;
+    return true;
 }
 
 void FreeLineFilter::updateDragging(double lon_, double lat_)
 {
+    Q_ASSERT(dragged_);
+
     const double lon = (lon_ / M_PI) * 180;
     const double lat = (lat_ / (M_PI / 2)) * 90;
 
-    // ### NO EFFECT FOR NOW
+    if (firstEndpointDragged_) {
+        lon1SpinBox_->setValue(lon);
+        lat1SpinBox_->setValue(lat);
+    } else {
+        lon2SpinBox_->setValue(lon);
+        lat2SpinBox_->setValue(lat);
+    }
 }
 
 ControlPanel &ControlPanel::instance()

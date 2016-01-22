@@ -182,7 +182,6 @@ void GfxUtils::drawENORFIR(_3DPoint* eye, double min_eye_dist, double max_eye_di
     glBegin(GL_LINE_LOOP);
     for (int i = 0; i < enorLon_.size(); ++i) {
         double x, y, z;
-        Math::sphericalToCartesian(raise_fact * earth_radius_, enorLon_.at(i), enorLat_.at(i), x, y, z);
         Math::sphericalToCartesian(raise_fact * earth_radius_, enorLat_.at(i), enorLon_.at(i), x, y, z);
         glVertex3d(x, y, z);
     }
@@ -412,6 +411,37 @@ void GfxUtils::drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_
     glRotated(90, 1, 0, 0);
     drawBaseCircle(earth_radius_ + raise, r, g, b, 2.0, -M_PI / 2, M_PI / 2);
     glPopMatrix();
+}
+
+// Draws the great circle segment between surface positions line.p1() and line.p2().
+void GfxUtils::drawGreatCircleSegment(
+        _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color)
+{
+    const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
+    const float r = color.redF();
+    const float g = color.greenF();
+    const float b = color.blueF();
+
+    glColor3f(r, g, b);
+    glLineWidth(2.0);
+    glBegin(GL_LINE_STRIP);
+    const int res = 64;
+    const double lon1 = (line.p1().x() / 180) * M_PI;
+    const double lat1 = (line.p1().y() / 90) * (M_PI / 2);
+    const double lon2 = (line.p2().x() / 180) * M_PI;
+    const double lat2 = (line.p2().y() / 90) * (M_PI / 2);
+    for (int i = 0; i < res; ++i) {
+        const double t = i / double(res - 1);
+        const double d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2));
+        const double A = sin((1 - t) * d) / sin(d);
+        const double B = sin(t * d) / sin(d);
+        const double x = A * cos(lat1) * cos(lon1) + B * cos(lat2) * cos(lon2);
+        const double y = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
+        const double z = A * sin(lat1) + B * sin(lat2);
+        const double scale = raise_fact * earth_radius_;
+        glVertex3d(scale * x, scale * y, scale * z);
+    }
+    glEnd();
 }
 
 //void

@@ -47,6 +47,24 @@ Math::angle(double x, double y)
     return a;
 }
 
+// Returns the spherical distance (i.e. along the great circle on the unit sphere) between two points.
+double Math::distance(double lon1, double lat1, double lon2, double lat2)
+{
+    const double theta1 = (lon1 / 180) *  M_PI;
+    const double phi1   = (lat1 /  90) * (M_PI / 2);
+    const double theta2 = (lon2 / 180) *  M_PI;
+    const double phi2   = (lat2 /  90) * (M_PI / 2);
+
+    const double dphi = phi2 - phi1;
+    const double dtheta = theta2 - theta1;
+
+    const double a =
+            sin(dphi / 2) * sin(dphi / 2) +
+            cos(phi1) * cos(phi2) *
+            sin(dtheta / 2) * sin(dtheta / 2);
+
+    return 2 * atan2(sqrt(a), sqrt(1 - a));
+}
 
 double*
 Math::sphericalToCartesian(double radius, double phi, double theta)

@@ -6,6 +6,7 @@
 #include "cartesiankeyframe.h"
 #include <QList>
 #include <QString>
+#include <QLineF>
 
 class GfxUtils
 {
@@ -49,6 +50,7 @@ public:
 
     void drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &);
     void drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &);
+    void drawGreatCircleSegment(_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &);
 
 //    /** Draws a cartesian key frame. */
 //    void drawCartesianKeyFrame(

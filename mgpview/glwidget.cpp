@@ -183,8 +183,8 @@ void GLWidget::paintGL()
 
     // draw earth base sphere
     gfx_util.drawSphere(
-	0, 0, 0, gfx_util.getEarthRadius(), 0.7, 0.7, 0.7, 0.7, 36, 72,
-	GL_SMOOTH);
+    0, 0, 0, gfx_util.getEarthRadius(), 0.7, 0.7, 0.7, 0.7, 36, 72,
+    GL_SMOOTH);
 
     // draw coast contours
     glShadeModel(GL_FLAT);
@@ -222,6 +222,7 @@ void GLWidget::paintGL()
     }
 
     // --- BEGIN draw filters --------------------------------
+    // LonOrLat filters
     if (ControlPanel::instance().enabled(Filter::E_OF)) {
         bool ok = false;
         gfx_util.drawLonCircle(
@@ -252,6 +253,32 @@ void GLWidget::paintGL()
                     eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::S_OF).toDouble(&ok),
                     QColor::fromRgbF(1, 0, 0));
         Q_ASSERT(ok);
+    }
+
+    // FreeLine filters
+
+    if (ControlPanel::instance().enabled(Filter::NE_OF)) {
+        gfx_util.drawGreatCircleSegment(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::NE_OF).toLineF(),
+                    QColor::fromRgbF(0.8, 0.5, 0));
+    }
+
+    if (ControlPanel::instance().enabled(Filter::NW_OF)) {
+        gfx_util.drawGreatCircleSegment(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::NW_OF).toLineF(),
+                    QColor::fromRgbF(0.8, 0, 1));
+    }
+
+    if (ControlPanel::instance().enabled(Filter::SE_OF)) {
+        gfx_util.drawGreatCircleSegment(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::SE_OF).toLineF(),
+                    QColor::fromRgbF(0, 0.8, 0.4));
+    }
+
+    if (ControlPanel::instance().enabled(Filter::SW_OF)) {
+        gfx_util.drawGreatCircleSegment(
+                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::SW_OF).toLineF(),
+                    QColor::fromRgbF(0, 0.4, 0.8));
     }
 
     // --- END draw filters --------------------------------

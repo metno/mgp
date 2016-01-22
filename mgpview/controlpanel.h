@@ -59,6 +59,8 @@ class FreeLineFilter : public Filter {
     QDoubleSpinBox *lat1SpinBox_;
     QDoubleSpinBox *lon2SpinBox_;
     QDoubleSpinBox *lat2SpinBox_;
+
+    bool firstEndpointDragged_;
 };
 
 class ControlPanel : public QWidget
