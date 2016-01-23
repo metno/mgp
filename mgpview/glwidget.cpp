@@ -465,7 +465,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     } else if (draggingFocus_) {
         const int dx = event->x() - dragBaseX_;
         const int dy = event->y() - dragBaseY_;
-        const double scale = 1.0 / 3000.0;
+        const double minScale = 1.0 / 50000.0; // suitable for max zoom in (dolly_ == 0.0)
+        const double maxScale = 1.0 / 1000.0; // suitable for max zoom out (dolly_ == 1.0)
+
+        //const double scale = minScale + dolly_ * (maxScale - minScale); // linear scaling
+        //const double scale = minScale + dolly_ * dolly_ * (maxScale - minScale); // non-linear scaling 1
+        const double scale = minScale + dolly_ * (2 - dolly_) * 0.5 * (maxScale - minScale); // non-linear scaling 2
+
         const double deltaLon = -dx * scale * M_PI;
         const double deltaLat = dy * scale * M_PI;
         double newLon = dragBaseLon_ + deltaLon;
