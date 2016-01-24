@@ -111,6 +111,9 @@ private:
     double mouseLon_;
     double mouseLat_;
 
+    // whether the mouse currently intersects the earth
+    bool mouseHitsEarth_;
+
     int dragBaseX_;
     int dragBaseY_;
     double dragBaseLon_;

@@ -37,6 +37,7 @@ GLWidget::GLWidget(QWidget *parent)
     , focus_alt_(0)     // Surface
     , mouseLon_(0)
     , mouseLat_(0)
+    , mouseHitsEarth_(false)
     , draggingFilter_(false)
     , draggingFocus_(false)
     , ballSize_(0.005 * GfxUtils::getEarthRadius())
@@ -409,26 +410,32 @@ bool GLWidget::intersectsEarth(QMouseEvent *event, double &lon, double &lat)
 
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
-    double lon, lat;
-    if (intersectsEarth(event, lon, lat) && (event->button() == Qt::LeftButton)) {
-//        const Filter::Type filterType = ControlPanel::instance().intersectsCurrFilter((lon / M_PI) * 180, (lat / (M_PI / 2)) * 90);
-//        qDebug() << "curr filter hit:" << Filter::typeName(filterType);
+    if (event->button() == Qt::RightButton) {
+        QMenu contextMenu;
+        contextMenu.addAction(setCurrPosFromDialogAction_);
+        contextMenu.addAction(setCurrPosToThisPosAction_);
+        contextMenu.addAction(focusOnThisPosAction_);
+        contextMenu.addAction(focusOnCurrPosAction_);
+        contextMenu.exec(QCursor::pos());
 
-        if (event->modifiers() & Qt::ControlModifier) {
+    } else if (mouseHitsEarth_) {
+
+        if ((event->modifiers() & Qt::ControlModifier) && (event->button() == Qt::LeftButton)) {
             // update current surface position
-            currLat_ = lat;
-            currLon_ = lon;
+            currLon_ = mouseLon_;
+            currLat_ = mouseLat_;
         } else {
             // start dragging ...
             dragBaseX_ = event->x();
             dragBaseY_ = event->y();
-            if (ControlPanel::instance().filtersEditableOnSphere()
+            if ((event->button() == Qt::LeftButton)
+                    && ControlPanel::instance().filtersEditableOnSphere()
                     && ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_)) {
                 // ... filter
                 draggingFilter_ = true;
                 dragBaseLon_ = mouseLon_;
                 dragBaseLat_ = mouseLat_;
-            } else {
+            } else if ((event->button() == Qt::LeftButton) || (event->button() == Qt::MiddleButton)) {
                 // ... camera (i.e. lat/lon focus)
                 draggingFocus_ = true;
                 dragBaseLon_ = focusLon_;
@@ -436,16 +443,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
             }
         }
 
-//        fprintf(stderr, "intersection at lat = %6.2f, lon = %7.2f\n",
-//                (lat_ / M_PI) * 180, (lon_ / M_PI) * 180);
         updateGL();
-    } else if (event->button() == Qt::RightButton) {
-        QMenu contextMenu;
-        contextMenu.addAction(setCurrPosFromDialogAction_);
-        contextMenu.addAction(setCurrPosToThisPosAction_);
-        contextMenu.addAction(focusOnThisPosAction_);
-        contextMenu.addAction(focusOnCurrPosAction_);
-        contextMenu.exec(QCursor::pos());
     }
 }
 
@@ -456,7 +454,7 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *)
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!intersectsEarth(event, mouseLon_, mouseLat_))
+    if (!(mouseHitsEarth_ = intersectsEarth(event, mouseLon_, mouseLat_)))
         return;
 
     if (draggingFilter_) {
