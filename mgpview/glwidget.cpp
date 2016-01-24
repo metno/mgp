@@ -212,13 +212,13 @@ void GLWidget::paintGL()
         gfx_util.drawSphere(x, y, z, ballSize_, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
     }
 
-    // draw focus point
+    // draw mouse point
     {
         const double
                 r = GfxUtils::instance().getEarthRadius(),
-                x = r * cos(focusLat_) * cos(focusLon_),
-                y = r * cos(focusLat_) * sin(focusLon_),
-                z = r * sin(focusLat_);
+                x = r * cos(mouseLat_) * cos(mouseLon_),
+                y = r * cos(mouseLat_) * sin(mouseLon_),
+                z = r * sin(mouseLat_);
         gfx_util.drawSphere(x, y, z, ballSize_, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
     }
 
