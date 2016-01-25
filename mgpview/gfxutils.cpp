@@ -1,8 +1,8 @@
 #include "gfxutils.h"
 #include "common.h"
 #include "coast_data.h"
+#include "enor_fir.h"
 #include <GL/glut.h>
-#include <QFile>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -144,29 +144,12 @@ void GfxUtils::drawCoastContours(_3DPoint* eye, double min_eye_dist, double max_
 
 void GfxUtils::createENORFIR()
 {
-    const QString fname("ENORfirCoordinates.csv");
-    QFile file(fname);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "WARNING: failed to open" << fname << "; ENOR FIR not shown";
-        return;
-    }
-
-    while (!file.atEnd()) {
-        const QByteArray line = file.readLine();
-        // format: "enor",2249,58.9612,10.9868    (i.e. <name>,<index>,<lat>,<lon>
-        QRegExp rx("([^,]+),([^,]+)$");
-        if (rx.indexIn(line) >= 0) {
-            bool ok = false;
-            const qreal lat = rx.cap(1).toDouble(&ok);
-            if (!ok)
-                continue;
-            const qreal lon = rx.cap(2).toDouble(&ok);
-            if (!ok)
-                continue;
-
-            enorLon_.append((lon / 180) * M_PI);
-            enorLat_.append((lat / 90) * (M_PI / 2));
-        }
+    const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
+    for (int i = 0; i < npoints; ++i) {
+        const float lon = enor_fir[2 * i + 1];
+        const float lat = enor_fir[2 * i];
+        enorLon_.append((lon / 180) * M_PI);
+        enorLat_.append((lat / 90) * (M_PI / 2));
     }
 }
 

@@ -1,3 +1,6 @@
+#ifndef COAST_DATA_H
+#define COAST_DATA_H
+
 // vtkEarthData[] is a big array of short (16-bit) ints, as follows:
 // the vtkEarthData[] info is a sequence of closed curves
 
@@ -6763,3 +6766,5 @@ short vtkEarthData[] = {
  22, 64, 44, 0, 1, -17,
 0,
 };
+
+#endif // COAST_DATA_H
