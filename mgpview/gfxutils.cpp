@@ -383,7 +383,8 @@ void GfxUtils::drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_
     }
 }
 
-void GfxUtils::drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &color)
+void GfxUtils::drawLatCircle(
+        _3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &color, float lineWidth)
 {
     const double raise = computeRaise(eye, min_eye_dist, max_eye_dist);
     const double theta = (lat / 90) * (M_PI / 2);
@@ -395,11 +396,12 @@ void GfxUtils::drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_
 
     glPushMatrix();
     glTranslated(0, 0, z);
-    drawBaseCircle(radius, r, g, b, 2.0);
+    drawBaseCircle(radius, r, g, b, lineWidth);
     glPopMatrix();
 }
 
-void GfxUtils::drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &color)
+void GfxUtils::drawLonCircle(
+        _3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &color, const float lineWidth)
 {
     const double raise = computeRaise(eye, min_eye_dist, max_eye_dist);
     const float r = color.redF();
@@ -409,13 +411,22 @@ void GfxUtils::drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_
     glPushMatrix();
     glRotated(lon, 0, 0, 1);
     glRotated(90, 1, 0, 0);
-    drawBaseCircle(earth_radius_ + raise, r, g, b, 2.0, -M_PI / 2, M_PI / 2);
+    drawBaseCircle(earth_radius_ + raise, r, g, b, lineWidth, -M_PI / 2, M_PI / 2);
     glPopMatrix();
+}
+
+void GfxUtils::drawLonOrLatCircle(
+        bool lon, _3DPoint* eye, double min_eye_dist, double max_eye_dist, double val, const QColor &color, float lineWidth)
+{
+    if (lon)
+        drawLonCircle(eye, min_eye_dist, max_eye_dist, val, color, lineWidth);
+    else
+        drawLatCircle(eye, min_eye_dist, max_eye_dist, val, color, lineWidth);
 }
 
 // Draws the great circle segment between surface positions line.p1() and line.p2().
 void GfxUtils::drawGreatCircleSegment(
-        _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color)
+        _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color, float lineWidth)
 {
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
     const float r = color.redF();
@@ -423,7 +434,7 @@ void GfxUtils::drawGreatCircleSegment(
     const float b = color.blueF();
 
     glColor3f(r, g, b);
-    glLineWidth(2.0);
+    glLineWidth(lineWidth);
     glBegin(GL_LINE_STRIP);
     const int res = 64;
     const double lon1 = (line.p1().x() / 180) * M_PI;

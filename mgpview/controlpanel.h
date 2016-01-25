@@ -71,7 +71,8 @@ public:
     static ControlPanel &instance();
     void initialize();
     void open();
-    bool enabled(Filter::Type) const;
+    bool isEnabled(Filter::Type) const;
+    bool isCurrent(Filter::Type) const;
     QVariant value(Filter::Type) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();

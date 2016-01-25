@@ -8,8 +8,22 @@
 #include <QMouseEvent>
 #include <QLineF>
 #include <QVariant>
+#include <QHash>
 
 class QAction;
+
+struct LonOrLatFilterInfo {
+    Filter::Type type;
+    bool isLon;
+    QColor color;
+    LonOrLatFilterInfo(Filter::Type, bool, const QColor &);
+};
+
+struct FreeLineFilterInfo {
+    Filter::Type type;
+    QColor color;
+    FreeLineFilterInfo(Filter::Type, const QColor &);
+};
 
 class GLWidget : public QGLWidget
 {
@@ -129,6 +143,10 @@ private:
     float ballSize_;
     float minBallSize_;
     float maxBallSize_;
+
+    // ### THESE COULD BE JUST QLists !!! (the key doesn't matter)
+    QHash<int, LonOrLatFilterInfo *> lonOrLatFilterInfos_;
+    QHash<int, FreeLineFilterInfo *> freeLineFilterInfos_;
 
 private slots:
     void drawCalled(QObject *ckf);

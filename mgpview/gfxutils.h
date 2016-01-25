@@ -48,9 +48,11 @@ public:
      * surface. */
     void drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_eye_dist);
 
-    void drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &);
-    void drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &);
-    void drawGreatCircleSegment(_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &);
+    void drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &, float);
+    void drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &, float);
+    void drawLonOrLatCircle(bool lon, _3DPoint* eye, double min_eye_dist, double max_eye_dist, double val, const QColor &, float);
+
+    void drawGreatCircleSegment(_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &, float);
 
 //    /** Draws a cartesian key frame. */
 //    void drawCartesianKeyFrame(

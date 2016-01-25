@@ -301,9 +301,14 @@ void ControlPanel::keyPressEvent(QKeyEvent *event)
     MainWindow::instance().handleKeyPressEvent(event);
 }
 
-bool ControlPanel::enabled(Filter::Type type) const
+bool ControlPanel::isEnabled(Filter::Type type) const
 {
     return filters_.contains(type) ? filters_.value(type)->enabledCheckBox_->isChecked() : false;
+}
+
+bool ControlPanel::isCurrent(Filter::Type type) const
+{
+    return filters_.contains(type) ? filters_.value(type)->currCheckBox_->isChecked() : false;
 }
 
 QVariant ControlPanel::value(Filter::Type type) const

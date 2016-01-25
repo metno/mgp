@@ -18,6 +18,19 @@
 
 #include <stdio.h> // 4 TESTING!
 
+LonOrLatFilterInfo::LonOrLatFilterInfo(Filter::Type type_, bool isLon_, const QColor &color_)
+    : type(type_)
+    , isLon(isLon_)
+    , color(color_)
+{
+}
+
+FreeLineFilterInfo::FreeLineFilterInfo(Filter::Type type_, const QColor &color_)
+    : type(type_)
+    , color(color_)
+{
+}
+
 const double
    GLWidget::minDolly_ =
       0.05 * GfxUtils::getEarthRadius(),
@@ -44,6 +57,25 @@ GLWidget::GLWidget(QWidget *parent)
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
     , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
 {
+    // --- BEGIN initialize filter infos -------------------
+
+    // LonOrLat filters
+
+    lonOrLatFilterInfos_.insert(0, new LonOrLatFilterInfo(Filter::E_OF, true, QColor::fromRgbF(0, 1, 1)));
+    lonOrLatFilterInfos_.insert(1, new LonOrLatFilterInfo(Filter::W_OF, true, QColor::fromRgbF(1, 0, 0)));
+    lonOrLatFilterInfos_.insert(2, new LonOrLatFilterInfo(Filter::N_OF, false, QColor::fromRgbF(0, 1, 1)));
+    lonOrLatFilterInfos_.insert(3, new LonOrLatFilterInfo(Filter::S_OF, false, QColor::fromRgbF(1, 0, 0)));
+
+
+    // FreeLine filters
+    freeLineFilterInfos_.insert(0, new FreeLineFilterInfo(Filter::NE_OF, QColor::fromRgbF(0.8, 0.5, 0)));
+    freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF, QColor::fromRgbF(0.8, 0, 1)));
+    freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF, QColor::fromRgbF(0, 0.8, 0.4)));
+    freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF, QColor::fromRgbF(0, 0.4, 0.8)));
+
+    // --- END initialize filter infos -------------------
+
+
     setMouseTracking(true);
 
     setFocusPolicy(Qt::StrongFocus);
@@ -223,63 +255,38 @@ void GLWidget::paintGL()
     }
 
     // --- BEGIN draw filters --------------------------------
+
+    const QColor currColor = QColor::fromRgbF(1, 1, 1);
+    const float normalLineWidth = 1.5;
+    const float currLineWidth = 3;
+
     // LonOrLat filters
-    if (ControlPanel::instance().enabled(Filter::E_OF)) {
-        bool ok = false;
-        gfx_util.drawLonCircle(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::E_OF).toDouble(&ok),
-                    QColor::fromRgbF(0, 1, 1));
-        Q_ASSERT(ok);
-    }
+    for (int i = 0; i < 4; ++i) {
+        const LonOrLatFilterInfo *finfo = lonOrLatFilterInfos_.value(i);
+        const bool curr = ControlPanel::instance().isCurrent(finfo->type);
+        const QColor color = curr ? currColor : finfo->color;
+        const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-    if (ControlPanel::instance().enabled(Filter::W_OF)) {
-        bool ok = false;
-        gfx_util.drawLonCircle(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::W_OF).toDouble(&ok),
-                    QColor::fromRgbF(1, 0, 0));
-        Q_ASSERT(ok);
-    }
-
-    if (ControlPanel::instance().enabled(Filter::N_OF)) {
-        bool ok = false;
-        gfx_util.drawLatCircle(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::N_OF).toDouble(&ok),
-                    QColor::fromRgbF(0, 1, 1));
-        Q_ASSERT(ok);
-    }
-
-    if (ControlPanel::instance().enabled(Filter::S_OF)) {
-        bool ok = false;
-        gfx_util.drawLatCircle(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::S_OF).toDouble(&ok),
-                    QColor::fromRgbF(1, 0, 0));
-        Q_ASSERT(ok);
+        if (ControlPanel::instance().isEnabled(finfo->type)) {
+            bool ok = false;
+            gfx_util.drawLonOrLatCircle(
+                        finfo->isLon, eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toDouble(&ok),
+                        color, lineWidth);
+            Q_ASSERT(ok);
+        }
     }
 
     // FreeLine filters
+    for (int i = 0; i < 4; ++i) {
+        const FreeLineFilterInfo *finfo = freeLineFilterInfos_.value(i);
+        const bool curr = ControlPanel::instance().isCurrent(finfo->type);
+        const QColor color = curr ? currColor : finfo->color;
+        const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-    if (ControlPanel::instance().enabled(Filter::NE_OF)) {
-        gfx_util.drawGreatCircleSegment(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::NE_OF).toLineF(),
-                    QColor::fromRgbF(0.8, 0.5, 0));
-    }
-
-    if (ControlPanel::instance().enabled(Filter::NW_OF)) {
-        gfx_util.drawGreatCircleSegment(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::NW_OF).toLineF(),
-                    QColor::fromRgbF(0.8, 0, 1));
-    }
-
-    if (ControlPanel::instance().enabled(Filter::SE_OF)) {
-        gfx_util.drawGreatCircleSegment(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::SE_OF).toLineF(),
-                    QColor::fromRgbF(0, 0.8, 0.4));
-    }
-
-    if (ControlPanel::instance().enabled(Filter::SW_OF)) {
-        gfx_util.drawGreatCircleSegment(
-                    eye, minDolly_, maxDolly_, ControlPanel::instance().value(Filter::SW_OF).toLineF(),
-                    QColor::fromRgbF(0, 0.4, 0.8));
+        if (ControlPanel::instance().isEnabled(finfo->type))
+            gfx_util.drawGreatCircleSegment(
+                        eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toLineF(),
+                        color, lineWidth);
     }
 
     // --- END draw filters --------------------------------
