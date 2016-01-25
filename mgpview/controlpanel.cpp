@@ -272,6 +272,11 @@ void ControlPanel::initialize()
     foreach (Filter *filter, filters_)
         currBtnGroup->addButton(filter->currCheckBox_);
 
+    const Filter::Type initCurrType = Filter::E_OF;
+    filters_.value(initCurrType)->currCheckBox_->blockSignals(true);
+    filters_.value(initCurrType)->currCheckBox_->setChecked(true);
+    filters_.value(initCurrType)->currCheckBox_->blockSignals(false);
+
     // --- END filter section -------------------------------------------
 
 
