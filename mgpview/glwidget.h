@@ -52,9 +52,6 @@ public:
 
     void setCamKFSLaveMode(bool on) {camKfSlaveMode_ = on;}
 
-    void setBallSizeFrac(float);
-    float ballSizeFrac() const;
-
 private:
     virtual void initializeGL();
     virtual void resizeGL(int w, int h);
