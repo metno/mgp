@@ -15,14 +15,12 @@ class QAction;
 struct LonOrLatFilterInfo {
     Filter::Type type;
     bool isLon;
-    QColor color;
-    LonOrLatFilterInfo(Filter::Type, bool, const QColor &);
+    LonOrLatFilterInfo(Filter::Type, bool);
 };
 
 struct FreeLineFilterInfo {
     Filter::Type type;
-    QColor color;
-    FreeLineFilterInfo(Filter::Type, const QColor &);
+    FreeLineFilterInfo(Filter::Type);
 };
 
 class GLWidget : public QGLWidget

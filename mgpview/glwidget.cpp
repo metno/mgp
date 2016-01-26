@@ -18,16 +18,14 @@
 
 #include <stdio.h> // 4 TESTING!
 
-LonOrLatFilterInfo::LonOrLatFilterInfo(Filter::Type type_, bool isLon_, const QColor &color_)
+LonOrLatFilterInfo::LonOrLatFilterInfo(Filter::Type type_, bool isLon_)
     : type(type_)
     , isLon(isLon_)
-    , color(color_)
 {
 }
 
-FreeLineFilterInfo::FreeLineFilterInfo(Filter::Type type_, const QColor &color_)
+FreeLineFilterInfo::FreeLineFilterInfo(Filter::Type type_)
     : type(type_)
-    , color(color_)
 {
 }
 
@@ -60,17 +58,17 @@ GLWidget::GLWidget(QWidget *parent)
 
     // LonOrLat filters
 
-    lonOrLatFilterInfos_.insert(0, new LonOrLatFilterInfo(Filter::E_OF, true, QColor::fromRgbF(0, 1, 1)));
-    lonOrLatFilterInfos_.insert(1, new LonOrLatFilterInfo(Filter::W_OF, true, QColor::fromRgbF(1, 0, 0)));
-    lonOrLatFilterInfos_.insert(2, new LonOrLatFilterInfo(Filter::N_OF, false, QColor::fromRgbF(0, 1, 1)));
-    lonOrLatFilterInfos_.insert(3, new LonOrLatFilterInfo(Filter::S_OF, false, QColor::fromRgbF(1, 0, 0)));
+    lonOrLatFilterInfos_.insert(0, new LonOrLatFilterInfo(Filter::E_OF, true));
+    lonOrLatFilterInfos_.insert(1, new LonOrLatFilterInfo(Filter::W_OF, true));
+    lonOrLatFilterInfos_.insert(2, new LonOrLatFilterInfo(Filter::N_OF, false));
+    lonOrLatFilterInfos_.insert(3, new LonOrLatFilterInfo(Filter::S_OF, false));
 
 
     // FreeLine filters
-    freeLineFilterInfos_.insert(0, new FreeLineFilterInfo(Filter::NE_OF, QColor::fromRgbF(0.8, 0.5, 0)));
-    freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF, QColor::fromRgbF(0.8, 0, 1)));
-    freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF, QColor::fromRgbF(0, 0.8, 0.4)));
-    freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF, QColor::fromRgbF(0, 0.4, 0.8)));
+    freeLineFilterInfos_.insert(0, new FreeLineFilterInfo(Filter::NE_OF));
+    freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF));
+    freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF));
+    freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF));
 
     // --- END initialize filter infos -------------------
 
@@ -216,7 +214,7 @@ void GLWidget::paintGL()
 
     // draw earth base sphere
     gfx_util.drawSphere(
-    0, 0, 0, gfx_util.getEarthRadius(), 0.7, 0.7, 0.7, 0.7, 36, 72,
+    0, 0, 0, gfx_util.getEarthRadius(), 0.6, 0.6, 0.6, 0.7, 36, 72,
     GL_SMOOTH);
 
     // draw coast contours
@@ -262,15 +260,22 @@ void GLWidget::paintGL()
 
     // --- BEGIN draw filters --------------------------------
 
+    const QColor normalColor = QColor::fromRgbF(1, 1, 1);
     const QColor currColor = QColor::fromRgbF(1, 1, 1);
+
+    const QColor normalValidColor = QColor::fromRgbF(1, 1, 1);
+    const QColor normalInvalidColor = QColor::fromRgbF(0.9, 0, 0);
+    const QColor currValidColor = QColor::fromRgbF(1, 1, 1);
+    const QColor currInvalidColor = QColor::fromRgbF(1, 0, 0);
+
     const float normalLineWidth = 1.5;
-    const float currLineWidth = 3;
+    const float currLineWidth = 5;
 
     // LonOrLat filters
     for (int i = 0; i < 4; ++i) {
         const LonOrLatFilterInfo *finfo = lonOrLatFilterInfos_.value(i);
         const bool curr = ControlPanel::instance().isCurrent(finfo->type);
-        const QColor color = curr ? currColor : finfo->color;
+        const QColor color = curr ? currColor : normalColor;
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
         if (ControlPanel::instance().isEnabled(finfo->type)) {
@@ -286,7 +291,8 @@ void GLWidget::paintGL()
     for (int i = 0; i < 4; ++i) {
         const FreeLineFilterInfo *finfo = freeLineFilterInfos_.value(i);
         const bool curr = ControlPanel::instance().isCurrent(finfo->type);
-        const QColor color = curr ? currColor : finfo->color;
+        const bool valid = ControlPanel::instance().isValid(finfo->type);
+        const QColor color = curr ? (valid ? currValidColor : currInvalidColor) : (valid ? normalValidColor : normalInvalidColor);
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
         if (ControlPanel::instance().isEnabled(finfo->type))

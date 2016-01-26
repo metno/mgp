@@ -109,6 +109,11 @@ void LonOrLatFilter::updateDragging(double lon_, double lat_)
     valSpinBox_->setValue(val);
 }
 
+bool LonOrLatFilter::isValid() const
+{
+    return true; // ensured by the QSpinBox
+}
+
 FreeLineFilter::FreeLineFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox,
         QDoubleSpinBox *lon1SpinBox, QDoubleSpinBox *lat1SpinBox, QDoubleSpinBox *lon2SpinBox, QDoubleSpinBox *lat2SpinBox,
@@ -184,17 +189,9 @@ bool FreeLineFilter::startDragging(double lon_, double lat_)
     const double dist1 = Math::distance(lon, lat, lon1SpinBox_->value(), lat1SpinBox_->value());
     const double dist2 = Math::distance(lon, lat, lon2SpinBox_->value(), lat2SpinBox_->value());
 
-    if (dist1 < dist2) {
-        firstEndpointDragged_ = true;
-        lon1SpinBox_->setValue(lon);
-        lat1SpinBox_->setValue(lat);
-    } else {
-        firstEndpointDragged_ = false;
-        lon2SpinBox_->setValue(lon);
-        lat2SpinBox_->setValue(lat);
-    }
-
+    firstEndpointDragged_ = (dist1 < dist2);
     dragged_ = true;
+    updateDragging(lon_, lat_);
     return true;
 }
 
@@ -212,6 +209,18 @@ void FreeLineFilter::updateDragging(double lon_, double lat_)
         lon2SpinBox_->setValue(lon);
         lat2SpinBox_->setValue(lat);
     }
+}
+
+bool FreeLineFilter::isValid() const
+{
+    return validCombination(lon1SpinBox_->value(), lat1SpinBox_->value(), lon2SpinBox_->value(), lat2SpinBox_->value());
+}
+
+bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
+{
+    return ((type_ == NW_OF) || (type_ == SE_OF))
+            ? (((lon1 < lon2) && (lat1 < lat2)) || ((lon1 > lon2) && (lat1 > lat2)))
+            : (((lon1 < lon2) && (lat1 > lat2)) || ((lon1 > lon2) && (lat1 < lat2)));
 }
 
 ControlPanel &ControlPanel::instance()
@@ -300,16 +309,16 @@ void ControlPanel::initialize()
         filterLayout->itemAtPosition(2, i)->widget()->setStyleSheet("font-weight:bold");
 
     // lon|lat filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 3, Filter::E_OF, 7.2));
-    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 4, Filter::W_OF, 9.5));
-    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 5, Filter::N_OF, 60.3));
-    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 6, Filter::S_OF, 62.8));
+    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 3, Filter::E_OF, 4));
+    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 4, Filter::W_OF, 12));
+    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 5, Filter::N_OF, 58));
+    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 6, Filter::S_OF, 66));
 
     // line filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::NE_OF, FreeLineFilter::create(filterLayout, 7, Filter::NE_OF, QLineF(QPointF(4, 70), QPointF(10, 50))));
-    filters_.insert(Filter::NW_OF, FreeLineFilter::create(filterLayout, 8, Filter::NW_OF, QLineF(QPointF(4, 50), QPointF(10, 70))));
-    filters_.insert(Filter::SE_OF, FreeLineFilter::create(filterLayout, 9, Filter::SE_OF, QLineF(QPointF(4, 50), QPointF(10, 70))));
-    filters_.insert(Filter::SW_OF, FreeLineFilter::create(filterLayout, 19, Filter::SW_OF, QLineF(QPointF(4, 70), QPointF(10, 50))));
+    filters_.insert(Filter::NE_OF, FreeLineFilter::create(filterLayout, 7, Filter::NE_OF, QLineF(QPointF(-4, 65), QPointF(14, 55))));
+    filters_.insert(Filter::NW_OF, FreeLineFilter::create(filterLayout, 8, Filter::NW_OF, QLineF(QPointF(5, 53), QPointF(25, 64))));
+    filters_.insert(Filter::SE_OF, FreeLineFilter::create(filterLayout, 9, Filter::SE_OF, QLineF(QPointF(-1, 54), QPointF(17, 67))));
+    filters_.insert(Filter::SW_OF, FreeLineFilter::create(filterLayout, 19, Filter::SW_OF, QLineF(QPointF(-1, 67), QPointF(19, 57))));
 
     // ensure exclusive/radio behavior for the 'current' state
     QButtonGroup *currBtnGroup = new QButtonGroup;
@@ -363,6 +372,11 @@ bool ControlPanel::isEnabled(Filter::Type type) const
 bool ControlPanel::isCurrent(Filter::Type type) const
 {
     return filters_.contains(type) ? filters_.value(type)->currCheckBox_->isChecked() : false;
+}
+
+bool ControlPanel::isValid(Filter::Type type) const
+{
+    return filters_.contains(type) ? filters_.value(type)->isValid() : false;
 }
 
 QVariant ControlPanel::value(Filter::Type type) const

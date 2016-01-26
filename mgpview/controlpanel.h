@@ -27,6 +27,7 @@ protected:
     virtual QVariant value() const = 0;
     virtual bool startDragging(double, double) = 0;
     virtual void updateDragging(double, double) = 0;
+    virtual bool isValid() const = 0;
     Type type_;
     QCheckBox *enabledCheckBox_;
     QCheckBox *currCheckBox_;
@@ -44,25 +45,29 @@ class LonOrLatFilter : public Filter
     virtual QVariant value() const;
     virtual bool startDragging(double, double);
     virtual void updateDragging(double, double);
+    virtual bool isValid() const;
+
     QDoubleSpinBox *valSpinBox_;
 };
 
 class FreeLineFilter : public Filter {
     Q_OBJECT
     friend class ControlPanel;
-
     FreeLineFilter(
             Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, const QLineF &);
     static Filter *create(QGridLayout *, int, Type, const QLineF &);
     virtual QVariant value() const;
     virtual bool startDragging(double, double);
     virtual void updateDragging(double, double);
+    virtual bool isValid() const;
+
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
     QDoubleSpinBox *lon2SpinBox_;
     QDoubleSpinBox *lat2SpinBox_;
 
     bool firstEndpointDragged_;
+    bool validCombination(double, double, double, double) const;
 };
 
 enum BasePolygon { None, Custom, ENOR_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
@@ -77,6 +82,7 @@ public:
     void open();
     bool isEnabled(Filter::Type) const;
     bool isCurrent(Filter::Type) const;
+    bool isValid(Filter::Type) const;
     QVariant value(Filter::Type) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();

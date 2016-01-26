@@ -156,7 +156,7 @@ void GfxUtils::createENORFIR()
 // ### similar to drawCoastContours() ... refactor!
 void GfxUtils::drawENORFIR(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
-    glColor3f(0.0, 0.8, 0.8);
+    glColor3f(0.0, 0, 1);
     glLineWidth(2.0);
 
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
