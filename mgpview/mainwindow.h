@@ -38,8 +38,6 @@ private slots:
     void handleLatValueChanged(int);
     void handleFocusPosChanged();
     void openControlPanel();
-    void openPreferences();
-    void ballSizeSliderValueChanged(int);
 };
 
 #endif // MAINWINDOW_H

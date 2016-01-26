@@ -10,6 +10,8 @@ class QCheckBox;
 class QDoubleSpinBox;
 class GLWidget;
 class QGridLayout;
+class QComboBox;
+class QSlider;
 
 class Filter : public QObject
 {
@@ -63,6 +65,8 @@ class FreeLineFilter : public Filter {
     bool firstEndpointDragged_;
 };
 
+enum BasePolygon { None, Custom, ENOR_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
+
 class ControlPanel : public QWidget
 {
     Q_OBJECT
@@ -79,15 +83,20 @@ public:
     bool startFilterDragging(double, double) const;
     void updateFilterDragging(double, double);
 
+    BasePolygon currentBasePolygon() const;
+    float ballSizeFrac();
+
 private:
     ControlPanel();
     virtual void keyPressEvent(QKeyEvent *);
+
+    QComboBox *basePolygonComboBox_;
+    QSlider *bsSlider_;
 
     QCheckBox *filtersEditableOnSphereCheckBox_;
     QHash<Filter::Type, Filter *> filters_;
 
 private slots:
-    void apply();
     void close();
     void updateGLWidget();
 };

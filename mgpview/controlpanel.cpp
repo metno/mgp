@@ -5,13 +5,17 @@
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QGroupBox>
 #include <QLabel>
-#include <QFrame>
 #include <QPushButton>
+#include <QFrame>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QPointF>
 #include <QButtonGroup>
+#include <QTextEdit>
+#include <QComboBox>
+#include <QSlider>
 
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : type_(type)
@@ -223,6 +227,9 @@ void ControlPanel::open()
 }
 
 ControlPanel::ControlPanel()
+    : basePolygonComboBox_(0)
+    , bsSlider_(0)
+    , filtersEditableOnSphereCheckBox_(0)
 {
 }
 
@@ -232,17 +239,55 @@ void ControlPanel::initialize()
     QVBoxLayout *mainLayout = new QVBoxLayout;
     setLayout(mainLayout);
 
+    // --- BEGIN general section -------------------------------------------
+    QGroupBox *generalGroupBox = new QGroupBox("General");
+    QVBoxLayout *generalLayout = new QVBoxLayout;
+    generalGroupBox->setLayout(generalLayout);
+    mainLayout->addWidget(generalGroupBox);
+
+    // ball size
+    QHBoxLayout *bsLayout = new QHBoxLayout;
+    bsLayout->addWidget(new QLabel("Ball size:"));
+    bsSlider_ = new QSlider(Qt::Horizontal);
+    bsSlider_->setValue(bsSlider_->minimum() + 0.2 * (bsSlider_->maximum() - bsSlider_->minimum()));
+    connect(bsSlider_, SIGNAL(valueChanged(int)), SLOT(updateGLWidget()));
+    bsLayout->addWidget(bsSlider_);
+    generalLayout->addLayout(bsLayout);
+
+    // coast lines on/off ... TBD
+    // result polygon on/off ... TBD
+
+    // --- END general section -------------------------------------------
+
+
     // --- BEGIN base polygon section -------------------------------------------
+    QGroupBox *basePolygonGroupBox = new QGroupBox("Base Polygon");
+    QVBoxLayout *basePolygonLayout = new QVBoxLayout;
+    basePolygonGroupBox->setLayout(basePolygonLayout);
+    mainLayout->addWidget(basePolygonGroupBox);
+
+    basePolygonComboBox_ = new QComboBox;
+    basePolygonComboBox_->addItem("Custom", Custom);
+    basePolygonComboBox_->addItem("ENOR FIR", ENOR_FIR);
+    basePolygonComboBox_->addItem("XXXX FIR", XXXX_FIR);
+    basePolygonComboBox_->addItem("YYYY FIR", YYYY_FIR);
+    basePolygonComboBox_->addItem("ZZZZ FIR", ZZZZ_FIR);
+    basePolygonComboBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    connect(basePolygonComboBox_, SIGNAL(currentIndexChanged(int)), SLOT(updateGLWidget()));
+    basePolygonLayout->addWidget(basePolygonComboBox_);
+
     // --- END base polygon section -------------------------------------------
 
 
     // --- BEGIN filter section -------------------------------------------
+    QGroupBox *filterGroupBox = new QGroupBox("Filters");
     QGridLayout *filterLayout = new QGridLayout;
-    mainLayout->addLayout(filterLayout);
+    filterGroupBox->setLayout(filterLayout);
+    mainLayout->addWidget(filterGroupBox);
 
     // header
-    filterLayout->addWidget(new QLabel("Filters:"), 0, 0, 1, 5);
-    filterLayout->itemAtPosition(0, 0)->widget()->setStyleSheet("font-weight:bold; font-size:16px");
+//    filterLayout->addWidget(new QLabel("Filters:"), 0, 0, 1, 5);
+//    filterLayout->itemAtPosition(0, 0)->widget()->setStyleSheet("font-weight:bold; font-size:16px");
 
     filtersEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
     filterLayout->addWidget(filtersEditableOnSphereCheckBox_, 1, 0, 1, 5, Qt::AlignLeft);
@@ -280,25 +325,29 @@ void ControlPanel::initialize()
     // --- END filter section -------------------------------------------
 
 
-    mainLayout->addStretch(1);
+    // --- BEGIN SIGMET/AIRMET expression section -------------------------------------------
+    QGroupBox *xmetExprGroupBox = new QGroupBox("SIGMET/AIRMET Expression");
+    QVBoxLayout *xmetExprLayout = new QVBoxLayout;
+    xmetExprGroupBox->setLayout(xmetExprLayout);
+    mainLayout->addWidget(xmetExprGroupBox);
+
+    QTextEdit *xmetExprEdit = new QTextEdit;
+    xmetExprLayout->addWidget(xmetExprEdit);
+
+    // --- END SIGMET/AIRMET expression section -------------------------------------------
 
 
-    // --- BEGIN bottom panel -----------------------------------------------
+    // --- BEGIN bottom section -----------------------------------------------
     QFrame *botPanel = new QFrame;
-    //botPanel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
     botPanel->setLayout(new QHBoxLayout);
     mainLayout->addWidget(botPanel);
-
-    QPushButton *applyButton = new QPushButton("Apply");
-    connect(applyButton, SIGNAL(clicked()), SLOT(apply()));
-    botPanel->layout()->addWidget(applyButton);
 
     qobject_cast<QHBoxLayout *>(botPanel->layout())->addStretch(1);
 
     QPushButton *closeButton = new QPushButton("Close");
     connect(closeButton, SIGNAL(clicked()), SLOT(close()));
     botPanel->layout()->addWidget(closeButton);
-    // --- END bottom panel -----------------------------------------------
+    // --- END bottom section -----------------------------------------------
 }
 
 void ControlPanel::keyPressEvent(QKeyEvent *event)
@@ -362,16 +411,16 @@ void ControlPanel::updateFilterDragging(double lon, double lat)
     }
 }
 
-void ControlPanel::apply()
+BasePolygon ControlPanel::currentBasePolygon() const
 {
-    qDebug() << "apply() ...";
-    const int typeNameWidth = 5;
-    foreach (Filter *filter, filters_) {
-        qDebug() << "  type:" << QString("%1").arg(Filter::typeName(filter->type_), typeNameWidth).toLatin1().data()
-                 << ", enabled:" << filter->enabledCheckBox_->isChecked() << ", value:" << filter->value();
-    }
+    if (!basePolygonComboBox_)
+        return None;
+    return static_cast<BasePolygon>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
+}
 
-    // compute resulting polygon(s) from base polygon and enabled filters ... TBD
+float ControlPanel::ballSizeFrac()
+{
+    return bsSlider_ ? (float(bsSlider_->value() - bsSlider_->minimum()) / (bsSlider_->maximum() - bsSlider_->minimum())) : 0.0;
 }
 
 void ControlPanel::close()

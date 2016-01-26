@@ -283,8 +283,11 @@ void GfxUtils::drawBaseCircle(double radius, float r, float g, float b, float li
     glColor3f(r, g, b);
     glLineWidth(lineWidth);
     glBegin(GL_LINE_STRIP);
-    for (int i = 0; (i < res) && (theta <= thetaEnd); i++, theta += deltaTheta)
+    for (int i = 0; i <= res; i++, theta += deltaTheta) {
         glVertex3d(radius * cos(theta), radius * sin(theta), 0);
+        if (theta > thetaEnd)
+            break;
+    }
     glEnd();
 }
 

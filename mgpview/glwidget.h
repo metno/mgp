@@ -140,7 +140,6 @@ private:
     QAction *focusOnThisPosAction_;
     QAction *focusOnCurrPosAction_;
 
-    float ballSize_;
     float minBallSize_;
     float maxBallSize_;
 

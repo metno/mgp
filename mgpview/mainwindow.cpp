@@ -72,10 +72,6 @@ MainWindow::MainWindow()
     connect(ctrlPanelButton, SIGNAL(clicked()), SLOT(openControlPanel()));
     botPanel->layout()->addWidget(ctrlPanelButton);
 
-    QPushButton *prefsButton = new QPushButton("Preferences");
-    connect(prefsButton, SIGNAL(clicked()), SLOT(openPreferences()));
-    botPanel->layout()->addWidget(prefsButton);
-
     qobject_cast<QHBoxLayout *>(botPanel->layout())->addStretch(1);
 
     QPushButton *quitButton = new QPushButton("Quit");
@@ -106,8 +102,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_Q)) {
         qApp->quit();
-    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_P)) {
-        openPreferences();
     } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_C)) {
         openControlPanel();
     } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_E)) {
@@ -174,33 +168,4 @@ void MainWindow::handleFocusPosChanged()
 void MainWindow::openControlPanel()
 {
     ControlPanel::instance().open();
-}
-
-void MainWindow::openPreferences()
-{
-    QDialog dialog;
-    dialog.setWindowTitle("Preferences");
-    QVBoxLayout mainLayout;
-
-    dialog.setLayout(&mainLayout);
-
-    QFormLayout formLayout;
-    mainLayout.addLayout(&formLayout);
-
-    QSlider bsSlider(Qt::Horizontal);
-    bsSlider.setValue(bsSlider.minimum() + glw_->ballSizeFrac() * (bsSlider.maximum() - bsSlider.minimum()));
-    connect(&bsSlider, SIGNAL(valueChanged(int)), SLOT(ballSizeSliderValueChanged(int)));
-    formLayout.addRow("Ball size:", &bsSlider);
-
-    QDialogButtonBox buttonBox(QDialogButtonBox::Close);
-    connect(buttonBox.button(QDialogButtonBox::Close), SIGNAL(clicked()), &dialog, SLOT(accept()));
-    mainLayout.addWidget(&buttonBox);
-
-    dialog.exec();
-}
-
-void MainWindow::ballSizeSliderValueChanged(int)
-{
-    QSlider *bsSlider = qobject_cast<QSlider *>(sender());
-    glw_->setBallSizeFrac(float(bsSlider->value() - bsSlider->minimum()) / (bsSlider->maximum() - bsSlider->minimum()));
 }

@@ -53,7 +53,6 @@ GLWidget::GLWidget(QWidget *parent)
     , mouseHitsEarth_(false)
     , draggingFilter_(false)
     , draggingFocus_(false)
-    , ballSize_(0.005 * GfxUtils::getEarthRadius())
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
     , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
 {
@@ -184,7 +183,8 @@ void GLWidget::paintGL()
 {
     GfxUtils& gfx_util = GfxUtils::instance();
 
-    // set viewport
+    // set viewportBasePolygon currentBasePolygon() const;
+
     glViewport(0, 0, width(), height());
 
     // set projection
@@ -224,10 +224,14 @@ void GLWidget::paintGL()
     gfx_util.drawCoastContours(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
-    // draw ENOR FIR area
-    glShadeModel(GL_FLAT);
-    gfx_util.drawENORFIR(eye, minDolly_, maxDolly_);
-    glShadeModel(GL_SMOOTH);
+    // draw current base polygon
+    if (ControlPanel::instance().currentBasePolygon() == ENOR_FIR) {
+        glShadeModel(GL_FLAT);
+        gfx_util.drawENORFIR(eye, minDolly_, maxDolly_);
+        glShadeModel(GL_SMOOTH);
+    } else {
+        // ...
+    }
 
     // draw lat/lon circles
     glShadeModel(GL_FLAT);
@@ -241,18 +245,20 @@ void GLWidget::paintGL()
                 x = r * cos(currLat_) * cos(currLon_),
                 y = r * cos(currLat_) * sin(currLon_),
                 z = r * sin(currLat_);
-        gfx_util.drawSphere(x, y, z, ballSize_, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
+        const float ballSize = minBallSize_ + ControlPanel::instance().ballSizeFrac() * (maxBallSize_ - minBallSize_);
+        gfx_util.drawSphere(x, y, z, ballSize, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
     }
 
-    // draw mouse point
-    {
-        const double
-                r = GfxUtils::instance().getEarthRadius(),
-                x = r * cos(mouseLat_) * cos(mouseLon_),
-                y = r * cos(mouseLat_) * sin(mouseLon_),
-                z = r * sin(mouseLat_);
-        gfx_util.drawSphere(x, y, z, ballSize_, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
-    }
+//    // draw mouse point
+//    {
+//        const double
+//                r = GfxUtils::instance().getEarthRadius(),
+//                x = r * cos(mouseLat_) * cos(mouseLon_),
+//                y = r * cos(mouseLat_) * sin(mouseLon_),
+//                z = r * sin(mouseLat_);
+//        const float ballSize = minBallSize_ + ControlPanel::instance().ballSizeFrac() * (maxBallSize_ - minBallSize_);
+//        gfx_util.drawSphere(x, y, z, ballSize, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
+//    }
 
     // --- BEGIN draw filters --------------------------------
 
@@ -686,17 +692,6 @@ void GLWidget::focusOnCurrPos()
     focus_alt_ = 0;
     updateGL();
     emit focusPosChanged();
-}
-
-void GLWidget::setBallSizeFrac(float frac)
-{
-    ballSize_ = minBallSize_ + min(max(frac, 0), 1) * (maxBallSize_ - minBallSize_);
-    updateGL();
-}
-
-float GLWidget::ballSizeFrac() const
-{
-    return (ballSize_ - minBallSize_) / (maxBallSize_ - minBallSize_);
 }
 
 //void GLWidget::toggleVisMenuItem(int item)
