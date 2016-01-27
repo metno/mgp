@@ -50,6 +50,7 @@ GLWidget::GLWidget(QWidget *parent)
     , mouseLat_(0)
     , mouseHitsEarth_(false)
     , draggingFilter_(false)
+    , draggingCustomBasePolygonPoint_(false)
     , draggingFocus_(false)
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
     , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
@@ -230,7 +231,7 @@ void GLWidget::paintGL()
         gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_);
         glShadeModel(GL_SMOOTH);
 
-        if (ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) {
+        if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) && ControlPanel::instance().customBasePolygonEditableOnSphere()) {
             // draw points
             for (int i = 0; i < points->size(); ++i) {
                 double r, g, b;
@@ -455,6 +456,13 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
                 draggingFilter_ = true;
                 dragBaseLon_ = mouseLon_;
                 dragBaseLat_ = mouseLat_;
+            } else if ((event->button() == Qt::LeftButton)
+                       && ControlPanel::instance().customBasePolygonEditableOnSphere()
+                       && (currCustomBasePolygonPoint_ >= 0)) {
+                // ... custom base polygon
+                draggingCustomBasePolygonPoint_ = true;
+                dragBaseLon_ = mouseLon_;
+                dragBaseLat_ = mouseLat_;
             } else if ((event->button() == Qt::LeftButton) || (event->button() == Qt::MiddleButton)) {
                 // ... camera (i.e. lat/lon focus)
                 draggingFocus_ = true;
@@ -469,7 +477,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *)
 {
-    draggingFilter_ = draggingFocus_ = false;
+    draggingFilter_ = draggingCustomBasePolygonPoint_ = draggingFocus_ = false;
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
@@ -477,10 +485,14 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     if (!(mouseHitsEarth_ = intersectsEarth(event, mouseLon_, mouseLat_)))
         return;
 
-    currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
+    if (!draggingCustomBasePolygonPoint_)
+        currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
 
     if (draggingFilter_) {
         ControlPanel::instance().updateFilterDragging(mouseLon_, mouseLat_);
+
+    } else if (draggingCustomBasePolygonPoint_) {
+        ControlPanel::instance().updateCustomBasePolygonPointDragging(currCustomBasePolygonPoint_, mouseLon_, mouseLat_);
 
     } else if (draggingFocus_) {
         const int dx = event->x() - dragBaseX_;

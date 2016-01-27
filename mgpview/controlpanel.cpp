@@ -286,6 +286,7 @@ void ControlPanel::open()
 ControlPanel::ControlPanel()
     : basePolygonComboBox_(0)
     , bsSlider_(0)
+    , customBasePolygonEditableOnSphereCheckBox_(0)
     , filtersEditableOnSphereCheckBox_(0)
 {
 }
@@ -323,6 +324,9 @@ void ControlPanel::initialize()
     basePolygonGroupBox->setLayout(basePolygonLayout);
     mainLayout->addWidget(basePolygonGroupBox);
 
+    QHBoxLayout *basePolygonLayout2 = new QHBoxLayout;
+    basePolygonLayout->addLayout(basePolygonLayout2);
+
     basePolygonComboBox_ = new QComboBox;
     basePolygonComboBox_->addItem("Custom", BasePolygon::Custom);
     basePolygonComboBox_->addItem("ENOR FIR", BasePolygon::ENOR_FIR);
@@ -330,8 +334,14 @@ void ControlPanel::initialize()
     basePolygonComboBox_->addItem("YYYY FIR", BasePolygon::YYYY_FIR);
     basePolygonComboBox_->addItem("ZZZZ FIR", BasePolygon::ZZZZ_FIR);
     basePolygonComboBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    connect(basePolygonComboBox_, SIGNAL(currentIndexChanged(int)), SLOT(updateGLWidget()));
-    basePolygonLayout->addWidget(basePolygonComboBox_);
+    connect(basePolygonComboBox_, SIGNAL(currentIndexChanged(int)), SLOT(basePolygonTypeChanged()));
+    basePolygonLayout2->addWidget(basePolygonComboBox_);
+
+    customBasePolygonEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
+    connect(customBasePolygonEditableOnSphereCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    basePolygonLayout2->addWidget(customBasePolygonEditableOnSphereCheckBox_);
+
+    basePolygonLayout2->addStretch(1);
 
     //basePolygons_.insert(BasePolygon::None, BasePolygon::create(BasePolygon::None)); // ### necessary?
     basePolygons_.insert(BasePolygon::Custom, BasePolygon::create(BasePolygon::Custom));
@@ -499,6 +509,9 @@ QSharedPointer<QVector<QPair<double, double> > > ControlPanel::currentBasePolygo
 
 int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double tolerance)
 {
+    if (currentBasePolygonType() != BasePolygon::Custom)
+        return -1;
+
     const QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
     for (int i = 0; i < points->size(); ++i) {
         const double dist = Math::distance(LON2DEG(lon), LAT2DEG(lat), LON2DEG(points->at(i).first), LAT2DEG(points->at(i).second));
@@ -508,6 +521,18 @@ int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double t
     return -1;
 }
 
+bool ControlPanel::customBasePolygonEditableOnSphere() const
+{
+    return customBasePolygonEditableOnSphereCheckBox_->isChecked();
+}
+
+void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, double lat)
+{
+    QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    Q_ASSERT((index >= 0) && (index < points->size()));
+    (*points)[index] = qMakePair(lon, lat);
+    updateGLWidget();
+}
 
 float ControlPanel::ballSizeFrac()
 {
@@ -522,4 +547,10 @@ void ControlPanel::close()
 void ControlPanel::updateGLWidget()
 {
     MainWindow::instance().glWidget()->updateGL();
+}
+
+void ControlPanel::basePolygonTypeChanged()
+{
+    customBasePolygonEditableOnSphereCheckBox_->setVisible(currentBasePolygonType() == BasePolygon::Custom);
+    updateGLWidget();
 }

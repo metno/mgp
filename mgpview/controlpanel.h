@@ -109,6 +109,8 @@ public:
     BasePolygon::Type currentBasePolygonType() const;
     QSharedPointer<QVector<QPair<double, double> > > currentBasePolygonPoints() const;
     int currentCustomBasePolygonPoint(double, double, double);
+    bool customBasePolygonEditableOnSphere() const;
+    void updateCustomBasePolygonPointDragging(int, double, double);
 
     float ballSizeFrac();
 
@@ -119,6 +121,7 @@ private:
     QComboBox *basePolygonComboBox_;
     QSlider *bsSlider_;
     QHash<BasePolygon::Type, BasePolygon *> basePolygons_;
+    QCheckBox *customBasePolygonEditableOnSphereCheckBox_;
 
     QCheckBox *filtersEditableOnSphereCheckBox_;
     QHash<Filter::Type, Filter *> filters_;
@@ -126,6 +129,7 @@ private:
 private slots:
     void close();
     void updateGLWidget();
+    void basePolygonTypeChanged();
 };
 
 #endif // CONTROLPANEL_H

@@ -128,6 +128,7 @@ private:
     double dragBaseLon_;
     double dragBaseLat_;
     bool draggingFilter_;
+    bool draggingCustomBasePolygonPoint_;
     bool draggingFocus_;
 
     QAction *setCurrPosFromDialogAction_;
