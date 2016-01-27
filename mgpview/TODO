@@ -1,8 +1,13 @@
 TODO:
 
-0: Implement visualization and sphere-editing of FreeLineFilters too.
+0: Implement adding and deleting points to/from the custom base polygon (pressing Insert or Delete key while
+   hovering an existing point, for example. Insert will insert a point between the current and the next point,
+   while Delete will delete the current point unless there is only three points left).
 
-1: Design a control panel with the following components:
+1: If two neighbour points of a base polygon are located too far apart, the line between them will cut the earth
+   surface and should instead be rendered as a polyline following the great circle.
+
+2: Design a control panel with the following components:
 
    a: A base polygon (either a pre-defined polygon, such as ENOR FIR, or a custom polygon).
 
