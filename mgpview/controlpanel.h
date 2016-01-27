@@ -5,6 +5,9 @@
 #include <QHash>
 #include <QLineF>
 #include <QVariant>
+#include <QSharedPointer>
+#include <QVector>
+#include <QPair>
 
 class QCheckBox;
 class QDoubleSpinBox;
@@ -13,7 +16,7 @@ class QGridLayout;
 class QComboBox;
 class QSlider;
 
-class Filter : public QObject
+class Filter : public QObject // ### does this need to be a QObject?
 {
     Q_OBJECT
     friend class ControlPanel;
@@ -70,7 +73,20 @@ class FreeLineFilter : public Filter {
     bool validCombination(double, double, double, double) const;
 };
 
-enum BasePolygon { None, Custom, ENOR_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
+class BasePolygon
+{
+    friend class ControlPanel;
+
+public:
+    enum Type { None, Custom, ENOR_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
+    static QString typeName(Type);
+
+protected:
+    BasePolygon(Type, const QSharedPointer<QVector<QPair<double, double> > > & = QSharedPointer<QVector<QPair<double, double> > >());
+    static BasePolygon *create(Type);
+    Type type_;
+    QSharedPointer<QVector<QPair<double, double> > > points_; // first component = longitude in radians, second component = latitude in radians
+};
 
 class ControlPanel : public QWidget
 {
@@ -80,6 +96,7 @@ public:
     static ControlPanel &instance();
     void initialize();
     void open();
+
     bool isEnabled(Filter::Type) const;
     bool isCurrent(Filter::Type) const;
     bool isValid(Filter::Type) const;
@@ -89,7 +106,10 @@ public:
     bool startFilterDragging(double, double) const;
     void updateFilterDragging(double, double);
 
-    BasePolygon currentBasePolygon() const;
+    BasePolygon::Type currentBasePolygonType() const;
+    QSharedPointer<QVector<QPair<double, double> > > currentBasePolygonPoints() const;
+    int currentCustomBasePolygonPoint(double, double, double);
+
     float ballSizeFrac();
 
 private:
@@ -98,6 +118,7 @@ private:
 
     QComboBox *basePolygonComboBox_;
     QSlider *bsSlider_;
+    QHash<BasePolygon::Type, BasePolygon *> basePolygons_;
 
     QCheckBox *filtersEditableOnSphereCheckBox_;
     QHash<Filter::Type, Filter *> filters_;

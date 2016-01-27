@@ -1,7 +1,5 @@
-// -*- c++ -*-
-
-#ifndef ME3DUTIL_H
-#define ME3DUTIL_H
+#ifndef UTIL3D_H
+#define UTIL3D_H
 
 //#include <MeCommon.h>
 #include <math.h>
@@ -125,7 +123,7 @@ public:
     _3DPoint(const _3DPoint&);
     _3DPoint(double x, double y, double z);
     void setPoint(double x, double y, double z)
-	{c_[0] = x; c_[1] = y; c_[2] = z;}
+    {c_[0] = x; c_[1] = y; c_[2] = z;}
     void setPoint(double* c) {c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2];}
     double* getPoint() {return c_;}
     double x() const {return c_[0];}
@@ -134,17 +132,6 @@ public:
     void print(char lead[]) const;
 private:
     double c_[3];
-};
-
-
-class Triangle
-{
-public:
-    void setTriangle(int* id)
-	{id_[0] = id[0]; id_[1] = id[1]; id_[2] = id[2];}
-    int getId(int i) {return id_[i];}
-private:
-    int id_[3];
 };
 
 
@@ -159,4 +146,6 @@ private:
     int size_, * id_;
 };
 
-#endif // ME3DUTIL_H
+
+
+#endif // UTIL3D_H

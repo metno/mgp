@@ -142,6 +142,10 @@ private:
     QHash<int, LonOrLatFilterInfo *> lonOrLatFilterInfos_;
     QHash<int, FreeLineFilterInfo *> freeLineFilterInfos_;
 
+    int currCustomBasePolygonPoint_; // index of current custom base polygon point
+
+    double ballSize() const;
+
 private slots:
     void drawCalled(QObject *ckf);
     void setCurrPosFromDialog();

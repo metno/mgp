@@ -7,6 +7,9 @@
 #include <QList>
 #include <QString>
 #include <QLineF>
+#include <QSharedPointer>
+#include <QVector>
+#include <QPair>
 
 class GfxUtils
 {
@@ -22,13 +25,16 @@ public:
      * surface. */
     void drawCoastContours(_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_, double max_eye_dist = 5 * earth_radius_);
 
-    /** Draws ENOR FIR on the earth sphere. The farther the eye
-     * is from the earth surface, the more the contours are raised above the
-     * surface. */
-    void drawENORFIR(_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_, double max_eye_dist = 5 * earth_radius_);
+    /** Draws a polygon on the earth surface. The farther the eye is from the earth surface, the more the contours are raised above the surface. */
+    void drawSurfacePolygon(
+            const QSharedPointer<QVector<QPair<double, double> > > &points, _3DPoint* eye,
+            double min_eye_dist = 0.05 * earth_radius_ ,
+            double max_eye_dist = 5 * earth_radius_);
 
     /** Draws a sphere. */
     void drawSphere(double x, double y, double z, double radius, float r, float g, float b, float amb, int phi_res, int theta_res, GLenum shade_model);
+
+    void drawSurfaceBall(double lon, double lat, double ballSize, float r, float g, float b, float amb, int phiRes = 18, int thetaRes = 36, GLenum shade_model = GL_SMOOTH);
 
     /** Draws a line. */
     void drawLine(double x0, double y0, double z0, double x1, double y1, double z1, double scale_fact, float r, float g, float b, double width = 1);
@@ -76,11 +82,6 @@ private:
     _3DPoint* points_;
     DynPoly* polys_;
     int n_polys_;
-
-    // Methods and variables relevant for ENOR FIR.
-    void createENORFIR();
-    QList<qreal> enorLon_;
-    QList<qreal> enorLat_;
 
     /** Earth radius in meters. */
     static const double earth_radius_;

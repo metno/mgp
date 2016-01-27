@@ -1,7 +1,6 @@
 #include "gfxutils.h"
 #include "common.h"
 #include "coast_data.h"
-#include "enor_fir.h"
 #include <GL/glut.h>
 
 #include <stdio.h> // 4 TESTING!
@@ -11,7 +10,6 @@ const double GfxUtils::earth_radius_ = 6378000;
 GfxUtils::GfxUtils()
 {
     createCoast();
-    createENORFIR();
 }
 
 GfxUtils::~GfxUtils()
@@ -142,30 +140,21 @@ void GfxUtils::drawCoastContours(_3DPoint* eye, double min_eye_dist, double max_
     }
 }
 
-void GfxUtils::createENORFIR()
+void GfxUtils::drawSurfacePolygon(const QSharedPointer<QVector<QPair<double, double> > > &points, _3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
-    const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
-    for (int i = 0; i < npoints; ++i) {
-        const float lon = enor_fir[2 * i + 1];
-        const float lat = enor_fir[2 * i];
-        enorLon_.append((lon / 180) * M_PI);
-        enorLat_.append((lat / 90) * (M_PI / 2));
-    }
-}
-
-// ### similar to drawCoastContours() ... refactor!
-void GfxUtils::drawENORFIR(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
-{
-    glColor3f(0.0, 0, 1);
-    glLineWidth(2.0);
+    glColor3f(0.0, 0, 1); // for now
+    glLineWidth(2.0); // for now
 
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
 
-    Q_ASSERT(enorLon_.size() == enorLat_.size());
+    Q_ASSERT(points);
+
     glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < enorLon_.size(); ++i) {
+    for (int i = 0; i < points->size(); ++i) {
         double x, y, z;
-        Math::sphericalToCartesian(raise_fact * earth_radius_, enorLat_.at(i), enorLon_.at(i), x, y, z);
+        const double lon = points->at(i).first;
+        const double lat = points->at(i).second;
+        Math::sphericalToCartesian(raise_fact * earth_radius_, lat, lon, x, y, z);
         glVertex3d(x, y, z);
     }
     glEnd();
@@ -200,6 +189,16 @@ void GfxUtils::drawSphere(double x, double y, double z, double radius, float r, 
     glShadeModel(GL_SMOOTH); // Assume this is the default
 
     glDisable(GL_LIGHTING);
+}
+
+void GfxUtils::drawSurfaceBall(double lon, double lat, double ballSize, float r, float g, float b, float amb, int phiRes, int thetaRes, GLenum shadeModel)
+{
+    const double
+            rad = earth_radius_,
+            x = rad * cos(lat) * cos(lon),
+            y = rad * cos(lat) * sin(lon),
+            z = rad * sin(lat);
+    drawSphere(x, y, z, ballSize, r, g, b, amb, phiRes, thetaRes, shadeModel);
 }
 
 void GfxUtils::drawLine(double x0, double y0, double z0, double x1, double y1, double z1, double scale_fact, float r, float g, float b, double width)

@@ -53,6 +53,7 @@ GLWidget::GLWidget(QWidget *parent)
     , draggingFocus_(false)
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
     , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
+    , currCustomBasePolygonPoint_(-1)
 {
     // --- BEGIN initialize filter infos -------------------
 
@@ -206,8 +207,8 @@ void GLWidget::paintGL()
     glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
     //
     gluLookAt(eye->x(),            eye->y(),            eye->z(),
-	      eye->x() + tgt->x(), eye->y() + tgt->y(), eye->z() + tgt->z(),
-	      up->x(),             up->y(),             up->z());
+              eye->x() + tgt->x(), eye->y() + tgt->y(), eye->z() + tgt->z(),
+              up->x(),             up->y(),             up->z());
 
     // clear buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -223,12 +224,28 @@ void GLWidget::paintGL()
     glShadeModel(GL_SMOOTH);
 
     // draw current base polygon
-    if (ControlPanel::instance().currentBasePolygon() == ENOR_FIR) {
+    if (ControlPanel::instance().currentBasePolygonPoints()) {
+        const QSharedPointer<QVector<QPair<double, double> > > points = ControlPanel::instance().currentBasePolygonPoints();
         glShadeModel(GL_FLAT);
-        gfx_util.drawENORFIR(eye, minDolly_, maxDolly_);
+        gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_);
         glShadeModel(GL_SMOOTH);
-    } else {
-        // ...
+
+        if (ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) {
+            // draw points
+            for (int i = 0; i < points->size(); ++i) {
+                double r, g, b;
+                if (i == currCustomBasePolygonPoint_) {
+                    r = 1.0;
+                    g = 1.0;
+                    b = 0.0;
+                } else {
+                    r = 0.0;
+                    g = 0.8;
+                    b = 0.8;
+                }
+                gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 1);
+            }
+        }
     }
 
     // draw lat/lon circles
@@ -237,26 +254,10 @@ void GLWidget::paintGL()
     glShadeModel(GL_SMOOTH);
 
     // draw current surface point
-    {
-        const double
-                r = GfxUtils::instance().getEarthRadius(),
-                x = r * cos(currLat_) * cos(currLon_),
-                y = r * cos(currLat_) * sin(currLon_),
-                z = r * sin(currLat_);
-        const float ballSize = minBallSize_ + ControlPanel::instance().ballSizeFrac() * (maxBallSize_ - minBallSize_);
-        gfx_util.drawSphere(x, y, z, ballSize, 0, 0.8, 0, 0.8, 18, 36, GL_SMOOTH);
-    }
+    gfx_util.drawSurfaceBall(currLon_, currLat_, ballSize(), 0, 0.8, 0, 0.8);
 
-//    // draw mouse point
-//    {
-//        const double
-//                r = GfxUtils::instance().getEarthRadius(),
-//                x = r * cos(mouseLat_) * cos(mouseLon_),
-//                y = r * cos(mouseLat_) * sin(mouseLon_),
-//                z = r * sin(mouseLat_);
-//        const float ballSize = minBallSize_ + ControlPanel::instance().ballSizeFrac() * (maxBallSize_ - minBallSize_);
-//        gfx_util.drawSphere(x, y, z, ballSize, 0.7, 0.6, 0.4, 0.8, 18, 36, GL_SMOOTH);
-//    }
+    // draw mouse point
+//    gfx_util.drawSurfaceBall(mouseLon_, mouseLat_, ballSize(), 0.7, 0.6, 0.4, 0.8);
 
     // --- BEGIN draw filters --------------------------------
 
@@ -475,6 +476,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (!(mouseHitsEarth_ = intersectsEarth(event, mouseLon_, mouseLat_)))
         return;
+
+    currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
 
     if (draggingFilter_) {
         ControlPanel::instance().updateFilterDragging(mouseLon_, mouseLat_);
@@ -698,6 +701,11 @@ void GLWidget::focusOnCurrPos()
     focus_alt_ = 0;
     updateGL();
     emit focusPosChanged();
+}
+
+double GLWidget::ballSize() const
+{
+    return minBallSize_ + ControlPanel::instance().ballSizeFrac() * (maxBallSize_ - minBallSize_);
 }
 
 //void GLWidget::toggleVisMenuItem(int item)

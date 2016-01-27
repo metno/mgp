@@ -2,6 +2,7 @@
 #include "common.h"
 #include "mainwindow.h"
 #include "glwidget.h"
+#include "enor_fir.h"
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -223,6 +224,53 @@ bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, dou
             : (((lon1 < lon2) && (lat1 > lat2)) || ((lon1 > lon2) && (lat1 < lat2)));
 }
 
+BasePolygon::BasePolygon(Type type, const QSharedPointer<QVector<QPair<double, double> > > &points)
+    : type_(type)
+    , points_(points)
+{
+}
+
+static QSharedPointer<QVector<QPair<double, double> > > createENORFIR()
+{
+    QSharedPointer<QVector<QPair<double, double> > > points =
+            QSharedPointer<QVector<QPair<double, double> > >(new QVector<QPair<double, double> >);
+
+    const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
+    for (int i = 0; i < npoints; ++i) {
+        const double lon = (enor_fir[2 * i + 1] / 180) * M_PI;
+        const double lat = (enor_fir[2 * i] / 90) * (M_PI / 2);
+        points->append(qMakePair(lon, lat));
+    }
+    return points;
+}
+
+// ### move these to e.g. util3d.h and use elsewhere ... TBD
+#define LON2RAD(d) ((d) / 180.0) * M_PI
+#define LAT2RAD(d) ((d) / 90.0) * (M_PI / 2)
+#define LON2DEG(r) ((r) / M_PI) * 180
+#define LAT2DEG(r) ((r) / (M_PI / 2)) * 90
+
+BasePolygon *BasePolygon::create(Type type)
+{
+    if (type == None) {
+        return new BasePolygon(None);
+
+    } else if (type == Custom) {
+        QSharedPointer<QVector<QPair<double, double> > > points =
+                QSharedPointer<QVector<QPair<double, double> > >(new QVector<QPair<double, double> >);
+        points->append(qMakePair(LON2RAD(7), LAT2RAD(60)));
+        points->append(qMakePair(LON2RAD(13), LAT2RAD(60)));
+        points->append(qMakePair(LON2RAD(10), LAT2RAD(65)));
+        return new BasePolygon(Custom, points);
+
+    } else if (type == ENOR_FIR) {
+        return new BasePolygon(ENOR_FIR, createENORFIR());
+
+    } else {
+        return new BasePolygon(type); // for now
+    }
+}
+
 ControlPanel &ControlPanel::instance()
 {
     static ControlPanel cp;
@@ -276,14 +324,21 @@ void ControlPanel::initialize()
     mainLayout->addWidget(basePolygonGroupBox);
 
     basePolygonComboBox_ = new QComboBox;
-    basePolygonComboBox_->addItem("Custom", Custom);
-    basePolygonComboBox_->addItem("ENOR FIR", ENOR_FIR);
-    basePolygonComboBox_->addItem("XXXX FIR", XXXX_FIR);
-    basePolygonComboBox_->addItem("YYYY FIR", YYYY_FIR);
-    basePolygonComboBox_->addItem("ZZZZ FIR", ZZZZ_FIR);
+    basePolygonComboBox_->addItem("Custom", BasePolygon::Custom);
+    basePolygonComboBox_->addItem("ENOR FIR", BasePolygon::ENOR_FIR);
+    basePolygonComboBox_->addItem("XXXX FIR", BasePolygon::XXXX_FIR);
+    basePolygonComboBox_->addItem("YYYY FIR", BasePolygon::YYYY_FIR);
+    basePolygonComboBox_->addItem("ZZZZ FIR", BasePolygon::ZZZZ_FIR);
     basePolygonComboBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     connect(basePolygonComboBox_, SIGNAL(currentIndexChanged(int)), SLOT(updateGLWidget()));
     basePolygonLayout->addWidget(basePolygonComboBox_);
+
+    //basePolygons_.insert(BasePolygon::None, BasePolygon::create(BasePolygon::None)); // ### necessary?
+    basePolygons_.insert(BasePolygon::Custom, BasePolygon::create(BasePolygon::Custom));
+    basePolygons_.insert(BasePolygon::ENOR_FIR, BasePolygon::create(BasePolygon::ENOR_FIR));
+    basePolygons_.insert(BasePolygon::XXXX_FIR, BasePolygon::create(BasePolygon::XXXX_FIR));
+    basePolygons_.insert(BasePolygon::YYYY_FIR, BasePolygon::create(BasePolygon::YYYY_FIR));
+    basePolygons_.insert(BasePolygon::ZZZZ_FIR, BasePolygon::create(BasePolygon::ZZZZ_FIR));
 
     // --- END base polygon section -------------------------------------------
 
@@ -425,12 +480,34 @@ void ControlPanel::updateFilterDragging(double lon, double lat)
     }
 }
 
-BasePolygon ControlPanel::currentBasePolygon() const
+BasePolygon::Type ControlPanel::currentBasePolygonType() const
 {
     if (!basePolygonComboBox_)
-        return None;
-    return static_cast<BasePolygon>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
+        return BasePolygon::None;
+    return static_cast<BasePolygon::Type>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
 }
+
+QSharedPointer<QVector<QPair<double, double> > > ControlPanel::currentBasePolygonPoints() const
+{
+    if (!basePolygonComboBox_)
+        return QSharedPointer<QVector<QPair<double, double> > >();
+
+    const BasePolygon::Type currType = static_cast<BasePolygon::Type>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
+    Q_ASSERT(basePolygons_.contains(currType));
+    return basePolygons_.value(currType)->points_;
+}
+
+int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double tolerance)
+{
+    const QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    for (int i = 0; i < points->size(); ++i) {
+        const double dist = Math::distance(LON2DEG(lon), LAT2DEG(lat), LON2DEG(points->at(i).first), LAT2DEG(points->at(i).second));
+        if (dist < tolerance)
+            return i;
+    }
+    return -1;
+}
+
 
 float ControlPanel::ballSizeFrac()
 {
