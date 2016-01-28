@@ -1,9 +1,5 @@
 TODO:
 
-0: Implement adding and deleting points to/from the custom base polygon (pressing Insert or Delete key while
-   hovering an existing point, for example. Insert will insert a point between the current and the next point,
-   while Delete will delete the current point unless there is only three points left).
-
 1: If two neighbour points of a base polygon are located too far apart, the line between them will cut the earth
    surface and should instead be rendered as a polyline following the great circle.
 
