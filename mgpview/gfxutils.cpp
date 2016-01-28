@@ -146,15 +146,34 @@ void GfxUtils::drawSurfacePolygon(const QSharedPointer<QVector<QPair<double, dou
     glLineWidth(2.0); // for now
 
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
+    const double scale = raise_fact * earth_radius_;
 
     Q_ASSERT(points);
 
+    double prevDist = -1;
     glBegin(GL_LINE_LOOP);
+    // loop over base points
     for (int i = 0; i < points->size(); ++i) {
         double x, y, z;
         const double lon = points->at(i).first;
         const double lat = points->at(i).second;
-        Math::sphericalToCartesian(raise_fact * earth_radius_, lat, lon, x, y, z);
+
+        // for a smoother curve (and to prevent it from intersecting the earth surface!),
+        // draw extra points between this base point and the previous base point
+        const int prevIndex = (i - 1 + points->size()) % points->size();
+        const double lon0 = points->at(prevIndex).first;
+        const double lat0 = points->at(prevIndex).second;
+        const double maxDist = 0.01 * 2 * M_PI; // for now
+        const double dist = Math::distance(LON2DEG(lon), LAT2DEG(lat), LON2DEG(lon0), LAT2DEG(lat0));
+        if (dist > maxDist) {
+            const int nSegments = static_cast<int>(ceil(dist / maxDist));
+            const QVector<_3DPoint> extraPoints = Math::getGreatCirclePoints(lon0, lat0, lon, lat, nSegments);
+            for (int j = 1; j < (extraPoints.size() - 1); ++j)
+                glVertex3d(scale * extraPoints.at(j).x(), scale * extraPoints.at(j).y(), scale * extraPoints.at(j).z());
+        }
+
+        // draw base point
+        Math::sphericalToCartesian(scale, lat, lon, x, y, z);
         glVertex3d(x, y, z);
     }
     glEnd();
@@ -414,29 +433,23 @@ void GfxUtils::drawGreatCircleSegment(
         _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color, float lineWidth)
 {
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
+    const double scale = raise_fact * earth_radius_;
     const float r = color.redF();
     const float g = color.greenF();
     const float b = color.blueF();
 
     glColor3f(r, g, b);
     glLineWidth(lineWidth);
-    glBegin(GL_LINE_STRIP);
     const int res = 64;
-    const double lon1 = (line.p1().x() / 180) * M_PI;
-    const double lat1 = (line.p1().y() / 90) * (M_PI / 2);
-    const double lon2 = (line.p2().x() / 180) * M_PI;
-    const double lat2 = (line.p2().y() / 90) * (M_PI / 2);
-    for (int i = 0; i < res; ++i) {
-        const double t = i / double(res - 1);
-        const double d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2));
-        const double A = sin((1 - t) * d) / sin(d);
-        const double B = sin(t * d) / sin(d);
-        const double x = A * cos(lat1) * cos(lon1) + B * cos(lat2) * cos(lon2);
-        const double y = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
-        const double z = A * sin(lat1) + B * sin(lat2);
-        const double scale = raise_fact * earth_radius_;
-        glVertex3d(scale * x, scale * y, scale * z);
-    }
+    const double lon1 = LON2RAD(line.p1().x());
+    const double lat1 = LAT2RAD(line.p1().y());
+    const double lon2 = LON2RAD(line.p2().x());
+    const double lat2 = LAT2RAD(line.p2().y());
+    const QVector<_3DPoint> points = Math::getGreatCirclePoints(lon1, lat1, lon2, lat2, res + 1);
+
+    glBegin(GL_LINE_STRIP);
+    for (int i = 0; i < points.size(); ++i)
+        glVertex3d(scale * points.at(i).x(), scale * points.at(i).y(), scale * points.at(i).z());
     glEnd();
 }
 

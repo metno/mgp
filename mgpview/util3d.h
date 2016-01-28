@@ -3,7 +3,8 @@
 
 //#include <MeCommon.h>
 #include <math.h>
-
+#include <QVector>
+#include <QPair>
 
 class _4x4Matrix
 {
@@ -70,6 +71,28 @@ private:
     double c_[4];
 };
 
+class _3DPoint
+{
+public:
+    _3DPoint();
+    _3DPoint(const _3DPoint&);
+    _3DPoint(double x, double y, double z);
+    void setPoint(double x, double y, double z)
+    {c_[0] = x; c_[1] = y; c_[2] = z;}
+    void setPoint(double* c) {c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2];}
+    double* getPoint() {return c_;}
+    double x() const {return c_[0];}
+    double y() const {return c_[1];}
+    double z() const {return c_[2];}
+    void print(char lead[]) const;
+private:
+    double c_[3];
+};
+
+#define LON2RAD(d) ((d) / 180.0) * M_PI
+#define LAT2RAD(d) ((d) / 90.0) * (M_PI / 2)
+#define LON2DEG(r) ((r) / M_PI) * 180
+#define LAT2DEG(r) ((r) / (M_PI / 2)) * 90
 
 class Math
 {
@@ -89,6 +112,7 @@ public:
     static double min(double a, double b) {return a < b ? a : b;}
     static double max(double a, double b) {return a > b ? a : b;}
     static double distance(double lon1, double lat1, double lon2, double lat2);
+    static QVector<_3DPoint> getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments);
 
     // OBSOLETE:
     static double* sphericalToCartesian(
@@ -113,25 +137,6 @@ public:
 	double lat, double lon, double eye_x, double eye_y, double eye_z);
     static double computeRotationTowardsEye(
 	double x, double y, double z, double eye_x, double eye_y, double eye_z);
-};
-
-
-class _3DPoint
-{
-public:
-    _3DPoint();
-    _3DPoint(const _3DPoint&);
-    _3DPoint(double x, double y, double z);
-    void setPoint(double x, double y, double z)
-    {c_[0] = x; c_[1] = y; c_[2] = z;}
-    void setPoint(double* c) {c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2];}
-    double* getPoint() {return c_;}
-    double x() const {return c_[0];}
-    double y() const {return c_[1];}
-    double z() const {return c_[2];}
-    void print(char lead[]) const;
-private:
-    double c_[3];
 };
 
 

@@ -66,6 +66,24 @@ double Math::distance(double lon1, double lat1, double lon2, double lat2)
     return 2 * atan2(sqrt(a), sqrt(1 - a));
 }
 
+QVector<_3DPoint> Math::getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments)
+{
+    QVector<_3DPoint> points;
+
+    for (int i = 0; i <= nSegments; ++i) {
+        const double t = i / double(nSegments);
+        const double d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2));
+        const double A = sin((1 - t) * d) / sin(d);
+        const double B = sin(t * d) / sin(d);
+        const double x = A * cos(lat1) * cos(lon1) + B * cos(lat2) * cos(lon2);
+        const double y = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
+        const double z = A * sin(lat1) + B * sin(lat2);
+        points.append(_3DPoint(x, y, z));
+    }
+
+    return points;
+}
+
 double*
 Math::sphericalToCartesian(double radius, double phi, double theta)
 {

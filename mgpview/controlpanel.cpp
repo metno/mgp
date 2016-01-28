@@ -244,12 +244,6 @@ static QSharedPointer<QVector<QPair<double, double> > > createENORFIR()
     return points;
 }
 
-// ### move these to e.g. util3d.h and use elsewhere ... TBD
-#define LON2RAD(d) ((d) / 180.0) * M_PI
-#define LAT2RAD(d) ((d) / 90.0) * (M_PI / 2)
-#define LON2DEG(r) ((r) / M_PI) * 180
-#define LAT2DEG(r) ((r) / (M_PI / 2)) * 90
-
 BasePolygon *BasePolygon::create(Type type)
 {
     if (type == None) {
