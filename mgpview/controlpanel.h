@@ -111,6 +111,8 @@ public:
     int currentCustomBasePolygonPoint(double, double, double);
     bool customBasePolygonEditableOnSphere() const;
     void updateCustomBasePolygonPointDragging(int, double, double);
+    void addPointToCustomBasePolygon(int);
+    void removePointFromCustomBasePolygon(int);
 
     float ballSizeFrac();
 

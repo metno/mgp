@@ -1,6 +1,7 @@
 #include "glwidget.h"
 #include "util3d.h"
 #include "gfxutils.h"
+#include "mainwindow.h"
 #include "common.h"
 //#include <qstring.h>
 //#include <qcursor.h>
@@ -8,6 +9,8 @@
 #include <GL/glut.h>
 #include <QMenu>
 #include <QAction>
+#include <QMouseEvent>
+#include <QKeyEvent>
 #include <QDoubleSpinBox>
 #include <QDialog>
 #include <QFormLayout>
@@ -92,6 +95,12 @@ GLWidget::GLWidget(QWidget *parent)
 
     focusOnCurrPosAction_ = new QAction("Focus on current pos", 0);
     connect(focusOnCurrPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
+
+    addCustomBasePolygonPointAction_ = new QAction("Add point", 0);
+    connect(addCustomBasePolygonPointAction_, SIGNAL(triggered()), SLOT(addCustomBasePolygonPoint()));
+
+    removeCustomBasePolygonPointAction_ = new QAction("Remove point", 0);
+    connect(removeCustomBasePolygonPointAction_, SIGNAL(triggered()), SLOT(removeCustomBasePolygonPoint()));
 
     focusOnCurrPos();
 
@@ -433,10 +442,19 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::RightButton) {
         QMenu contextMenu;
-        contextMenu.addAction(setCurrPosFromDialogAction_);
-        contextMenu.addAction(setCurrPosToThisPosAction_);
-        contextMenu.addAction(focusOnThisPosAction_);
-        contextMenu.addAction(focusOnCurrPosAction_);
+        if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom)
+                && ControlPanel::instance().customBasePolygonEditableOnSphere()
+                && (currCustomBasePolygonPoint_ >= 0)) {
+            contextMenu.addAction(addCustomBasePolygonPointAction_);
+            contextMenu.addAction(removeCustomBasePolygonPointAction_);
+            removeCustomBasePolygonPointAction_->setEnabled(ControlPanel::instance().currentBasePolygonPoints()->size() > 3);
+        } else {
+            contextMenu.addAction(setCurrPosFromDialogAction_);
+            contextMenu.addAction(setCurrPosToThisPosAction_);
+            contextMenu.addAction(focusOnThisPosAction_);
+            contextMenu.addAction(focusOnCurrPosAction_);
+        }
+
         contextMenu.exec(QCursor::pos());
 
     } else if (mouseHitsEarth_) {
@@ -485,8 +503,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     if (!(mouseHitsEarth_ = intersectsEarth(event, mouseLon_, mouseLat_)))
         return;
 
-    if (!draggingCustomBasePolygonPoint_)
-        currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
+    updateCurrCustomBasePolygonPoint();
 
     if (draggingFilter_) {
         ControlPanel::instance().updateFilterDragging(mouseLon_, mouseLat_);
@@ -532,9 +549,32 @@ void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
     }
 }
 
+void GLWidget::keyPressEvent(QKeyEvent *event)
+{
+    MainWindow::instance().handleKeyPressEvent(event);
+    if (currCustomBasePolygonPoint_ >= 0) {
+        if (event->key() == Qt::Key_Insert)
+            addCustomBasePolygonPoint();
+        else if (event->key() == Qt::Key_Delete)
+            removeCustomBasePolygonPoint();
+    }
+}
+
 void GLWidget::enterEvent(QEvent *)
 {
     updateGL();
+}
+
+void GLWidget::addCustomBasePolygonPoint()
+{
+    Q_ASSERT(currCustomBasePolygonPoint_ >= 0);
+    ControlPanel::instance().addPointToCustomBasePolygon(currCustomBasePolygonPoint_);
+}
+
+void GLWidget::removeCustomBasePolygonPoint()
+{
+    Q_ASSERT(currCustomBasePolygonPoint_ >= 0);
+    ControlPanel::instance().removePointFromCustomBasePolygon(currCustomBasePolygonPoint_);
 }
 
 CartesianKeyFrame GLWidget::computeCamera()
@@ -623,6 +663,11 @@ QPair<double, double> GLWidget::currentFocusPos() const
     return qMakePair(focusLon_, focusLat_);
 }
 
+void GLWidget::updateCurrCustomBasePolygonPoint()
+{
+    if (!draggingCustomBasePolygonPoint_)
+        currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
+}
 
 void GLWidget::setHeading(double heading)
 {

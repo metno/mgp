@@ -534,6 +534,34 @@ void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, d
     updateGLWidget();
 }
 
+void ControlPanel::addPointToCustomBasePolygon(int index)
+{
+    QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    Q_ASSERT((index >= 0) && (index < points->size()));
+
+    const double lon1 = points->at(index).first;
+    const double lat1 = points->at(index).second;
+    const int index2 = (index - 1 + points->size()) % points->size();
+    const double lon2 = points->at(index2).first;
+    const double lat2 = points->at(index2).second;
+    points->insert(index, qMakePair(0.5 * (lon1 + lon2), 0.5 * (lat1 + lat2)));
+    MainWindow::instance().glWidget()->updateCurrCustomBasePolygonPoint();
+    updateGLWidget();
+}
+
+void ControlPanel::removePointFromCustomBasePolygon(int index)
+{
+    QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    Q_ASSERT((index >= 0) && (index < points->size()));
+
+    if (points->size() <= 3)
+        return; // we need to have at least a triangle!
+
+    points->remove(index);
+    MainWindow::instance().glWidget()->updateCurrCustomBasePolygonPoint();
+    updateGLWidget();
+}
+
 float ControlPanel::ballSizeFrac()
 {
     return bsSlider_ ? (float(bsSlider_->value() - bsSlider_->minimum()) / (bsSlider_->maximum() - bsSlider_->minimum())) : 0.0;

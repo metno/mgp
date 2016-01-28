@@ -5,11 +5,12 @@
 #include "controlpanel.h"
 #include <QGLWidget>
 #include <QPair>
-#include <QMouseEvent>
 #include <QLineF>
 #include <QVariant>
 #include <QHash>
 
+class QMouseEvent;
+class QKeyEvent;
 class QAction;
 
 struct LonOrLatFilterInfo {
@@ -40,6 +41,8 @@ public:
     void setCurrentFocusPos(double, double);
     QPair<double, double> currentFocusPos() const;
 
+    void updateCurrCustomBasePolygonPoint();
+
     /** Sets the normalized heading value, clamping to range [0, 1]. */
     void setHeading(double heading);
 
@@ -58,12 +61,8 @@ private:
     virtual void mouseReleaseEvent(QMouseEvent *);
     virtual void mouseMoveEvent(QMouseEvent *);
     virtual void mouseDoubleClickEvent(QMouseEvent *);
-
-    void enterEvent(QEvent *);
-/*
-    void keyPressEvent(QKeyEvent*);
-    void keyReleaseEvent(QKeyEvent*);
-*/
+    virtual void keyPressEvent(QKeyEvent *);
+    virtual void enterEvent(QEvent *);
 
     /** Computes the camera from the current focus, dolly, heading, and
      * inclination.
@@ -135,6 +134,8 @@ private:
     QAction *setCurrPosToThisPosAction_;
     QAction *focusOnThisPosAction_;
     QAction *focusOnCurrPosAction_;
+    QAction *addCustomBasePolygonPointAction_;
+    QAction *removeCustomBasePolygonPointAction_;
 
     float minBallSize_;
     float maxBallSize_;
@@ -153,6 +154,8 @@ private slots:
     void setCurrPosToThisPos();
     void focusOnThisPos();
     void focusOnCurrPos();
+    void addCustomBasePolygonPoint();
+    void removeCustomBasePolygonPoint();
 
 //    void toggleLabels();
 //    void toggleCameraIndicator();
