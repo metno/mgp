@@ -307,7 +307,7 @@ void ControlPanel::initialize()
     QHBoxLayout *bsLayout = new QHBoxLayout;
     bsLayout->addWidget(new QLabel("Ball size:"));
     bsSlider_ = new QSlider(Qt::Horizontal);
-    bsSlider_->setValue(bsSlider_->minimum() + 0.2 * (bsSlider_->maximum() - bsSlider_->minimum()));
+    bsSlider_->setValue(bsSlider_->minimum() + 0.5 * (bsSlider_->maximum() - bsSlider_->minimum()));
     connect(bsSlider_, SIGNAL(valueChanged(int)), SLOT(updateGLWidget()));
     bsLayout->addWidget(bsSlider_);
     generalLayout->addLayout(bsLayout);

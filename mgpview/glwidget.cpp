@@ -56,7 +56,7 @@ GLWidget::GLWidget(QWidget *parent)
     , draggingCustomBasePolygonPoint_(false)
     , draggingFocus_(false)
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
-    , maxBallSize_(0.05 * GfxUtils::getEarthRadius())
+    , maxBallSize_(0.01 * GfxUtils::getEarthRadius())
     , currCustomBasePolygonPoint_(-1)
 {
     // --- BEGIN initialize filter infos -------------------
