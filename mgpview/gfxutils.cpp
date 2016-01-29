@@ -164,7 +164,7 @@ void GfxUtils::drawSurfacePolygon(const QSharedPointer<QVector<QPair<double, dou
         const double lon0 = points->at(prevIndex).first;
         const double lat0 = points->at(prevIndex).second;
         const double maxDist = 0.01 * 2 * M_PI; // for now
-        const double dist = Math::distance(LON2DEG(lon), LAT2DEG(lat), LON2DEG(lon0), LAT2DEG(lat0));
+        const double dist = Math::distance(RAD2DEG(lon), RAD2DEG(lat), RAD2DEG(lon0), RAD2DEG(lat0));
         if (dist > maxDist) {
             const int nSegments = static_cast<int>(ceil(dist / maxDist));
             const QVector<_3DPoint> extraPoints = Math::getGreatCirclePoints(lon0, lat0, lon, lat, nSegments);
@@ -441,10 +441,10 @@ void GfxUtils::drawGreatCircleSegment(
     glColor3f(r, g, b);
     glLineWidth(lineWidth);
     const int res = 64;
-    const double lon1 = LON2RAD(line.p1().x());
-    const double lat1 = LAT2RAD(line.p1().y());
-    const double lon2 = LON2RAD(line.p2().x());
-    const double lat2 = LAT2RAD(line.p2().y());
+    const double lon1 = DEG2RAD(line.p1().x());
+    const double lat1 = DEG2RAD(line.p1().y());
+    const double lon2 = DEG2RAD(line.p2().x());
+    const double lat2 = DEG2RAD(line.p2().y());
     const QVector<_3DPoint> points = Math::getGreatCirclePoints(lon1, lat1, lon2, lat2, res + 1);
 
     glBegin(GL_LINE_STRIP);

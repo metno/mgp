@@ -252,9 +252,9 @@ BasePolygon *BasePolygon::create(Type type)
     } else if (type == Custom) {
         QSharedPointer<QVector<QPair<double, double> > > points =
                 QSharedPointer<QVector<QPair<double, double> > >(new QVector<QPair<double, double> >);
-        points->append(qMakePair(LON2RAD(7), LAT2RAD(60)));
-        points->append(qMakePair(LON2RAD(13), LAT2RAD(60)));
-        points->append(qMakePair(LON2RAD(10), LAT2RAD(65)));
+        points->append(qMakePair(DEG2RAD(7), DEG2RAD(60)));
+        points->append(qMakePair(DEG2RAD(13), DEG2RAD(60)));
+        points->append(qMakePair(DEG2RAD(10), DEG2RAD(65)));
         return new BasePolygon(Custom, points);
 
     } else if (type == ENOR_FIR) {
@@ -508,7 +508,7 @@ int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double t
 
     const QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
     for (int i = 0; i < points->size(); ++i) {
-        const double dist = Math::distance(LON2DEG(lon), LAT2DEG(lat), LON2DEG(points->at(i).first), LAT2DEG(points->at(i).second));
+        const double dist = Math::distance(RAD2DEG(lon), RAD2DEG(lat), RAD2DEG(points->at(i).first), RAD2DEG(points->at(i).second));
         if (dist < tolerance)
             return i;
     }
