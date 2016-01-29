@@ -160,6 +160,10 @@ void GLWidget::paintGL()
                     r = 1.0;
                     g = 1.0;
                     b = 0.0;
+                } else if (ControlPanel::instance().rejectedByCurrentFilter(points->at(i).first, points->at(i).second)) {
+                    r = 0.8;
+                    g = 0.0;
+                    b = 0.0;
                 } else {
                     r = 0.0;
                     g = 0.8;
@@ -227,7 +231,7 @@ void GLWidget::paintGL()
     {
         if (mouseHitsEarth_) {
             QString s;
-            s.sprintf("lon = %.3f, lat = %.3f", (mouseLon_ / M_PI) * 180, (mouseLat_ / M_PI) * 180);
+            s.sprintf("lon = %.3f, lat = %.3f", RAD2DEG(mouseLon_), RAD2DEG(mouseLat_));
             gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
         }
     }

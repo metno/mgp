@@ -100,6 +100,10 @@ public:
     static double distance(double lon1, double lat1, double lon2, double lat2);
     static QVector<_3DPoint> getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments);
 
+    static double distanceBetween(double lon0, double lat0, double lon1, double lat1, double radius = 1.0);
+    static double bearingBetween(double lon0, double lat0, double lon1, double lat1);
+    static double crossTrackDistanceToGreatCircle(double lon0, double lat0, double lon1, double lat1, double lon2, double lat2, double radius = 1.0);
+
     static double *sphericalToCartesian(double radius, double phi, double theta);
     static void sphericalToCartesian(double radius, double phi, double theta, double &x, double &y,	double &z);
     static void cartesianToSpherical(double x, double y, double z, double &phi, double &theta);

@@ -79,6 +79,71 @@ QVector<_3DPoint> Math::getGreatCirclePoints(double lon1, double lat1, double lo
     return points;
 }
 
+/**
+ * Returns the distance along the great circle from one point to another (using haversine formula).
+ *
+ * @param   lon0, lat0 - Source point.
+ * @param   lon1, lat1 - Destination point.
+ * @param   radius - Sphere radius.
+ * @returns Distance between the source and destination point, in same units as radius.
+ */
+double Math::distanceBetween(double lon0, double lat0, double lon1, double lat1, double radius)
+{
+    const double phi_1 = DEG2RAD(lat0);
+    const double lambda_1 = DEG2RAD(lon0);
+    const double phi_2 = DEG2RAD(lat1);
+    const double lambda_2 = DEG2RAD(lon1);
+    const double delta_phi = phi_2 - phi_1;
+    const double delta_lambda = lambda_2 - lambda_1;
+
+    const double a =
+            sin(delta_phi / 2) * sin(delta_phi / 2) +
+            cos(phi_1) * cos(phi_2) *
+            sin(delta_lambda / 2) * sin(delta_lambda / 2);
+    const double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return radius * c;
+};
+
+/**
+ * Returns the (initial) bearing from one point to another.
+ *
+ * @param   lon0, lat0 - Source point.
+ * @param   lon1, lat1 - Destination point.
+ * @returns Initial bearing in degrees from north.
+ */
+double Math::bearingBetween(double lon0, double lat0, double lon1, double lat1)
+{
+    const double phi_1 = DEG2RAD(lat0);
+    const double phi_2 = DEG2RAD(lat1);
+    const double delta_lambda = DEG2RAD(lon1 - lon0);
+
+    // see http://mathforum.org/library/drmath/view/55417.html
+    const double y = sin(delta_lambda) * cos(phi_2);
+    const double x = cos(phi_1) * sin(phi_2) - sin(phi_1) * cos(phi_2) * cos(delta_lambda);
+    const double theta = atan2(y, x);
+
+    return fmod((RAD2DEG(theta) + 360), 360);
+};
+
+/**
+ * Returns (signed) distance from a point to a great circle.
+ *
+ * @param   lon0, lat0 - Source point.
+ * @param   lon1, lat1 - Start point of great circle path.
+ * @param   lon2, lat2 - End point of great circle path.
+ * @param   radius - Sphere radius.
+ * @returns Distance to great circle (< 0 if to left, > 0 if to right of path).
+ */
+double Math::crossTrackDistanceToGreatCircle(double lon0, double lat0, double lon1, double lat1, double lon2, double lat2, double radius)
+{
+    const double delta_13 = distanceBetween(lon1, lat1, lon0, lat0, radius) / radius;
+    const double theta_13 = DEG2RAD(bearingBetween(lon1, lat1, lon0, lat0));
+    const double theta_12 = DEG2RAD(bearingBetween(lon1, lat1, lon2, lat2));
+
+    return asin(sin(delta_13) * sin(theta_13 - theta_12)) * radius;
+}
+
 double * Math::sphericalToCartesian(double radius, double phi, double theta)
 {
     static double c[3];

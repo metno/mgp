@@ -31,6 +31,7 @@ protected:
     virtual bool startDragging(double, double) = 0;
     virtual void updateDragging(double, double) = 0;
     virtual bool isValid() const = 0;
+    virtual bool rejected(double, double) const = 0;
     Type type_;
     QCheckBox *enabledCheckBox_;
     QCheckBox *currCheckBox_;
@@ -49,6 +50,7 @@ class LonOrLatFilter : public Filter
     virtual bool startDragging(double, double);
     virtual void updateDragging(double, double);
     virtual bool isValid() const;
+    virtual bool rejected(double, double) const;
 
     QDoubleSpinBox *valSpinBox_;
 };
@@ -63,6 +65,7 @@ class FreeLineFilter : public Filter {
     virtual bool startDragging(double, double);
     virtual void updateDragging(double, double);
     virtual bool isValid() const;
+    virtual bool rejected(double, double) const;
 
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
@@ -101,6 +104,7 @@ public:
     bool isCurrent(Filter::Type) const;
     bool isValid(Filter::Type) const;
     QVariant value(Filter::Type) const;
+    bool rejectedByCurrentFilter(double, double) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
     bool startFilterDragging(double, double) const;
@@ -127,6 +131,7 @@ private:
 
     QCheckBox *filtersEditableOnSphereCheckBox_;
     QHash<Filter::Type, Filter *> filters_;
+    Filter *currentFilter() const;
 
 private slots:
     void close();

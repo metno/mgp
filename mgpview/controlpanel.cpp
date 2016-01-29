@@ -89,8 +89,8 @@ QVariant LonOrLatFilter::value() const
 
 bool LonOrLatFilter::startDragging(double lon_, double lat_)
 {
-    const double lon = (lon_ / M_PI) * 180;
-    const double lat = (lat_ / (M_PI / 2)) * 90;
+    const double lon = RAD2DEG(lon_);
+    const double lat = RAD2DEG(lat_);
 
     const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
     valSpinBox_->setValue(val);
@@ -103,8 +103,8 @@ void LonOrLatFilter::updateDragging(double lon_, double lat_)
 {
     Q_ASSERT(dragged_);
 
-    const double lon = (lon_ / M_PI) * 180;
-    const double lat = (lat_ / (M_PI / 2)) * 90;
+    const double lon = RAD2DEG(lon_);
+    const double lat = RAD2DEG(lat_);
 
     const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
     valSpinBox_->setValue(val);
@@ -113,6 +113,23 @@ void LonOrLatFilter::updateDragging(double lon_, double lat_)
 bool LonOrLatFilter::isValid() const
 {
     return true; // ensured by the QSpinBox
+}
+
+bool LonOrLatFilter::rejected(double lon_, double lat_) const
+{
+    const double lon = RAD2DEG(lon_);
+    const double lat = RAD2DEG(lat_);
+    const double val = valSpinBox_->value();
+
+    switch (type_) {
+    case E_OF: return lon < val;
+    case W_OF: return lon > val;
+    case N_OF: return lat < val;
+    case S_OF: return lat > val;
+    default: return true;
+    }
+
+    return true;
 }
 
 FreeLineFilter::FreeLineFilter(
@@ -183,10 +200,31 @@ QVariant FreeLineFilter::value() const
     return QLineF(QPointF(lon1SpinBox_->value(), lat1SpinBox_->value()), QPointF(lon2SpinBox_->value(), lat2SpinBox_->value()));
 }
 
+bool FreeLineFilter::rejected(double lon, double lat) const
+{
+    const double lon0 = RAD2DEG(lon);
+    const double lat0 = RAD2DEG(lat);
+    const double lon1 = lon1SpinBox_->value();
+    const double lat1 = lat1SpinBox_->value();
+    const double lon2 = lon2SpinBox_->value();
+    const double lat2 = lat2SpinBox_->value();
+    const double crossDist = Math::crossTrackDistanceToGreatCircle(lon0, lat0, lon1, lat1, lon2, lat2);
+
+    switch (type_) {
+    case NE_OF: return crossDist > 0;
+    case NW_OF: return crossDist > 0;
+    case SE_OF: return crossDist < 0;
+    case SW_OF: return crossDist > 0;
+    default: return true;
+    }
+
+    return true;
+}
+
 bool FreeLineFilter::startDragging(double lon_, double lat_)
 {
-    const double lon = (lon_ / M_PI) * 180;
-    const double lat = (lat_ / (M_PI / 2)) * 90;
+    const double lon = RAD2DEG(lon_);
+    const double lat = RAD2DEG(lat_);
     const double dist1 = Math::distance(lon, lat, lon1SpinBox_->value(), lat1SpinBox_->value());
     const double dist2 = Math::distance(lon, lat, lon2SpinBox_->value(), lat2SpinBox_->value());
 
@@ -200,8 +238,8 @@ void FreeLineFilter::updateDragging(double lon_, double lat_)
 {
     Q_ASSERT(dragged_);
 
-    const double lon = (lon_ / M_PI) * 180;
-    const double lat = (lat_ / (M_PI / 2)) * 90;
+    const double lon = RAD2DEG(lon_);
+    const double lat = RAD2DEG(lat_);
 
     if (firstEndpointDragged_) {
         lon1SpinBox_->setValue(lon);
@@ -237,8 +275,8 @@ static QSharedPointer<QVector<QPair<double, double> > > createENORFIR()
 
     const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
     for (int i = 0; i < npoints; ++i) {
-        const double lon = (enor_fir[2 * i + 1] / 180) * M_PI;
-        const double lat = (enor_fir[2 * i] / 90) * (M_PI / 2);
+        const double lon = DEG2RAD(enor_fir[2 * i + 1]);
+        const double lat = DEG2RAD(enor_fir[2 * i]);
         points->append(qMakePair(lon, lat));
     }
     return points;
@@ -443,6 +481,11 @@ QVariant ControlPanel::value(Filter::Type type) const
     return filters_.value(type)->value();
 }
 
+bool ControlPanel::rejectedByCurrentFilter(double lon, double lat) const
+{
+    return currentFilter()->rejected(lon, lat);
+}
+
 bool ControlPanel::filtersEditableOnSphere() const
 {
     return filtersEditableOnSphereCheckBox_->isChecked();
@@ -559,6 +602,15 @@ void ControlPanel::removePointFromCustomBasePolygon(int index)
 float ControlPanel::ballSizeFrac()
 {
     return bsSlider_ ? (float(bsSlider_->value() - bsSlider_->minimum()) / (bsSlider_->maximum() - bsSlider_->minimum())) : 0.0;
+}
+
+Filter *ControlPanel::currentFilter() const
+{
+    foreach (Filter *filter, filters_)
+        if (filter->currCheckBox_->isChecked())
+            return filter;
+    Q_ASSERT(false);
+    return 0;
 }
 
 void ControlPanel::close()
