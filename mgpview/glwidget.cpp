@@ -225,17 +225,18 @@ void GLWidget::paintGL()
 
     // show mouse position
     {
-        QString s;
-        s.sprintf("mouse: lon = %.3f, lat = %.3f", (mouseLon_ / M_PI) * 180, (mouseLat_ / M_PI) * 180);
-        gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
+        if (mouseHitsEarth_) {
+            QString s;
+            s.sprintf("lon = %.3f, lat = %.3f", (mouseLon_ / M_PI) * 180, (mouseLat_ / M_PI) * 180);
+            gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
+        }
     }
 
     // show test label
-    gfx_util.drawBottomString("test...", width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
+    //gfx_util.drawBottomString("test...", width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
 
     glFlush();
 }
-
 
 void GLWidget::computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray)
 {
@@ -329,8 +330,10 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *)
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!(mouseHitsEarth_ = intersectsEarth(event, mouseLon_, mouseLat_)))
+    if (!(mouseHitsEarth_ = intersectsEarth(event, mouseLon_, mouseLat_))) {
+        updateGL();
         return;
+    }
 
     updateCurrCustomBasePolygonPoint();
 
@@ -361,7 +364,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
         setCurrentFocusPos(newLon, newLat);
         emit focusPosChanged();
-
     }
 
     updateGL();
@@ -380,6 +382,12 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
 
 void GLWidget::enterEvent(QEvent *)
 {
+    updateGL();
+}
+
+void GLWidget::leaveEvent(QEvent *)
+{
+    mouseHitsEarth_ = false;
     updateGL();
 }
 

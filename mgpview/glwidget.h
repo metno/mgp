@@ -52,6 +52,7 @@ private:
     virtual void mouseMoveEvent(QMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
     virtual void enterEvent(QEvent *);
+    virtual void leaveEvent(QEvent *);
 
     // Computes the camera from the current focus, dolly, heading, and inclination.
     CartesianKeyFrame computeCamera();
