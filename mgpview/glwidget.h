@@ -68,11 +68,6 @@ private:
     double currLon_; // [-PI/2, PI/2]
     double currLat_; // [-PI, PI]
 
-    int isctKf_, removeItem_, insertBeforeItem_, insertAfterItem_,
-    explicitFocusItem_, gravityFocusItem_, currentKfFocusItem_,
-    drawKfLabelsItem_, drawCameraItem_, drawFocusPointItem_,
-    drawFocusPointLabelItem_;
-
     // current focus position
     double focusLon_;
     double focusLat_;
