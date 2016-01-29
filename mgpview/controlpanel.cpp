@@ -17,6 +17,7 @@
 #include <QTextEdit>
 #include <QComboBox>
 #include <QSlider>
+#include <algorithm>
 
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : type_(type)
@@ -204,10 +205,17 @@ bool FreeLineFilter::rejected(double lon, double lat) const
 {
     const double lon0 = RAD2DEG(lon);
     const double lat0 = RAD2DEG(lat);
-    const double lon1 = lon1SpinBox_->value();
-    const double lat1 = lat1SpinBox_->value();
-    const double lon2 = lon2SpinBox_->value();
-    const double lat2 = lat2SpinBox_->value();
+    double lon1 = lon1SpinBox_->value();
+    double lat1 = lat1SpinBox_->value();
+    double lon2 = lon2SpinBox_->value();
+    double lat2 = lat2SpinBox_->value();
+    if (
+            (((type_ == NE_OF) || (type_ == NW_OF)) && (lon1 > lon2)) ||
+            (((type_ == SE_OF) || (type_ == SW_OF)) && (lat1 > lat2))) {
+        std::swap(lon1, lon2);
+        std::swap(lat1, lat2);
+    }
+
     const double crossDist = Math::crossTrackDistanceToGreatCircle(lon0, lat0, lon1, lat1, lon2, lat2);
 
     switch (type_) {
