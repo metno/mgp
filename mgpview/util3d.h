@@ -24,18 +24,6 @@ public:
     void loadRotateX(double theta);
     void loadRotateY(double theta);
     void loadRotateZ(double theta);
-    /**
-     * Rotates around an arbitrary axis.
-     * @exception MathError The axis norm is too small.
-     */
-    void loadRotateXYZ(double theta, double x, double y, double z);
-    /**
-     * Rotates y- and x- unit axes into the specified target and up vector
-     * respectively.
-     */
-    void loadRotateTgtUp(
-	double tgt_x, double tgt_y, double tgt_z,
-	double  up_x, double  up_y, double  up_z);
 
     void loadTranslate(double x, double y, double z);
 
@@ -106,37 +94,24 @@ public:
 	{return sqrt(x * x + y * y + z * z);}
     static double norm(double x[3])
 	{return sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);}
-    static void normalize(double& x, double& y);
-    static void normalize(double& x, double& y, double& z);
+    static void normalize(double &x, double &y);
+    static void normalize(double &x, double &y, double &z);
     static double angle(double x, double y);
     static double min(double a, double b) {return a < b ? a : b;}
     static double max(double a, double b) {return a > b ? a : b;}
     static double distance(double lon1, double lat1, double lon2, double lat2);
     static QVector<_3DPoint> getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments);
 
-    // OBSOLETE:
-    static double* sphericalToCartesian(
-	double radius, double phi, double theta);
-    static void cartesianToSpherical(
-	double x, double y, double z, double& phi, double& theta);
+    static double *sphericalToCartesian(double radius, double phi, double theta);
+    static void sphericalToCartesian(double radius, double phi, double theta, double &x, double &y,	double &z);
+    static void cartesianToSpherical(double x, double y, double z, double &phi, double &theta);
     static void computeCamera(
-	double radius, double phi_eye, double theta_eye, double alt_eye,
-	double phi_tgt, double theta_tgt, double alpha, _4DPoint& eye,
-	_4DPoint& tgt_alpha, _4DPoint& up);
-
-    static void sphericalToCartesian(
-	double radius, double phi, double theta, double& x, double& y,
-	double& z);
+            double radius, double phi_eye, double theta_eye, double alt_eye, double phi_tgt, double theta_tgt, double alpha,
+            _4DPoint &eye, _4DPoint &tgt_alpha, _4DPoint &up);
     static bool raySphereIntersect(
 	double px, double py, double pz, double rx, double ry, double rz,
-	double cx, double cy, double cz, double r, double& x, double& y,
-	double& z);
-    static void computeLatLon(
-	double x, double y, double z, double& lat, double& lon);
-    static double computeRotationTowardsEye(
-	double lat, double lon, double eye_x, double eye_y, double eye_z);
-    static double computeRotationTowardsEye(
-	double x, double y, double z, double eye_x, double eye_y, double eye_z);
+    double cx, double cy, double cz, double r, double &x, double &y, double &z);
+    static void computeLatLon(double x, double y, double z, double &lat, double &lon);
 };
 
 

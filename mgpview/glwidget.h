@@ -31,10 +31,10 @@ Q_OBJECT
 public:
     GLWidget(QWidget *parent = 0);
 
-    /** Sets the focus (lookat) point of the camera. */
+    // Sets the focus (lookat) point of the camera.
     void setCameraFocus(double, double, double, bool = true);
 
-    /** Sets the normalized dolly value, clamping to range [0, 1]. */
+    // Sets the normalized dolly value, clamping to range [0, 1].
     void setDolly(double dolly);    
     double dolly() const;
 
@@ -43,16 +43,6 @@ public:
 
     void updateCurrCustomBasePolygonPoint();
 
-    /** Sets the normalized heading value, clamping to range [0, 1]. */
-    void setHeading(double heading);
-
-    /** Sets the normalized inclination value, clamping to range [0, 1]. */
-    void setInclination(double incl);
-
-    void enableInsertion(bool on);
-
-    void setCamKFSLaveMode(bool on) {camKfSlaveMode_ = on;}
-
 private:
     virtual void initializeGL();
     virtual void resizeGL(int w, int h);
@@ -60,46 +50,19 @@ private:
     virtual void mousePressEvent(QMouseEvent *);
     virtual void mouseReleaseEvent(QMouseEvent *);
     virtual void mouseMoveEvent(QMouseEvent *);
-    virtual void mouseDoubleClickEvent(QMouseEvent *);
     virtual void keyPressEvent(QKeyEvent *);
     virtual void enterEvent(QEvent *);
 
-    /** Computes the camera from the current focus, dolly, heading, and
-     * inclination.
-     */
+    // Computes the camera from the current focus, dolly, heading, and inclination.
     CartesianKeyFrame computeCamera();
 
     void computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray);
-    void computePixel(double wx, double wy, double wz, int &x, int &y);
-    void drawLabel(const char s[], int x, int y, float r, float g, float b);
     bool intersectsEarth(QMouseEvent *event, double &lon, double &lat);
-    bool intersectCartesianKeyFrame(
-    _4DPoint &eye, _4DPoint &ray, CartesianKeyFrame &ckf);
-//    bool intersectKeyFrameBase(
-//    _4DPoint &eye, _4DPoint &ray, KeyFrame &kf);
-    bool intersectInsertKeyFrame(_4DPoint &eye, _4DPoint &ray);
-    bool intersectInsertKeyFrameBase(_4DPoint &eye, _4DPoint &ray);
-    bool intersectKeyFrame(_4DPoint &eye, _4DPoint &ray, int &i);
-    bool intersectCurrentKeyFrameBase(_4DPoint &eye, _4DPoint &ray);
-    void insert(bool after);
-
-    double min(double a, double b) {return a < b ? a : b;}
-    double max(double a, double b) {return a > b ? a : b;}
-
-//    void toggleVisMenuItem(int item);
-//    void enableKeyFrameDependentActions(bool on);
 
     _3DPoint focus_;
     double dolly_, heading_, incl_;
 
     static const double minDolly_, maxDolly_;
-
-    /** The camera used the last time the draw() method of the current
-     * earth-sphere sequence was called.
-     */
-    CartesianKeyFrame lastCam_;
-
-    bool camKfSlaveMode_;
 
     // current surface position
     double currLon_; // [-PI/2, PI/2]
@@ -130,10 +93,6 @@ private:
     bool draggingCustomBasePolygonPoint_;
     bool draggingFocus_;
 
-    QAction *setCurrPosFromDialogAction_;
-    QAction *setCurrPosToThisPosAction_;
-    QAction *focusOnThisPosAction_;
-    QAction *focusOnCurrPosAction_;
     QAction *addCustomBasePolygonPointAction_;
     QAction *removeCustomBasePolygonPointAction_;
 
@@ -149,22 +108,8 @@ private:
     double ballSize() const;
 
 private slots:
-    void drawCalled(QObject *ckf);
-    void setCurrPosFromDialog();
-    void setCurrPosToThisPos();
-    void focusOnThisPos();
-    void focusOnCurrPos();
     void addCustomBasePolygonPoint();
     void removeCustomBasePolygonPoint();
-
-//    void toggleLabels();
-//    void toggleCameraIndicator();
-//    void toggleFocusPoint();
-//    void toggleFocusPointLabel();
-//    void removeKeyFrame();
-//    void insertAfterKeyFrame();
-//    void insertBeforeKeyFrame();
-//    void sizeChanged();
 
 signals:
     void focusPosChanged();

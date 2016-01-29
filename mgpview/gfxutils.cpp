@@ -453,56 +453,6 @@ void GfxUtils::drawGreatCircleSegment(
     glEnd();
 }
 
-//void
-//GfxUtils::drawCartesianKeyFrame(
-//    CartesianKeyFrame& ckf, float r, float g, float b, bool draw_eye_line,
-//    bool regular, bool camera_indicator)
-//{
-//    const double
-//	regular_radius  = KeyFrame::getRegularEyeSphereRadius(),
-//	expanded_radius = KeyFrame::getExpandedEyeSphereRadius();
-
-//    // Draw eye point ...
-//    drawSphere(
-//	ckf.getEye()->x(), ckf.getEye()->y(), ckf.getEye()->z(),
-//	regular ? regular_radius : expanded_radius, r, g, b, 0.5, 18, 36,
-//	GL_SMOOTH);
-
-//    // Draw up-vector ...
-//    drawCone(
-//	ckf.getEye()->x(), ckf.getEye()->y(), ckf.getEye()->z(),
-//	ckf.getUp()->x(), ckf.getUp()->y(), ckf.getUp()->z(),
-//	0.5 * regular_radius, 5 * regular_radius, 0, 1, 0, 0.5);
-
-//    // Draw target-vector ...
-//    drawCone(
-//	ckf.getEye()->x(), ckf.getEye()->y(), ckf.getEye()->z(),
-//	ckf.getTgt()->x(), ckf.getTgt()->y(), ckf.getTgt()->z(),
-//	0.5 * regular_radius, 7 * regular_radius, 0, 1, 1, 0.5);
-
-//    // Draw eye point line ...
-//    if (draw_eye_line)
-//	drawLine(
-//	    0, 0, 0, ckf.getEye()->x(), ckf.getEye()->y(), ckf.getEye()->z(),
-//	    1, 1, 1, 1);
-
-//    // Draw camera indicator ...
-//    if (camera_indicator)
-//    {
-///*
-//	drawCone(
-//	    ckf.getEye()->x(), ckf.getEye()->y(), ckf.getEye()->z(),
-//	    ckf.getTgt()->x(), ckf.getTgt()->y(), ckf.getTgt()->z(),
-//	    regular_radius, 2 * regular_radius, 0.6, 0.8, 1, 0.8,
-//	    true);
-//*/
-
-//	drawCameraSphere(
-//	    ckf.getEye()->x(), ckf.getEye()->y(), ckf.getEye()->z(),
-//	    1.2 * (regular ? regular_radius : expanded_radius), 0, 1, 1);
-//    }
-//}
-
 void GfxUtils::drawBottomString(const QString &s, int win_width, int win_height, int row, int col, const QColor &textColor, const QColor &bgColor, bool alignLeft)
 {
     glMatrixMode(GL_PROJECTION);

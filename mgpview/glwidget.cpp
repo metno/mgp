@@ -3,9 +3,6 @@
 #include "gfxutils.h"
 #include "mainwindow.h"
 #include "common.h"
-//#include <qstring.h>
-//#include <qcursor.h>
-//#include <qmessagebox.h>
 #include <GL/glut.h>
 #include <QMenu>
 #include <QAction>
@@ -43,11 +40,8 @@ GLWidget::GLWidget(QWidget *parent)
     , dolly_(0.7)
     , heading_(0.5)
     , incl_(1)
-    , camKfSlaveMode_(false)
-    , currLon_(0.013) // London
-    , currLat_(0.893)
-    , focusLon_(currLon_)
-    , focusLat_(currLat_)
+    , focusLon_(0.013) // London
+    , focusLat_(0.893)
     , focus_alt_(0)     // Surface
     , mouseLon_(0)
     , mouseLat_(0)
@@ -82,94 +76,12 @@ GLWidget::GLWidget(QWidget *parent)
 
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
-    lastCam_ = CartesianKeyFrame(0, 0, 0, 1, 0, 0, 0, 0, 1);
-
-    setCurrPosFromDialogAction_ = new QAction("Set current pos from dialog", 0);
-    connect(setCurrPosFromDialogAction_, SIGNAL(triggered()), SLOT(setCurrPosFromDialog()));
-
-    setCurrPosToThisPosAction_ = new QAction("Set current pos to this pos", 0);
-    connect(setCurrPosToThisPosAction_, SIGNAL(triggered()), SLOT(setCurrPosToThisPos()));
-
-    focusOnThisPosAction_ = new QAction("Focus on this pos", 0);
-    connect(focusOnThisPosAction_, SIGNAL(triggered()), SLOT(focusOnThisPos()));
-
-    focusOnCurrPosAction_ = new QAction("Focus on current pos", 0);
-    connect(focusOnCurrPosAction_, SIGNAL(triggered()), SLOT(focusOnCurrPos()));
 
     addCustomBasePolygonPointAction_ = new QAction("Add point", 0);
     connect(addCustomBasePolygonPointAction_, SIGNAL(triggered()), SLOT(addCustomBasePolygonPoint()));
 
     removeCustomBasePolygonPointAction_ = new QAction("Remove point", 0);
     connect(removeCustomBasePolygonPointAction_, SIGNAL(triggered()), SLOT(removeCustomBasePolygonPoint()));
-
-    focusOnCurrPos();
-
-    // Create global popup menu ...
-//    global_menu_ = new QPopupMenu(this);
-
-    // Create and initialize 'focus' submenu ...
-//    focus_menu_ = new QPopupMenu(this);
-//    global_menu_->insertItem("Focus", focus_menu_);
-    //
-//    explicit_focus_item_ =
-//	focus_menu_->insertItem("set focus to this surface point");
-//    focus_menu_->connectItem(
-//	explicit_focus_item_, this, SLOT(setFocusToSurfacePoint()));
-//    //
-//    gravity_focus_item_ = focus_menu_->insertItem(
-//	"set focus to surface-projected center of gravity");
-//    focus_menu_->connectItem(
-//	gravity_focus_item_, this, SLOT(setFocusToCenterOfGravity()));
-//    focus_menu_->setItemEnabled(gravity_focus_item_, false);
-//    //
-//    current_kf_focus_item_ =
-//	focus_menu_->insertItem("lock focus to current key frame");
-//    focus_menu_->connectItem(
-//	current_kf_focus_item_, this, SLOT(lockFocusToCurrentKeyFrame()));
-//    focus_menu_->setItemEnabled(current_kf_focus_item_, false);
-
-//    // Create and initialize 'visibility' submenu ...
-//    vis_menu_ = new QPopupMenu(this);
-//    vis_menu_->setCheckable(true);
-//    global_menu_->insertItem("Visibility", vis_menu_);
-//    //
-//    draw_kf_labels_item_ = vis_menu_->insertItem("key frame labels");
-//    vis_menu_->connectItem(draw_kf_labels_item_, this, SLOT(toggleLabels()));
-//    vis_menu_->setItemChecked(draw_kf_labels_item_, false);
-//    vis_menu_->setItemEnabled(draw_kf_labels_item_, false);
-//    //
-//    draw_camera_item_ = vis_menu_->insertItem("camera indicator");
-//    vis_menu_->connectItem(
-//	draw_camera_item_, this, SLOT(toggleCameraIndicator()));
-//    vis_menu_->setItemChecked(draw_camera_item_, false);
-//    vis_menu_->setItemEnabled(draw_camera_item_, false);
-//    //
-//    draw_focus_point_item_ = vis_menu_->insertItem("focus point");
-//    vis_menu_->connectItem(
-//	draw_focus_point_item_, this, SLOT(toggleFocusPoint()));
-//    //
-//    draw_focus_point_label_item_ = vis_menu_->insertItem("focus point label");
-//    vis_menu_->connectItem(
-//	draw_focus_point_label_item_, this, SLOT(toggleFocusPointLabel()));
-
-//    // Initialize key frame popup menu ...
-//    kf_menu_ = new QPopupMenu(this);
-//    //
-//    insert_before_item_ = kf_menu_->insertItem("insert before");
-//    kf_menu_->connectItem(
-//	insert_before_item_, this, SLOT(insertBeforeKeyFrame()));
-//    kf_menu_->setItemEnabled(insert_before_item_, false);
-//    //
-//    insert_after_item_ = kf_menu_->insertItem("insert after");
-//    kf_menu_->connectItem(
-//	insert_after_item_, this, SLOT(insertAfterKeyFrame()));
-//    kf_menu_->setItemEnabled(insert_after_item_, false);
-//    //
-//    kf_menu_->insertSeparator();
-//    //
-//    remove_item_ = kf_menu_->insertItem("remove");
-//    kf_menu_->connectItem(remove_item_, this, SLOT(removeKeyFrame()));
-//    kf_menu_->setItemEnabled(remove_item_, false);
 }
 
 
@@ -263,9 +175,6 @@ void GLWidget::paintGL()
     gfx_util.drawLatLonCircles(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
-    // draw current surface point
-    gfx_util.drawSurfaceBall(currLon_, currLat_, ballSize(), 0, 0.8, 0, 0.8);
-
     // draw mouse point
 //    gfx_util.drawSurfaceBall(mouseLon_, mouseLat_, ballSize(), 0.7, 0.6, 0.4, 0.8);
 
@@ -321,12 +230,8 @@ void GLWidget::paintGL()
         gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
     }
 
-    // show current position
-    {
-        QString s;
-        s.sprintf("curr pos: lon = %.3f, lat = %.3f", (currLon_ / M_PI) * 180, (currLat_ / M_PI) * 180);
-        gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
-    }
+    // show test label
+    gfx_util.drawBottomString("test...", width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
 
     glFlush();
 }
@@ -351,71 +256,6 @@ void GLWidget::computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray)
     ray.set(wx - eye2->x(), wy - eye2->y(), wz - eye2->z());
     ray.normalize();
     eye.set(eye2->x(), eye2->y(), eye2->z());
-}
-
-
-void GLWidget::computePixel(
-    double wx, double wy, double wz, int &x, int &y)
-{
-    // Transform world coordinates into window coordinates ...
-    GLint viewport[4];
-    GLdouble mvmatrix[16], projmatrix[16];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
-    glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
-    GLdouble dx, dy, dz;
-    gluProject(
-	(GLdouble)wx, (GLdouble)wy, (GLdouble)wz, mvmatrix, projmatrix,
-	viewport, &dx, &dy, &dz);
-
-    x = (int)dx;
-    y = (int)dy;
-}
-
-void GLWidget::drawLabel(
-    const char s[], int x, int y, float r, float g, float b)
-{
-    // Assuming matrix mode = model-view and depth-test enabled!
-
-    glPushMatrix(); // Save model-view matrix
-    glLoadIdentity();
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix(); // Save projection matrix
-    glLoadIdentity();
-    gluOrtho2D(0, width(), 0, height());
-
-    glDisable(GL_DEPTH_TEST);
-
-    // Draw background quad (to ensure visibility of text) ...
-    glColor3f(1 - r, 1 - g, 1 - b);
-    const int
-	pad = 2,
-	offset_x = 5,
-	offset_y = 5,
-	xx = (x - pad) + offset_x,
-	yy = (y - pad) + offset_y,
-	w  =  9 + 2 * pad,
-	h  = 15 + 2 * pad;
-    glBegin(GL_QUADS);
-    glVertex2d(xx    , yy);
-    glVertex2d(xx + w, yy);
-    glVertex2d(xx + w, yy + h);
-    glVertex2d(xx    , yy + h);
-    glEnd();
-
-    // Draw text ...
-    glColor3f(r, g, b);
-    glRasterPos2f(x + offset_x, y + offset_y);
-    for (int i = 0; s[i]; i++)
-        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, s[i]);
-
-    glEnable(GL_DEPTH_TEST);
-
-    glPopMatrix(); // Restore projection matrix
-
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix(); // Restore model-view matrix
 }
 
 bool GLWidget::intersectsEarth(QMouseEvent *event, double &lon, double &lat)
@@ -448,45 +288,34 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
             contextMenu.addAction(addCustomBasePolygonPointAction_);
             contextMenu.addAction(removeCustomBasePolygonPointAction_);
             removeCustomBasePolygonPointAction_->setEnabled(ControlPanel::instance().currentBasePolygonPoints()->size() > 3);
-        } else {
-            contextMenu.addAction(setCurrPosFromDialogAction_);
-            contextMenu.addAction(setCurrPosToThisPosAction_);
-            contextMenu.addAction(focusOnThisPosAction_);
-            contextMenu.addAction(focusOnCurrPosAction_);
         }
 
         contextMenu.exec(QCursor::pos());
 
     } else if (mouseHitsEarth_) {
 
-        if ((event->modifiers() & Qt::ControlModifier) && (event->button() == Qt::LeftButton)) {
-            // update current surface position
-            currLon_ = mouseLon_;
-            currLat_ = mouseLat_;
-        } else {
-            // start dragging ...
-            dragBaseX_ = event->x();
-            dragBaseY_ = event->y();
-            if ((event->button() == Qt::LeftButton)
-                    && ControlPanel::instance().filtersEditableOnSphere()
-                    && ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_)) {
-                // ... filter
-                draggingFilter_ = true;
-                dragBaseLon_ = mouseLon_;
-                dragBaseLat_ = mouseLat_;
-            } else if ((event->button() == Qt::LeftButton)
-                       && ControlPanel::instance().customBasePolygonEditableOnSphere()
-                       && (currCustomBasePolygonPoint_ >= 0)) {
-                // ... custom base polygon
-                draggingCustomBasePolygonPoint_ = true;
-                dragBaseLon_ = mouseLon_;
-                dragBaseLat_ = mouseLat_;
-            } else if ((event->button() == Qt::LeftButton) || (event->button() == Qt::MiddleButton)) {
-                // ... camera (i.e. lat/lon focus)
-                draggingFocus_ = true;
-                dragBaseLon_ = focusLon_;
-                dragBaseLat_ = focusLat_;
-            }
+        // start dragging ...
+        dragBaseX_ = event->x();
+        dragBaseY_ = event->y();
+        if ((event->button() == Qt::LeftButton)
+                && ControlPanel::instance().filtersEditableOnSphere()
+                && ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_)) {
+            // ... filter
+            draggingFilter_ = true;
+            dragBaseLon_ = mouseLon_;
+            dragBaseLat_ = mouseLat_;
+        } else if ((event->button() == Qt::LeftButton)
+                   && ControlPanel::instance().customBasePolygonEditableOnSphere()
+                   && (currCustomBasePolygonPoint_ >= 0)) {
+            // ... custom base polygon
+            draggingCustomBasePolygonPoint_ = true;
+            dragBaseLon_ = mouseLon_;
+            dragBaseLat_ = mouseLat_;
+        } else if ((event->button() == Qt::LeftButton) || (event->button() == Qt::MiddleButton)) {
+            // ... camera (i.e. lat/lon focus)
+            draggingFocus_ = true;
+            dragBaseLon_ = focusLon_;
+            dragBaseLat_ = focusLat_;
         }
 
         updateGL();
@@ -536,17 +365,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     }
 
     updateGL();
-}
-
-void GLWidget::mouseDoubleClickEvent(QMouseEvent *event)
-{
-    double lon, lat;
-    if (intersectsEarth(event, lon, lat) && (event->button() == Qt::LeftButton)) {
-        // update current surface position
-        currLat_ = lat;
-        currLon_ = lon;
-        updateGL();
-    }
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event)
@@ -632,17 +450,15 @@ CartesianKeyFrame GLWidget::computeCamera()
     return ckf;
 }
 
-
 void GLWidget::setCameraFocus(double x, double y, double z, bool update_gl)
 {
     focus_.setPoint(x, y, z);
     if (update_gl) updateGL();
 }
 
-
 void GLWidget::setDolly(double dolly)
 {
-    dolly_ = min(max(dolly, 0), 1);
+    dolly_ = qMin(qMax(dolly, 0.0), 1.0);
     updateGL();
 }
 
@@ -653,8 +469,8 @@ double GLWidget::dolly() const
 
 void GLWidget::setCurrentFocusPos(double lon, double lat)
 {
-    focusLon_ = min(max(lon, -M_PI), M_PI);
-    focusLat_ = min(max(lat, -M_PI / 2), M_PI / 2);
+    focusLon_ = qMin(qMax(lon, -M_PI), M_PI);
+    focusLat_ = qMin(qMax(lat, -M_PI / 2), M_PI / 2);
     updateGL();
 }
 
@@ -669,128 +485,7 @@ void GLWidget::updateCurrCustomBasePolygonPoint()
         currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
 }
 
-void GLWidget::setHeading(double heading)
-{
-    heading_ = min(max(heading, 0), 1);
-    updateGL();
-}
-
-
-void GLWidget::setInclination(double incl)
-{
-    incl_ = min(max(incl, 0), 1);
-    updateGL();
-}
-
-
-void GLWidget::drawCalled(QObject *ip_ckf)
-{
-/* FOR SOME REASON THE NEXT LINE CRASHES!
-    CartesianKeyFrame *last_cam =
-    dynamic_cast<CartesianKeyFrame *>(ip_ckf);
-    if (!last_cam)
-    throw ProgrammingError(
-	    __FILE__, __LINE__, "failed to cast to CartesianKeyFrame");
-    last_cam_ = *last_cam;
-*/
-
-    // Use this line for now:
-    lastCam_ = *((CartesianKeyFrame *)ip_ckf);
-
-    updateGL();
-}
-
-void GLWidget::setCurrPosFromDialog()
-{
-    QDialog dialog;
-    dialog.setWindowTitle("Set current position");
-    QVBoxLayout mainLayout;
-
-    dialog.setLayout(&mainLayout);
-
-    QFormLayout formLayout;
-    mainLayout.addLayout(&formLayout);
-
-    QDoubleSpinBox lonSpinBox;
-    lonSpinBox.setMinimum(-180);
-    lonSpinBox.setMaximum(180);
-    lonSpinBox.setValue((currLon_ / M_PI) * 180);
-    formLayout.addRow("Longitude:", &lonSpinBox);
-
-    QDoubleSpinBox latSpinBox;
-    latSpinBox.setMinimum(-90);
-    latSpinBox.setMaximum(90);
-    latSpinBox.setValue((currLat_ / (M_PI / 2)) * 90);
-    formLayout.addRow("Latitude:", &latSpinBox);
-
-    QDialogButtonBox buttonBox(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
-    connect(buttonBox.button(QDialogButtonBox::Cancel), SIGNAL(clicked()), &dialog, SLOT(reject()));
-    connect(buttonBox.button(QDialogButtonBox::Ok), SIGNAL(clicked()), &dialog, SLOT(accept()));
-    mainLayout.addWidget(&buttonBox);
-
-    if (dialog.exec() == QDialog::Accepted) {
-        currLon_ = (lonSpinBox.value() / 180) * M_PI;
-        currLat_ = (latSpinBox.value() / 90) * (M_PI / 2);
-        updateGL();
-    }
-}
-
-void GLWidget::setCurrPosToThisPos()
-{
-    currLat_ = mouseLat_;
-    currLon_ = mouseLon_;
-    updateGL();
-}
-
-void GLWidget::focusOnThisPos()
-{
-    focusLat_ = mouseLat_;
-    focusLon_ = mouseLon_;
-    focus_alt_ = 0;
-    updateGL();
-    emit focusPosChanged();
-}
-
-void GLWidget::focusOnCurrPos()
-{
-    focusLat_ = currLat_;
-    focusLon_ = currLon_;
-    focus_alt_ = 0;
-    updateGL();
-    emit focusPosChanged();
-}
-
 double GLWidget::ballSize() const
 {
     return minBallSize_ + ControlPanel::instance().ballSizeFrac() * (maxBallSize_ - minBallSize_);
 }
-
-//void GLWidget::toggleVisMenuItem(int item)
-//{
-//    vis_menu_->setItemChecked(item, !vis_menu_->isItemChecked(item));
-//    updateGL();
-//}
-
-
-//void GLWidget::toggleLabels()
-//{
-//    toggleVisMenuItem(draw_kf_labels_item_);
-//}
-
-
-//void GLWidget::toggleCameraIndicator()
-//{
-//    toggleVisMenuItem(draw_camera_item_);
-//}
-
-
-//void GLWidget::toggleFocusPoint()
-//{
-//    toggleVisMenuItem(draw_focus_point_item_);
-//}
-
-
-//void GLWidget::toggleFocusPointLabel()
-//{
-//    toggleVisMenuItem(draw_focus_point_label_item_);
-//}
