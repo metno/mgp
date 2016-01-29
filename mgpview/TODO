@@ -1,9 +1,17 @@
 TODO:
 
-1: If two neighbour points of a base polygon are located too far apart, the line between them will cut the earth
-   surface and should instead be rendered as a polyline following the great circle.
+1: Clean up code. Remove unused functions etc.
 
-2: Design a control panel with the following components:
+2: Implement generation of result polygon by applying filters to base polygon.
+
+3: Begin implementation of mgplib (to be used by mgpview).
+
+4: Implement two actions for the SIGMET/AIRMET text edit:
+   a: Update the filters from the text. The parse function should either return valid (with corresponding filter settings),
+      or invalid (with a list of errors and their respective locations in the text - this may be used for highlighting).
+   b: Update the text from the filters. This will just replace the text with a canonical expression reflecting the filters.
+
+5: Design a control panel with the following components:
 
    a: A base polygon (either a pre-defined polygon, such as ENOR FIR, or a custom polygon).
 
