@@ -50,7 +50,7 @@ GLWidget::GLWidget(QWidget *parent)
     , draggingCustomBasePolygonPoint_(false)
     , draggingFocus_(false)
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
-    , maxBallSize_(0.01 * GfxUtils::getEarthRadius())
+    , maxBallSize_(0.02 * GfxUtils::getEarthRadius())
     , currCustomBasePolygonPoint_(-1)
 {
     // --- BEGIN initialize filter infos -------------------
@@ -219,10 +219,14 @@ void GLWidget::paintGL()
         const QColor color = curr ? (valid ? currValidColor : currInvalidColor) : (valid ? normalValidColor : normalInvalidColor);
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-        if (ControlPanel::instance().isEnabled(finfo->type))
-            gfx_util.drawGreatCircleSegment(
-                        eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toLineF(),
-                        color, lineWidth);
+        if (ControlPanel::instance().isEnabled(finfo->type)) {
+            const QLineF line = ControlPanel::instance().value(finfo->type).toLineF();
+            gfx_util.drawGreatCircleSegment(eye, minDolly_, maxDolly_, line, color, lineWidth);
+            if (ControlPanel::instance().isCurrent(finfo->type)) {
+                gfx_util.drawSurfaceBall(DEG2RAD(line.p1().x()), DEG2RAD(line.p1().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
+                gfx_util.drawSurfaceBall(DEG2RAD(line.p2().x()), DEG2RAD(line.p2().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
+            }
+        }
     }
 
     // --- END draw filters --------------------------------
