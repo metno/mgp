@@ -15,6 +15,7 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QColor>
+#include <QBitArray>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -153,14 +154,21 @@ void GLWidget::paintGL()
         glShadeModel(GL_SMOOTH);
 
         if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) && ControlPanel::instance().customBasePolygonEditableOnSphere()) {
-            // draw points
+
+            // set rejection flags
+            QBitArray rejected(points->size());
+            for (int i = 0; i < points->size(); ++i)
+                rejected[i] = ControlPanel::instance().rejectedByAnyFilter(points->at(i).first, points->at(i).second);
+
+            // draw points and any intersections
             for (int i = 0; i < points->size(); ++i) {
+
                 double r, g, b;
                 if (i == currCustomBasePolygonPoint_) {
                     r = 1.0;
                     g = 1.0;
                     b = 0.0;
-                } else if (ControlPanel::instance().rejectedByCurrentFilter(points->at(i).first, points->at(i).second)) {
+                } else if (rejected[i]) {
                     r = 0.8;
                     g = 0.0;
                     b = 0.0;
@@ -169,7 +177,17 @@ void GLWidget::paintGL()
                     g = 0.8;
                     b = 0.8;
                 }
+
+                // draw point
                 gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 1);
+
+                // draw intersection if any
+                const int prevIndex = (i - 1 + points->size()) % points->size();
+                if (rejected[prevIndex] != rejected[i]) {
+                    // draw interesection point between points->at(prevIndex) and points->at(i) ... TBD
+                    // NOTE: If multiple filters intersect between these two points, the
+                    // final intersection point should be the one closest to the accepted point
+                }
             }
         }
     }

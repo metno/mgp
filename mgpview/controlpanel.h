@@ -104,7 +104,7 @@ public:
     bool isCurrent(Filter::Type) const;
     bool isValid(Filter::Type) const;
     QVariant value(Filter::Type) const;
-    bool rejectedByCurrentFilter(double, double) const;
+    bool rejectedByAnyFilter(double, double) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
     bool startFilterDragging(double, double) const;

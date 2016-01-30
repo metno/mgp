@@ -489,9 +489,13 @@ QVariant ControlPanel::value(Filter::Type type) const
     return filters_.value(type)->value();
 }
 
-bool ControlPanel::rejectedByCurrentFilter(double lon, double lat) const
+bool ControlPanel::rejectedByAnyFilter(double lon, double lat) const
 {
-    return currentFilter()->rejected(lon, lat);
+    foreach (Filter *filter, filters_) {
+        if (filter->enabledCheckBox_->isChecked() && filter->rejected(lon, lat))
+            return true;
+    }
+    return false;
 }
 
 bool ControlPanel::filtersEditableOnSphere() const
