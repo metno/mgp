@@ -15,7 +15,6 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QColor>
-#include <QBitArray>
 
 #include <stdio.h> // 4 TESTING!
 
@@ -155,11 +154,6 @@ void GLWidget::paintGL()
 
         if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) && ControlPanel::instance().customBasePolygonEditableOnSphere()) {
 
-            // set rejection flags
-            QBitArray rejected(points->size());
-            for (int i = 0; i < points->size(); ++i)
-                rejected[i] = ControlPanel::instance().rejectedByAnyFilter(points->at(i).first, points->at(i).second);
-
             // draw points and any intersections
             for (int i = 0; i < points->size(); ++i) {
 
@@ -168,7 +162,7 @@ void GLWidget::paintGL()
                     r = 1.0;
                     g = 1.0;
                     b = 0.0;
-                } else if (rejected[i]) {
+                } else if (ControlPanel::instance().rejectedByAnyFilter(points->at(i).first, points->at(i).second)) {
                     r = 0.8;
                     g = 0.0;
                     b = 0.0;
@@ -181,13 +175,11 @@ void GLWidget::paintGL()
                 // draw point
                 gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 1);
 
-                // draw intersection if any
+                // draw points where filters intersect the great circle segment between this point and the previous one
                 const int prevIndex = (i - 1 + points->size()) % points->size();
-                if (rejected[prevIndex] != rejected[i]) {
-                    // draw interesection point between points->at(prevIndex) and points->at(i) ... TBD
-                    // NOTE: If multiple filters intersect between these two points, the
-                    // final intersection point should be the one closest to the accepted point
-                }
+                const QVector<QPair<double, double> > isctPoints = ControlPanel::instance().filterIntersections(points->at(prevIndex), points->at(i));
+                for (int j = 0; j < isctPoints.size(); ++j)
+                    gfx_util.drawSurfaceBall(isctPoints.at(j).first, isctPoints.at(j).second, ballSize(), 1, 0.5, 0, 1);
             }
         }
     }

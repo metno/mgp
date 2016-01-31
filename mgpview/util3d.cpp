@@ -144,6 +144,40 @@ double Math::crossTrackDistanceToGreatCircle(double lon0, double lat0, double lo
     return asin(sin(delta_13) * sin(theta_13 - theta_12)) * radius;
 }
 
+// Returns true iff the great circle passing through p1 to p2 intersects lat. The intersection point closest to p1 and p2 is returned in isctPoint.
+// Adopted from 'Crossing parallels' on http://williams.best.vwh.net/avform.htm .
+// Alternative approach: http://math.stackexchange.com/questions/1157278/find-the-intersection-point-of-a-great-circle-arc-and-latitude-line .
+bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint)
+{
+    const double lon1 = p1.first;
+    const double lat1 = p1.second;
+    const double lon2 = p2.first;
+    const double lat2 = p2.second;
+
+    const double l12 = lon1 - lon2;
+    const double A = sin(lat1) * cos(lat2) * cos(lat) * sin(l12);
+    const double B = sin(lat1) * cos(lat2) * cos(lat) * cos(l12) - cos(lat1) * sin(lat2) * cos(lat);
+    const double C = cos(lat1) * cos(lat2) * sin(lat) * sin(l12);
+    const double lon = atan2(B, A); // atan2(y, x) convention
+    if (fabs(C) <= sqrt(A * A + B * B)) {
+        const double dlon = acos(C / sqrt(A * A + B * B));
+        const double lon3_1 = fmod(lon1 + dlon + lon + M_PI, 2 * M_PI) - M_PI;
+        const double lon3_2 = fmod(lon1 - dlon + lon + M_PI, 2 * M_PI) - M_PI;
+
+        const double dist11 = distance(RAD2DEG(lon1), RAD2DEG(lat1), RAD2DEG(lon3_1), RAD2DEG(lat));
+        const double dist21 = distance(RAD2DEG(lon2), RAD2DEG(lat2), RAD2DEG(lon3_1), RAD2DEG(lat));
+        const double dist12 = distance(RAD2DEG(lon1), RAD2DEG(lat1), RAD2DEG(lon3_2), RAD2DEG(lat));
+        const double dist22 = distance(RAD2DEG(lon2), RAD2DEG(lat2), RAD2DEG(lon3_2), RAD2DEG(lat));
+        isctPoint->first = ((dist11 + dist21) < (dist12 + dist22)) ? lon3_1 : lon3_2;
+
+        isctPoint->second = lat;
+
+        return true;
+    }
+
+    return false; // no crossing
+}
+
 double * Math::sphericalToCartesian(double radius, double phi, double theta)
 {
     static double c[3];

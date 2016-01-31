@@ -104,6 +104,8 @@ public:
     static double bearingBetween(double lon0, double lat0, double lon1, double lat1);
     static double crossTrackDistanceToGreatCircle(double lon0, double lat0, double lon1, double lat1, double lon2, double lat2, double radius = 1.0);
 
+    static bool intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint);
+
     static double *sphericalToCartesian(double radius, double phi, double theta);
     static void sphericalToCartesian(double radius, double phi, double theta, double &x, double &y,	double &z);
     static void cartesianToSpherical(double x, double y, double z, double &phi, double &theta);

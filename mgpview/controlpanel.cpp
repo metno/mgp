@@ -45,6 +45,11 @@ QString Filter::typeName(Type type)
     }
 }
 
+bool Filter::rejected(const QPair<double, double> &point) const
+{
+    return rejected(point.first, point.second);
+}
+
 LonOrLatFilter::LonOrLatFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox, QDoubleSpinBox *valSpinBox, double defaultValue)
     : Filter(type, enabledCheckBox, currCheckBox)
@@ -133,6 +138,22 @@ bool LonOrLatFilter::rejected(double lon_, double lat_) const
     return true;
 }
 
+bool LonOrLatFilter::intersects(const QPair<double, double> &p1, const QPair<double, double> &p2, QPair<double, double> *isctPoint) const
+{
+    if ((type_ == N_OF) || (type_ == S_OF)) {
+        return Math::intersectsLatitude(p1, p2, DEG2RAD(valSpinBox_->value()), isctPoint);
+    }
+
+    // (type_ == E_OF) || (type_ == W_OF)
+    // The problem is essentially to find the two intersection points between two great circles (unless they lie in the same plane!)
+    // and to determine which one is closest to p1 and p2:
+    // APPROACH 1: http://stackoverflow.com/questions/2954337/great-circle-rhumb-line-intersection
+    // APPROACH 2: http://www.boeing-727.com/Data/fly%20odds/distance.html
+    // APPROACH 3: http://www.movable-type.co.uk/scripts/latlong-vectors.html
+
+    return false; // for now
+}
+
 FreeLineFilter::FreeLineFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox,
         QDoubleSpinBox *lon1SpinBox, QDoubleSpinBox *lat1SpinBox, QDoubleSpinBox *lon2SpinBox, QDoubleSpinBox *lat2SpinBox,
@@ -201,34 +222,6 @@ QVariant FreeLineFilter::value() const
     return QLineF(QPointF(lon1SpinBox_->value(), lat1SpinBox_->value()), QPointF(lon2SpinBox_->value(), lat2SpinBox_->value()));
 }
 
-bool FreeLineFilter::rejected(double lon, double lat) const
-{
-    const double lon0 = RAD2DEG(lon);
-    const double lat0 = RAD2DEG(lat);
-    double lon1 = lon1SpinBox_->value();
-    double lat1 = lat1SpinBox_->value();
-    double lon2 = lon2SpinBox_->value();
-    double lat2 = lat2SpinBox_->value();
-    if (
-            (((type_ == NE_OF) || (type_ == NW_OF)) && (lon1 > lon2)) ||
-            (((type_ == SE_OF) || (type_ == SW_OF)) && (lat1 > lat2))) {
-        std::swap(lon1, lon2);
-        std::swap(lat1, lat2);
-    }
-
-    const double crossDist = Math::crossTrackDistanceToGreatCircle(lon0, lat0, lon1, lat1, lon2, lat2);
-
-    switch (type_) {
-    case NE_OF: return crossDist > 0;
-    case NW_OF: return crossDist > 0;
-    case SE_OF: return crossDist < 0;
-    case SW_OF: return crossDist > 0;
-    default: return true;
-    }
-
-    return true;
-}
-
 bool FreeLineFilter::startDragging(double lon_, double lat_)
 {
     const double lon = RAD2DEG(lon_);
@@ -261,6 +254,45 @@ void FreeLineFilter::updateDragging(double lon_, double lat_)
 bool FreeLineFilter::isValid() const
 {
     return validCombination(lon1SpinBox_->value(), lat1SpinBox_->value(), lon2SpinBox_->value(), lat2SpinBox_->value());
+}
+
+bool FreeLineFilter::rejected(double lon, double lat) const
+{
+    const double lon0 = RAD2DEG(lon);
+    const double lat0 = RAD2DEG(lat);
+    double lon1 = lon1SpinBox_->value();
+    double lat1 = lat1SpinBox_->value();
+    double lon2 = lon2SpinBox_->value();
+    double lat2 = lat2SpinBox_->value();
+    if (
+            (((type_ == NE_OF) || (type_ == NW_OF)) && (lon1 > lon2)) ||
+            (((type_ == SE_OF) || (type_ == SW_OF)) && (lat1 > lat2))) {
+        std::swap(lon1, lon2);
+        std::swap(lat1, lat2);
+    }
+
+    const double crossDist = Math::crossTrackDistanceToGreatCircle(lon0, lat0, lon1, lat1, lon2, lat2);
+
+    switch (type_) {
+    case NE_OF: return crossDist > 0;
+    case NW_OF: return crossDist > 0;
+    case SE_OF: return crossDist < 0;
+    case SW_OF: return crossDist > 0;
+    default: return true;
+    }
+
+    return true;
+}
+
+bool FreeLineFilter::intersects(const QPair<double, double> &p1, const QPair<double, double> &p2, QPair<double, double> *isctPoint) const
+{
+    // The problem is essentially to find the two intersection points between two great circles (unless they lie in the same plane!)
+    // and to determine which one is closest to p1 and p2:
+    // APPROACH 1: http://stackoverflow.com/questions/2954337/great-circle-rhumb-line-intersection
+    // APPROACH 2: Thttp://www.boeing-727.com/Data/fly%20odds/distance.html
+    // APPROACH 3: http://www.movable-type.co.uk/scripts/latlong-vectors.html
+
+    return false; // for now
 }
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
@@ -496,6 +528,20 @@ bool ControlPanel::rejectedByAnyFilter(double lon, double lat) const
             return true;
     }
     return false;
+}
+
+// Returns all intersection points between enabled filters and the great circle segment between p1 and p2.
+QVector<QPair<double, double> > ControlPanel::filterIntersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
+{
+    QVector<QPair<double, double> > points;
+
+    foreach (Filter *filter, filters_) {
+        QPair<double, double> point;
+        if (filter->enabledCheckBox_->isChecked() && (filter->rejected(p1) != filter->rejected(p2)) && filter->intersects(p1, p2, &point))
+            points.append(point);
+    }
+
+    return points;
 }
 
 bool ControlPanel::filtersEditableOnSphere() const

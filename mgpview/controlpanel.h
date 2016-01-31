@@ -32,6 +32,11 @@ protected:
     virtual void updateDragging(double, double) = 0;
     virtual bool isValid() const = 0;
     virtual bool rejected(double, double) const = 0;
+    bool rejected(const QPair<double, double> &) const;
+
+    // Returns true and passes intersection point in out parameter iff filter intersects great circle segment between given two points.
+    virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const = 0;
+
     Type type_;
     QCheckBox *enabledCheckBox_;
     QCheckBox *currCheckBox_;
@@ -51,6 +56,7 @@ class LonOrLatFilter : public Filter
     virtual void updateDragging(double, double);
     virtual bool isValid() const;
     virtual bool rejected(double, double) const;
+    virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
 
     QDoubleSpinBox *valSpinBox_;
 };
@@ -66,6 +72,7 @@ class FreeLineFilter : public Filter {
     virtual void updateDragging(double, double);
     virtual bool isValid() const;
     virtual bool rejected(double, double) const;
+    virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
 
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
@@ -105,6 +112,7 @@ public:
     bool isValid(Filter::Type) const;
     QVariant value(Filter::Type) const;
     bool rejectedByAnyFilter(double, double) const;
+    QVector<QPair<double, double> > filterIntersections(const QPair<double, double> &, const QPair<double, double> &) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
     bool startFilterDragging(double, double) const;
