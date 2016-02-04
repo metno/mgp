@@ -145,7 +145,21 @@ bool LonOrLatFilter::intersects(const QPair<double, double> &p1, const QPair<dou
     }
 
     const double lon = DEG2RAD(valSpinBox_->value());
-    return Math::greatCircleArcsIntersect(p1, p2, lon, 0, lon, M_PI / 4, isctPoint);
+    const double minLat = qMin(p1.second, p2.second);
+    const double maxLat = qMax(p1.second, p2.second);
+    double lat1;
+    double lat2;
+    if (minLat > 0 && maxLat > 0) {
+        lat1 = -M_PI / 4;
+        lat2 = M_PI / 2;
+    } else if (minLat < 0 && maxLat < 0) {
+        lat1 = -M_PI / 2;
+        lat2 = M_PI / 4;
+    } else {
+        lat1 = 0.99 * -M_PI / 2;
+        lat2 = 0.99 * M_PI / 2;
+    }
+    return Math::greatCircleArcsIntersect(p1, p2, lon, lat1, lon, lat2, isctPoint);
 }
 
 FreeLineFilter::FreeLineFilter(
