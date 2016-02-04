@@ -63,15 +63,21 @@ class _3DPoint
 {
 public:
     _3DPoint();
-    _3DPoint(const _3DPoint&);
+    _3DPoint(const _3DPoint &);
     _3DPoint(double x, double y, double z);
-    void setPoint(double x, double y, double z)
-    {c_[0] = x; c_[1] = y; c_[2] = z;}
-    void setPoint(double* c) {c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2];}
-    double* getPoint() {return c_;}
-    double x() const {return c_[0];}
-    double y() const {return c_[1];}
-    double z() const {return c_[2];}
+    void setPoint(double x, double y, double z) { c_[0] = x; c_[1] = y; c_[2] = z; }
+    void setPoint(double* c) { c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2]; }
+    double* getPoint() { return c_; }
+    double x() const { return c_[0]; }
+    double y() const { return c_[1]; }
+    double z() const { return c_[2]; }
+    double norm() const;
+    static _3DPoint fromSpherical(double lon, double lat);
+    static _3DPoint cross(const _3DPoint &p1, const _3DPoint &p2);
+    static double dot(const _3DPoint &p1, const _3DPoint &p2);
+    void normalize();
+    static _3DPoint normalized(const _3DPoint &p);
+
     void print(char lead[]) const;
 private:
     double c_[3];
@@ -105,6 +111,9 @@ public:
     static double crossTrackDistanceToGreatCircle(double lon0, double lat0, double lon1, double lat1, double lon2, double lat2, double radius = 1.0);
 
     static bool intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint);
+    static bool greatCircleArcsIntersect(
+            const QPair<double, double> &p1, const QPair<double, double> &p2, double lon1, double lat1, double lon2, double lat2,
+            QPair<double, double> *isctPoint);
 
     static double *sphericalToCartesian(double radius, double phi, double theta);
     static void sphericalToCartesian(double radius, double phi, double theta, double &x, double &y,	double &z);

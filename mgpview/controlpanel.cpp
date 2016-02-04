@@ -144,14 +144,8 @@ bool LonOrLatFilter::intersects(const QPair<double, double> &p1, const QPair<dou
         return Math::intersectsLatitude(p1, p2, DEG2RAD(valSpinBox_->value()), isctPoint);
     }
 
-    // (type_ == E_OF) || (type_ == W_OF)
-    // The problem is essentially to find the two intersection points between two great circles (unless they lie in the same plane!)
-    // and to determine which one is closest to p1 and p2:
-    // APPROACH 1: http://stackoverflow.com/questions/2954337/great-circle-rhumb-line-intersection
-    // APPROACH 2: http://www.boeing-727.com/Data/fly%20odds/distance.html
-    // APPROACH 3: http://www.movable-type.co.uk/scripts/latlong-vectors.html
-
-    return false; // for now
+    const double lon = DEG2RAD(valSpinBox_->value());
+    return Math::greatCircleArcsIntersect(p1, p2, lon, 0, lon, M_PI / 4, isctPoint);
 }
 
 FreeLineFilter::FreeLineFilter(
@@ -286,13 +280,11 @@ bool FreeLineFilter::rejected(double lon, double lat) const
 
 bool FreeLineFilter::intersects(const QPair<double, double> &p1, const QPair<double, double> &p2, QPair<double, double> *isctPoint) const
 {
-    // The problem is essentially to find the two intersection points between two great circles (unless they lie in the same plane!)
-    // and to determine which one is closest to p1 and p2:
-    // APPROACH 1: http://stackoverflow.com/questions/2954337/great-circle-rhumb-line-intersection
-    // APPROACH 2: Thttp://www.boeing-727.com/Data/fly%20odds/distance.html
-    // APPROACH 3: http://www.movable-type.co.uk/scripts/latlong-vectors.html
-
-    return false; // for now
+    const double lon1 = DEG2RAD(lon1SpinBox_->value());
+    const double lat1 = DEG2RAD(lat1SpinBox_->value());
+    const double lon2 = DEG2RAD(lon2SpinBox_->value());
+    const double lat2 = DEG2RAD(lat2SpinBox_->value());
+    return Math::greatCircleArcsIntersect(p1, p2, lon1, lat1, lon2, lat2, isctPoint);
 }
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const

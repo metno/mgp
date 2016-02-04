@@ -34,7 +34,7 @@ protected:
     virtual bool rejected(double, double) const = 0;
     bool rejected(const QPair<double, double> &) const;
 
-    // Returns true and passes intersection point in out parameter iff filter intersects great circle segment between given two points.
+    // Returns true and intersection point iff filter intersects great circle segment between given two points.
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const = 0;
 
     Type type_;

@@ -1,6 +1,7 @@
 #include <stdio.h> // 4 TESTING!
 #include "util3d.h"
 #include <stdexcept>
+#include <QDebug>
 
 void Math::normalize(double &x, double &y)
 {
@@ -144,7 +145,7 @@ double Math::crossTrackDistanceToGreatCircle(double lon0, double lat0, double lo
     return asin(sin(delta_13) * sin(theta_13 - theta_12)) * radius;
 }
 
-// Returns true iff the great circle passing through p1 to p2 intersects lat. The intersection point closest to p1 and p2 is returned in isctPoint.
+// Returns true iff the great circle passing through p1 and p2 intersects lat. The intersection point closest to p1 and p2 is returned in isctPoint.
 // Adopted from 'Crossing parallels' on http://williams.best.vwh.net/avform.htm .
 // Alternative approach: http://math.stackexchange.com/questions/1157278/find-the-intersection-point-of-a-great-circle-arc-and-latitude-line .
 bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint)
@@ -176,6 +177,50 @@ bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<doubl
     }
 
     return false; // no crossing
+}
+
+// Returns true iff the great circle arc from p1 to p2 intersects the great circle arc from (lon1, lat1) to (lon2, lat2).
+// The intersection point closest to p1 and p2 is returned in isctPoint.
+// NOTE: If the two great circles lie (approximately) in the same plane, the function returns false (even if there are infinite numbers
+// of intersections!).
+// Adopted from http://www.mathworks.com/matlabcentral/newsreader/view_thread/276271 .
+// Alternative approaches:
+//   1: http://stackoverflow.com/questions/2954337/great-circle-rhumb-line-intersection
+//   2: http://www.boeing-727.com/Data/fly%20odds/distance.html
+//   3: http://www.movable-type.co.uk/scripts/latlong-vectors.html
+bool Math::greatCircleArcsIntersect(
+        const QPair<double, double> &p1, const QPair<double, double> &p2, double lon1, double lat1, double lon2, double lat2,
+        QPair<double, double> *isctPoint)
+{
+    const _3DPoint a0 = _3DPoint::fromSpherical(p1.first, p1.second);
+    const _3DPoint a1 = _3DPoint::fromSpherical(p2.first, p2.second);
+    const _3DPoint b0 = _3DPoint::fromSpherical(lon1, lat1);
+    const _3DPoint b1 = _3DPoint::fromSpherical(lon2, lat2);
+
+    const _3DPoint p = _3DPoint::cross(a0, a1); // normal of plane 1
+    const _3DPoint q = _3DPoint::cross(b0, b1); // normal of plane 2
+
+    const _3DPoint t = _3DPoint::cross(p, q);
+    if (t.norm() < 0.00001)
+        return false; // arcs lie (approximately) in the same plane => no intersections
+
+    const double s1 = _3DPoint::dot(_3DPoint::cross(p, a0), t);
+    const double s2 = _3DPoint::dot(_3DPoint::cross(a1, p), t);
+    const double s3 = _3DPoint::dot(_3DPoint::cross(q, b0), t);
+    const double s4 = _3DPoint::dot(_3DPoint::cross(b1, q), t);
+
+    double sign = 0;
+    if ((s1 > 0) && (s2 > 0) && (s3 > 0) && (s4 > 0))
+        sign = 1; // the arcs intersect along +t
+    else if ((s1 < 0) && (s2 < 0) && (s3 < 0) && (s4 < 0))
+        sign = -1; // the arcs intersect along -t
+    else
+        return false; // the arcs don't intersect (or maybe lie in the same plane if this wasn't detected by the above test for this?)
+
+    isctPoint->first = atan2(sign * t.y(), sign * t.x());
+    isctPoint->second = atan2(sign * t.z(), sqrt(t.x() * t.x() + t.y() * t.y()));
+
+    return true;
 }
 
 double * Math::sphericalToCartesian(double radius, double phi, double theta)
@@ -323,6 +368,41 @@ _3DPoint::_3DPoint(double x, double y, double z)
     c_[0] = x;
     c_[1] = y;
     c_[2] = z;
+}
+
+double _3DPoint::norm() const
+{
+    return sqrt(c_[0] * c_[0] + c_[1] * c_[1] + c_[2] * c_[2]);
+}
+
+_3DPoint _3DPoint::fromSpherical(double lon, double lat)
+{
+    return _3DPoint(cos(lon) * cos(lat), sin(lon) * cos(lat), sin(lat));
+}
+
+_3DPoint _3DPoint::cross(const _3DPoint &a, const _3DPoint &b)
+{
+    return _3DPoint(
+                a.y() * b.z() - a.z() * b.y(),
+                a.z() * b.x() - a.x() * b.z(),
+                a.x() * b.y() - a.y() * b.x());
+}
+
+double _3DPoint::dot(const _3DPoint &a, const _3DPoint &b)
+{
+    return a.x() * b.x() + a.y() * b.y() + a.z() * b.z();
+}
+
+void _3DPoint::normalize()
+{
+    Math::normalize(c_[0], c_[1], c_[2]);
+}
+
+_3DPoint _3DPoint::normalized(const _3DPoint &p)
+{
+    _3DPoint np(p);
+    np.normalize();
+    return np;
 }
 
 void _3DPoint::print(char lead[]) const
