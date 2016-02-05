@@ -17,6 +17,7 @@
 #include <QTextEdit>
 #include <QComboBox>
 #include <QSlider>
+#include <QBitArray>
 #include <algorithm>
 
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
@@ -48,6 +49,80 @@ QString Filter::typeName(Type type)
 bool Filter::rejected(const QPair<double, double> &point) const
 {
     return rejected(point.first, point.second);
+}
+
+// Applies the filter to a polygon and returns the result as zero or more polygons within the original area.
+PointVectors Filter::apply(const PointVector &inPoly) const
+{
+    PointVectors outPolys = PointVectors(new QVector<PointVector>());
+
+    // get rejection status for all points
+    const int n = inPoly->size();
+    QBitArray rej(n);
+    for (int i = 0; i < n; ++i)
+        rej[i] = rejected(inPoly->at(i).first, inPoly->at(i).second);
+
+    if (rej.count(true) == n) {
+        // all points rejected, so return an empty list
+        return outPolys;
+    } else if (rej.count(true) == 0) {
+        // all points accepted, so return a list with one item: a deep copy (although implicitly shared for efficiency) of the input polygon
+        PointVector inPolyCopy(new QVector<QPair<double, double> >(*inPoly.data()));
+        outPolys->append(inPolyCopy);
+        return outPolys;
+    }
+
+    // general case
+
+    // find the first transition from rejected to accepted
+    int first; // index of the first point in the first polygon
+    for (first = 0; first < n; ++first)
+        if (rej[first] && (!rej[(first + 1) % n]))
+            break;
+    int curr = first;
+
+    while (true) {
+        // start new polygon at intersection on (curr, curr + 1)
+        const int next = (curr + 1) % n;
+        Q_ASSERT(rej[curr] && (!rej[next]));
+        PointVector poly(new QVector<QPair<double, double> >());
+        QPair<double, double> isctPoint1;
+        const bool isct1 = intersects(inPoly->at(curr), inPoly->at(next), &isctPoint1);
+        if (isct1) // we need this test for the cases where the intersection is located directly on a point etc.
+            poly->append(isctPoint1);
+
+        curr = next; // move to next point after intersection
+
+        // append points to current polygon
+        while (true) {
+            if (!rej[curr]) {
+                poly->append(inPoly->at(curr));
+                curr = (curr + 1) % n;
+            } else {
+                // end the current polygon at intersection on (curr - 1, curr)
+                const int prev = (curr - 1 + n) % n;
+                Q_ASSERT(!rej[prev] && (rej[curr]));
+                QPair<double, double> isctPoint2;
+                const bool isct2 = intersects(inPoly->at(prev), inPoly->at(curr), &isctPoint2);
+                if (isct2) // we need this test for the cases where the intersection is located directly on a point etc.
+                    poly->append(isctPoint2);
+                outPolys->append(poly);
+                break;
+            }
+        }
+
+        // find start of next polygon if any
+        Q_ASSERT(rej[curr]);
+        while ((curr != first) && (rej[curr] && rej[(curr + 1) % n]))
+            curr = (curr + 1) % n;
+
+        if (curr == first)
+            break; // back to where we started!
+
+        Q_ASSERT(rej[curr] && (!rej[(curr + 1) % n]));
+    }
+
+    return outPolys;
 }
 
 LonOrLatFilter::LonOrLatFilter(
@@ -308,16 +383,15 @@ bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, dou
             : (((lon1 < lon2) && (lat1 > lat2)) || ((lon1 > lon2) && (lat1 < lat2)));
 }
 
-BasePolygon::BasePolygon(Type type, const QSharedPointer<QVector<QPair<double, double> > > &points)
+BasePolygon::BasePolygon(Type type, const PointVector &points)
     : type_(type)
     , points_(points)
 {
 }
 
-static QSharedPointer<QVector<QPair<double, double> > > createENORFIR()
+static PointVector createENORFIR()
 {
-    QSharedPointer<QVector<QPair<double, double> > > points =
-            QSharedPointer<QVector<QPair<double, double> > >(new QVector<QPair<double, double> >);
+    PointVector points = PointVector(new QVector<QPair<double, double> >);
 
     const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
     for (int i = 0; i < npoints; ++i) {
@@ -334,8 +408,7 @@ BasePolygon *BasePolygon::create(Type type)
         return new BasePolygon(None);
 
     } else if (type == Custom) {
-        QSharedPointer<QVector<QPair<double, double> > > points =
-                QSharedPointer<QVector<QPair<double, double> > >(new QVector<QPair<double, double> >);
+        PointVector points = PointVector(new QVector<QPair<double, double> >);
         points->append(qMakePair(DEG2RAD(7), DEG2RAD(60)));
         points->append(qMakePair(DEG2RAD(13), DEG2RAD(60)));
         points->append(qMakePair(DEG2RAD(10), DEG2RAD(65)));
@@ -362,10 +435,12 @@ void ControlPanel::open()
 }
 
 ControlPanel::ControlPanel()
-    : basePolygonComboBox_(0)
-    , bsSlider_(0)
+    : bsSlider_(0)
+    , basePolygonComboBox_(0)
+    , basePolygonVisibleCheckBox_(0)
     , customBasePolygonEditableOnSphereCheckBox_(0)
     , filtersEditableOnSphereCheckBox_(0)
+    , resultPolygonsVisibleCheckBox_(0)
 {
 }
 
@@ -401,6 +476,11 @@ void ControlPanel::initialize()
     QVBoxLayout *basePolygonLayout = new QVBoxLayout;
     basePolygonGroupBox->setLayout(basePolygonLayout);
     mainLayout->addWidget(basePolygonGroupBox);
+
+    basePolygonVisibleCheckBox_ = new QCheckBox("Visible");
+    basePolygonVisibleCheckBox_->setChecked(true);
+    connect(basePolygonVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    basePolygonLayout->addWidget(basePolygonVisibleCheckBox_);
 
     QHBoxLayout *basePolygonLayout2 = new QHBoxLayout;
     basePolygonLayout->addLayout(basePolygonLayout2);
@@ -475,6 +555,24 @@ void ControlPanel::initialize()
     filters_.value(initCurrType)->currCheckBox_->blockSignals(false);
 
     // --- END filter section -------------------------------------------
+
+
+    // --- BEGIN result polygons section -------------------------------------------
+    QGroupBox *resultPolygonsGroupBox = new QGroupBox("Result Polygons");
+    QVBoxLayout *resultPolygonsLayout = new QVBoxLayout;
+    resultPolygonsGroupBox->setLayout(resultPolygonsLayout);
+    mainLayout->addWidget(resultPolygonsGroupBox);
+
+    QHBoxLayout *resultPolygonsLayout2 = new QHBoxLayout;
+    resultPolygonsLayout->addLayout(resultPolygonsLayout2);
+
+    resultPolygonsVisibleCheckBox_ = new QCheckBox("Visible");
+    connect(resultPolygonsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    resultPolygonsLayout2->addWidget(resultPolygonsVisibleCheckBox_);
+
+    resultPolygonsLayout2->addStretch(1);
+
+    // --- END result polygons section -------------------------------------------
 
 
     // --- BEGIN SIGMET/AIRMET expression section -------------------------------------------
@@ -598,10 +696,15 @@ BasePolygon::Type ControlPanel::currentBasePolygonType() const
     return static_cast<BasePolygon::Type>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
 }
 
-QSharedPointer<QVector<QPair<double, double> > > ControlPanel::currentBasePolygonPoints() const
+bool ControlPanel::basePolygonVisible() const
+{
+    return basePolygonVisibleCheckBox_->isChecked();
+}
+
+PointVector ControlPanel::currentBasePolygonPoints() const
 {
     if (!basePolygonComboBox_)
-        return QSharedPointer<QVector<QPair<double, double> > >();
+        return PointVector();
 
     const BasePolygon::Type currType = static_cast<BasePolygon::Type>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
     Q_ASSERT(basePolygons_.contains(currType));
@@ -613,7 +716,7 @@ int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double t
     if (currentBasePolygonType() != BasePolygon::Custom)
         return -1;
 
-    const QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    const PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
     for (int i = 0; i < points->size(); ++i) {
         const double dist = Math::distance(RAD2DEG(lon), RAD2DEG(lat), RAD2DEG(points->at(i).first), RAD2DEG(points->at(i).second));
         if (dist < tolerance)
@@ -629,7 +732,7 @@ bool ControlPanel::customBasePolygonEditableOnSphere() const
 
 void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, double lat)
 {
-    QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
     Q_ASSERT((index >= 0) && (index < points->size()));
     (*points)[index] = qMakePair(lon, lat);
     updateGLWidget();
@@ -637,7 +740,7 @@ void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, d
 
 void ControlPanel::addPointToCustomBasePolygon(int index)
 {
-    QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
     Q_ASSERT((index >= 0) && (index < points->size()));
 
     const double lon1 = points->at(index).first;
@@ -652,7 +755,7 @@ void ControlPanel::addPointToCustomBasePolygon(int index)
 
 void ControlPanel::removePointFromCustomBasePolygon(int index)
 {
-    QSharedPointer<QVector<QPair<double, double> > > points = basePolygons_.value(BasePolygon::Custom)->points_;
+    PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
     Q_ASSERT((index >= 0) && (index < points->size()));
 
     if (points->size() <= 3)
@@ -661,6 +764,38 @@ void ControlPanel::removePointFromCustomBasePolygon(int index)
     points->remove(index);
     MainWindow::instance().glWidget()->updateCurrCustomBasePolygonPoint();
     updateGLWidget();
+}
+
+bool ControlPanel::resultPolygonsVisible() const
+{
+    return resultPolygonsVisibleCheckBox_->isChecked();
+}
+
+PointVectors ControlPanel::resultPolygons() const
+{
+    PointVectors resultPolys(new QVector<PointVector>());
+
+    // 1: start with base polygon
+    resultPolys->append(currentBasePolygonPoints());
+
+    // 2: apply each enabled filter ...
+    //    ... each step may in general result in cutting the input polygons into one or more smaller polygons
+    foreach (Filter *filter, filters_) {
+        if (!filter->enabledCheckBox_->isChecked())
+            continue;
+        PointVectors inPolys(resultPolys);
+        resultPolys = PointVectors(new QVector<PointVector>());
+        for (int i = 0; i < inPolys->size(); ++i) {
+            PointVectors outPolys = filter->apply(inPolys->at(i));
+            for (int j = 0; j < outPolys->size(); ++j)
+                resultPolys->append(outPolys->at(j));
+        }
+
+        if (resultPolys->isEmpty())
+            break; // everything's been filtered away!
+    }
+
+    return resultPolys;
 }
 
 float ControlPanel::ballSizeFrac()

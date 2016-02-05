@@ -1,7 +1,6 @@
 #ifndef UTIL3D_H
 #define UTIL3D_H
 
-//#include <MeCommon.h>
 #include <math.h>
 #include <QVector>
 #include <QPair>

@@ -145,12 +145,26 @@ void GLWidget::paintGL()
     gfx_util.drawCoastContours(eye, minDolly_, maxDolly_);
     glShadeModel(GL_SMOOTH);
 
-    // draw current base polygon
+
+    // draw lat/lon circles
+    glShadeModel(GL_FLAT);
+    gfx_util.drawLatLonCircles(eye, minDolly_, maxDolly_);
+    glShadeModel(GL_SMOOTH);
+
+    // draw mouse point
+//    gfx_util.drawSurfaceBall(mouseLon_, mouseLat_, ballSize(), 0.7, 0.6, 0.4, 0.8);
+
+
+    // --- BEGIN draw base polygon --------------------------------
+
     if (ControlPanel::instance().currentBasePolygonPoints()) {
-        const QSharedPointer<QVector<QPair<double, double> > > points = ControlPanel::instance().currentBasePolygonPoints();
-        glShadeModel(GL_FLAT);
-        gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_);
-        glShadeModel(GL_SMOOTH);
+        const PointVector points = ControlPanel::instance().currentBasePolygonPoints();
+
+        if (ControlPanel::instance().basePolygonVisible()) {
+            glShadeModel(GL_FLAT);
+            gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_, QColor::fromRgbF(0, 0, 1), 2);
+            glShadeModel(GL_SMOOTH);
+        }
 
         if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) && ControlPanel::instance().customBasePolygonEditableOnSphere()) {
 
@@ -173,7 +187,7 @@ void GLWidget::paintGL()
                 }
 
                 // draw point
-                gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 1);
+                gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 2);
 
                 // draw points where filters intersect the great circle segment between this point and the previous one
                 const int prevIndex = (i - 1 + points->size()) % points->size();
@@ -184,13 +198,8 @@ void GLWidget::paintGL()
         }
     }
 
-    // draw lat/lon circles
-    glShadeModel(GL_FLAT);
-    gfx_util.drawLatLonCircles(eye, minDolly_, maxDolly_);
-    glShadeModel(GL_SMOOTH);
+    // --- END draw base polygon --------------------------------
 
-    // draw mouse point
-//    gfx_util.drawSurfaceBall(mouseLon_, mouseLat_, ballSize(), 0.7, 0.6, 0.4, 0.8);
 
     // --- BEGIN draw filters --------------------------------
 
@@ -240,6 +249,21 @@ void GLWidget::paintGL()
     }
 
     // --- END draw filters --------------------------------
+
+
+    // --- BEGIN draw result polygons --------------------------------
+
+    if (ControlPanel::instance().resultPolygonsVisible()) {
+        const PointVectors polygons = ControlPanel::instance().resultPolygons();
+        glShadeModel(GL_FLAT);
+        for (int i = 0; i < polygons->size(); ++i)
+            if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
+                gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 1, 0), 6);
+        glShadeModel(GL_SMOOTH);
+    }
+
+    // --- END draw result polygons --------------------------------
+
 
     // show mouse position
     {

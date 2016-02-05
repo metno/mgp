@@ -140,17 +140,18 @@ void GfxUtils::drawCoastContours(_3DPoint* eye, double min_eye_dist, double max_
     }
 }
 
-void GfxUtils::drawSurfacePolygon(const QSharedPointer<QVector<QPair<double, double> > > &points, _3DPoint* eye, double min_eye_dist, double max_eye_dist)
+void GfxUtils::drawSurfacePolygon(
+        const PointVector &points, _3DPoint* eye, double min_eye_dist, double max_eye_dist,
+        const QColor &color, float lineWidth)
 {
-    glColor3f(0.0, 0, 1); // for now
-    glLineWidth(2.0); // for now
+    glColor3f(color.redF(), color.greenF(), color.blueF());
+    glLineWidth(lineWidth);
 
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
     const double scale = raise_fact * earth_radius_;
 
     Q_ASSERT(points);
 
-    double prevDist = -1;
     glBegin(GL_LINE_LOOP);
     // loop over base points
     for (int i = 0; i < points->size(); ++i) {

@@ -1,6 +1,7 @@
 #ifndef CONTROLPANEL_H
 #define CONTROLPANEL_H
 
+#include "common.h"
 #include <QWidget>
 #include <QHash>
 #include <QLineF>
@@ -36,6 +37,8 @@ protected:
 
     // Returns true and intersection point iff filter intersects great circle segment between given two points.
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const = 0;
+
+    PointVectors apply(const PointVector &) const;
 
     Type type_;
     QCheckBox *enabledCheckBox_;
@@ -92,10 +95,10 @@ public:
     static QString typeName(Type);
 
 protected:
-    BasePolygon(Type, const QSharedPointer<QVector<QPair<double, double> > > & = QSharedPointer<QVector<QPair<double, double> > >());
+    BasePolygon(Type, const PointVector & = PointVector());
     static BasePolygon *create(Type);
     Type type_;
-    QSharedPointer<QVector<QPair<double, double> > > points_; // first component = longitude in radians, second component = latitude in radians
+    PointVector points_; // first component = longitude in radians, second component = latitude in radians
 };
 
 class ControlPanel : public QWidget
@@ -119,12 +122,16 @@ public:
     void updateFilterDragging(double, double);
 
     BasePolygon::Type currentBasePolygonType() const;
-    QSharedPointer<QVector<QPair<double, double> > > currentBasePolygonPoints() const;
+    bool basePolygonVisible() const;
+    PointVector currentBasePolygonPoints() const;
     int currentCustomBasePolygonPoint(double, double, double);
     bool customBasePolygonEditableOnSphere() const;
     void updateCustomBasePolygonPointDragging(int, double, double);
     void addPointToCustomBasePolygon(int);
     void removePointFromCustomBasePolygon(int);
+
+    bool resultPolygonsVisible() const;
+    PointVectors resultPolygons() const;
 
     float ballSizeFrac();
 
@@ -132,14 +139,19 @@ private:
     ControlPanel();
     virtual void keyPressEvent(QKeyEvent *);
 
-    QComboBox *basePolygonComboBox_;
     QSlider *bsSlider_;
+
+    QComboBox *basePolygonComboBox_;
+    QCheckBox *basePolygonVisibleCheckBox_;
+
     QHash<BasePolygon::Type, BasePolygon *> basePolygons_;
     QCheckBox *customBasePolygonEditableOnSphereCheckBox_;
 
     QCheckBox *filtersEditableOnSphereCheckBox_;
     QHash<Filter::Type, Filter *> filters_;
     Filter *currentFilter() const;
+
+    QCheckBox *resultPolygonsVisibleCheckBox_;
 
 private slots:
     void close();

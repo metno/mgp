@@ -4,6 +4,7 @@
 #include <qgl.h>
 #include "util3d.h"
 #include "cartesiankeyframe.h"
+#include "common.h"
 #include <QList>
 #include <QString>
 #include <QLineF>
@@ -27,9 +28,11 @@ public:
 
     /** Draws a polygon on the earth surface. The farther the eye is from the earth surface, the more the contours are raised above the surface. */
     void drawSurfacePolygon(
-            const QSharedPointer<QVector<QPair<double, double> > > &points, _3DPoint* eye,
+            const PointVector &points, _3DPoint* eye,
             double min_eye_dist = 0.05 * earth_radius_ ,
-            double max_eye_dist = 5 * earth_radius_);
+            double max_eye_dist = 5 * earth_radius_,
+            const QColor &color = QColor::fromRgbF(0, 0, 1),
+            float lineWidth = 1);
 
     /** Draws a sphere. */
     void drawSphere(double x, double y, double z, double radius, float r, float g, float b, float amb, int phi_res, int theta_res, GLenum shade_model);
