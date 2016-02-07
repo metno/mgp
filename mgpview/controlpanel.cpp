@@ -778,10 +778,10 @@ PointVectors ControlPanel::resultPolygons() const
     // 1: start with base polygon
     resultPolys->append(currentBasePolygonPoints());
 
-    // 2: apply each enabled filter ...
+    // 2: apply each enabled and valid filter ...
     //    ... each step may in general result in cutting the input polygons into one or more smaller polygons
     foreach (Filter *filter, filters_) {
-        if (!filter->enabledCheckBox_->isChecked())
+        if ((!filter->enabledCheckBox_->isChecked()) || (!filter->isValid()))
             continue;
         PointVectors inPolys(resultPolys);
         resultPolys = PointVectors(new QVector<PointVector>());
