@@ -187,7 +187,7 @@ void GLWidget::paintGL()
                 }
 
                 // draw point
-                gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 2);
+                gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 1);
 
                 // draw points where filters intersect the great circle segment between this point and the previous one
                 const int prevIndex = (i - 1 + points->size()) % points->size();
@@ -260,6 +260,13 @@ void GLWidget::paintGL()
             if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
                 gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 1, 0), 6);
         glShadeModel(GL_SMOOTH);
+
+        // draw points
+        for (int i = 0; i < polygons->size(); ++i) {
+            for (int j = 0; j < polygons->at(i)->size(); ++j) {
+               gfx_util.drawSurfaceBall(polygons->at(i)->at(j).first, polygons->at(i)->at(j).second, ballSize(), 0.7, 0.7, 0, 1);
+            }
+        }
     }
 
     // --- END draw result polygons --------------------------------
