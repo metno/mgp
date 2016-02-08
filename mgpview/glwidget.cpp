@@ -268,8 +268,10 @@ void GLWidget::paintGL()
         if (ControlPanel::instance().resultPolygonsPointsVisible()) {
             // draw points
             for (int i = 0; i < polygons->size(); ++i) {
-                for (int j = 0; j < polygons->at(i)->size(); ++j) {
-                    gfx_util.drawSurfaceBall(polygons->at(i)->at(j).first, polygons->at(i)->at(j).second, ballSize(), 1, 0.5, 0, 1);
+                if (polygons->at(i)) {
+                    for (int j = 0; j < polygons->at(i)->size(); ++j) {
+                        gfx_util.drawSurfaceBall(polygons->at(i)->at(j).first, polygons->at(i)->at(j).second, ballSize(), 1, 0.5, 0, 1);
+                    }
                 }
             }
         }

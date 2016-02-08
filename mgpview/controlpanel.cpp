@@ -796,9 +796,11 @@ PointVectors ControlPanel::resultPolygons() const
         PointVectors inPolys(resultPolys);
         resultPolys = PointVectors(new QVector<PointVector>());
         for (int i = 0; i < inPolys->size(); ++i) {
-            PointVectors outPolys = filter->apply(inPolys->at(i));
-            for (int j = 0; j < outPolys->size(); ++j)
-                resultPolys->append(outPolys->at(j));
+            if (inPolys->at(i)) {
+                PointVectors outPolys = filter->apply(inPolys->at(i));
+                for (int j = 0; j < outPolys->size(); ++j)
+                    resultPolys->append(outPolys->at(j));
+            }
         }
 
         if (resultPolys->isEmpty())
