@@ -193,7 +193,7 @@ void GLWidget::paintGL()
                 const int prevIndex = (i - 1 + points->size()) % points->size();
                 const QVector<QPair<double, double> > isctPoints = ControlPanel::instance().filterIntersections(points->at(prevIndex), points->at(i));
                 for (int j = 0; j < isctPoints.size(); ++j)
-                    gfx_util.drawSurfaceBall(isctPoints.at(j).first, isctPoints.at(j).second, ballSize(), 1, 0.5, 0, 1);
+                    gfx_util.drawSurfaceBall(isctPoints.at(j).first, isctPoints.at(j).second, ballSize(), 1, 0, 1, 1);
             }
         }
     }
@@ -253,18 +253,24 @@ void GLWidget::paintGL()
 
     // --- BEGIN draw result polygons --------------------------------
 
-    if (ControlPanel::instance().resultPolygonsVisible()) {
+    if (ControlPanel::instance().resultPolygonsLinesVisible() || ControlPanel::instance().resultPolygonsPointsVisible()) {
         const PointVectors polygons = ControlPanel::instance().resultPolygons();
-        glShadeModel(GL_FLAT);
-        for (int i = 0; i < polygons->size(); ++i)
-            if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
-                gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 1, 0), 6);
-        glShadeModel(GL_SMOOTH);
 
-        // draw points
-        for (int i = 0; i < polygons->size(); ++i) {
-            for (int j = 0; j < polygons->at(i)->size(); ++j) {
-               gfx_util.drawSurfaceBall(polygons->at(i)->at(j).first, polygons->at(i)->at(j).second, ballSize(), 0.7, 0.7, 0, 1);
+        if (ControlPanel::instance().resultPolygonsLinesVisible()) {
+            // draw lines
+            glShadeModel(GL_FLAT);
+            for (int i = 0; i < polygons->size(); ++i)
+                if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
+                    gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 1, 0), 4);
+            glShadeModel(GL_SMOOTH);
+        }
+
+        if (ControlPanel::instance().resultPolygonsPointsVisible()) {
+            // draw points
+            for (int i = 0; i < polygons->size(); ++i) {
+                for (int j = 0; j < polygons->at(i)->size(); ++j) {
+                    gfx_util.drawSurfaceBall(polygons->at(i)->at(j).first, polygons->at(i)->at(j).second, ballSize(), 1, 0.5, 0, 1);
+                }
             }
         }
     }

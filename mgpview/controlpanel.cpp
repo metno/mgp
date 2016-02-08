@@ -440,7 +440,8 @@ ControlPanel::ControlPanel()
     , basePolygonVisibleCheckBox_(0)
     , customBasePolygonEditableOnSphereCheckBox_(0)
     , filtersEditableOnSphereCheckBox_(0)
-    , resultPolygonsVisibleCheckBox_(0)
+    , resultPolygonsLinesVisibleCheckBox_(0)
+    , resultPolygonsPointsVisibleCheckBox_(0)
 {
 }
 
@@ -566,9 +567,13 @@ void ControlPanel::initialize()
     QHBoxLayout *resultPolygonsLayout2 = new QHBoxLayout;
     resultPolygonsLayout->addLayout(resultPolygonsLayout2);
 
-    resultPolygonsVisibleCheckBox_ = new QCheckBox("Visible");
-    connect(resultPolygonsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
-    resultPolygonsLayout2->addWidget(resultPolygonsVisibleCheckBox_);
+    resultPolygonsLinesVisibleCheckBox_ = new QCheckBox("Lines");
+    connect(resultPolygonsLinesVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    resultPolygonsLayout2->addWidget(resultPolygonsLinesVisibleCheckBox_);
+
+    resultPolygonsPointsVisibleCheckBox_ = new QCheckBox("Points");
+    connect(resultPolygonsPointsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    resultPolygonsLayout2->addWidget(resultPolygonsPointsVisibleCheckBox_);
 
     resultPolygonsLayout2->addStretch(1);
 
@@ -766,9 +771,14 @@ void ControlPanel::removePointFromCustomBasePolygon(int index)
     updateGLWidget();
 }
 
-bool ControlPanel::resultPolygonsVisible() const
+bool ControlPanel::resultPolygonsLinesVisible() const
 {
-    return resultPolygonsVisibleCheckBox_->isChecked();
+    return resultPolygonsLinesVisibleCheckBox_->isChecked();
+}
+
+bool ControlPanel::resultPolygonsPointsVisible() const
+{
+    return resultPolygonsPointsVisibleCheckBox_->isChecked();
 }
 
 PointVectors ControlPanel::resultPolygons() const

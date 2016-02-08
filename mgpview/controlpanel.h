@@ -130,7 +130,8 @@ public:
     void addPointToCustomBasePolygon(int);
     void removePointFromCustomBasePolygon(int);
 
-    bool resultPolygonsVisible() const;
+    bool resultPolygonsLinesVisible() const;
+    bool resultPolygonsPointsVisible() const;
     PointVectors resultPolygons() const;
 
     float ballSizeFrac();
@@ -151,7 +152,8 @@ private:
     QHash<Filter::Type, Filter *> filters_;
     Filter *currentFilter() const;
 
-    QCheckBox *resultPolygonsVisibleCheckBox_;
+    QCheckBox *resultPolygonsLinesVisibleCheckBox_;
+    QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
 private slots:
     void close();
