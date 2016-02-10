@@ -3,6 +3,7 @@ TARGET = mgpview
 QT += opengl 
 DEPENDPATH += .
 INCLUDEPATH += .
+INCLUDEPATH += /disk1/Downloads/boost_1_60_0
 
 HEADERS += mainwindow.h common.h coast_data.h enor_fir.h glwidget.h gfxutils.h util3d.h cartesiankeyframe.h controlpanel.h
 

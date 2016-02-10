@@ -280,17 +280,17 @@ void GLWidget::paintGL()
     // --- END draw result polygons --------------------------------
 
 
-    // show mouse position
-    {
-        if (mouseHitsEarth_) {
-            QString s;
-            s.sprintf("lon = %.3f, lat = %.3f", RAD2DEG(mouseLon_), RAD2DEG(mouseLat_));
-            gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
-        }
+    if (mouseHitsEarth_) {
+        // show mouse position
+        QString s;
+        s.sprintf("lon = %.3f, lat = %.3f", RAD2DEG(mouseLon_), RAD2DEG(mouseLat_));
+        gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
+
+        // show whether the mouse position is within the current base polygon
+        s.sprintf("within current base polygon: %d", ControlPanel::instance().withinCurrentBasePolygon(mouseLon_, mouseLat_));
+        gfx_util.drawBottomString(s, width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
     }
 
-    // show test label
-    //gfx_util.drawBottomString("test...", width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
 
     glFlush();
 }

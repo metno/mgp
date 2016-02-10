@@ -129,6 +129,7 @@ public:
     void updateCustomBasePolygonPointDragging(int, double, double);
     void addPointToCustomBasePolygon(int);
     void removePointFromCustomBasePolygon(int);
+    bool withinCurrentBasePolygon(double, double) const;
 
     bool resultPolygonsLinesVisible() const;
     bool resultPolygonsPointsVisible() const;

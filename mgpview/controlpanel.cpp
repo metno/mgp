@@ -19,6 +19,9 @@
 #include <QSlider>
 #include <QBitArray>
 #include <algorithm>
+#if 0
+#include <boost/geometry.hpp>
+#endif
 
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : type_(type)
@@ -769,6 +772,47 @@ void ControlPanel::removePointFromCustomBasePolygon(int index)
     points->remove(index);
     MainWindow::instance().glWidget()->updateCurrCustomBasePolygonPoint();
     updateGLWidget();
+}
+
+bool ControlPanel::withinCurrentBasePolygon(double lon, double lat) const
+{
+#if 0
+    namespace bg = boost::geometry;
+    typedef bg::model::point<double, 2, bg::cs::spherical<bg::radian> > point_t;
+    typedef bg::model::polygon<point_t> polygon_t;
+
+    const PointVector points = currentBasePolygonPoints();
+    //qDebug() << "points:" << *points;
+    polygon_t polygon;
+    for (int i = 0; i < points->size(); ++i)
+        bg::append(polygon.outer(), point_t(points->at(i).first, points->at(i).second));
+
+    const point_t point(lon, lat);
+    //std::cerr << bg::dsv(point) << std::endl;
+    //std::cerr << bg::get<0>(point) << ", " << bg::get<1>(point) << std::endl;
+    //std::cerr << point.get<0>() << ", " << point.get<1>() << std::endl;
+
+    //return bg::within(point, polygon); APPARENTLY NOT SUPPORTED FOR SPHERICAL COORDINATES!
+    return bg::within(point, polygon, bg::strategy::within::winding<point_t, point_t, void>());
+#else
+    int nisct = 0; // number of intersections
+
+    // define a point that is assumed to be outside the polygon
+    // ### FOR NOW:
+    const double extLon = 0;
+    const double extLat = -M_PI;
+
+    const PointVector points = currentBasePolygonPoints();
+    for (int i = 0; i < points->size(); ++i) {
+        QPair<double, double> isctPoint; // ### not used!
+        if (Math::greatCircleArcsIntersect(
+                    points->at(i), points->at((i + 1) % points->size()),
+                    lon, lat, extLon, extLat, &isctPoint))
+            nisct++;
+    }
+
+    return nisct % 2;
+#endif
 }
 
 bool ControlPanel::resultPolygonsLinesVisible() const
