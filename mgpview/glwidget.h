@@ -41,6 +41,7 @@ public:
     void setCurrentFocusPos(double, double);
     QPair<double, double> currentFocusPos() const;
 
+    void updateWIFilterPoint();
     void updateCurrCustomBasePolygonPoint();
 
 private:
@@ -85,10 +86,13 @@ private:
     int dragBaseY_;
     double dragBaseLon_;
     double dragBaseLat_;
-    bool draggingFilter_;
-    bool draggingCustomBasePolygonPoint_;
+    bool draggingWIFilter_;
+    bool draggingOtherFilter_;
+    bool draggingCustomBasePolygon_;
     bool draggingFocus_;
 
+    QAction *addWIFilterPointAction_;
+    QAction *removeWIFilterPointAction_;
     QAction *addCustomBasePolygonPointAction_;
     QAction *removeCustomBasePolygonPointAction_;
 
@@ -99,11 +103,14 @@ private:
     QHash<int, LonOrLatFilterInfo *> lonOrLatFilterInfos_;
     QHash<int, FreeLineFilterInfo *> freeLineFilterInfos_;
 
+    int currWIFilterPoint_; // index of WI filter point
     int currCustomBasePolygonPoint_; // index of current custom base polygon point
 
     double ballSize() const;
 
 private slots:
+    void addWIFilterPoint();
+    void removeWIFilterPoint();
     void addCustomBasePolygonPoint();
     void removeCustomBasePolygonPoint();
 

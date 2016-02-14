@@ -46,11 +46,13 @@ GLWidget::GLWidget(QWidget *parent)
     , mouseLon_(0)
     , mouseLat_(0)
     , mouseHitsEarth_(false)
-    , draggingFilter_(false)
-    , draggingCustomBasePolygonPoint_(false)
+    , draggingWIFilter_(false)
+    , draggingOtherFilter_(false)
+    , draggingCustomBasePolygon_(false)
     , draggingFocus_(false)
     , minBallSize_(0.001 * GfxUtils::getEarthRadius())
     , maxBallSize_(0.02 * GfxUtils::getEarthRadius())
+    , currWIFilterPoint_(-1)
     , currCustomBasePolygonPoint_(-1)
 {
     // --- BEGIN initialize filter infos -------------------
@@ -76,6 +78,12 @@ GLWidget::GLWidget(QWidget *parent)
 
     setFocusPolicy(Qt::StrongFocus);
     focus_.setPoint(GfxUtils::getEarthRadius(), 0, 0);
+
+    addWIFilterPointAction_ = new QAction("Add point", 0);
+    connect(addWIFilterPointAction_, SIGNAL(triggered()), SLOT(addWIFilterPoint()));
+
+    removeWIFilterPointAction_ = new QAction("Remove point", 0);
+    connect(removeWIFilterPointAction_, SIGNAL(triggered()), SLOT(removeWIFilterPoint()));
 
     addCustomBasePolygonPointAction_ = new QAction("Add point", 0);
     connect(addCustomBasePolygonPointAction_, SIGNAL(triggered()), SLOT(addCustomBasePolygonPoint()));
@@ -171,7 +179,7 @@ void GLWidget::paintGL()
             // draw points and any intersections
             for (int i = 0; i < points->size(); ++i) {
 
-                double r, g, b;
+                float r, g, b;
                 if (i == currCustomBasePolygonPoint_) {
                     r = 1.0;
                     g = 1.0;
@@ -214,6 +222,40 @@ void GLWidget::paintGL()
     const float normalLineWidth = 1.5;
     const float currLineWidth = 5;
 
+    // Within filter
+    if (ControlPanel::instance().isEnabled(Filter::WI))
+    {
+        const PointVector points = ControlPanel::instance().WIFilterPoints();
+
+        const bool curr = ControlPanel::instance().isCurrent(Filter::WI);
+        const bool valid = ControlPanel::instance().isValid(Filter::WI);
+        const QColor color = curr ? (valid ? currValidColor : currInvalidColor) : (valid ? normalValidColor : normalInvalidColor);
+        const float lineWidth = curr ? currLineWidth : normalLineWidth;
+
+        // draw polygon
+        glShadeModel(GL_FLAT);
+        gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_, color, lineWidth);
+        glShadeModel(GL_SMOOTH);
+
+        // draw points
+        if (ControlPanel::instance().isCurrent(Filter::WI)) {
+            for (int i = 0; i < points->size(); ++i) {
+
+                float r, g, b;
+                if (i == currWIFilterPoint_) {
+                    r = 1.0;
+                    g = 1.0;
+                    b = 0.0;
+                } else {
+                    r = 1.0;
+                    g = 1.0;
+                    b = 1.0;
+                }
+                gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 0.8);
+            }
+        }
+    }
+
     // LonOrLat filters
     for (int i = 0; i < 4; ++i) {
         const LonOrLatFilterInfo *finfo = lonOrLatFilterInfos_.value(i);
@@ -222,6 +264,7 @@ void GLWidget::paintGL()
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
         if (ControlPanel::instance().isEnabled(finfo->type)) {
+            // draw circle
             bool ok = false;
             gfx_util.drawLonOrLatCircle(
                         finfo->isLon, eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toDouble(&ok),
@@ -240,7 +283,11 @@ void GLWidget::paintGL()
 
         if (ControlPanel::instance().isEnabled(finfo->type)) {
             const QLineF line = ControlPanel::instance().value(finfo->type).toLineF();
+
+            // draw line
             gfx_util.drawGreatCircleSegment(eye, minDolly_, maxDolly_, line, color, lineWidth);
+
+            // draw endpoints
             if (ControlPanel::instance().isCurrent(finfo->type)) {
                 gfx_util.drawSurfaceBall(DEG2RAD(line.p1().x()), DEG2RAD(line.p1().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
                 gfx_util.drawSurfaceBall(DEG2RAD(line.p2().x()), DEG2RAD(line.p2().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
@@ -286,8 +333,10 @@ void GLWidget::paintGL()
         s.sprintf("lon = %.3f, lat = %.3f", RAD2DEG(mouseLon_), RAD2DEG(mouseLat_));
         gfx_util.drawBottomString(s.toLatin1(), width(), height(), 0, 0, QColor::fromRgbF(1, 1, 0), QColor::fromRgbF(0, 0, 0));
 
-        // show whether the mouse position is within the current base polygon
-        s.sprintf("within current base polygon: %d", ControlPanel::instance().withinCurrentBasePolygon(mouseLon_, mouseLat_));
+        // for the current base polygon, show whether it is oriented clockwise, and whether the mouse position is inside it
+        s.sprintf("current base polygon; clockwise: %d; mouse inside: %d",
+                  ControlPanel::instance().currentBasePolygonIsClockwise(),
+                  ControlPanel::instance().withinCurrentBasePolygon(qMakePair(mouseLon_, mouseLat_)));
         gfx_util.drawBottomString(s, width(), height(), 0, 0, QColor::fromRgbF(1, 1, 1), QColor::fromRgbF(0, 0.3, 0), false);
     }
 
@@ -340,7 +389,12 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::RightButton) {
         QMenu contextMenu;
-        if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom)
+        if (ControlPanel::instance().filtersEditableOnSphere()
+                && (currWIFilterPoint_ >= 0)) {
+            contextMenu.addAction(addWIFilterPointAction_);
+            contextMenu.addAction(removeWIFilterPointAction_);
+            removeWIFilterPointAction_->setEnabled(ControlPanel::instance().WIFilterPoints()->size() > 3);
+        } else if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom)
                 && ControlPanel::instance().customBasePolygonEditableOnSphere()
                 && (currCustomBasePolygonPoint_ >= 0)) {
             contextMenu.addAction(addCustomBasePolygonPointAction_);
@@ -357,16 +411,24 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         dragBaseY_ = event->y();
         if ((event->button() == Qt::LeftButton)
                 && ControlPanel::instance().filtersEditableOnSphere()
+                && ControlPanel::instance().isCurrent(Filter::WI)
+                && (currWIFilterPoint_ >= 0)) {
+            // ... WI filter
+            draggingWIFilter_ = true;
+            dragBaseLon_ = mouseLon_;
+            dragBaseLat_ = mouseLat_;
+        } else if ((event->button() == Qt::LeftButton)
+                && ControlPanel::instance().filtersEditableOnSphere()
                 && ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_)) {
-            // ... filter
-            draggingFilter_ = true;
+            // ... other filter
+            draggingOtherFilter_ = true;
             dragBaseLon_ = mouseLon_;
             dragBaseLat_ = mouseLat_;
         } else if ((event->button() == Qt::LeftButton)
                    && ControlPanel::instance().customBasePolygonEditableOnSphere()
                    && (currCustomBasePolygonPoint_ >= 0)) {
             // ... custom base polygon
-            draggingCustomBasePolygonPoint_ = true;
+            draggingCustomBasePolygon_ = true;
             dragBaseLon_ = mouseLon_;
             dragBaseLat_ = mouseLat_;
         } else if ((event->button() == Qt::LeftButton) || (event->button() == Qt::MiddleButton)) {
@@ -382,7 +444,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *)
 {
-    draggingFilter_ = draggingCustomBasePolygonPoint_ = draggingFocus_ = false;
+    draggingWIFilter_ = draggingOtherFilter_ = draggingCustomBasePolygon_ = draggingFocus_ = false;
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
@@ -392,12 +454,16 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    updateWIFilterPoint();
     updateCurrCustomBasePolygonPoint();
 
-    if (draggingFilter_) {
+    if (draggingWIFilter_) {
+        ControlPanel::instance().updateWIFilterPointDragging(currWIFilterPoint_, mouseLon_, mouseLat_);
+
+    } else if (draggingOtherFilter_) {
         ControlPanel::instance().updateFilterDragging(mouseLon_, mouseLat_);
 
-    } else if (draggingCustomBasePolygonPoint_) {
+    } else if (draggingCustomBasePolygon_) {
         ControlPanel::instance().updateCustomBasePolygonPointDragging(currCustomBasePolygonPoint_, mouseLon_, mouseLat_);
 
     } else if (draggingFocus_) {
@@ -429,7 +495,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 void GLWidget::keyPressEvent(QKeyEvent *event)
 {
     MainWindow::instance().handleKeyPressEvent(event);
-    if (currCustomBasePolygonPoint_ >= 0) {
+
+    if (currWIFilterPoint_ >= 0) {
+        if (event->key() == Qt::Key_Insert)
+            addWIFilterPoint();
+        else if (event->key() == Qt::Key_Delete)
+            removeWIFilterPoint();
+    } else if (currCustomBasePolygonPoint_ >= 0) {
         if (event->key() == Qt::Key_Insert)
             addCustomBasePolygonPoint();
         else if (event->key() == Qt::Key_Delete)
@@ -446,6 +518,18 @@ void GLWidget::leaveEvent(QEvent *)
 {
     mouseHitsEarth_ = false;
     updateGL();
+}
+
+void GLWidget::addWIFilterPoint()
+{
+    Q_ASSERT(currWIFilterPoint_ >= 0);
+    ControlPanel::instance().addPointToWIFilter(currWIFilterPoint_);
+}
+
+void GLWidget::removeWIFilterPoint()
+{
+    Q_ASSERT(currWIFilterPoint_ >= 0);
+    ControlPanel::instance().removePointFromWIFilter(currWIFilterPoint_);
 }
 
 void GLWidget::addCustomBasePolygonPoint()
@@ -544,9 +628,15 @@ QPair<double, double> GLWidget::currentFocusPos() const
     return qMakePair(focusLon_, focusLat_);
 }
 
+void GLWidget::updateWIFilterPoint()
+{
+    if (!draggingWIFilter_)
+        currWIFilterPoint_ = ControlPanel::instance().currentWIFilterPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
+}
+
 void GLWidget::updateCurrCustomBasePolygonPoint()
 {
-    if (!draggingCustomBasePolygonPoint_)
+    if (!draggingCustomBasePolygon_)
         currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
 }
 

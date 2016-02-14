@@ -37,14 +37,15 @@ QString Filter::typeName(Type type)
 {
     switch (type) {
     case  None: return  "none";
+    case    WI: return  "WI";
     case  E_OF: return  "E OF";
     case  W_OF: return  "W OF";
     case  N_OF: return  "N OF";
     case  S_OF: return  "S OF";
-    case NE_OF: return "NE OF";
-    case NW_OF: return "NW OF";
-    case SE_OF: return "SE OF";
-    case SW_OF: return "SW OF";
+    case NE_OF: return "NE OF LINE";
+    case NW_OF: return "NW OF LINE";
+    case SE_OF: return "SE OF LINE";
+    case SW_OF: return "SW OF LINE";
     default: return "ERROR!";
     }
 }
@@ -54,8 +55,122 @@ bool Filter::rejected(const QPair<double, double> &point) const
     return rejected(point.first, point.second);
 }
 
-// Applies the filter to a polygon and returns the result as zero or more polygons within the original area.
-PointVectors Filter::apply(const PointVector &inPoly) const
+WithinFilter::WithinFilter(
+        Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox, const PointVector &defaultValue)
+    : Filter(type, enabledCheckBox, currCheckBox)
+    , points_(defaultValue)
+{
+}
+
+Filter *WithinFilter::create(QGridLayout *layout, int row, Type type, const PointVector &defaultValue)
+{
+    WithinFilter *filter = new WithinFilter(type, new QCheckBox, new QCheckBox, defaultValue);
+
+    QLabel *typeLabel = new QLabel(typeName(filter->type_));
+    typeLabel->setStyleSheet("font-family:mono");
+    layout->addWidget(typeLabel, row, 0, Qt::AlignRight);
+    layout->addWidget(filter->enabledCheckBox_, row, 1, Qt::AlignHCenter);
+    layout->addWidget(filter->currCheckBox_, row, 2, Qt::AlignHCenter);
+
+    QFrame *valFrame = new QFrame;
+    valFrame->setLayout(new QHBoxLayout);
+    valFrame->layout()->addWidget(new QLabel("<coordinates accessible on sphere only>"));
+    qobject_cast<QHBoxLayout *>(valFrame->layout())->addStretch(1);
+    layout->addWidget(valFrame, row, 3);
+
+    return filter;
+}
+
+QVariant WithinFilter::value() const
+{
+    return QVariant(); // for now
+}
+
+bool WithinFilter::startDragging(double, double)
+{
+    return false;
+}
+
+void WithinFilter::updateDragging(double, double)
+{
+}
+
+bool WithinFilter::isValid() const
+{
+#if 0 // THE CODE BELOW CURRENTLY DOESN'T WORK, PROBABLY BECAUSE NEIGHBOUR EDGES ARE SOMETIMES CONSIDERED
+      // AS INTERSECTING EVEN IF THEY ONLY TOUCH AT ENDPOINTS
+    // check if polygon is self-intersecting by comparing each unique pair of edges
+    for (int i = 0; i < (points_->size() - 1); ++i) {
+        for (int j = i + 1; j < points_->size(); ++j) {
+            if (Math::greatCircleArcsIntersect(
+                        points_->at(i), points_->at(i + 1),
+                        points_->at(j), points_->at((j + 1) % points_->size())))
+                return false;
+        }
+    }
+#endif
+
+    return true;
+}
+
+bool WithinFilter::rejected(double lon, double lat) const
+{
+    return !Math::pointInPolygon(qMakePair(lon, lat), points_);
+}
+
+PointVectors WithinFilter::apply(const PointVector &inPoly) const
+{
+    PointVectors outPolys = PointVectors(new QVector<PointVector>());
+
+#if 0
+    // for now, return a list with one item: a deep copy (although implicitly shared for efficiency) of the input polygon
+    PointVector inPolyCopy(new QVector<QPair<double, double> >(*inPoly.data()));
+    outPolys->append(inPolyCopy);
+#endif
+
+    // This function implements the Greiner-Hormann clipping algorithm:
+    // - http://www.inf.usi.ch/hormann/papers/Greiner.1998.ECO.pdf
+    //
+    // See also:
+    // - https://en.wikipedia.org/wiki/Greiner%E2%80%93Hormann_clipping_algorithm
+    // - https://en.wikipedia.org/wiki/Weiler%E2%80%93Atherton_clipping_algorithm
+    // - https://www.jasondavies.com/maps/clip/
+
+
+    const PointVector A(points_); // clipping region
+    const PointVector B(inPoly); // subject polygon
+
+    // STEP 1: Determine orientation of the two polygons
+    const bool clockwiseA = Math::isClockwise(A);
+    const bool clockwiseB = Math::isClockwise(B);
+//    static int nn = 0;
+//    qDebug() << "clocksizeA:" << clockwiseA << ", clockwiseB:" << clockwiseB << nn++;
+
+    // STEP 2: Build initial vertex loops
+
+
+    return outPolys;
+}
+
+QVector<QPair<double, double> > WithinFilter::intersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
+{
+    QVector<QPair<double, double> > points;
+
+    for (int i = 0; i < points_->size(); ++i) {
+        QPair<double, double> isctPoint;
+        if (Math::greatCircleArcsIntersect(points_->at(i), points_->at((i + 1) % points_->size()), p1, p2, &isctPoint))
+            points.append(isctPoint);
+    }
+
+    return points; // FOR NOW
+}
+
+LineFilter::LineFilter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
+    : Filter(type, enabledCheckBox, currCheckBox)
+{
+}
+
+PointVectors LineFilter::apply(const PointVector &inPoly) const
 {
     PointVectors outPolys = PointVectors(new QVector<PointVector>());
 
@@ -128,9 +243,18 @@ PointVectors Filter::apply(const PointVector &inPoly) const
     return outPolys;
 }
 
+QVector<QPair<double, double> > LineFilter::intersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
+{
+    QVector<QPair<double, double> > points;
+    QPair<double, double> point;
+    if ((rejected(p1) != rejected(p2)) && intersects(p1, p2, &point))
+        points.append(point);
+    return points;
+}
+
 LonOrLatFilter::LonOrLatFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox, QDoubleSpinBox *valSpinBox, double defaultValue)
-    : Filter(type, enabledCheckBox, currCheckBox)
+    : LineFilter(type, enabledCheckBox, currCheckBox)
     , valSpinBox_(valSpinBox)
 {
     if ((type == E_OF) || (type == W_OF)) {
@@ -237,14 +361,14 @@ bool LonOrLatFilter::intersects(const QPair<double, double> &p1, const QPair<dou
         lat1 = 0.99 * -M_PI / 2;
         lat2 = 0.99 * M_PI / 2;
     }
-    return Math::greatCircleArcsIntersect(p1, p2, lon, lat1, lon, lat2, isctPoint);
+    return Math::greatCircleArcsIntersect(p1, p2, qMakePair(lon, lat1), qMakePair(lon, lat2), isctPoint);
 }
 
 FreeLineFilter::FreeLineFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox,
         QDoubleSpinBox *lon1SpinBox, QDoubleSpinBox *lat1SpinBox, QDoubleSpinBox *lon2SpinBox, QDoubleSpinBox *lat2SpinBox,
         const QLineF &defaultValue)
-    : Filter(type, enabledCheckBox, currCheckBox)
+    : LineFilter(type, enabledCheckBox, currCheckBox)
     , lon1SpinBox_(lon1SpinBox)
     , lat1SpinBox_(lat1SpinBox)
     , lon2SpinBox_(lon2SpinBox)
@@ -376,7 +500,7 @@ bool FreeLineFilter::intersects(const QPair<double, double> &p1, const QPair<dou
     const double lat1 = DEG2RAD(lat1SpinBox_->value());
     const double lon2 = DEG2RAD(lon2SpinBox_->value());
     const double lat2 = DEG2RAD(lat2SpinBox_->value());
-    return Math::greatCircleArcsIntersect(p1, p2, lon1, lat1, lon2, lat2, isctPoint);
+    return Math::greatCircleArcsIntersect(p1, p2, qMakePair(lon1, lat1), qMakePair(lon2, lat2), isctPoint);
 }
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
@@ -531,21 +655,29 @@ void ControlPanel::initialize()
     filterLayout->addWidget(new QLabel("Type"), 2, 0, Qt::AlignHCenter);
     filterLayout->addWidget(new QLabel("Enabled"), 2, 1, Qt::AlignHCenter);
     filterLayout->addWidget(new QLabel("Current"), 2, 2, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Value"), 2, 3, 1, 2, Qt::AlignHCenter);
+    filterLayout->addWidget(new QLabel("Value"), 2, 3, 1, 2, Qt::AlignLeft);
     for (int i = 0; i < 4; ++i)
         filterLayout->itemAtPosition(2, i)->widget()->setStyleSheet("font-weight:bold");
 
-    // lon|lat filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 3, Filter::E_OF, 4));
-    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 4, Filter::W_OF, 12));
-    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 5, Filter::N_OF, 58));
-    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 6, Filter::S_OF, 66));
+    // within filter (default value arbitrarily chosen for now)
+    PointVector wiPoints (new QVector<QPair<double, double> >);
+    wiPoints->append(qMakePair(0.17, 0.95));
+    wiPoints->append(qMakePair(0.3, 1.02));
+    wiPoints->append(qMakePair(0.25, 1.08));
+    wiPoints->append(qMakePair(0.18, 1.08));
+    filters_.insert(Filter::WI, WithinFilter::create(filterLayout, 3, Filter::WI, wiPoints));
 
-    // line filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::NE_OF, FreeLineFilter::create(filterLayout, 7, Filter::NE_OF, QLineF(QPointF(-4, 65), QPointF(14, 55))));
-    filters_.insert(Filter::NW_OF, FreeLineFilter::create(filterLayout, 8, Filter::NW_OF, QLineF(QPointF(5, 53), QPointF(25, 64))));
-    filters_.insert(Filter::SE_OF, FreeLineFilter::create(filterLayout, 9, Filter::SE_OF, QLineF(QPointF(-1, 54), QPointF(17, 67))));
-    filters_.insert(Filter::SW_OF, FreeLineFilter::create(filterLayout, 19, Filter::SW_OF, QLineF(QPointF(-1, 67), QPointF(19, 57))));
+    // lon|lat filters (default values arbitrarily chosen for now)
+    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 4, Filter::E_OF, 4));
+    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 5, Filter::W_OF, 12));
+    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 6, Filter::N_OF, 58));
+    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 7, Filter::S_OF, 66));
+
+    // free line filters (default values arbitrarily chosen for now)
+    filters_.insert(Filter::NE_OF, FreeLineFilter::create(filterLayout, 8, Filter::NE_OF, QLineF(QPointF(-4, 65), QPointF(14, 55))));
+    filters_.insert(Filter::NW_OF, FreeLineFilter::create(filterLayout, 9, Filter::NW_OF, QLineF(QPointF(5, 53), QPointF(25, 64))));
+    filters_.insert(Filter::SE_OF, FreeLineFilter::create(filterLayout, 10, Filter::SE_OF, QLineF(QPointF(-1, 54), QPointF(17, 67))));
+    filters_.insert(Filter::SW_OF, FreeLineFilter::create(filterLayout, 11, Filter::SW_OF, QLineF(QPointF(-1, 67), QPointF(19, 57))));
 
     // ensure exclusive/radio behavior for the 'current' state
     QButtonGroup *currBtnGroup = new QButtonGroup;
@@ -628,6 +760,11 @@ bool ControlPanel::isValid(Filter::Type type) const
     return filters_.contains(type) ? filters_.value(type)->isValid() : false;
 }
 
+PointVector ControlPanel::WIFilterPoints() const
+{
+    return qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_;
+}
+
 QVariant ControlPanel::value(Filter::Type type) const
 {
     return filters_.value(type)->value();
@@ -646,13 +783,10 @@ bool ControlPanel::rejectedByAnyFilter(double lon, double lat) const
 QVector<QPair<double, double> > ControlPanel::filterIntersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
 {
     QVector<QPair<double, double> > points;
-
     foreach (Filter *filter, filters_) {
-        QPair<double, double> point;
-        if (filter->enabledCheckBox_->isChecked() && (filter->rejected(p1) != filter->rejected(p2)) && filter->intersects(p1, p2, &point))
-            points.append(point);
+        if (filter->enabledCheckBox_->isChecked())
+            points += filter->intersections(p1, p2);
     }
-
     return points;
 }
 
@@ -719,12 +853,8 @@ PointVector ControlPanel::currentBasePolygonPoints() const
     return basePolygons_.value(currType)->points_;
 }
 
-int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double tolerance)
+static int currentPolygonPoint(const PointVector &points, double lon, double lat, double tolerance)
 {
-    if (currentBasePolygonType() != BasePolygon::Custom)
-        return -1;
-
-    const PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
     for (int i = 0; i < points->size(); ++i) {
         const double dist = Math::distance(RAD2DEG(lon), RAD2DEG(lat), RAD2DEG(points->at(i).first), RAD2DEG(points->at(i).second));
         if (dist < tolerance)
@@ -733,22 +863,42 @@ int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double t
     return -1;
 }
 
+int ControlPanel::currentWIFilterPoint(double lon, double lat, double tolerance)
+{
+    return currentPolygonPoint(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, lon, lat, tolerance);
+}
+
+int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double tolerance)
+{
+    if (currentBasePolygonType() != BasePolygon::Custom)
+        return -1;    
+    return currentPolygonPoint(basePolygons_.value(BasePolygon::Custom)->points_, lon, lat, tolerance);
+}
+
 bool ControlPanel::customBasePolygonEditableOnSphere() const
 {
     return customBasePolygonEditableOnSphereCheckBox_->isChecked();
 }
 
-void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, double lat)
+void ControlPanel::updatePolygonPointDragging(PointVector &points, int index, double lon, double lat)
 {
-    PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
     Q_ASSERT((index >= 0) && (index < points->size()));
     (*points)[index] = qMakePair(lon, lat);
     updateGLWidget();
 }
 
-void ControlPanel::addPointToCustomBasePolygon(int index)
+void ControlPanel::updateWIFilterPointDragging(int index, double lon, double lat)
 {
-    PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
+    updatePolygonPointDragging(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, index, lon, lat);
+}
+
+void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, double lat)
+{
+    updatePolygonPointDragging(basePolygons_.value(BasePolygon::Custom)->points_, index, lon, lat);
+}
+
+void ControlPanel::addPointToPolygon(PointVector &points, int index)
+{
     Q_ASSERT((index >= 0) && (index < points->size()));
 
     const double lon1 = points->at(index).first;
@@ -761,9 +911,22 @@ void ControlPanel::addPointToCustomBasePolygon(int index)
     updateGLWidget();
 }
 
-void ControlPanel::removePointFromCustomBasePolygon(int index)
+void ControlPanel::addPointToWIFilter(int index)
 {
-    PointVector points = basePolygons_.value(BasePolygon::Custom)->points_;
+    addPointToPolygon(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, index);
+    MainWindow::instance().glWidget()->updateWIFilterPoint();
+    updateGLWidget();
+}
+
+void ControlPanel::addPointToCustomBasePolygon(int index)
+{
+    addPointToPolygon(basePolygons_.value(BasePolygon::Custom)->points_, index);
+    MainWindow::instance().glWidget()->updateCurrCustomBasePolygonPoint();
+    updateGLWidget();
+}
+
+void ControlPanel::removePointFromPolygon(PointVector &points, int index)
+{
     Q_ASSERT((index >= 0) && (index < points->size()));
 
     if (points->size() <= 3)
@@ -774,45 +937,26 @@ void ControlPanel::removePointFromCustomBasePolygon(int index)
     updateGLWidget();
 }
 
-bool ControlPanel::withinCurrentBasePolygon(double lon, double lat) const
+void ControlPanel::removePointFromWIFilter(int index)
 {
-#if 0
-    namespace bg = boost::geometry;
-    typedef bg::model::point<double, 2, bg::cs::spherical<bg::radian> > point_t;
-    typedef bg::model::polygon<point_t> polygon_t;
+    removePointFromPolygon(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, index);
+}
 
-    const PointVector points = currentBasePolygonPoints();
-    //qDebug() << "points:" << *points;
-    polygon_t polygon;
-    for (int i = 0; i < points->size(); ++i)
-        bg::append(polygon.outer(), point_t(points->at(i).first, points->at(i).second));
+void ControlPanel::removePointFromCustomBasePolygon(int index)
+{
+    removePointFromPolygon(basePolygons_.value(BasePolygon::Custom)->points_, index);
+}
 
-    const point_t point(lon, lat);
-    //std::cerr << bg::dsv(point) << std::endl;
-    //std::cerr << bg::get<0>(point) << ", " << bg::get<1>(point) << std::endl;
-    //std::cerr << point.get<0>() << ", " << point.get<1>() << std::endl;
+// Returns true iff the current base polygon is oriented clockwise.
+bool ControlPanel::currentBasePolygonIsClockwise() const
+{
+    return Math::isClockwise(currentBasePolygonPoints());
+}
 
-    //return bg::within(point, polygon); APPARENTLY NOT SUPPORTED FOR SPHERICAL COORDINATES!
-    return bg::within(point, polygon, bg::strategy::within::winding<point_t, point_t, void>());
-#else
-    int nisct = 0; // number of intersections
-
-    // define a point that is assumed to be outside the polygon
-    // ### FOR NOW:
-    const double extLon = 0;
-    const double extLat = -M_PI;
-
-    const PointVector points = currentBasePolygonPoints();
-    for (int i = 0; i < points->size(); ++i) {
-        QPair<double, double> isctPoint; // ### not used!
-        if (Math::greatCircleArcsIntersect(
-                    points->at(i), points->at((i + 1) % points->size()),
-                    lon, lat, extLon, extLat, &isctPoint))
-            nisct++;
-    }
-
-    return nisct % 2;
-#endif
+// Returns true iff the given point is considered inside the current base polygon.
+bool ControlPanel::withinCurrentBasePolygon(const QPair<double, double> &point) const
+{
+    return Math::pointInPolygon(point, currentBasePolygonPoints());
 }
 
 bool ControlPanel::resultPolygonsLinesVisible() const
@@ -837,10 +981,17 @@ PointVectors ControlPanel::resultPolygons() const
     foreach (Filter *filter, filters_) {
         if ((!filter->enabledCheckBox_->isChecked()) || (!filter->isValid()))
             continue;
+
+        // set the input polygons for this filter to be the output polygons from the previous filter
         PointVectors inPolys(resultPolys);
+
+        // create an empty list of output polygons to be filled in by this filter
         resultPolys = PointVectors(new QVector<PointVector>());
+
+        // loop over input polygons
         for (int i = 0; i < inPolys->size(); ++i) {
             if (inPolys->at(i)) {
+                // apply the filter to convert this input polygon to zero or more output polygons and add the to the output list
                 PointVectors outPolys = filter->apply(inPolys->at(i));
                 for (int j = 0; j < outPolys->size(); ++j)
                     resultPolys->append(outPolys->at(j));

@@ -1,6 +1,7 @@
 #ifndef UTIL3D_H
 #define UTIL3D_H
 
+#include "common.h"
 #include <math.h>
 #include <QVector>
 #include <QPair>
@@ -111,8 +112,12 @@ public:
 
     static bool intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint);
     static bool greatCircleArcsIntersect(
-            const QPair<double, double> &p1, const QPair<double, double> &p2, double lon1, double lat1, double lon2, double lat2,
-            QPair<double, double> *isctPoint);
+            const QPair<double, double> &p1, const QPair<double, double> &p2,
+            const QPair<double, double> &p3, const QPair<double, double> &p4,
+            QPair<double, double> *isctPoint = 0);
+    static bool pointInPolygon(const QPair<double, double> &, const PointVector &);
+
+    static bool isClockwise(const PointVector &);
 
     static double *sphericalToCartesian(double radius, double phi, double theta);
     static void sphericalToCartesian(double radius, double phi, double theta, double &x, double &y,	double &z);

@@ -179,7 +179,7 @@ bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<doubl
     return false; // no crossing
 }
 
-// Returns true iff the great circle arc from p1 to p2 intersects the great circle arc from (lon1, lat1) to (lon2, lat2).
+// Returns true iff the great circle arc from p1 to p2 intersects the great circle arc from p3 to p4.
 // The intersection point closest to p1 and p2 is returned in isctPoint.
 // NOTE: If the two great circles lie (approximately) in the same plane, the function returns false (even if there are infinite numbers
 // of intersections!).
@@ -189,13 +189,14 @@ bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<doubl
 //   2: http://www.boeing-727.com/Data/fly%20odds/distance.html
 //   3: http://www.movable-type.co.uk/scripts/latlong-vectors.html
 bool Math::greatCircleArcsIntersect(
-        const QPair<double, double> &p1, const QPair<double, double> &p2, double lon1, double lat1, double lon2, double lat2,
+        const QPair<double, double> &p1, const QPair<double, double> &p2,
+        const QPair<double, double> &p3, const QPair<double, double> &p4,
         QPair<double, double> *isctPoint)
 {
     const _3DPoint a0 = _3DPoint::fromSpherical(p1.first, p1.second);
     const _3DPoint a1 = _3DPoint::fromSpherical(p2.first, p2.second);
-    const _3DPoint b0 = _3DPoint::fromSpherical(lon1, lat1);
-    const _3DPoint b1 = _3DPoint::fromSpherical(lon2, lat2);
+    const _3DPoint b0 = _3DPoint::fromSpherical(p3.first, p3.second);
+    const _3DPoint b1 = _3DPoint::fromSpherical(p4.first, p4.second);
 
     const _3DPoint p = _3DPoint::cross(a0, a1); // normal of plane 1
     const _3DPoint q = _3DPoint::cross(b0, b1); // normal of plane 2
@@ -217,10 +218,59 @@ bool Math::greatCircleArcsIntersect(
     else
         return false; // the arcs don't intersect (or maybe lie in the same plane if this wasn't detected by the above test for this?)
 
-    isctPoint->first = atan2(sign * t.y(), sign * t.x());
-    isctPoint->second = atan2(sign * t.z(), sqrt(t.x() * t.x() + t.y() * t.y()));
+    if (isctPoint) {
+        isctPoint->first = atan2(sign * t.y(), sign * t.x());
+        isctPoint->second = atan2(sign * t.z(), sqrt(t.x() * t.x() + t.y() * t.y()));
+    }
 
     return true;
+}
+
+// Returns true iff a point is considered inside a polygon.
+bool Math::pointInPolygon(const QPair<double, double> &point, const PointVector &points)
+{
+    // define an external point (i.e. a point that is assumed to be outside the polygon)
+    double avgLon = 0;
+    double minLat;
+    double maxLat;
+    minLat = maxLat = points->first().second;
+    for (int i = 0; i < points->size(); ++i) {
+        avgLon += points->at(i).first;
+        const double lat = points->at(i).second;
+        minLat = qMin(lat, minLat);
+        maxLat = qMax(lat, maxLat);
+    }
+    avgLon /= points->size();
+    QPair<double, double> extPoint(avgLon, 0.99 * M_PI / 2);
+    if ((M_PI / 2 - maxLat) < (minLat - (-M_PI / 2)))
+        // polygon is closer to the north pole, so use a point close to the south pole as the external point
+        extPoint.second = -extPoint.second;
+
+    // compute the number of intersections between 1) the arc from the point to the external point and
+    // 2) argcs forming the polygon
+    int nisct = 0;
+    for (int i = 0; i < points->size(); ++i) {
+        if (Math::greatCircleArcsIntersect(
+                    point, extPoint,
+                    points->at(i), points->at((i + 1) % points->size())))
+            nisct++;
+    }
+
+    // the point is considered inside the polygon if there is an odd number of intersections
+    return nisct % 2;
+}
+
+// Returns true iff a polygon is oriented clockwise.
+// (Adopted from http://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order .
+// See also: https://en.wikipedia.org/wiki/Curve_orientation . )
+bool Math::isClockwise(const PointVector &points)
+{
+    double sum = 0;
+    for (int i = 0; i < points->size(); ++i) {
+        const int next = (i + 1) % points->size();
+        sum += (points->at(next).first - points->at(i).first) * (points->at(next).second + points->at(i).second);
+    }
+    return (sum > 0);
 }
 
 double * Math::sphericalToCartesian(double radius, double phi, double theta)
