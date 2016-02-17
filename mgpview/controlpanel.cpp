@@ -24,6 +24,36 @@
 #include <algorithm>
 #include <iostream> // ### for debugging
 
+// Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
+// Examples:
+//        0 -> E000 (or E00000)
+//    -M_PI -> W18000 (or W180)
+// M_PI / 2 -> E09000 (or E090)
+static QString xmetFormatLon(double lon_)
+{
+    double lon = RAD2DEG(fmod(lon_, 2 * M_PI));
+    if (lon > 180)
+        lon -= 360;
+    lon = qMin(180.0, qMax(-180.0, lon));
+    const int ipart = int(floor(fabs(lon)));
+    const int fpart = int(floor(round(100 * (fabs(lon) - ipart))));
+    return QString("%1%2%3").arg((lon < 0) ? "W" : "E").arg(ipart, 3, 10, QLatin1Char('0')).arg(fpart, 2, 10, QLatin1Char('0'));
+}
+
+// Returns the SIGMET/AIRMET degrees form of a latitude value in radians ([-M_PI / 2, M_PI / 2]).
+// Examples:
+//            0 -> N00 (or N0000)
+//    -M_PI / 2 -> S9000 (or S90)
+//     M_PI / 4 -> N4500 (or N45)
+static QString xmetFormatLat(double lat_)
+{
+    double lat = RAD2DEG(fmod(lat_, M_PI));
+    lat = qMin(90.0, qMax(-90.0, lat));
+    const int ipart = int(floor(fabs(lat)));
+    const int fpart = int(floor(round(100 * (fabs(lat) - ipart))));
+    return QString("%1%2%3").arg(lat < 0 ? "S" : "N").arg(ipart, 2, 10, QLatin1Char('0')).arg(fpart, 2, 10, QLatin1Char('0'));
+}
+
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : type_(type)
     , enabledCheckBox_(enabledCheckBox)
@@ -450,6 +480,14 @@ QVector<QPair<double, double> > WithinFilter::intersections(const QPair<double, 
     return points; // FOR NOW
 }
 
+QString WithinFilter::xmetExpr() const
+{
+    QString s("WI");
+    for (int i = 0; i < points_->size(); ++i)
+        s += QString(" %1 %2").arg(xmetFormatLat(points_->at(i).second)).arg(xmetFormatLon(points_->at(i).first));
+    return s;
+}
+
 LineFilter::LineFilter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : Filter(type, enabledCheckBox, currCheckBox)
 {
@@ -649,6 +687,12 @@ bool LonOrLatFilter::intersects(const QPair<double, double> &p1, const QPair<dou
     return Math::greatCircleArcsIntersect(p1, p2, qMakePair(lon, lat1), qMakePair(lon, lat2), isctPoint);
 }
 
+QString LonOrLatFilter::xmetExpr() const
+{
+    const double val = DEG2RAD(valSpinBox_->value());
+    return QString("%1 %2").arg(typeName(type_)).arg(((type_ == N_OF) || (type_ == S_OF)) ? xmetFormatLat(val) : xmetFormatLon(val));
+}
+
 FreeLineFilter::FreeLineFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox,
         QDoubleSpinBox *lon1SpinBox, QDoubleSpinBox *lat1SpinBox, QDoubleSpinBox *lon2SpinBox, QDoubleSpinBox *lat2SpinBox,
@@ -787,6 +831,15 @@ bool FreeLineFilter::intersects(const QPair<double, double> &p1, const QPair<dou
     const double lon2 = DEG2RAD(lon2SpinBox_->value());
     const double lat2 = DEG2RAD(lat2SpinBox_->value());
     return Math::greatCircleArcsIntersect(p1, p2, qMakePair(lon1, lat1), qMakePair(lon2, lat2), isctPoint);
+}
+
+QString FreeLineFilter::xmetExpr() const
+{
+    return QString("%1 %2 %3 - %4 %5").arg(typeName(type_))
+            .arg(xmetFormatLat(DEG2RAD(lat1SpinBox_->value())))
+            .arg(xmetFormatLon(DEG2RAD(lon1SpinBox_->value())))
+            .arg(xmetFormatLat(DEG2RAD(lat2SpinBox_->value())))
+            .arg(xmetFormatLon(DEG2RAD(lon2SpinBox_->value())));
 }
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
@@ -1023,8 +1076,23 @@ void ControlPanel::initialize()
     xmetExprGroupBox->setLayout(xmetExprLayout);
     mainLayout->addWidget(xmetExprGroupBox);
 
-    QTextEdit *xmetExprEdit = new QTextEdit;
-    xmetExprLayout->addWidget(xmetExprEdit);
+    xmetExprEdit_ = new QTextEdit;
+    xmetExprLayout->addWidget(xmetExprEdit_);
+
+    QHBoxLayout *xmetExprLayout2 = new QHBoxLayout;
+    xmetExprLayout->addLayout(xmetExprLayout2);
+
+    QPushButton *xmetExprFromFiltersButton = new QPushButton("Set expression from filters");
+    xmetExprFromFiltersButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    connect(xmetExprFromFiltersButton, SIGNAL(clicked()), SLOT(setXmetExprFromFilters()));
+    xmetExprLayout2->addWidget(xmetExprFromFiltersButton);
+
+    QPushButton *filtersFromXmetExprButton = new QPushButton("Set filters from expression");
+    filtersFromXmetExprButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    connect(filtersFromXmetExprButton, SIGNAL(clicked()), SLOT(setFiltersFromXmetExpr()));
+    xmetExprLayout2->addWidget(filtersFromXmetExprButton);
+
+    xmetExprLayout2->addStretch(1);
 
     // --- END SIGMET/AIRMET expression section -------------------------------------------
 
@@ -1352,4 +1420,26 @@ void ControlPanel::basePolygonTypeChanged()
 {
     customBasePolygonEditableOnSphereCheckBox_->setVisible(currentBasePolygonType() == BasePolygon::Custom);
     updateGLWidget();
+}
+
+// Sets a canonical SIGMET/AIRMET expression from the current filters.
+void ControlPanel::setXmetExprFromFilters()
+{
+    QString s;
+    bool addSpace = false;
+    foreach (Filter *filter, filters_) {
+        if (filter->enabledCheckBox_->isChecked() && filter->isValid()) {
+            if (addSpace)
+                s += " ";
+            addSpace = true; // add a space from now on
+            s += filter->xmetExpr();
+        }
+    }
+    xmetExprEdit_->setPlainText(s);
+}
+
+// Sets the filters from the SIGMET/AIRMET expression if possible.
+void ControlPanel::setFiltersFromXmetExpr()
+{
+    qDebug() << "setting filters from expression:" << xmetExprEdit_->toPlainText().trimmed() << " (not implemented)";
 }

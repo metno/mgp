@@ -17,6 +17,7 @@ class GLWidget;
 class QGridLayout;
 class QComboBox;
 class QSlider;
+class QTextEdit;
 
 class Filter : public QObject // ### does this need to be a QObject?
 {
@@ -41,6 +42,9 @@ protected:
     // Returns all intersection points between the filter and the given great circle segment.
     virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const = 0;
 
+    // Returns the SIGMET/AIRMET expression of the filter.
+    virtual QString xmetExpr() const = 0;
+
     Type type_;
     QCheckBox *enabledCheckBox_;
     QCheckBox *currCheckBox_;
@@ -64,6 +68,7 @@ class WithinFilter : public Filter
 
     virtual PointVectors apply(const PointVector &) const;
     virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const;
+    virtual QString xmetExpr() const;
 
     PointVector points_;
 };
@@ -92,6 +97,7 @@ class LonOrLatFilter : public LineFilter
     virtual bool isValid() const;
     virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
+    virtual QString xmetExpr() const;
 
     QDoubleSpinBox *valSpinBox_;
 };
@@ -108,6 +114,7 @@ class FreeLineFilter : public LineFilter {
     virtual bool isValid() const;
     virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
+    virtual QString xmetExpr() const;
 
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
@@ -202,6 +209,8 @@ private:
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
+    QTextEdit *xmetExprEdit_;
+
     void updatePolygonPointDragging(PointVector &, int, const QPair<double, double> &);
     void addPointToPolygon(PointVector &, int);
     void removePointFromPolygon(PointVector &, int);
@@ -210,6 +219,8 @@ private slots:
     void close();
     void updateGLWidget();
     void basePolygonTypeChanged();
+    void setXmetExprFromFilters();
+    void setFiltersFromXmetExpr();
 };
 
 #endif // CONTROLPANEL_H
