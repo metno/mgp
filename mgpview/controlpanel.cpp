@@ -995,10 +995,11 @@ void ControlPanel::initialize()
 
 
     // --- BEGIN result polygons section -------------------------------------------
-    QGroupBox *resultPolygonsGroupBox = new QGroupBox("Result Polygons");
+    resultPolygonsGroupBox_ = new QGroupBox;
+    updateResultPolygonsGroupBoxTitle(-1);
     QVBoxLayout *resultPolygonsLayout = new QVBoxLayout;
-    resultPolygonsGroupBox->setLayout(resultPolygonsLayout);
-    mainLayout->addWidget(resultPolygonsGroupBox);
+    resultPolygonsGroupBox_->setLayout(resultPolygonsLayout);
+    mainLayout->addWidget(resultPolygonsGroupBox_);
 
     QHBoxLayout *resultPolygonsLayout2 = new QHBoxLayout;
     resultPolygonsLayout->addLayout(resultPolygonsLayout2);
@@ -1316,6 +1317,11 @@ PointVectors ControlPanel::resultPolygons() const
     }
 
     return resultPolys;
+}
+
+void ControlPanel::updateResultPolygonsGroupBoxTitle(int n)
+{
+    resultPolygonsGroupBox_->setTitle(QString("Result Polygons%1").arg(n < 0 ? QString() : QString(" (%1)").arg(n)));
 }
 
 float ControlPanel::ballSizeFrac()

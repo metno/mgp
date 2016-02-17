@@ -10,6 +10,7 @@
 #include <QVector>
 #include <QPair>
 
+class QGroupBox;
 class QCheckBox;
 class QDoubleSpinBox;
 class GLWidget;
@@ -175,6 +176,7 @@ public:
     bool resultPolygonsLinesVisible() const;
     bool resultPolygonsPointsVisible() const;
     PointVectors resultPolygons() const;
+    void updateResultPolygonsGroupBoxTitle(int);
 
     float ballSizeFrac();
 
@@ -196,6 +198,7 @@ private:
     QHash<Filter::Type, Filter *> filters_;
     Filter *currentFilter() const;
 
+    QGroupBox *resultPolygonsGroupBox_;
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 

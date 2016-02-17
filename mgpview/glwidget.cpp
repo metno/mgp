@@ -313,6 +313,7 @@ void GLWidget::paintGL()
 
     if (ControlPanel::instance().resultPolygonsLinesVisible() || ControlPanel::instance().resultPolygonsPointsVisible()) {
         const PointVectors polygons = ControlPanel::instance().resultPolygons();
+        ControlPanel::instance().updateResultPolygonsGroupBoxTitle(polygons->size());
 
         if (ControlPanel::instance().resultPolygonsLinesVisible()) {
             // draw lines
@@ -333,6 +334,8 @@ void GLWidget::paintGL()
                 }
             }
         }
+    } else {
+        ControlPanel::instance().updateResultPolygonsGroupBoxTitle(-1);
     }
 
     // --- END draw result polygons --------------------------------
