@@ -1,6 +1,7 @@
 #include <stdio.h> // 4 TESTING!
 #include "util3d.h"
 #include <stdexcept>
+#include <float.h>
 #include <QDebug>
 
 void Math::normalize(double &x, double &y)
@@ -43,13 +44,19 @@ double Math::angle(double x, double y)
     return a;
 }
 
-// Returns the spherical distance (i.e. along the great circle on the unit sphere) between two points.
-double Math::distance(double lon1, double lat1, double lon2, double lat2)
+/**
+ * Returns the spherical distance (i.e. along the great circle on the unit sphere) between two points.
+ *
+ * @param   p1 - first point (lon,lat in radians).
+ * @param   p2 - second point (lon,lat in radians).
+ * @returns Distance between p1 and p2 on unit sphere.
+ */
+double Math::distance(const QPair<double, double> &p1, const QPair<double, double> &p2)
 {
-    const double theta1 = (lon1 / 180) *  M_PI;
-    const double phi1   = (lat1 /  90) * (M_PI / 2);
-    const double theta2 = (lon2 / 180) *  M_PI;
-    const double phi2   = (lat2 /  90) * (M_PI / 2);
+    const double theta1 = p1.first;
+    const double phi1   = p1.second;
+    const double theta2 = p2.first;
+    const double phi2   = p2.second;
 
     const double dphi = phi2 - phi1;
     const double dtheta = theta2 - theta1;
@@ -81,66 +88,41 @@ QVector<_3DPoint> Math::getGreatCirclePoints(double lon1, double lat1, double lo
 }
 
 /**
- * Returns the distance along the great circle from one point to another (using haversine formula).
- *
- * @param   lon0, lat0 - Source point.
- * @param   lon1, lat1 - Destination point.
- * @param   radius - Sphere radius.
- * @returns Distance between the source and destination point, in same units as radius.
- */
-double Math::distanceBetween(double lon0, double lat0, double lon1, double lat1, double radius)
-{
-    const double phi_1 = DEG2RAD(lat0);
-    const double lambda_1 = DEG2RAD(lon0);
-    const double phi_2 = DEG2RAD(lat1);
-    const double lambda_2 = DEG2RAD(lon1);
-    const double delta_phi = phi_2 - phi_1;
-    const double delta_lambda = lambda_2 - lambda_1;
-
-    const double a =
-            sin(delta_phi / 2) * sin(delta_phi / 2) +
-            cos(phi_1) * cos(phi_2) *
-            sin(delta_lambda / 2) * sin(delta_lambda / 2);
-    const double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return radius * c;
-};
-
-/**
  * Returns the (initial) bearing from one point to another.
  *
- * @param   lon0, lat0 - Source point.
- * @param   lon1, lat1 - Destination point.
- * @returns Initial bearing in degrees from north.
+ * @param   p0 - source point (lon,lat in radians).
+ * @param   p1 - destination point (lon,lat in radians).
+ * @returns Initial bearing in radians from north.
  */
-double Math::bearingBetween(double lon0, double lat0, double lon1, double lat1)
+double Math::bearingBetween(const QPair<double, double> &p0, const QPair<double, double> &p1)
 {
-    const double phi_1 = DEG2RAD(lat0);
-    const double phi_2 = DEG2RAD(lat1);
-    const double delta_lambda = DEG2RAD(lon1 - lon0);
+    const double phi_1 = p0.second;
+    const double phi_2 = p1.second;
+    const double delta_lambda = p1.first - p0.first;
 
     // see http://mathforum.org/library/drmath/view/55417.html
     const double y = sin(delta_lambda) * cos(phi_2);
     const double x = cos(phi_1) * sin(phi_2) - sin(phi_1) * cos(phi_2) * cos(delta_lambda);
     const double theta = atan2(y, x);
 
-    return fmod((RAD2DEG(theta) + 360), 360);
+    return fmod(theta + 2 * M_PI, 2 * M_PI);
 };
 
 /**
  * Returns (signed) distance from a point to a great circle.
  *
- * @param   lon0, lat0 - Source point.
- * @param   lon1, lat1 - Start point of great circle path.
- * @param   lon2, lat2 - End point of great circle path.
+ * @param   p0 - source point (lon,lat in radians).
+ * @param   p1 - start point of great circle path (lon,lat in radians).
+ * @param   p2 - end point of great circle path (lon, lat in radians).
  * @param   radius - Sphere radius.
  * @returns Distance to great circle (< 0 if to left, > 0 if to right of path).
  */
-double Math::crossTrackDistanceToGreatCircle(double lon0, double lat0, double lon1, double lat1, double lon2, double lat2, double radius)
+double Math::crossTrackDistanceToGreatCircle(
+        const QPair<double, double> &p0, const QPair<double, double> &p1, const QPair<double, double> &p2, double radius)
 {
-    const double delta_13 = distanceBetween(lon1, lat1, lon0, lat0, radius) / radius;
-    const double theta_13 = DEG2RAD(bearingBetween(lon1, lat1, lon0, lat0));
-    const double theta_12 = DEG2RAD(bearingBetween(lon1, lat1, lon2, lat2));
+    const double delta_13 = distance(p1, p0);
+    const double theta_13 = bearingBetween(p1, p0);
+    const double theta_12 = bearingBetween(p1, p2);
 
     return asin(sin(delta_13) * sin(theta_13 - theta_12)) * radius;
 }
@@ -165,10 +147,12 @@ bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<doubl
         const double lon3_1 = fmod(lon1 + dlon + lon + M_PI, 2 * M_PI) - M_PI;
         const double lon3_2 = fmod(lon1 - dlon + lon + M_PI, 2 * M_PI) - M_PI;
 
-        const double dist11 = distance(RAD2DEG(lon1), RAD2DEG(lat1), RAD2DEG(lon3_1), RAD2DEG(lat));
-        const double dist21 = distance(RAD2DEG(lon2), RAD2DEG(lat2), RAD2DEG(lon3_1), RAD2DEG(lat));
-        const double dist12 = distance(RAD2DEG(lon1), RAD2DEG(lat1), RAD2DEG(lon3_2), RAD2DEG(lat));
-        const double dist22 = distance(RAD2DEG(lon2), RAD2DEG(lat2), RAD2DEG(lon3_2), RAD2DEG(lat));
+        const QPair<double, double> p3_1(lon3_1, lat);
+        const double dist11 = distance(p1, p3_1);
+        const double dist21 = distance(p2, p3_1);
+        const QPair<double, double> p3_2(lon3_2, lat);
+        const double dist12 = distance(p1, p3_2);
+        const double dist22 = distance(p2, p3_2);
         isctPoint->first = ((dist11 + dist21) < (dist12 + dist22)) ? lon3_1 : lon3_2;
 
         isctPoint->second = lat;
@@ -202,7 +186,7 @@ bool Math::greatCircleArcsIntersect(
     const _3DPoint q = _3DPoint::cross(b0, b1); // normal of plane 2
 
     const _3DPoint t = _3DPoint::cross(p, q);
-    if (t.norm() < 0.00001)
+    if (t.norm() < FLT_MIN)
         return false; // arcs lie (approximately) in the same plane => no intersections
 
     const double s1 = _3DPoint::dot(_3DPoint::cross(p, a0), t);

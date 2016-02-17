@@ -103,12 +103,12 @@ public:
     static double angle(double x, double y);
     static double min(double a, double b) {return a < b ? a : b;}
     static double max(double a, double b) {return a > b ? a : b;}
-    static double distance(double lon1, double lat1, double lon2, double lat2);
+    static double distance(const QPair<double, double> &, const QPair<double, double> &);
     static QVector<_3DPoint> getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments);
 
-    static double distanceBetween(double lon0, double lat0, double lon1, double lat1, double radius = 1.0);
-    static double bearingBetween(double lon0, double lat0, double lon1, double lat1);
-    static double crossTrackDistanceToGreatCircle(double lon0, double lat0, double lon1, double lat1, double lon2, double lat2, double radius = 1.0);
+    static double bearingBetween(const QPair<double, double> &, const QPair<double, double> &);
+    static double crossTrackDistanceToGreatCircle(
+            const QPair<double, double> &, const QPair<double, double> &, const QPair<double, double> &, double radius = 1.0);
 
     static bool intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint);
     static bool greatCircleArcsIntersect(

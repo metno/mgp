@@ -168,15 +168,17 @@ void GLWidget::paintGL()
     if (ControlPanel::instance().currentBasePolygonPoints()) {
         const PointVector points = ControlPanel::instance().currentBasePolygonPoints();
 
-        if (ControlPanel::instance().basePolygonVisible()) {
+        if (ControlPanel::instance().basePolygonLinesVisible()) {
             glShadeModel(GL_FLAT);
             gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_, QColor::fromRgbF(0, 0, 1), 2);
             glShadeModel(GL_SMOOTH);
         }
 
-        if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom) && ControlPanel::instance().customBasePolygonEditableOnSphere()) {
+        if (ControlPanel::instance().basePolygonPointsVisible() ||
+                ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom)
+                && ControlPanel::instance().customBasePolygonEditableOnSphere())) {
 
-            // draw points and any intersections
+            // draw points
             for (int i = 0; i < points->size(); ++i) {
 
                 float r, g, b;
@@ -184,7 +186,7 @@ void GLWidget::paintGL()
                     r = 1.0;
                     g = 1.0;
                     b = 0.0;
-                } else if (ControlPanel::instance().rejectedByAnyFilter(points->at(i).first, points->at(i).second)) {
+                } else if (ControlPanel::instance().rejectedByAnyFilter(points->at(i))) {
                     r = 0.8;
                     g = 0.0;
                     b = 0.0;
@@ -196,14 +198,23 @@ void GLWidget::paintGL()
 
                 // draw point
                 gfx_util.drawSurfaceBall(points->at(i).first, points->at(i).second, ballSize(), r, g, b, 1);
+            }
+        }
+
+        if (ControlPanel::instance().basePolygonIntersectionsVisible()) {
+
+            // draw intersections
+            for (int i = 0; i < points->size(); ++i) {
 
                 // draw points where filters intersect the great circle segment between this point and the previous one
                 const int prevIndex = (i - 1 + points->size()) % points->size();
-                const QVector<QPair<double, double> > isctPoints = ControlPanel::instance().filterIntersections(points->at(prevIndex), points->at(i));
+                const QVector<QPair<double, double> > isctPoints =
+                        ControlPanel::instance().filterIntersections(points->at(prevIndex), points->at(i));
                 for (int j = 0; j < isctPoints.size(); ++j)
                     gfx_util.drawSurfaceBall(isctPoints.at(j).first, isctPoints.at(j).second, ballSize(), 1, 0, 1, 1);
             }
         }
+
     }
 
     // --- END draw base polygon --------------------------------
@@ -419,7 +430,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
             dragBaseLat_ = mouseLat_;
         } else if ((event->button() == Qt::LeftButton)
                 && ControlPanel::instance().filtersEditableOnSphere()
-                && ControlPanel::instance().startFilterDragging(mouseLon_, mouseLat_)) {
+                && ControlPanel::instance().startFilterDragging(qMakePair(mouseLon_, mouseLat_))) {
             // ... other filter
             draggingOtherFilter_ = true;
             dragBaseLon_ = mouseLon_;
@@ -458,13 +469,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     updateCurrCustomBasePolygonPoint();
 
     if (draggingWIFilter_) {
-        ControlPanel::instance().updateWIFilterPointDragging(currWIFilterPoint_, mouseLon_, mouseLat_);
+        ControlPanel::instance().updateWIFilterPointDragging(currWIFilterPoint_, qMakePair(mouseLon_, mouseLat_));
 
     } else if (draggingOtherFilter_) {
-        ControlPanel::instance().updateFilterDragging(mouseLon_, mouseLat_);
+        ControlPanel::instance().updateFilterDragging(qMakePair(mouseLon_, mouseLat_));
 
     } else if (draggingCustomBasePolygon_) {
-        ControlPanel::instance().updateCustomBasePolygonPointDragging(currCustomBasePolygonPoint_, mouseLon_, mouseLat_);
+        ControlPanel::instance().updateCustomBasePolygonPointDragging(currCustomBasePolygonPoint_, qMakePair(mouseLon_, mouseLat_));
 
     } else if (draggingFocus_) {
         const int dx = event->x() - dragBaseX_;
@@ -631,13 +642,15 @@ QPair<double, double> GLWidget::currentFocusPos() const
 void GLWidget::updateWIFilterPoint()
 {
     if (!draggingWIFilter_)
-        currWIFilterPoint_ = ControlPanel::instance().currentWIFilterPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
+        currWIFilterPoint_ = ControlPanel::instance().currentWIFilterPoint(
+                    qMakePair(mouseLon_, mouseLat_), ballSize() / GfxUtils::getEarthRadius());
 }
 
 void GLWidget::updateCurrCustomBasePolygonPoint()
 {
     if (!draggingCustomBasePolygon_)
-        currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(mouseLon_, mouseLat_, ballSize() / GfxUtils::getEarthRadius());
+        currCustomBasePolygonPoint_ = ControlPanel::instance().currentCustomBasePolygonPoint(
+                    qMakePair(mouseLon_, mouseLat_), ballSize() / GfxUtils::getEarthRadius());
 }
 
 double GLWidget::ballSize() const

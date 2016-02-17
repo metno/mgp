@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include "glwidget.h"
 #include "enor_fir.h"
+#include "util3d.h"
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -18,10 +19,10 @@
 #include <QComboBox>
 #include <QSlider>
 #include <QBitArray>
+#include <QLinkedList>
+#include <QHash>
 #include <algorithm>
-#if 0
-#include <boost/geometry.hpp>
-#endif
+#include <iostream> // ### for debugging
 
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : type_(type)
@@ -48,11 +49,6 @@ QString Filter::typeName(Type type)
     case SW_OF: return "SW OF LINE";
     default: return "ERROR!";
     }
-}
-
-bool Filter::rejected(const QPair<double, double> &point) const
-{
-    return rejected(point.first, point.second);
 }
 
 WithinFilter::WithinFilter(
@@ -86,12 +82,12 @@ QVariant WithinFilter::value() const
     return QVariant(); // for now
 }
 
-bool WithinFilter::startDragging(double, double)
+bool WithinFilter::startDragging(const QPair<double, double> &)
 {
     return false;
 }
 
-void WithinFilter::updateDragging(double, double)
+void WithinFilter::updateDragging(const QPair<double, double> &)
 {
 }
 
@@ -113,41 +109,330 @@ bool WithinFilter::isValid() const
     return true;
 }
 
-bool WithinFilter::rejected(double lon, double lat) const
+bool WithinFilter::rejected(const QPair<double, double> &point) const
 {
-    return !Math::pointInPolygon(qMakePair(lon, lat), points_);
+    return !Math::pointInPolygon(point, points_);
 }
 
+static PointVector reversed(const PointVector &points)
+{
+    PointVector copy(new QVector<QPair<double, double> >());
+    for (int i = points->size() - 1; i >= 0; --i)
+        copy->append(points->at(i));
+    return copy;
+}
+
+struct IsctInfo {
+    int isctId_; // non-negative intersection ID
+    int c_; // intersection on line (c, (c + 1) % C.size()) in clip polygon C for 0 <= c < C.size()
+    int s_; // intersection on line (s, (s + 1) % S.size()) in subject polygon S for 0 <= s < S.size()
+    QPair<double, double> point_; // lon,lat radians of intersection point
+    double cdist_; // distance between C->at(c) and point_
+    double sdist_; // distance between S->at(s) and point_
+    IsctInfo(int isctId, int c, int s, const QPair<double, double> &point, double cdist, double sdist)
+        : isctId_(isctId)
+        , c_(c)
+        , s_(s)
+        , point_(point)
+        , cdist_(cdist)
+        , sdist_(sdist)
+    {}
+};
+
+struct Node {
+    QPair<double, double> point_; // lon,lat radians of point represented by the node
+    int isctId_; // non-negative intersection ID, or < 0 if the node does not represent an intersection
+    QLinkedList<Node>::iterator neighbour_; // pointer to corresponding intersection node in other list
+    bool entry_; // whether the intersection node represents an entry into (true) or exit from (false) the clipped polygon
+    bool visited_; // whether the intersection node has already been processed in the generation of output polygons
+    Node(const QPair<double, double> &point, int isctId = -1) : point_(point), isctId_(isctId), entry_(false), visited_(false) {}
+};
+
+static void printLists(const QString &tag, const QLinkedList<Node> &slist, const QLinkedList<Node> &clist)
+{
+    {
+        std::cout << tag.toLatin1().data() << "; subj: ";
+        QLinkedList<Node>::const_iterator it;
+        for (it = slist.constBegin(); it != slist.constEnd(); ++it) {
+            if (it->isctId_ < 0) {
+                std::cout << "V  ";
+            } else {
+                std::cout << it->isctId_ << "<" << (it->entry_ ? "entry" : "exit") << ">  ";
+                Q_ASSERT(it->isctId_ == it->neighbour_->isctId_);
+            }
+        }
+        std::cout << std::endl;
+    }
+
+    {
+        std::cout << tag.toLatin1().data() << "; clip: ";
+        QLinkedList<Node>::const_iterator it;
+        for (it = clist.constBegin(); it != clist.constEnd(); ++it) {
+            if (it->isctId_ < 0) {
+                std::cout << "V  ";
+            } else {
+                std::cout << it->isctId_ << "<" << (it->entry_ ? "entry" : "exit") << ">  ";
+                Q_ASSERT(it->isctId_ == it->neighbour_->isctId_);
+            }
+        }
+        std::cout << std::endl << std::endl;
+    }
+}
+
+// This function implements the Greiner-Hormann clipping algorithm:
+// - http://www.inf.usi.ch/hormann/papers/Greiner.1998.ECO.pdf
+//
+// See also:
+// - https://en.wikipedia.org/wiki/Greiner%E2%80%93Hormann_clipping_algorithm
+// - https://en.wikipedia.org/wiki/Weiler%E2%80%93Atherton_clipping_algorithm
+// - https://www.jasondavies.com/maps/clip/
 PointVectors WithinFilter::apply(const PointVector &inPoly) const
 {
+    // set up output polygons
     PointVectors outPolys = PointVectors(new QVector<PointVector>());
 
 #if 0
-    // for now, return a list with one item: a deep copy (although implicitly shared for efficiency) of the input polygon
-    PointVector inPolyCopy(new QVector<QPair<double, double> >(*inPoly.data()));
-    outPolys->append(inPolyCopy);
+    // set up input polygons and ensure they are oriented clockwise
+    const PointVector C(Math::isClockwise(points_) ? points_ : reversed(points_)); // clip polygon
+    Q_ASSERT(Math::isClockwise(C));
+    const PointVector S(Math::isClockwise(inPoly) ? inPoly : reversed(inPoly)); // subject polygon
+    Q_ASSERT(Math::isClockwise(S));
+#else
+    // set up input polygons regardless of orientation (seems to work fine)
+    const PointVector C(points_); // clip polygon
+    const PointVector S(inPoly); // subject polygon
 #endif
 
-    // This function implements the Greiner-Hormann clipping algorithm:
-    // - http://www.inf.usi.ch/hormann/papers/Greiner.1998.ECO.pdf
-    //
-    // See also:
-    // - https://en.wikipedia.org/wiki/Greiner%E2%80%93Hormann_clipping_algorithm
-    // - https://en.wikipedia.org/wiki/Weiler%E2%80%93Atherton_clipping_algorithm
-    // - https://www.jasondavies.com/maps/clip/
+    // find intersections
+    int isctId = 0;
+    QHash<int, QList<IsctInfo> > sIscts; // intersections for edges in S
+    QHash<int, QList<IsctInfo> > cIscts; // intersections for edges in C
+    for (int s = 0; s < S->size(); ++s) { // loop over vertices in S
+        for (int c = 0; c < C->size(); ++c) { // loop over vertices in C
+            QPair<double, double> isctPoint;
+            if (Math::greatCircleArcsIntersect(S->at(s), S->at((s + 1) % S->size()), C->at(c), C->at((c + 1) % C->size()), &isctPoint)) {
+                const IsctInfo isctInfo(
+                            isctId++, c, s, isctPoint,
+                            Math::distance(C->at(c), isctPoint),
+                            Math::distance(S->at(s), isctPoint));
+
+                // insert the intersection for the S edge in increasing distance from vertex s
+                if (!sIscts.contains(s))
+                    sIscts.insert(s, QList<IsctInfo>());
+                QList<IsctInfo> &silist = sIscts[s];
+                {
+                    int i = 0;
+                    for (; (i < silist.size()) && (silist.at(i).sdist_ < isctInfo.sdist_); ++i) ;
+                    silist.insert(i, isctInfo);
+                }
+
+                // insert the intersection for the C edge in increasing distance from vertex c
+                if (!cIscts.contains(c))
+                    cIscts.insert(c, QList<IsctInfo>());
+                QList<IsctInfo> &cilist = cIscts[c];
+                {
+                    int i = 0;
+                    for (; (i < cilist.size()) && (cilist.at(i).cdist_ < isctInfo.cdist_); ++i) ;
+                    cilist.insert(i, isctInfo);
+                }
+            }
+        }
+    }
+
+    Q_ASSERT(!sIscts.isEmpty() || cIscts.isEmpty());
+    Q_ASSERT(!cIscts.isEmpty() || sIscts.isEmpty());
 
 
-    const PointVector A(points_); // clipping region
-    const PointVector B(inPoly); // subject polygon
+    // ************************************************************************
+    // * CASE 1: No intersections exist between clip and subject polygons     *
+    // ************************************************************************
+    if (sIscts.isEmpty()) {
+        Q_ASSERT(cIscts.isEmpty());
 
-    // STEP 1: Determine orientation of the two polygons
-    const bool clockwiseA = Math::isClockwise(A);
-    const bool clockwiseB = Math::isClockwise(B);
-//    static int nn = 0;
-//    qDebug() << "clocksizeA:" << clockwiseA << ", clockwiseB:" << clockwiseB << nn++;
+        // compute number of subject points inside clip polygon
+        int sPointsInC = 0;
+        for (int i = 0; i < S->size(); ++i)
+            if (Math::pointInPolygon(S->at(i), C))
+                sPointsInC++;
 
-    // STEP 2: Build initial vertex loops
+        if (sPointsInC == S->size()) {
+            // the subject polygon is completely enclosed within the clip polygon, so return a list with one item:
+            // a deep copy (although implicitly shared for efficiency) of the subject polygon
+            PointVector sCopy(new QVector<QPair<double, double> >(*S.data()));
+            outPolys->append(sCopy);
+            return outPolys;
+        }
 
+        // ### disable this test for now; the assertion could be caused by pointInPolygon() not being 100% robust
+        //if (sPointsInC != 0)
+        //    qDebug() << "WARNING: more than zero subject points inside clip polygon:" << sPointsInC;
+        // Q_ASSERT(sPointsInC == 0); // otherwise there would be at least one intersection!
+
+        // compute number of clip points inside subject polygon
+        int cPointsInS = 0;
+        for (int i = 0; i < C->size(); ++i)
+            if (Math::pointInPolygon(C->at(i), S))
+                cPointsInS++;
+
+        if (cPointsInS == C->size()) {
+            // the clip polygon is completely enclosed within the subject polygon, so return a list with one item:
+            // a deep copy (although implicitly shared for efficiency) of the clip polygon
+            PointVector cCopy(new QVector<QPair<double, double> >(*C.data()));
+            outPolys->append(cCopy);
+            return outPolys;
+        }
+
+        // ### disable this test for now; the assertion could be caused by pointInPolygon() not being 100% robust
+        //if (cPointsInS != 0)
+        //    qDebug() << "WARNING: more than zero clip points inside subject polygon:" << cPointsInS;
+        // Q_ASSERT(cPointsInS == 0); // otherwise there would be at least one intersection!
+
+        // at this point, the clip and subject polygons are completely disjoint, so return an empty list
+        return outPolys;
+    }
+
+
+    // **********************************************************************
+    // * CASE 2: Intersections exist between clip and subject polygons      *
+    // **********************************************************************
+
+    // *** PHASE 0: Create initial linked lists *********
+
+    // create list with original vertices and intersections for subject polygon
+    QLinkedList<Node> slist;
+    for (int i = 0; i < S->size(); ++i) {
+        // append node for point i
+        slist.push_back(Node(S->at(i)));
+
+        // append nodes for intersections on line (i, (i + 1) % S.size())
+        if (sIscts.contains(i)) {
+            const QList<IsctInfo> silist = sIscts.value(i);
+            for (int j = 0; j < silist.size(); ++j) {
+                Q_ASSERT((j == 0) || (silist.at(j - 1).sdist_ <= silist.at(j).sdist_));
+                slist.push_back(Node(silist.at(j).point_, silist.at(j).isctId_));
+            }
+        }
+    }
+
+    // create list with original vertices and intersections for clip polygon
+    QLinkedList<Node> clist;
+    for (int i = 0; i < C->size(); ++i) {
+        // append node for point i
+        clist.push_back(Node(C->at(i)));
+
+        // append nodes for intersections on line (i, (i + 1) % C.size())
+        if (cIscts.contains(i)) {
+            const QList<IsctInfo> cilist = cIscts.value(i);
+            for (int j = 0; j < cilist.size(); ++j) {
+                Q_ASSERT((j == 0) || (cilist.at(j - 1).cdist_ <= cilist.at(j).cdist_));
+                clist.push_back(Node(cilist.at(j).point_, cilist.at(j).isctId_));
+            }
+        }
+    }
+
+
+    // *** PHASE 1: Connect corresponding intersection nodes *********
+
+    {
+        QLinkedList<Node>::iterator sit;
+        for (sit = slist.begin(); sit != slist.end(); ++sit) {
+            if (sit->isctId_ >= 0) {
+                // find the corresponding intersection node in the clist and connect them together
+                QLinkedList<Node>::iterator cit;
+                for (cit = clist.begin(); cit != clist.end(); ++cit) {
+                    if (cit->isctId_ == sit->isctId_) {
+                        sit->neighbour_ = cit;
+                        cit->neighbour_ = sit;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // *** PHASE 2: Set entry/exit status for each intersection node *********
+
+    {
+        // whether the next intersection represents an entry into the clip polygon
+        bool entry = !Math::pointInPolygon(slist.first().point_, C);
+
+        QLinkedList<Node>::iterator it;
+        for (it = slist.begin(); it != slist.end(); ++it) {
+            if (it->isctId_ >= 0) {
+                it->entry_ = entry;
+                entry = !entry; // if this intersection was an entry, the next one must be an exit and vice versa
+            }
+        }
+    }
+
+    {
+        // whether the next intersection represents an entry into the subject polygon
+        bool entry = !Math::pointInPolygon(clist.first().point_, S);
+
+        QLinkedList<Node>::iterator it;
+        for (it = clist.begin(); it != clist.end(); ++it) {
+            if (it->isctId_ >= 0) {
+                it->entry_ = entry;
+                entry = !entry; // if this intersection was an entry, the next one must be an exit and vice versa
+            }
+        }
+    }
+
+//    printLists(QString::number(nn), slist, clist);
+
+
+    // *** PHASE 3: Generate clipped polygons *********
+    {
+
+        // loop over original vertices and intersections in subject polygon
+        QLinkedList<Node>::iterator sit;
+        for (sit = slist.begin(); sit != slist.end(); ++sit) {
+            if ((sit->isctId_ >= 0) && (!sit->visited_)) {
+                // this is an unvisited intersection, so start tracing a new polygon
+                PointVector poly(new QVector<QPair<double, double> >());
+
+                QLinkedList<Node>::iterator it(sit);
+                bool forward = it->entry_;
+                do {
+
+                    // move one step along the current list
+                    if (forward) {
+                        it++;
+                        if (it == slist.end())
+                            it = slist.begin();
+                        else if (it == clist.end())
+                            it = clist.begin();
+                    } else {
+                        if (it == slist.begin())
+                            it = slist.end();
+                        else if (it == clist.begin())
+                            it = clist.end();
+                        it--;
+                    }
+
+                    if (it->isctId_ < 0) {
+                        // original vertex
+                        poly->append(it->point_); // append to new polygon
+                    } else {
+                        // intersection
+                        poly->append(it->point_); // append to new polygon
+                        it = it->neighbour_; // move to corresponding intersection in other list
+                        it->visited_ = it->neighbour_->visited_ = true; // indicate that we're done with this intersection
+                        forward = it->entry_; // update direction
+                    }
+
+                    // return an empty result if the algorithm has seemed to entered an infinite loop
+                    // (this could for example happen when Math::greatCircleArcsIntersect() fails to find an intersection)
+                    if (poly->size() > 2 * S->size() * C->size())
+                        return PointVectors();
+
+                } while (it->isctId_ != sit->isctId_); // as long as tracing has not got back to where it started
+
+                if (poly->size() >= 3) // hm ... wouldn't this always be the case?
+                    outPolys->append(poly);
+            }
+        }
+    }
 
     return outPolys;
 }
@@ -178,7 +463,7 @@ PointVectors LineFilter::apply(const PointVector &inPoly) const
     const int n = inPoly->size();
     QBitArray rej(n);
     for (int i = 0; i < n; ++i)
-        rej[i] = rejected(inPoly->at(i).first, inPoly->at(i).second);
+        rej[i] = rejected(inPoly->at(i));
 
     if (rej.count(true) == n) {
         // all points rejected, so return an empty list
@@ -295,10 +580,10 @@ QVariant LonOrLatFilter::value() const
     return valSpinBox_->value();
 }
 
-bool LonOrLatFilter::startDragging(double lon_, double lat_)
+bool LonOrLatFilter::startDragging(const QPair<double, double> &point)
 {
-    const double lon = RAD2DEG(lon_);
-    const double lat = RAD2DEG(lat_);
+    const double lon = RAD2DEG(point.first);
+    const double lat = RAD2DEG(point.second);
 
     const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
     valSpinBox_->setValue(val);
@@ -307,12 +592,12 @@ bool LonOrLatFilter::startDragging(double lon_, double lat_)
     return true;
 }
 
-void LonOrLatFilter::updateDragging(double lon_, double lat_)
+void LonOrLatFilter::updateDragging(const QPair<double, double> &point)
 {
     Q_ASSERT(dragged_);
 
-    const double lon = RAD2DEG(lon_);
-    const double lat = RAD2DEG(lat_);
+    const double lon = RAD2DEG(point.first);
+    const double lat = RAD2DEG(point.second);
 
     const double val = ((type_ == W_OF) || (type_ == E_OF)) ? lon : lat;
     valSpinBox_->setValue(val);
@@ -323,10 +608,10 @@ bool LonOrLatFilter::isValid() const
     return true; // ensured by the QSpinBox
 }
 
-bool LonOrLatFilter::rejected(double lon_, double lat_) const
+bool LonOrLatFilter::rejected(const QPair<double, double> &point) const
 {
-    const double lon = RAD2DEG(lon_);
-    const double lat = RAD2DEG(lat_);
+    const double lon = RAD2DEG(point.first);
+    const double lat = RAD2DEG(point.second);
     const double val = valSpinBox_->value();
 
     switch (type_) {
@@ -432,25 +717,23 @@ QVariant FreeLineFilter::value() const
     return QLineF(QPointF(lon1SpinBox_->value(), lat1SpinBox_->value()), QPointF(lon2SpinBox_->value(), lat2SpinBox_->value()));
 }
 
-bool FreeLineFilter::startDragging(double lon_, double lat_)
+bool FreeLineFilter::startDragging(const QPair<double, double> &point)
 {
-    const double lon = RAD2DEG(lon_);
-    const double lat = RAD2DEG(lat_);
-    const double dist1 = Math::distance(lon, lat, lon1SpinBox_->value(), lat1SpinBox_->value());
-    const double dist2 = Math::distance(lon, lat, lon2SpinBox_->value(), lat2SpinBox_->value());
+    const double dist1 = Math::distance(point, qMakePair(DEG2RAD(lon1SpinBox_->value()), DEG2RAD(lat1SpinBox_->value())));
+    const double dist2 = Math::distance(point, qMakePair(DEG2RAD(lon2SpinBox_->value()), DEG2RAD(lat2SpinBox_->value())));
 
     firstEndpointDragged_ = (dist1 < dist2);
     dragged_ = true;
-    updateDragging(lon_, lat_);
+    updateDragging(point);
     return true;
 }
 
-void FreeLineFilter::updateDragging(double lon_, double lat_)
+void FreeLineFilter::updateDragging(const QPair<double, double> &point)
 {
     Q_ASSERT(dragged_);
 
-    const double lon = RAD2DEG(lon_);
-    const double lat = RAD2DEG(lat_);
+    const double lon = RAD2DEG(point.first);
+    const double lat = RAD2DEG(point.second);
 
     if (firstEndpointDragged_) {
         lon1SpinBox_->setValue(lon);
@@ -466,10 +749,10 @@ bool FreeLineFilter::isValid() const
     return validCombination(lon1SpinBox_->value(), lat1SpinBox_->value(), lon2SpinBox_->value(), lat2SpinBox_->value());
 }
 
-bool FreeLineFilter::rejected(double lon, double lat) const
+bool FreeLineFilter::rejected(const QPair<double, double> &point) const
 {
-    const double lon0 = RAD2DEG(lon);
-    const double lat0 = RAD2DEG(lat);
+    const double lon0 = RAD2DEG(point.first);
+    const double lat0 = RAD2DEG(point.second);
     double lon1 = lon1SpinBox_->value();
     double lat1 = lat1SpinBox_->value();
     double lon2 = lon2SpinBox_->value();
@@ -481,7 +764,10 @@ bool FreeLineFilter::rejected(double lon, double lat) const
         std::swap(lat1, lat2);
     }
 
-    const double crossDist = Math::crossTrackDistanceToGreatCircle(lon0, lat0, lon1, lat1, lon2, lat2);
+    const double crossDist = Math::crossTrackDistanceToGreatCircle(
+                qMakePair(DEG2RAD(lon0), DEG2RAD(lat0)),
+                qMakePair(DEG2RAD(lon1), DEG2RAD(lat1)),
+                qMakePair(DEG2RAD(lon2), DEG2RAD(lat2)));
 
     switch (type_) {
     case NE_OF: return crossDist > 0;
@@ -564,7 +850,9 @@ void ControlPanel::open()
 ControlPanel::ControlPanel()
     : bsSlider_(0)
     , basePolygonComboBox_(0)
-    , basePolygonVisibleCheckBox_(0)
+    , basePolygonLinesVisibleCheckBox_(0)
+    , basePolygonPointsVisibleCheckBox_(0)
+    , basePolygonIntersectionsVisibleCheckBox_(0)
     , customBasePolygonEditableOnSphereCheckBox_(0)
     , filtersEditableOnSphereCheckBox_(0)
     , resultPolygonsLinesVisibleCheckBox_(0)
@@ -605,10 +893,23 @@ void ControlPanel::initialize()
     basePolygonGroupBox->setLayout(basePolygonLayout);
     mainLayout->addWidget(basePolygonGroupBox);
 
-    basePolygonVisibleCheckBox_ = new QCheckBox("Visible");
-    basePolygonVisibleCheckBox_->setChecked(true);
-    connect(basePolygonVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
-    basePolygonLayout->addWidget(basePolygonVisibleCheckBox_);
+    QHBoxLayout *basePolygonLayout1 = new QHBoxLayout;
+    basePolygonLayout->addLayout(basePolygonLayout1);
+
+    basePolygonLinesVisibleCheckBox_ = new QCheckBox("Lines");
+    basePolygonLinesVisibleCheckBox_->setChecked(true);
+    connect(basePolygonLinesVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    basePolygonLayout1->addWidget(basePolygonLinesVisibleCheckBox_);
+
+    basePolygonPointsVisibleCheckBox_ = new QCheckBox("Points");
+    basePolygonPointsVisibleCheckBox_->setChecked(true);
+    connect(basePolygonPointsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    basePolygonLayout1->addWidget(basePolygonPointsVisibleCheckBox_);
+
+    basePolygonIntersectionsVisibleCheckBox_ = new QCheckBox("Intersections");
+    basePolygonIntersectionsVisibleCheckBox_->setChecked(true);
+    connect(basePolygonIntersectionsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    basePolygonLayout1->addWidget(basePolygonIntersectionsVisibleCheckBox_);
 
     QHBoxLayout *basePolygonLayout2 = new QHBoxLayout;
     basePolygonLayout->addLayout(basePolygonLayout2);
@@ -770,10 +1071,10 @@ QVariant ControlPanel::value(Filter::Type type) const
     return filters_.value(type)->value();
 }
 
-bool ControlPanel::rejectedByAnyFilter(double lon, double lat) const
+bool ControlPanel::rejectedByAnyFilter(const QPair<double, double> &point) const
 {
     foreach (Filter *filter, filters_) {
-        if (filter->enabledCheckBox_->isChecked() && filter->rejected(lon, lat))
+        if (filter->enabledCheckBox_->isChecked() && filter->rejected(point))
             return true;
     }
     return false;
@@ -802,7 +1103,7 @@ void ControlPanel::toggleFiltersEditableOnSphere()
 
 // If we're in 'filters editable on sphere' mode and the current filter is enabled, this function initializes
 // dragging of that filter at the given pos.
-bool ControlPanel::startFilterDragging(double lon, double lat) const
+bool ControlPanel::startFilterDragging(const QPair<double, double> &point) const
 {
     if (!filtersEditableOnSphereCheckBox_->isChecked())
         return false; // wrong mode (hm ... should this be a Q_ASSERT() instead?)
@@ -814,18 +1115,18 @@ bool ControlPanel::startFilterDragging(double lon, double lat) const
     // apply the operation to the current filter if it is enabled
     foreach (Filter *filter, filters_) {
         if (filter->currCheckBox_->isChecked())
-            return (filter->enabledCheckBox_->isChecked() && filter->startDragging(lon, lat));
+            return (filter->enabledCheckBox_->isChecked() && filter->startDragging(point));
     }
 
     return false; // no match
 }
 
 // If there is a draggable filter, tell this filter to update its draggable control point with this pos, and update the GLWidget.
-void ControlPanel::updateFilterDragging(double lon, double lat)
+void ControlPanel::updateFilterDragging(const QPair<double, double> &point)
 {
     foreach (Filter *filter, filters_) {
         if (filter->dragged_) {
-            filter->updateDragging(lon, lat);
+            filter->updateDragging(point);
             return;
         }
     }
@@ -838,9 +1139,19 @@ BasePolygon::Type ControlPanel::currentBasePolygonType() const
     return static_cast<BasePolygon::Type>(basePolygonComboBox_->itemData(basePolygonComboBox_->currentIndex()).toInt());
 }
 
-bool ControlPanel::basePolygonVisible() const
+bool ControlPanel::basePolygonLinesVisible() const
 {
-    return basePolygonVisibleCheckBox_->isChecked();
+    return basePolygonLinesVisibleCheckBox_->isChecked();
+}
+
+bool ControlPanel::basePolygonPointsVisible() const
+{
+    return basePolygonPointsVisibleCheckBox_->isChecked();
+}
+
+bool ControlPanel::basePolygonIntersectionsVisible() const
+{
+    return basePolygonIntersectionsVisibleCheckBox_->isChecked();
 }
 
 PointVector ControlPanel::currentBasePolygonPoints() const
@@ -853,26 +1164,26 @@ PointVector ControlPanel::currentBasePolygonPoints() const
     return basePolygons_.value(currType)->points_;
 }
 
-static int currentPolygonPoint(const PointVector &points, double lon, double lat, double tolerance)
+static int currentPolygonPoint(const PointVector &points, const QPair<double, double> &point, double tolerance)
 {
     for (int i = 0; i < points->size(); ++i) {
-        const double dist = Math::distance(RAD2DEG(lon), RAD2DEG(lat), RAD2DEG(points->at(i).first), RAD2DEG(points->at(i).second));
+        const double dist = Math::distance(point, points->at(i));
         if (dist < tolerance)
             return i;
     }
     return -1;
 }
 
-int ControlPanel::currentWIFilterPoint(double lon, double lat, double tolerance)
+int ControlPanel::currentWIFilterPoint(const QPair<double, double> &point, double tolerance)
 {
-    return currentPolygonPoint(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, lon, lat, tolerance);
+    return currentPolygonPoint(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, point, tolerance);
 }
 
-int ControlPanel::currentCustomBasePolygonPoint(double lon, double lat, double tolerance)
+int ControlPanel::currentCustomBasePolygonPoint(const QPair<double, double> &point, double tolerance)
 {
     if (currentBasePolygonType() != BasePolygon::Custom)
         return -1;    
-    return currentPolygonPoint(basePolygons_.value(BasePolygon::Custom)->points_, lon, lat, tolerance);
+    return currentPolygonPoint(basePolygons_.value(BasePolygon::Custom)->points_, point, tolerance);
 }
 
 bool ControlPanel::customBasePolygonEditableOnSphere() const
@@ -880,21 +1191,21 @@ bool ControlPanel::customBasePolygonEditableOnSphere() const
     return customBasePolygonEditableOnSphereCheckBox_->isChecked();
 }
 
-void ControlPanel::updatePolygonPointDragging(PointVector &points, int index, double lon, double lat)
+void ControlPanel::updatePolygonPointDragging(PointVector &points, int index, const QPair<double, double> &point)
 {
     Q_ASSERT((index >= 0) && (index < points->size()));
-    (*points)[index] = qMakePair(lon, lat);
+    (*points)[index] = point;
     updateGLWidget();
 }
 
-void ControlPanel::updateWIFilterPointDragging(int index, double lon, double lat)
+void ControlPanel::updateWIFilterPointDragging(int index, const QPair<double, double> &point)
 {
-    updatePolygonPointDragging(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, index, lon, lat);
+    updatePolygonPointDragging(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, index, point);
 }
 
-void ControlPanel::updateCustomBasePolygonPointDragging(int index, double lon, double lat)
+void ControlPanel::updateCustomBasePolygonPointDragging(int index, const QPair<double, double> &point)
 {
-    updatePolygonPointDragging(basePolygons_.value(BasePolygon::Custom)->points_, index, lon, lat);
+    updatePolygonPointDragging(basePolygons_.value(BasePolygon::Custom)->points_, index, point);
 }
 
 void ControlPanel::addPointToPolygon(PointVector &points, int index)
@@ -993,8 +1304,10 @@ PointVectors ControlPanel::resultPolygons() const
             if (inPolys->at(i)) {
                 // apply the filter to convert this input polygon to zero or more output polygons and add the to the output list
                 PointVectors outPolys = filter->apply(inPolys->at(i));
-                for (int j = 0; j < outPolys->size(); ++j)
-                    resultPolys->append(outPolys->at(j));
+                if (outPolys) {
+                    for (int j = 0; j < outPolys->size(); ++j)
+                        resultPolys->append(outPolys->at(j));
+                }
             }
         }
 

@@ -29,11 +29,10 @@ public:
 protected:
     Filter(Type, QCheckBox *, QCheckBox *);
     virtual QVariant value() const = 0;
-    virtual bool startDragging(double, double) = 0;
-    virtual void updateDragging(double, double) = 0;
+    virtual bool startDragging(const QPair<double, double> &) = 0;
+    virtual void updateDragging(const QPair<double, double> &) = 0;
     virtual bool isValid() const = 0;
-    virtual bool rejected(double, double) const = 0;
-    bool rejected(const QPair<double, double> &) const;
+    virtual bool rejected(const QPair<double, double> &) const = 0;
 
     // Applies the filter to a polygon and returns the result as zero or more polygons within the original area.
     virtual PointVectors apply(const PointVector &) const = 0;
@@ -57,10 +56,10 @@ class WithinFilter : public Filter
     static Filter *create(QGridLayout *, int, Type, const PointVector &);
 
     virtual QVariant value() const;
-    virtual bool startDragging(double, double);
-    virtual void updateDragging(double, double);
+    virtual bool startDragging(const QPair<double, double> &);
+    virtual void updateDragging(const QPair<double, double> &);
     virtual bool isValid() const;
-    virtual bool rejected(double, double) const;
+    virtual bool rejected(const QPair<double, double> &) const;
 
     virtual PointVectors apply(const PointVector &) const;
     virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const;
@@ -87,10 +86,10 @@ class LonOrLatFilter : public LineFilter
     LonOrLatFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
     static Filter *create(QGridLayout *, int, Type, double);
     virtual QVariant value() const;
-    virtual bool startDragging(double, double);
-    virtual void updateDragging(double, double);
+    virtual bool startDragging(const QPair<double, double> &);
+    virtual void updateDragging(const QPair<double, double> &);
     virtual bool isValid() const;
-    virtual bool rejected(double, double) const;
+    virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
 
     QDoubleSpinBox *valSpinBox_;
@@ -103,10 +102,10 @@ class FreeLineFilter : public LineFilter {
             Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, const QLineF &);
     static Filter *create(QGridLayout *, int, Type, const QLineF &);
     virtual QVariant value() const;
-    virtual bool startDragging(double, double);
-    virtual void updateDragging(double, double);
+    virtual bool startDragging(const QPair<double, double> &);
+    virtual void updateDragging(const QPair<double, double> &);
     virtual bool isValid() const;
-    virtual bool rejected(double, double) const;
+    virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
 
     QDoubleSpinBox *lon1SpinBox_;
@@ -149,21 +148,23 @@ public:
     PointVector WIFilterPoints() const;
     QVariant value(Filter::Type) const;
 
-    bool rejectedByAnyFilter(double, double) const;
+    bool rejectedByAnyFilter(const QPair<double, double> &) const;
     QVector<QPair<double, double> > filterIntersections(const QPair<double, double> &, const QPair<double, double> &) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
-    bool startFilterDragging(double, double) const;
-    void updateFilterDragging(double, double);
+    bool startFilterDragging(const QPair<double, double> &) const;
+    void updateFilterDragging(const QPair<double, double> &);
 
     BasePolygon::Type currentBasePolygonType() const;
-    bool basePolygonVisible() const;
+    bool basePolygonLinesVisible() const;
+    bool basePolygonPointsVisible() const;
+    bool basePolygonIntersectionsVisible() const;
     PointVector currentBasePolygonPoints() const;
-    int currentWIFilterPoint(double, double, double);
-    int currentCustomBasePolygonPoint(double, double, double);
+    int currentWIFilterPoint(const QPair<double, double> &, double);
+    int currentCustomBasePolygonPoint(const QPair<double, double> &, double);
     bool customBasePolygonEditableOnSphere() const;
-    void updateWIFilterPointDragging(int, double, double);
-    void updateCustomBasePolygonPointDragging(int, double, double);
+    void updateWIFilterPointDragging(int, const QPair<double, double> &);
+    void updateCustomBasePolygonPointDragging(int, const QPair<double, double> &);
     void addPointToWIFilter(int);
     void addPointToCustomBasePolygon(int);
     void removePointFromWIFilter(int);
@@ -184,7 +185,9 @@ private:
     QSlider *bsSlider_;
 
     QComboBox *basePolygonComboBox_;
-    QCheckBox *basePolygonVisibleCheckBox_;
+    QCheckBox *basePolygonLinesVisibleCheckBox_;
+    QCheckBox *basePolygonPointsVisibleCheckBox_;
+    QCheckBox *basePolygonIntersectionsVisibleCheckBox_;
 
     QHash<BasePolygon::Type, BasePolygon *> basePolygons_;
     QCheckBox *customBasePolygonEditableOnSphereCheckBox_;
@@ -196,7 +199,7 @@ private:
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
-    void updatePolygonPointDragging(PointVector &, int, double, double);
+    void updatePolygonPointDragging(PointVector &, int, const QPair<double, double> &);
     void addPointToPolygon(PointVector &, int);
     void removePointFromPolygon(PointVector &, int);
 

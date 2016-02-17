@@ -165,7 +165,7 @@ void GfxUtils::drawSurfacePolygon(
         const double lon0 = points->at(prevIndex).first;
         const double lat0 = points->at(prevIndex).second;
         const double maxDist = 0.01 * 2 * M_PI; // for now
-        const double dist = Math::distance(RAD2DEG(lon), RAD2DEG(lat), RAD2DEG(lon0), RAD2DEG(lat0));
+        const double dist = Math::distance(qMakePair(lon, lat), qMakePair(lon0, lat0));
         if (dist > maxDist) {
             const int nSegments = static_cast<int>(ceil(dist / maxDist));
             const QVector<_3DPoint> extraPoints = Math::getGreatCirclePoints(lon0, lat0, lon, lat, nSegments);
