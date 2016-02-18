@@ -129,6 +129,7 @@ public:
 	double px, double py, double pz, double rx, double ry, double rz,
     double cx, double cy, double cz, double r, double &x, double &y, double &z);
     static void computeLatLon(double x, double y, double z, double &lat, double &lon);
+    static PointVectors polygonIntersection(const PointVector &, const PointVector &);
 };
 
 

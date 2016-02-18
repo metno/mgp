@@ -93,6 +93,8 @@ class LonOrLatFilter : public LineFilter
 {
     friend class ControlPanel;
 
+protected:
+
     LonOrLatFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
     static Filter *create(QGridLayout *, int, Type, double);
     virtual QVariant value() const;
@@ -105,6 +107,23 @@ class LonOrLatFilter : public LineFilter
     virtual bool setFromXmetExpr(const QString &);
 
     QDoubleSpinBox *valSpinBox_;
+};
+
+class LonFilter : public LonOrLatFilter
+{
+    friend class ControlPanel;
+    friend class LonOrLatFilter;
+
+    LonFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
+};
+
+class LatFilter : public LonOrLatFilter
+{
+    friend class ControlPanel;
+    friend class LonOrLatFilter;
+
+    LatFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
+    virtual PointVectors apply(const PointVector &) const;
 };
 
 class FreeLineFilter : public LineFilter {

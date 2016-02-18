@@ -1,8 +1,11 @@
-#include <stdio.h> // 4 TESTING!
 #include "util3d.h"
 #include <stdexcept>
 #include <float.h>
 #include <QDebug>
+#include <QLinkedList>
+#include <QHash>
+#include <stdio.h> // 4 TESTING!
+#include <iostream> // ### for debugging
 
 void Math::normalize(double &x, double &y)
 {
@@ -383,6 +386,329 @@ void Math::computeLatLon(double x, double y, double z, double &lat, double &lon)
     else if (y < 0)
 	lon += (2 * M_PI);
 */
+}
+
+static PointVector reversed(const PointVector &points)
+{
+    PointVector copy(new QVector<QPair<double, double> >());
+    for (int i = points->size() - 1; i >= 0; --i)
+        copy->append(points->at(i));
+    return copy;
+}
+
+struct IsctInfo {
+    int isctId_; // non-negative intersection ID
+    int c_; // intersection on line (c, (c + 1) % C.size()) in clip polygon C for 0 <= c < C.size()
+    int s_; // intersection on line (s, (s + 1) % S.size()) in subject polygon S for 0 <= s < S.size()
+    QPair<double, double> point_; // lon,lat radians of intersection point
+    double cdist_; // distance between C->at(c) and point_
+    double sdist_; // distance between S->at(s) and point_
+    IsctInfo(int isctId, int c, int s, const QPair<double, double> &point, double cdist, double sdist)
+        : isctId_(isctId)
+        , c_(c)
+        , s_(s)
+        , point_(point)
+        , cdist_(cdist)
+        , sdist_(sdist)
+    {}
+};
+
+struct Node {
+    QPair<double, double> point_; // lon,lat radians of point represented by the node
+    int isctId_; // non-negative intersection ID, or < 0 if the node does not represent an intersection
+    QLinkedList<Node>::iterator neighbour_; // pointer to corresponding intersection node in other list
+    bool entry_; // whether the intersection node represents an entry into (true) or exit from (false) the clipped polygon
+    bool visited_; // whether the intersection node has already been processed in the generation of output polygons
+    Node(const QPair<double, double> &point, int isctId = -1) : point_(point), isctId_(isctId), entry_(false), visited_(false) {}
+};
+
+static void printLists(const QString &tag, const QLinkedList<Node> &slist, const QLinkedList<Node> &clist)
+{
+    {
+        std::cout << tag.toLatin1().data() << "; subj: ";
+        QLinkedList<Node>::const_iterator it;
+        for (it = slist.constBegin(); it != slist.constEnd(); ++it) {
+            if (it->isctId_ < 0) {
+                std::cout << "V  ";
+            } else {
+                std::cout << it->isctId_ << "<" << (it->entry_ ? "entry" : "exit") << ">  ";
+                Q_ASSERT(it->isctId_ == it->neighbour_->isctId_);
+            }
+        }
+        std::cout << std::endl;
+    }
+
+    {
+        std::cout << tag.toLatin1().data() << "; clip: ";
+        QLinkedList<Node>::const_iterator it;
+        for (it = clist.constBegin(); it != clist.constEnd(); ++it) {
+            if (it->isctId_ < 0) {
+                std::cout << "V  ";
+            } else {
+                std::cout << it->isctId_ << "<" << (it->entry_ ? "entry" : "exit") << ">  ";
+                Q_ASSERT(it->isctId_ == it->neighbour_->isctId_);
+            }
+        }
+        std::cout << std::endl << std::endl;
+    }
+}
+
+// This function implements the Greiner-Hormann clipping algorithm:
+// - http://www.inf.usi.ch/hormann/papers/Greiner.1998.ECO.pdf
+//
+// See also:
+// - https://en.wikipedia.org/wiki/Greiner%E2%80%93Hormann_clipping_algorithm
+// - https://en.wikipedia.org/wiki/Weiler%E2%80%93Atherton_clipping_algorithm
+// - https://www.jasondavies.com/maps/clip/
+PointVectors Math::polygonIntersection(const PointVector &subject, const PointVector &clip)
+{
+    // set up output polygons
+    PointVectors outPolys = PointVectors(new QVector<PointVector>());
+
+#if 0
+    // set up input polygons and ensure they are oriented clockwise
+    const PointVector C(Math::isClockwise(clip) ? clip : reversed(clip));
+    Q_ASSERT(Math::isClockwise(C));
+    const PointVector S(Math::isClockwise(subject) ? subject : reversed(subject));
+    Q_ASSERT(Math::isClockwise(S));
+#else
+    // set up input polygons regardless of orientation (seems to work fine)
+    const PointVector C(clip);
+    const PointVector S(subject);
+#endif
+
+    // find intersections
+    int isctId = 0;
+    QHash<int, QList<IsctInfo> > sIscts; // intersections for edges in S
+    QHash<int, QList<IsctInfo> > cIscts; // intersections for edges in C
+    for (int s = 0; s < S->size(); ++s) { // loop over vertices in S
+        for (int c = 0; c < C->size(); ++c) { // loop over vertices in C
+            QPair<double, double> isctPoint;
+            if (Math::greatCircleArcsIntersect(S->at(s), S->at((s + 1) % S->size()), C->at(c), C->at((c + 1) % C->size()), &isctPoint)) {
+                const IsctInfo isctInfo(
+                            isctId++, c, s, isctPoint,
+                            Math::distance(C->at(c), isctPoint),
+                            Math::distance(S->at(s), isctPoint));
+
+                // insert the intersection for the S edge in increasing distance from vertex s
+                if (!sIscts.contains(s))
+                    sIscts.insert(s, QList<IsctInfo>());
+                QList<IsctInfo> &silist = sIscts[s];
+                {
+                    int i = 0;
+                    for (; (i < silist.size()) && (silist.at(i).sdist_ < isctInfo.sdist_); ++i) ;
+                    silist.insert(i, isctInfo);
+                }
+
+                // insert the intersection for the C edge in increasing distance from vertex c
+                if (!cIscts.contains(c))
+                    cIscts.insert(c, QList<IsctInfo>());
+                QList<IsctInfo> &cilist = cIscts[c];
+                {
+                    int i = 0;
+                    for (; (i < cilist.size()) && (cilist.at(i).cdist_ < isctInfo.cdist_); ++i) ;
+                    cilist.insert(i, isctInfo);
+                }
+            }
+        }
+    }
+
+    Q_ASSERT(!sIscts.isEmpty() || cIscts.isEmpty());
+    Q_ASSERT(!cIscts.isEmpty() || sIscts.isEmpty());
+
+
+    // ************************************************************************
+    // * CASE 1: No intersections exist between clip and subject polygons     *
+    // ************************************************************************
+    if (sIscts.isEmpty()) {
+        Q_ASSERT(cIscts.isEmpty());
+
+        // compute number of subject points inside clip polygon
+        int sPointsInC = 0;
+        for (int i = 0; i < S->size(); ++i)
+            if (Math::pointInPolygon(S->at(i), C))
+                sPointsInC++;
+
+        if (sPointsInC == S->size()) {
+            // the subject polygon is completely enclosed within the clip polygon, so return a list with one item:
+            // a deep copy (although implicitly shared for efficiency) of the subject polygon
+            PointVector sCopy(new QVector<QPair<double, double> >(*S.data()));
+            outPolys->append(sCopy);
+            return outPolys;
+        }
+
+        // ### disable this test for now; the assertion could be caused by pointInPolygon() not being 100% robust
+        //if (sPointsInC != 0)
+        //    qDebug() << "WARNING: more than zero subject points inside clip polygon:" << sPointsInC;
+        // Q_ASSERT(sPointsInC == 0); // otherwise there would be at least one intersection!
+
+        // compute number of clip points inside subject polygon
+        int cPointsInS = 0;
+        for (int i = 0; i < C->size(); ++i)
+            if (Math::pointInPolygon(C->at(i), S))
+                cPointsInS++;
+
+        if (cPointsInS == C->size()) {
+            // the clip polygon is completely enclosed within the subject polygon, so return a list with one item:
+            // a deep copy (although implicitly shared for efficiency) of the clip polygon
+            PointVector cCopy(new QVector<QPair<double, double> >(*C.data()));
+            outPolys->append(cCopy);
+            return outPolys;
+        }
+
+        // ### disable this test for now; the assertion could be caused by pointInPolygon() not being 100% robust
+        //if (cPointsInS != 0)
+        //    qDebug() << "WARNING: more than zero clip points inside subject polygon:" << cPointsInS;
+        // Q_ASSERT(cPointsInS == 0); // otherwise there would be at least one intersection!
+
+        // at this point, the clip and subject polygons are completely disjoint, so return an empty list
+        return outPolys;
+    }
+
+
+    // **********************************************************************
+    // * CASE 2: Intersections exist between clip and subject polygons      *
+    // **********************************************************************
+
+    // *** PHASE 0: Create initial linked lists *********
+
+    // create list with original vertices and intersections for subject polygon
+    QLinkedList<Node> slist;
+    for (int i = 0; i < S->size(); ++i) {
+        // append node for point i
+        slist.push_back(Node(S->at(i)));
+
+        // append nodes for intersections on line (i, (i + 1) % S.size())
+        if (sIscts.contains(i)) {
+            const QList<IsctInfo> silist = sIscts.value(i);
+            for (int j = 0; j < silist.size(); ++j) {
+                Q_ASSERT((j == 0) || (silist.at(j - 1).sdist_ <= silist.at(j).sdist_));
+                slist.push_back(Node(silist.at(j).point_, silist.at(j).isctId_));
+            }
+        }
+    }
+
+    // create list with original vertices and intersections for clip polygon
+    QLinkedList<Node> clist;
+    for (int i = 0; i < C->size(); ++i) {
+        // append node for point i
+        clist.push_back(Node(C->at(i)));
+
+        // append nodes for intersections on line (i, (i + 1) % C.size())
+        if (cIscts.contains(i)) {
+            const QList<IsctInfo> cilist = cIscts.value(i);
+            for (int j = 0; j < cilist.size(); ++j) {
+                Q_ASSERT((j == 0) || (cilist.at(j - 1).cdist_ <= cilist.at(j).cdist_));
+                clist.push_back(Node(cilist.at(j).point_, cilist.at(j).isctId_));
+            }
+        }
+    }
+
+
+    // *** PHASE 1: Connect corresponding intersection nodes *********
+
+    {
+        QLinkedList<Node>::iterator sit;
+        for (sit = slist.begin(); sit != slist.end(); ++sit) {
+            if (sit->isctId_ >= 0) {
+                // find the corresponding intersection node in the clist and connect them together
+                QLinkedList<Node>::iterator cit;
+                for (cit = clist.begin(); cit != clist.end(); ++cit) {
+                    if (cit->isctId_ == sit->isctId_) {
+                        sit->neighbour_ = cit;
+                        cit->neighbour_ = sit;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // *** PHASE 2: Set entry/exit status for each intersection node *********
+
+    {
+        // whether the next intersection represents an entry into the clip polygon
+        bool entry = !Math::pointInPolygon(slist.first().point_, C);
+
+        QLinkedList<Node>::iterator it;
+        for (it = slist.begin(); it != slist.end(); ++it) {
+            if (it->isctId_ >= 0) {
+                it->entry_ = entry;
+                entry = !entry; // if this intersection was an entry, the next one must be an exit and vice versa
+            }
+        }
+    }
+
+    {
+        // whether the next intersection represents an entry into the subject polygon
+        bool entry = !Math::pointInPolygon(clist.first().point_, S);
+
+        QLinkedList<Node>::iterator it;
+        for (it = clist.begin(); it != clist.end(); ++it) {
+            if (it->isctId_ >= 0) {
+                it->entry_ = entry;
+                entry = !entry; // if this intersection was an entry, the next one must be an exit and vice versa
+            }
+        }
+    }
+
+//    printLists(QString::number(nn), slist, clist);
+
+
+    // *** PHASE 3: Generate clipped polygons *********
+    {
+
+        // loop over original vertices and intersections in subject polygon
+        QLinkedList<Node>::iterator sit;
+        for (sit = slist.begin(); sit != slist.end(); ++sit) {
+            if ((sit->isctId_ >= 0) && (!sit->visited_)) {
+                // this is an unvisited intersection, so start tracing a new polygon
+                PointVector poly(new QVector<QPair<double, double> >());
+
+                QLinkedList<Node>::iterator it(sit);
+                bool forward = it->entry_;
+                do {
+
+                    // move one step along the current list
+                    if (forward) {
+                        it++;
+                        if (it == slist.end())
+                            it = slist.begin();
+                        else if (it == clist.end())
+                            it = clist.begin();
+                    } else {
+                        if (it == slist.begin())
+                            it = slist.end();
+                        else if (it == clist.begin())
+                            it = clist.end();
+                        it--;
+                    }
+
+                    if (it->isctId_ < 0) {
+                        // original vertex
+                        poly->append(it->point_); // append to new polygon
+                    } else {
+                        // intersection
+                        poly->append(it->point_); // append to new polygon
+                        it = it->neighbour_; // move to corresponding intersection in other list
+                        it->visited_ = it->neighbour_->visited_ = true; // indicate that we're done with this intersection
+                        forward = it->entry_; // update direction
+                    }
+
+                    // return an empty result if the algorithm has seemed to entered an infinite loop
+                    // (this could for example happen when Math::greatCircleArcsIntersect() fails to find an intersection)
+                    if (poly->size() > 2 * S->size() * C->size())
+                        return PointVectors();
+
+                } while (it->isctId_ != sit->isctId_); // as long as tracing has not got back to where it started
+
+                if (poly->size() >= 3) // hm ... wouldn't this always be the case?
+                    outPolys->append(poly);
+            }
+        }
+    }
+
+    return outPolys;
 }
 
 _3DPoint::_3DPoint()
