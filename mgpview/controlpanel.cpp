@@ -542,7 +542,7 @@ QString WithinFilter::xmetExpr() const
 bool WithinFilter::setFromXmetExpr(const QString &expr)
 {
     // get first "WI"
-    int pos = expr.indexOf("WI");
+    const int pos = expr.indexOf("WI");
     if (pos < 0)
         return false; // not found
 
@@ -553,8 +553,7 @@ bool WithinFilter::setFromXmetExpr(const QString &expr)
     QRegExp rx("(?:^|^\\s+|^\\s*-\\s*)([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))");
     while (true) {
         // read next coordinate
-        qDebug() << "getting coord from s:" << s;
-        const int rxpos = s.indexOf(rx, pos);
+        const int rxpos = s.indexOf(rx);
         if (rxpos >= 0) { // match
             points->append(qMakePair(xmetExtractLon(rx.cap(2)), xmetExtractLat(rx.cap(1))));
             s = s.mid(rxpos + rx.matchedLength());
