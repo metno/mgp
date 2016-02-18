@@ -501,7 +501,9 @@ PointVectors LatFilter::apply(const PointVector &inPoly) const
     for (int i = 0; i < res; i++, lon += deltaLon)
         clipPoly->append(qMakePair(lon, lat));
 
-    return Math::polygonIntersection(inPoly, clipPoly);
+    const bool inverse = ((type_ == N_OF) && (lat < 0)) || ((type_ == S_OF) && (lat > 0));
+
+    return Math::polygonIntersection(inPoly, clipPoly, inverse);
 }
 
 FreeLineFilter::FreeLineFilter(

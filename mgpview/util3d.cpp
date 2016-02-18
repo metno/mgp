@@ -214,7 +214,7 @@ bool Math::greatCircleArcsIntersect(
 }
 
 // Returns true iff a point is considered inside a polygon.
-bool Math::pointInPolygon(const QPair<double, double> &point, const PointVector &points)
+bool Math::pointInPolygon(const QPair<double, double> &point, const PointVector &points, bool inverse)
 {
     // define an external point (i.e. a point that is assumed to be outside the polygon)
     double avgLon = 0;
@@ -232,6 +232,9 @@ bool Math::pointInPolygon(const QPair<double, double> &point, const PointVector 
     if ((M_PI / 2 - maxLat) < (minLat - (-M_PI / 2)))
         // polygon is closer to the north pole, so use a point close to the south pole as the external point
         extPoint.second = -extPoint.second;
+
+    if (inverse)
+        extPoint.second = - extPoint.second;
 
     // compute the number of intersections between 1) the arc from the point to the external point and
     // 2) argcs forming the polygon
@@ -460,7 +463,7 @@ static void printLists(const QString &tag, const QLinkedList<Node> &slist, const
 // - https://en.wikipedia.org/wiki/Greiner%E2%80%93Hormann_clipping_algorithm
 // - https://en.wikipedia.org/wiki/Weiler%E2%80%93Atherton_clipping_algorithm
 // - https://www.jasondavies.com/maps/clip/
-PointVectors Math::polygonIntersection(const PointVector &subject, const PointVector &clip)
+PointVectors Math::polygonIntersection(const PointVector &subject, const PointVector &clip, bool inverse)
 {
     // set up output polygons
     PointVectors outPolys = PointVectors(new QVector<PointVector>());
@@ -526,7 +529,7 @@ PointVectors Math::polygonIntersection(const PointVector &subject, const PointVe
         // compute number of subject points inside clip polygon
         int sPointsInC = 0;
         for (int i = 0; i < S->size(); ++i)
-            if (Math::pointInPolygon(S->at(i), C))
+            if (Math::pointInPolygon(S->at(i), C, inverse))
                 sPointsInC++;
 
         if (sPointsInC == S->size()) {
@@ -545,7 +548,7 @@ PointVectors Math::polygonIntersection(const PointVector &subject, const PointVe
         // compute number of clip points inside subject polygon
         int cPointsInS = 0;
         for (int i = 0; i < C->size(); ++i)
-            if (Math::pointInPolygon(C->at(i), S))
+            if (Math::pointInPolygon(C->at(i), S, inverse))
                 cPointsInS++;
 
         if (cPointsInS == C->size()) {
@@ -628,7 +631,7 @@ PointVectors Math::polygonIntersection(const PointVector &subject, const PointVe
 
     {
         // whether the next intersection represents an entry into the clip polygon
-        bool entry = !Math::pointInPolygon(slist.first().point_, C);
+        bool entry = !Math::pointInPolygon(slist.first().point_, C, inverse);
 
         QLinkedList<Node>::iterator it;
         for (it = slist.begin(); it != slist.end(); ++it) {
@@ -641,7 +644,7 @@ PointVectors Math::polygonIntersection(const PointVector &subject, const PointVe
 
     {
         // whether the next intersection represents an entry into the subject polygon
-        bool entry = !Math::pointInPolygon(clist.first().point_, S);
+        bool entry = !Math::pointInPolygon(clist.first().point_, S, inverse);
 
         QLinkedList<Node>::iterator it;
         for (it = clist.begin(); it != clist.end(); ++it) {

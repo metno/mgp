@@ -115,7 +115,7 @@ public:
             const QPair<double, double> &p1, const QPair<double, double> &p2,
             const QPair<double, double> &p3, const QPair<double, double> &p4,
             QPair<double, double> *isctPoint = 0);
-    static bool pointInPolygon(const QPair<double, double> &, const PointVector &);
+    static bool pointInPolygon(const QPair<double, double> &, const PointVector &, bool = false);
 
     static bool isClockwise(const PointVector &);
 
@@ -129,7 +129,7 @@ public:
 	double px, double py, double pz, double rx, double ry, double rz,
     double cx, double cy, double cz, double r, double &x, double &y, double &z);
     static void computeLatLon(double x, double y, double z, double &lat, double &lon);
-    static PointVectors polygonIntersection(const PointVector &, const PointVector &);
+    static PointVectors polygonIntersection(const PointVector &, const PointVector &, bool = false);
 };
 
 
