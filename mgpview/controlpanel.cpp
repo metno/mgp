@@ -4,6 +4,7 @@
 #include "glwidget.h"
 #include "enor_fir.h"
 #include "util3d.h"
+#include <QRegExp>
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -21,17 +22,18 @@
 #include <QBitArray>
 #include <QLinkedList>
 #include <QHash>
+#include <QMessageBox>
 #include <algorithm>
 #include <iostream> // ### for debugging
 
 // Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
 // Examples:
-//        0 -> E000 (or E00000)
-//    -M_PI -> W18000 (or W180)
-// M_PI / 2 -> E09000 (or E090)
-static QString xmetFormatLon(double lon_)
+//          0 -> E000 (or E00000)
+//      -M_PI -> W18000 (or W180)
+//   M_PI / 2 -> E09000 (or E090)
+static QString xmetFormatLon(double val)
 {
-    double lon = RAD2DEG(fmod(lon_, 2 * M_PI));
+    double lon = RAD2DEG(fmod(val, 2 * M_PI));
     if (lon > 180)
         lon -= 360;
     lon = qMin(180.0, qMax(-180.0, lon));
@@ -42,16 +44,65 @@ static QString xmetFormatLon(double lon_)
 
 // Returns the SIGMET/AIRMET degrees form of a latitude value in radians ([-M_PI / 2, M_PI / 2]).
 // Examples:
-//            0 -> N00 (or N0000)
-//    -M_PI / 2 -> S9000 (or S90)
-//     M_PI / 4 -> N4500 (or N45)
-static QString xmetFormatLat(double lat_)
+//           0 -> N00 (or N0000)
+//   -M_PI / 2 -> S9000 (or S90)
+//    M_PI / 4 -> N4500 (or N45)
+static QString xmetFormatLat(double val)
 {
-    double lat = RAD2DEG(fmod(lat_, M_PI));
-    lat = qMin(90.0, qMax(-90.0, lat));
+    double lat = RAD2DEG(fmod(val, M_PI));
+    lat = qMin(qMax(lat, -90.0), 90.0);
     const int ipart = int(floor(fabs(lat)));
     const int fpart = int(floor(round(100 * (fabs(lat) - ipart))));
     return QString("%1%2%3").arg(lat < 0 ? "S" : "N").arg(ipart, 2, 10, QLatin1Char('0')).arg(fpart, 2, 10, QLatin1Char('0'));
+}
+
+// Returns the longitude value in radians ([-M_PI, M_PI]) corresponding to a SIGMET/AIRMET longitude degrees expression.
+// Examples:
+//   E000 (or E00000) -> 0
+//   W18000 (or W180) -> -M_PI
+//   E09000 (or E090) -> M_PI / 2
+static double xmetExtractLon(const QString &s)
+{
+    Q_ASSERT((s.size() == 4) || (s.size() == 6));
+    Q_ASSERT((s[0].toLower() == 'e') || (s[0].toLower() == 'w'));
+    bool ok;
+    int ipart = s.mid(1, 3).toInt(&ok) % 360;
+    Q_ASSERT(ok);
+    if (ipart > 180)
+        ipart = qAbs(ipart - 360);
+    int fpart = 0;
+    if (s.size() == 6) {
+        fpart = s.mid(4, 2).toInt(&ok);
+        Q_ASSERT(ok);
+    }
+    Q_ASSERT((fpart >= 0) && (fpart <= 99));
+    const double lon = DEG2RAD(ipart + fpart / 100.0) * ((s[0].toLower() == 'e') ? 1 : -1);
+    return lon;
+}
+
+// Returns the latitude value in radians ([-M_PI / 2, M_PI / 2]) corresponding to a SIGMET/AIRMET latitude degrees expression.
+// Examples:
+//    N00 (or N0000) -> 0
+//    S00 (or S0000) -> 0
+//    S9000 (or S90) -> -M_PI / 2
+//    N4500 (or N45) -> M_PI / 4
+static double xmetExtractLat(const QString &s)
+{
+    Q_ASSERT((s.size() == 3) || (s.size() == 5));
+    Q_ASSERT((s[0].toLower() == 'n') || (s[0].toLower() == 's'));
+    bool ok;
+    int ipart = s.mid(1, 2).toInt(&ok);
+    Q_ASSERT(ok);
+    Q_ASSERT(ipart >= 0);
+    ipart = qMin(ipart, 90);
+    int fpart = 0;
+    if (s.size() == 5) {
+        fpart = s.mid(3, 2).toInt(&ok);
+        Q_ASSERT(ok);
+    }
+    Q_ASSERT((fpart >= 0) && (fpart <= 99));
+    const double lat = DEG2RAD(ipart + fpart / 100.0) * ((s[0].toLower() == 'n') ? 1 : -1);
+    return lat;
 }
 
 Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
@@ -488,6 +539,39 @@ QString WithinFilter::xmetExpr() const
     return s;
 }
 
+bool WithinFilter::setFromXmetExpr(const QString &expr)
+{
+    // get first "WI"
+    int pos = expr.indexOf("WI");
+    if (pos < 0)
+        return false; // not found
+
+    QString s = expr.mid(pos + 2); // move to first position after "WI"
+
+    // get as many coordinates as possible after the "WI"
+    PointVector points(new QVector<QPair<double, double> >());
+    QRegExp rx("(?:^|^\\s+|^\\s*-\\s*)([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))");
+    while (true) {
+        // read next coordinate
+        qDebug() << "getting coord from s:" << s;
+        const int rxpos = s.indexOf(rx, pos);
+        if (rxpos >= 0) { // match
+            points->append(qMakePair(xmetExtractLon(rx.cap(2)), xmetExtractLat(rx.cap(1))));
+            s = s.mid(rxpos + rx.matchedLength());
+        } else { // no match
+            break;
+        }
+    }
+
+    if (points->size() < 3) {
+        qWarning() << "Warning: WI expression requires at least three points";
+        return false;
+    }
+
+    points_ = points;
+    return true;
+}
+
 LineFilter::LineFilter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : Filter(type, enabledCheckBox, currCheckBox)
 {
@@ -693,6 +777,25 @@ QString LonOrLatFilter::xmetExpr() const
     return QString("%1 %2").arg(typeName(type_)).arg(((type_ == N_OF) || (type_ == S_OF)) ? xmetFormatLat(val) : xmetFormatLon(val));
 }
 
+bool LonOrLatFilter::setFromXmetExpr(const QString &expr)
+{
+    QRegExp rx;
+    if ((type_ == N_OF) || (type_ == S_OF)) {
+        rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)([NS](?:\\d\\d|\\d\\d\\d\\d))").arg((type_ == N_OF) ? "N" : "S"));
+    } else {
+        rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))").arg((type_ == E_OF) ? "E" : "W"));
+    }
+
+    const int rxpos = expr.indexOf(rx);
+    if (rxpos >= 0) { // match
+        const double val = ((type_ == N_OF) || (type_ == S_OF)) ? xmetExtractLat(rx.cap(1)) : xmetExtractLon(rx.cap(1));
+        valSpinBox_->setValue(RAD2DEG(val));
+        return true;
+    }
+
+    return false; // no match
+}
+
 FreeLineFilter::FreeLineFilter(
         Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox,
         QDoubleSpinBox *lon1SpinBox, QDoubleSpinBox *lat1SpinBox, QDoubleSpinBox *lon2SpinBox, QDoubleSpinBox *lat2SpinBox,
@@ -840,6 +943,36 @@ QString FreeLineFilter::xmetExpr() const
             .arg(xmetFormatLon(DEG2RAD(lon1SpinBox_->value())))
             .arg(xmetFormatLat(DEG2RAD(lat2SpinBox_->value())))
             .arg(xmetFormatLon(DEG2RAD(lon2SpinBox_->value())));
+}
+
+bool FreeLineFilter::setFromXmetExpr(const QString &expr)
+{
+    QString prefix;
+    if (type_ == NE_OF)
+        prefix = "NE";
+    else if (type_ == NW_OF)
+        prefix = "NW";
+    else if (type_ == SE_OF)
+        prefix = "SE";
+    else
+        prefix = "SW";
+    QRegExp rx(QString(
+                   "(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)"
+                   "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                   "\\s*(?:-|)\\s*"
+                   "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                   ).arg(prefix));
+
+    const int rxpos = expr.indexOf(rx);
+    if (rxpos >= 0) { // match
+        lon1SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(2))));
+        lat1SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(1))));
+        lon2SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(4))));
+        lat2SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(3))));
+        return true;
+    }
+
+    return false; // no match
 }
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
@@ -1441,5 +1574,16 @@ void ControlPanel::setXmetExprFromFilters()
 // Sets the filters from the SIGMET/AIRMET expression if possible.
 void ControlPanel::setFiltersFromXmetExpr()
 {
-    qDebug() << "setting filters from expression:" << xmetExprEdit_->toPlainText().trimmed() << " (not implemented)";
+    bool updated = false;
+
+    foreach (Filter *filter, filters_) {
+        filter->enabledCheckBox_->setChecked(false);
+        if (filter->setFromXmetExpr(xmetExprEdit_->toPlainText().trimmed())) {
+            filter->enabledCheckBox_->setChecked(true);
+            updated = true;
+        }
+    }
+
+    if (updated)
+        updateGLWidget();
 }
