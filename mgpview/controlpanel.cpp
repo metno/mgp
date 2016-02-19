@@ -36,7 +36,10 @@ static QString xmetFormatLon(double val)
     lon = qMin(180.0, qMax(-180.0, lon));
     const int ipart = int(floor(fabs(lon)));
     const int fpart = int(floor(round(100 * (fabs(lon) - ipart))));
-    return QString("%1%2%3").arg((lon < 0) ? "W" : "E").arg(ipart, 3, 10, QLatin1Char('0')).arg(fpart, 2, 10, QLatin1Char('0'));
+    return QString("%1%2%3")
+            .arg((lon < 0) ? "W" : "E")
+            .arg(ipart, 3, 10, QLatin1Char('0'))
+            .arg((fpart == 0) ? QString() : QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
 }
 
 // Returns the SIGMET/AIRMET degrees form of a latitude value in radians ([-M_PI / 2, M_PI / 2]).
@@ -50,7 +53,10 @@ static QString xmetFormatLat(double val)
     lat = qMin(qMax(lat, -90.0), 90.0);
     const int ipart = int(floor(fabs(lat)));
     const int fpart = int(floor(round(100 * (fabs(lat) - ipart))));
-    return QString("%1%2%3").arg(lat < 0 ? "S" : "N").arg(ipart, 2, 10, QLatin1Char('0')).arg(fpart, 2, 10, QLatin1Char('0'));
+    return QString("%1%2%3")
+            .arg(lat < 0 ? "S" : "N")
+            .arg(ipart, 2, 10, QLatin1Char('0'))
+            .arg((fpart == 0) ? QString() : QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
 }
 
 // Returns the longitude value in radians ([-M_PI, M_PI]) corresponding to a SIGMET/AIRMET longitude degrees expression.
@@ -218,36 +224,49 @@ QString WithinFilter::xmetExpr() const
     return s;
 }
 
-bool WithinFilter::setFromXmetExpr(const QString &expr)
+bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange)
 {
     // get first "WI"
-    const int pos = expr.indexOf("WI");
-    if (pos < 0)
+    const int firstPos = expr.indexOf("WI", 0, Qt::CaseInsensitive);
+    if (firstPos < 0)
         return false; // not found
-
-    QString s = expr.mid(pos + 2); // move to first position after "WI"
+    if ((firstPos > 0) && (!expr[firstPos - 1].isSpace()))
+        return false; // not at beginning or after space
+    int lastPos = firstPos + 1;
+    QString s = expr.mid(lastPos + 1); // move to first position after "WI"
 
     // get as many coordinates as possible after the "WI"
     PointVector points(new QVector<QPair<double, double> >());
-    QRegExp rx("(?:^|^\\s+|^\\s*-\\s*)([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))");
+    QRegExp rx(
+                "(?:^|^\\s+|^\\s*-\\s*)"
+                "([NS](?:\\d\\d|\\d\\d\\d\\d))"
+                "\\s*"
+                "([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                );
+    rx.setCaseSensitivity(Qt::CaseInsensitive);
+
     while (true) {
         // read next coordinate
         const int rxpos = s.indexOf(rx);
         if (rxpos >= 0) { // match
             points->append(qMakePair(xmetExtractLon(rx.cap(2)), xmetExtractLat(rx.cap(1))));
-            s = s.mid(rxpos + rx.matchedLength());
+            const int nextPos = rxpos + rx.matchedLength();
+            lastPos += nextPos;
+            s = s.mid(nextPos);
         } else { // no match
             break;
         }
     }
 
-    if (points->size() < 3) {
-        qWarning() << "Warning: WI expression requires at least three points";
-        return false;
+    if (points->size() >= 3) {
+        points_ = points;
+        matchedRange->first = firstPos;
+        matchedRange->second = lastPos;
+        return true;
     }
 
-    points_ = points;
-    return true;
+    qWarning() << "Warning: WI expression requires at least three points";
+    return false;
 }
 
 LineFilter::LineFilter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
@@ -459,19 +478,28 @@ QString LonOrLatFilter::xmetExpr() const
     return QString("%1 %2").arg(typeName(type_)).arg(((type_ == N_OF) || (type_ == S_OF)) ? xmetFormatLat(val) : xmetFormatLon(val));
 }
 
-bool LonOrLatFilter::setFromXmetExpr(const QString &expr)
+bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange)
 {
     QRegExp rx;
     if ((type_ == N_OF) || (type_ == S_OF)) {
-        rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)([NS](?:\\d\\d|\\d\\d\\d\\d))").arg((type_ == N_OF) ? "N" : "S"));
+        rx.setPattern(QString(
+                          "(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)"
+                          "([NS](?:\\d\\d|\\d\\d\\d\\d))"
+                          ).arg((type_ == N_OF) ? "N" : "S"));
     } else {
-        rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))").arg((type_ == E_OF) ? "E" : "W"));
+        rx.setPattern(QString(
+                          "(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)"
+                          "([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                          ).arg((type_ == E_OF) ? "E" : "W"));
     }
+    rx.setCaseSensitivity(Qt::CaseInsensitive);
 
     const int rxpos = expr.indexOf(rx);
     if (rxpos >= 0) { // match
         const double val = ((type_ == N_OF) || (type_ == S_OF)) ? xmetExtractLat(rx.cap(1)) : xmetExtractLon(rx.cap(1));
         valSpinBox_->setValue(RAD2DEG(val));
+        matchedRange->first = rxpos;
+        matchedRange->second = rxpos + rx.matchedLength() - 1;
         return true;
     }
 
@@ -494,7 +522,7 @@ PointVectors LatFilter::apply(const PointVector &inPoly) const
 {
     // generate the clip polygon
     PointVector clipPoly(new QVector<QPair<double, double> >());
-    const int res = 128;
+    const int res = 128; // ### for optimization, this should be a function of the latitude value (fewer segments are required near the poles!)
     const double deltaLon = (2 * M_PI) / res;
     double lon = 0;
     const double lat = DEG2RAD(valSpinBox_->value());
@@ -655,7 +683,7 @@ QString FreeLineFilter::xmetExpr() const
             .arg(xmetFormatLon(DEG2RAD(lon2SpinBox_->value())));
 }
 
-bool FreeLineFilter::setFromXmetExpr(const QString &expr)
+bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange)
 {
     QString prefix;
     if (type_ == NE_OF)
@@ -672,6 +700,7 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr)
                    "\\s*(?:-|)\\s*"
                    "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
                    ).arg(prefix));
+    rx.setCaseSensitivity(Qt::CaseInsensitive);
 
     const int rxpos = expr.indexOf(rx);
     if (rxpos >= 0) { // match
@@ -679,6 +708,8 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr)
         lat1SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(1))));
         lon2SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(4))));
         lat2SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(3))));
+        matchedRange->first = rxpos;
+        matchedRange->second = rxpos + rx.matchedLength() - 1;
         return true;
     }
 
@@ -1278,22 +1309,50 @@ void ControlPanel::setXmetExprFromFilters()
             s += filter->xmetExpr();
         }
     }
+    xmetExprEdit_->clear();
     xmetExprEdit_->setPlainText(s);
 }
 
 // Sets the filters from the SIGMET/AIRMET expression if possible.
 void ControlPanel::setFiltersFromXmetExpr()
 {
-    bool updated = false;
+    const QString text(xmetExprEdit_->toPlainText().trimmed());
+    QBitArray matched(text.size(), false);
 
     foreach (Filter *filter, filters_) {
         filter->enabledCheckBox_->setChecked(false);
-        if (filter->setFromXmetExpr(xmetExprEdit_->toPlainText().trimmed())) {
+        QPair<int, int> matchedRange(-1, -1);
+        if (filter->setFromXmetExpr(text, &matchedRange)) {
             filter->enabledCheckBox_->setChecked(true);
-            updated = true;
+            matched.fill(true, matchedRange.first, matchedRange.second + 1);
         }
     }
 
-    if (updated)
+    // highlight matched parts
+    const QString defaultCol("#888");
+    const QString defaultWeight("regular");
+    const QString matchCol("#080");
+    const QString matchWeight("bold");
+    bool prevMatch = matched.testBit(0);
+    QString html;
+    for (int i = 0; i < text.size(); ++i) {
+        const int currMatch = matched.testBit(i);
+        if ((i == 0) || (prevMatch != currMatch)) {
+            if (i > 0)
+                html += "</span>"; // end current span
+
+            // start new span
+            html += QString("<span style='color:%1; font-weight:%2'>")
+                    .arg(currMatch ? matchCol : defaultCol)
+                    .arg(currMatch ? matchWeight : defaultWeight);
+        }
+
+        prevMatch = currMatch;
+        html += text[i];
+    }
+    xmetExprEdit_->setHtml(html);
+
+    // update if necessary
+    if (matched.count(true) > 0)
         updateGLWidget();
 }

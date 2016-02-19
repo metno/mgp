@@ -46,7 +46,7 @@ protected:
     virtual QString xmetExpr() const = 0;
 
     // Sets the filter state from a SIGMET/AIRMET expression. Returns true iff the state was successfully set.
-    virtual bool setFromXmetExpr(const QString &) = 0;
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *) = 0;
 
     Type type_;
     QCheckBox *enabledCheckBox_;
@@ -72,7 +72,7 @@ class WithinFilter : public Filter
     virtual PointVectors apply(const PointVector &) const;
     virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const;
     virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &);
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *);
 
     PointVector points_;
 };
@@ -104,7 +104,7 @@ protected:
     virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
     virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &);
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *);
 
     QDoubleSpinBox *valSpinBox_;
 };
@@ -139,7 +139,7 @@ class FreeLineFilter : public LineFilter {
     virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
     virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &);
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *);
 
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
