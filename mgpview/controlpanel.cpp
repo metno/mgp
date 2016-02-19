@@ -522,10 +522,16 @@ PointVectors LatFilter::apply(const PointVector &inPoly) const
 {
     // generate the clip polygon
     PointVector clipPoly(new QVector<QPair<double, double> >());
-    const int res = 128; // ### for optimization, this should be a function of the latitude value (fewer segments are required near the poles!)
+
+    const double lat = DEG2RAD(valSpinBox_->value());
+    const int minRes = 4; // near pole
+    const int maxRes = 128; // near equator
+    // ### Notice the tradeoff betweeen speed and accuracy. The above min/max values are arbitrarily set.
+    // ### Maybe the resolution should be set interactively by the user?
+    const int res = minRes + (1 - qAbs(lat) / (M_PI / 2)) * (maxRes - minRes);
+
     const double deltaLon = (2 * M_PI) / res;
     double lon = 0;
-    const double lat = DEG2RAD(valSpinBox_->value());
     for (int i = 0; i < res; i++, lon += deltaLon)
         clipPoly->append(qMakePair(lon, lat));
 
