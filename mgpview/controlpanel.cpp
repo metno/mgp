@@ -224,12 +224,12 @@ QString WithinFilter::xmetExpr() const
     return s;
 }
 
-bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange)
+bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange, QPair<int, int> *incompleteRange)
 {
     // get first "WI"
     const int firstPos = expr.indexOf("WI", 0, Qt::CaseInsensitive);
     if (firstPos < 0)
-        return false; // not found
+        return false; // not found at all
     if ((firstPos > 0) && (!expr[firstPos - 1].isSpace()))
         return false; // not at beginning or after space
     int lastPos = firstPos + 1;
@@ -262,10 +262,13 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
         points_ = points;
         matchedRange->first = firstPos;
         matchedRange->second = lastPos;
-        return true;
+        return true; // success
     }
 
-    qWarning() << "Warning: WI expression requires at least three points";
+    // error
+    incompleteRange->first = firstPos;
+    incompleteRange->second = lastPos;
+    qWarning() << "failed to extract at least three coordinates after 'WI'";
     return false;
 }
 
@@ -478,31 +481,42 @@ QString LonOrLatFilter::xmetExpr() const
     return QString("%1 %2").arg(typeName(type_)).arg(((type_ == N_OF) || (type_ == S_OF)) ? xmetFormatLat(val) : xmetFormatLon(val));
 }
 
-bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange)
+bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange, QPair<int, int> *incompleteRange)
 {
     QRegExp rx;
-    if ((type_ == N_OF) || (type_ == S_OF)) {
-        rx.setPattern(QString(
-                          "(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)"
-                          "([NS](?:\\d\\d|\\d\\d\\d\\d))"
-                          ).arg((type_ == N_OF) ? "N" : "S"));
-    } else {
-        rx.setPattern(QString(
-                          "(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)"
-                          "([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
-                          ).arg((type_ == E_OF) ? "E" : "W"));
-    }
     rx.setCaseSensitivity(Qt::CaseInsensitive);
 
-    const int rxpos = expr.indexOf(rx);
-    if (rxpos >= 0) { // match
-        const double val = ((type_ == N_OF) || (type_ == S_OF)) ? xmetExtractLat(rx.cap(1)) : xmetExtractLon(rx.cap(1));
-        valSpinBox_->setValue(RAD2DEG(val));
-        matchedRange->first = rxpos;
-        matchedRange->second = rxpos + rx.matchedLength() - 1;
-        return true;
+    // look for keyword
+    rx.setPattern(QString("(?:^|\\s+)%1\\s+OF(?:\\s+LINE|)")
+                  .arg((type_ == N_OF) ? "N" : ((type_ == S_OF) ? "S" : ((type_ == E_OF) ? "E" : "W"))));
+    const int rxpos1 = expr.indexOf(rx);
+    if (rxpos1 < 0)
+        return false; // no match
+
+    const int matchedLen1 = rx.matchedLength();
+
+    // look for value
+    if ((type_ == N_OF) || (type_ == S_OF)) {
+        rx.setPattern("^\\s+([NS](?:\\d\\d|\\d\\d\\d\\d))");
+    } else {
+        rx.setPattern("^\\s+([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))");
     }
 
+    const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
+    if (rxpos2 >= 0) { // match
+        const double val = ((type_ == N_OF) || (type_ == S_OF)) ? xmetExtractLat(rx.cap(1)) : xmetExtractLon(rx.cap(1));
+        valSpinBox_->setValue(RAD2DEG(val));
+        matchedRange->first = rxpos1;
+        matchedRange->second = rxpos1 + matchedLen1 + rxpos2 + rx.matchedLength() - 1;
+        return true; // success
+    }
+
+    // error
+    incompleteRange->first = rxpos1;
+    incompleteRange->second = rxpos1 + matchedLen1 - 1;
+    qWarning() << QString("failed to extract a valid %1 value after '%2'")
+                  .arg(((type_ == N_OF) || (type_ == S_OF)) ? "latitude" : "longitude")
+                  .arg(typeName(type_)).toLatin1().data();
     return false; // no match
 }
 
@@ -689,37 +703,43 @@ QString FreeLineFilter::xmetExpr() const
             .arg(xmetFormatLon(DEG2RAD(lon2SpinBox_->value())));
 }
 
-bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange)
+bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange, QPair<int, int> *incompleteRange)
 {
-    QString prefix;
-    if (type_ == NE_OF)
-        prefix = "NE";
-    else if (type_ == NW_OF)
-        prefix = "NW";
-    else if (type_ == SE_OF)
-        prefix = "SE";
-    else
-        prefix = "SW";
-    QRegExp rx(QString(
-                   "(?:^|\\s+)%1\\s+OF\\s+(?:LINE\\s+|)"
-                   "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
-                   "\\s*(?:-|)\\s*"
-                   "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
-                   ).arg(prefix));
+    QRegExp rx;
     rx.setCaseSensitivity(Qt::CaseInsensitive);
 
-    const int rxpos = expr.indexOf(rx);
-    if (rxpos >= 0) { // match
+    // look for keyword
+    rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+(?:LINE|)")
+                  .arg((type_ == NE_OF) ? "NE" : ((type_ == NW_OF) ? "NW" : ((type_ == SE_OF) ? "SE" : "SW"))));
+    const int rxpos1 = expr.indexOf(rx);
+    if (rxpos1 < 0)
+        return false; // no match
+
+    const int matchedLen1 = rx.matchedLength();
+
+    // look for values
+    rx.setPattern(
+                "^\\s+([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                "\\s*(?:-|)\\s*"
+                "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                );
+
+    const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
+    if (rxpos2 >= 0) { // match
         lon1SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(2))));
         lat1SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(1))));
         lon2SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(4))));
         lat2SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(3))));
-        matchedRange->first = rxpos;
-        matchedRange->second = rxpos + rx.matchedLength() - 1;
-        return true;
+        matchedRange->first = rxpos1;
+        matchedRange->second = rxpos1 + matchedLen1 + rxpos2 + rx.matchedLength() - 1;
+        return true; // success
     }
 
-    return false; // no match
+    // error
+    incompleteRange->first = rxpos1;
+    incompleteRange->second = rxpos1 + matchedLen1 - 1;
+    qWarning() << QString("failed to extract two coordinates after '%1'").arg(typeName(type_));
+    return false;
 }
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
@@ -950,8 +970,8 @@ void ControlPanel::initialize()
     // --- END result polygons section -------------------------------------------
 
 
-    // --- BEGIN SIGMET/AIRMET expression section -------------------------------------------
-    QGroupBox *xmetExprGroupBox = new QGroupBox("SIGMET/AIRMET Expression");
+    // --- BEGIN SIGMET/AIRMET area expression section -------------------------------------------
+    QGroupBox *xmetExprGroupBox = new QGroupBox("SIGMET/AIRMET Area Expression");
     QVBoxLayout *xmetExprLayout = new QVBoxLayout;
     xmetExprGroupBox->setLayout(xmetExprLayout);
     mainLayout->addWidget(xmetExprGroupBox);
@@ -974,7 +994,7 @@ void ControlPanel::initialize()
 
     xmetExprLayout2->addStretch(1);
 
-    // --- END SIGMET/AIRMET expression section -------------------------------------------
+    // --- END SIGMET/AIRMET area expression section -------------------------------------------
 
 
     // --- BEGIN bottom section -----------------------------------------------
@@ -1315,8 +1335,7 @@ void ControlPanel::setXmetExprFromFilters()
             s += filter->xmetExpr();
         }
     }
-    xmetExprEdit_->clear();
-    xmetExprEdit_->setPlainText(s);
+    xmetExprEdit_->setHtml(s);
 }
 
 // Sets the filters from the SIGMET/AIRMET expression if possible.
@@ -1324,38 +1343,66 @@ void ControlPanel::setFiltersFromXmetExpr()
 {
     const QString text(xmetExprEdit_->toPlainText().trimmed());
     QBitArray matched(text.size(), false);
+    QBitArray incomplete(text.size(), false);
 
     foreach (Filter *filter, filters_) {
         filter->enabledCheckBox_->setChecked(false);
         QPair<int, int> matchedRange(-1, -1);
-        if (filter->setFromXmetExpr(text, &matchedRange)) {
+        QPair<int, int> incompleteRange(-1, -1);
+        if (filter->setFromXmetExpr(text, &matchedRange, &incompleteRange)) {
             filter->enabledCheckBox_->setChecked(true);
             matched.fill(true, matchedRange.first, matchedRange.second + 1);
+        } else {
+            incomplete.fill(true, incompleteRange.first, incompleteRange.second + 1);
         }
     }
 
-    // highlight matched parts
-    const QString defaultCol("#888");
+    // highlight matched and incomplete parts
+    const QString defaultColor("#888");
+    const QString defaultBGColor("#fff");
     const QString defaultWeight("regular");
-    const QString matchCol("#080");
+    const QString matchColor("#088");
+    const QString matchBGColor("#fff");
     const QString matchWeight("bold");
+    const QString incomColor("#800");
+    const QString incomBGColor("#ff0");
+    const QString incomWeight("bold");
     bool prevMatch = matched.testBit(0);
+    bool prevIncom = incomplete.testBit(0);
     QString html;
     for (int i = 0; i < text.size(); ++i) {
         const int currMatch = matched.testBit(i);
-        if ((i == 0) || (prevMatch != currMatch)) {
+        const int currIncom = incomplete.testBit(i);
+        if ((i == 0) || (prevMatch != currMatch) || (prevIncom != currIncom)) {
             if (i > 0)
                 html += "</span>"; // end current span
 
-            // start new span
-            html += QString("<span style='color:%1; font-weight:%2'>")
-                    .arg(currMatch ? matchCol : defaultCol)
-                    .arg(currMatch ? matchWeight : defaultWeight);
+            // start new span, prioritizing incompleteness
+            QString color;
+            QString bgcolor;
+            QString weight;
+            if (prevIncom != currIncom) {
+                color = currIncom ? incomColor : defaultColor;
+                bgcolor = currIncom ? incomBGColor : defaultBGColor;
+                weight = currIncom ? incomWeight : defaultWeight;
+            } else if (prevMatch != currMatch) {
+                color = currMatch ? matchColor : defaultColor;
+                bgcolor = currMatch ? matchBGColor : defaultBGColor;
+                weight = currMatch ? matchWeight : defaultWeight;
+            } else {
+                Q_ASSERT(i == 0);
+                color = currIncom ? incomColor : (currMatch ? matchColor : defaultColor);
+                bgcolor = currIncom ? incomBGColor : (currMatch ? matchBGColor : defaultBGColor);
+                weight = currIncom ? incomWeight : (currMatch ? matchWeight : defaultWeight);
+            }
+            html += QString("<span style='color:%1; background-color:%2; font-weight:%3'>").arg(color).arg(bgcolor).arg(weight);
         }
 
         prevMatch = currMatch;
-        html += text[i];
+        prevIncom = currIncom;
+        html += text[i]; // add character itself
     }
+
     xmetExprEdit_->setHtml(html);
 
     // update if necessary
