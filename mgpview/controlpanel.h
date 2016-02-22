@@ -17,7 +17,9 @@ class GLWidget;
 class QGridLayout;
 class QComboBox;
 class QSlider;
-class QTextEdit;
+class TextEdit;
+class QPushButton;
+class QMouseEvent;
 
 class Filter : public QObject // ### does this need to be a QObject?
 {
@@ -25,7 +27,7 @@ class Filter : public QObject // ### does this need to be a QObject?
     friend class ControlPanel;
 
 public:
-    enum Type { None, WI, E_OF, W_OF, N_OF, S_OF, NE_OF, NW_OF, SE_OF, SW_OF };
+    enum Type { None, WI, E_OF, W_OF, N_OF, S_OF, NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE };
     static QString typeName(Type);
 
 protected:
@@ -46,7 +48,7 @@ protected:
     virtual QString xmetExpr() const = 0;
 
     // Sets the filter state from a SIGMET/AIRMET expression. Returns true iff the state was successfully set.
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *) = 0;
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *) = 0;
 
     Type type_;
     QCheckBox *enabledCheckBox_;
@@ -72,7 +74,7 @@ class WithinFilter : public Filter
     virtual PointVectors apply(const PointVector &) const;
     virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const;
     virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *);
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
 
     PointVector points_;
 };
@@ -104,7 +106,7 @@ protected:
     virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
     virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *);
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
 
     QDoubleSpinBox *valSpinBox_;
 };
@@ -139,7 +141,7 @@ class FreeLineFilter : public LineFilter {
     virtual bool rejected(const QPair<double, double> &) const;
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
     virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *);
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
 
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
@@ -234,7 +236,9 @@ private:
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
-    QTextEdit *xmetExprEdit_;
+    TextEdit *xmetExprEdit_;
+    QPushButton *setFiltersFromXmetExprButton_;
+    QString setFiltersFromXmetExprButtonText_;
 
     void updatePolygonPointDragging(PointVector &, int, const QPair<double, double> &);
     void addPointToPolygon(PointVector &, int);
@@ -246,6 +250,7 @@ private slots:
     void basePolygonTypeChanged();
     void setXmetExprFromFilters();
     void setFiltersFromXmetExpr();
+    void handleXmetExprChanged();
 };
 
 #endif // CONTROLPANEL_H

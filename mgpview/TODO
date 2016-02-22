@@ -1,17 +1,19 @@
 TODO:
 
-1: Clean up code. Remove unused functions etc.
+1: Make sure the following SIGMET is supported (from Reidun on MetChat (20/2 2016)):
 
-2: Implement generation of result polygon by applying filters to base polygon.
+   ENBD SIGMET C02 VALID 200406/200806 ENVV- ENOR NORWAY FIR SEV MTW FCST N OF N6200 AND S OF N6500
+   AND E OF LINE N6200 E00630 - N6500 E01130 SFC/FL150 MOV NE NC
+
+   In particular:
+   - the form 'E OF LINE <lat> <lon>' must be supported
+   - a FreeLine filter must apply along the entire great circle defined by the two endpoints
+
+2: Clean up code. Remove unused functions etc.
 
 3: Begin implementation of mgplib (to be used by mgpview).
 
-4: Implement two actions for the SIGMET/AIRMET text edit:
-   a: Update the filters from the text. The parse function should either return valid (with corresponding filter settings),
-      or invalid (with a list of errors and their respective locations in the text - this may be used for highlighting).
-   b: Update the text from the filters. This will just replace the text with a canonical expression reflecting the filters.
-
-5: Design a control panel with the following components:
+4: Design a control panel with the following components:
 
    a: A base polygon (either a pre-defined polygon, such as ENOR FIR, or a custom polygon).
 

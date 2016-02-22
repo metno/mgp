@@ -66,10 +66,10 @@ GLWidget::GLWidget(QWidget *parent)
 
 
     // FreeLine filters
-    freeLineFilterInfos_.insert(0, new FreeLineFilterInfo(Filter::NE_OF));
-    freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF));
-    freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF));
-    freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF));
+    freeLineFilterInfos_.insert(0, new FreeLineFilterInfo(Filter::NE_OF_LINE));
+    freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF_LINE));
+    freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF_LINE));
+    freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF_LINE));
 
     // --- END initialize filter infos -------------------
 
