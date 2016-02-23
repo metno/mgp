@@ -143,6 +143,9 @@ void GLWidget::paintGL()
     // clear buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // draw axes
+    //GfxUtils::drawAxes();
+
     // draw earth base sphere
     gfx_util.drawSphere(
     0, 0, 0, gfx_util.getEarthRadius(), 0.6, 0.6, 0.6, 0.7, 36, 72,
@@ -296,13 +299,16 @@ void GLWidget::paintGL()
             const QLineF line = ControlPanel::instance().value(finfo->type).toLineF();
 
             // draw line
-            gfx_util.drawGreatCircleSegment(eye, minDolly_, maxDolly_, line, color, lineWidth);
+            gfx_util.drawGreatCircle(eye, minDolly_, maxDolly_, line, color, lineWidth);
 
             // draw endpoints
             if (ControlPanel::instance().isCurrent(finfo->type)) {
                 gfx_util.drawSurfaceBall(DEG2RAD(line.p1().x()), DEG2RAD(line.p1().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
                 gfx_util.drawSurfaceBall(DEG2RAD(line.p2().x()), DEG2RAD(line.p2().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
             }
+
+            // draw the complete great circle passing through the endpoints
+            gfx_util.drawGreatCircle(eye, minDolly_, maxDolly_, line, valid ? normalValidColor : normalInvalidColor, normalLineWidth, false);
         }
     }
 

@@ -18,6 +18,27 @@ GfxUtils::~GfxUtils()
     delete[] polys_;
 }
 
+void GfxUtils::drawAxes()
+{
+    glLineWidth(1);
+
+    const float size = 1.1 * earth_radius_;
+    glBegin(GL_LINES);
+    // x axis
+    glColor3f(1, 0, 0);
+    glVertex3f(0, 0, 0);
+    glVertex3f(size, 0, 0);
+    // y axis
+    glColor3f(0, 1, 0);
+    glVertex3f(0, 0, 0);
+    glVertex3f(0, size, 0);
+    // z axis
+    glColor3f(0, 0, 1);
+    glVertex3f(0, 0, 0);
+    glVertex3f(0, 0, size);
+    glEnd();
+}
+
 // NOTE: The following function is based on code found in the
 // vtkEarthSource class!
 //
@@ -156,25 +177,21 @@ void GfxUtils::drawSurfacePolygon(
     // loop over base points
     for (int i = 0; i < points->size(); ++i) {
         double x, y, z;
-        const double lon = points->at(i).first;
-        const double lat = points->at(i).second;
 
         // for a smoother curve (and to prevent it from intersecting the earth surface!),
         // draw extra points between this base point and the previous base point
         const int prevIndex = (i - 1 + points->size()) % points->size();
-        const double lon0 = points->at(prevIndex).first;
-        const double lat0 = points->at(prevIndex).second;
         const double maxDist = 0.01 * 2 * M_PI; // for now
-        const double dist = Math::distance(qMakePair(lon, lat), qMakePair(lon0, lat0));
+        const double dist = Math::distance(points->at(i), points->at(prevIndex));
         if (dist > maxDist) {
             const int nSegments = static_cast<int>(ceil(dist / maxDist));
-            const QVector<_3DPoint> extraPoints = Math::getGreatCirclePoints(lon0, lat0, lon, lat, nSegments);
+            const QVector<_3DPoint> extraPoints = Math::getGreatCirclePoints(points->at(prevIndex), points->at(i), nSegments);
             for (int j = 1; j < (extraPoints.size() - 1); ++j)
                 glVertex3d(scale * extraPoints.at(j).x(), scale * extraPoints.at(j).y(), scale * extraPoints.at(j).z());
         }
 
         // draw base point
-        Math::sphericalToCartesian(scale, lat, lon, x, y, z);
+        Math::sphericalToCartesian(scale, points->at(i).second, points->at(i).first, x, y, z);
         glVertex3d(x, y, z);
     }
     glEnd();
@@ -429,9 +446,10 @@ void GfxUtils::drawLonOrLatCircle(
         drawLatCircle(eye, min_eye_dist, max_eye_dist, val, color, lineWidth);
 }
 
-// Draws the great circle segment between surface positions line.p1() and line.p2().
-void GfxUtils::drawGreatCircleSegment(
-        _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color, float lineWidth)
+// Draws the great circle between surface positions line.p1() and line.p2(). If segmentOnly is true, only the part of the circle between
+// the two endpoints is drawn.
+void GfxUtils::drawGreatCircle(
+        _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color, float lineWidth, bool segmentOnly)
 {
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
     const double scale = raise_fact * earth_radius_;
@@ -446,7 +464,7 @@ void GfxUtils::drawGreatCircleSegment(
     const double lat1 = DEG2RAD(line.p1().y());
     const double lon2 = DEG2RAD(line.p2().x());
     const double lat2 = DEG2RAD(line.p2().y());
-    const QVector<_3DPoint> points = Math::getGreatCirclePoints(lon1, lat1, lon2, lat2, res + 1);
+    const QVector<_3DPoint> points = Math::getGreatCirclePoints(qMakePair(lon1, lat1), qMakePair(lon2, lat2), res + 1, segmentOnly);
 
     glBegin(GL_LINE_STRIP);
     for (int i = 0; i < points.size(); ++i)

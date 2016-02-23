@@ -72,19 +72,71 @@ double Math::distance(const QPair<double, double> &p1, const QPair<double, doubl
     return 2 * atan2(sqrt(a), sqrt(1 - a));
 }
 
-QVector<_3DPoint> Math::getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments)
+// Returns the points of the great circle through p1 and p2. If segmentOnly is true, only the part of the circle between p1 and p2 is returned.
+QVector<_3DPoint> Math::getGreatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly)
 {
     QVector<_3DPoint> points;
+    const double lon1 = p1.first;
+    const double lat1 = p1.second;
+    const double lon2 = p2.first;
+    const double lat2 = p2.second;
 
-    for (int i = 0; i <= nSegments; ++i) {
-        const double t = i / double(nSegments);
-        const double d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2));
-        const double A = sin((1 - t) * d) / sin(d);
-        const double B = sin(t * d) / sin(d);
-        const double x = A * cos(lat1) * cos(lon1) + B * cos(lat2) * cos(lon2);
-        const double y = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
-        const double z = A * sin(lat1) + B * sin(lat2);
-        points.append(_3DPoint(x, y, z));
+    if (segmentOnly) {
+        // compute the points between p1 and p2
+        for (int i = 0; i <= nSegments; ++i) {
+            const double t = i / double(nSegments);
+            const double d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2));
+            const double A = sin((1 - t) * d) / sin(d);
+            const double B = sin(t * d) / sin(d);
+            const double x = A * cos(lat1) * cos(lon1) + B * cos(lat2) * cos(lon2);
+            const double y = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
+            const double z = A * sin(lat1) + B * sin(lat2);
+            points.append(_3DPoint(x, y, z));
+        }
+    } else {
+        // compute the points of the complete circle
+        const _3DPoint a0 = _3DPoint::fromSpherical(p1.first, p1.second);
+        const _3DPoint a1 = _3DPoint::fromSpherical(p2.first, p2.second);
+        _3DPoint p;
+        try {
+            p = _3DPoint::normalized(_3DPoint::cross(a0, a1)); // plane normal
+        } catch (std::runtime_error e) {
+            return points; // this could for example happen if a0 and a1 are identical, in which case the great circle is undefined
+        }
+
+        // compute the plane normal
+        double planePhi;
+        double planeTheta;
+        cartesianToSpherical(p.x(), p.y(), p.z(), planePhi, planeTheta);
+
+        // compute elements of rotation matrices
+        const double alpha = M_PI / 2 - planePhi;
+        const double cos1 = cos(alpha);
+        const double sin1 = sin(alpha);
+        const double cos2 = cos(planeTheta);
+        const double sin2 = sin(planeTheta);
+
+        const double deltaTheta = (2 * M_PI) / nSegments;
+        double theta = 0;
+        for (int i = 0; i <= nSegments; ++i, theta += deltaTheta) {
+            // compute unrotated point along equator
+            const double x0 = cos(theta);
+            const double y0 = sin(theta);
+            const double z0 = 0;
+
+            // rotate according to plane normal ...
+            // ... rotate M_PI / 2 - planePhi around Y axis
+            const double x1 = x0 * cos1 + z0 * sin1;
+            const double y1 = y0;
+            const double z1 = -x0 * sin1 + z0 * cos1;
+
+            // ... rotate planeTheta around Z axis
+            const double x2 = x1 * cos2 - y1 * sin2;
+            const double y2 = x1 * sin2 + y1 * cos2;
+            const double z2 = z1;
+
+            points.append(_3DPoint(x2, y2, z2));
+        }
     }
 
     return points;
@@ -213,6 +265,78 @@ bool Math::greatCircleArcsIntersect(
     return true;
 }
 
+// Returns true iff the great circle through p1 and p2 intersects the great circle through p3 and p4.
+// The two intersection points are returned in isctPoint1 and isctPoint2.
+// NOTE: If the two great circles lie (approximately) in the same plane, the function returns false (even if there are infinite numbers
+// of intersections!).
+// Adopted from http://stackoverflow.com/questions/2954337/great-circle-rhumb-line-intersection
+bool Math::greatCirclesIntersect(
+        const QPair<double, double> &p1, const QPair<double, double> &p2,
+        const QPair<double, double> &p3, const QPair<double, double> &p4,
+        QPair<double, double> *isctPoint1, QPair<double, double> *isctPoint2)
+{
+    const _3DPoint a0 = _3DPoint::fromSpherical(p1.first, p1.second);
+    const _3DPoint a1 = _3DPoint::fromSpherical(p2.first, p2.second);
+    const _3DPoint b0 = _3DPoint::fromSpherical(p3.first, p3.second);
+    const _3DPoint b1 = _3DPoint::fromSpherical(p4.first, p4.second);
+
+    const _3DPoint p = _3DPoint::cross(a0, a1); // normal of plane 1
+    const _3DPoint q = _3DPoint::cross(b0, b1); // normal of plane 2
+
+    const _3DPoint t = _3DPoint::cross(p, q);
+    if (t.norm() < FLT_MIN)
+        return false; // great circles lie (approximately) in the same plane => no intersections
+
+    // normalize t to find one of the intersections
+    const _3DPoint t1 = _3DPoint::normalized(t);
+    // the other intersection is on the opposite side of the sphere
+    const _3DPoint t2 = _3DPoint(-t1.x(), -t1.y(), -t1.z());
+
+    isctPoint1->first = atan2(t1.y(), t1.x());
+    //isctPoint1->second = atan2(t1.z(), sqrt(t1.x() * t1.x() + t1.y() * t1.y()));
+    isctPoint1->second = asin(t1.z());
+
+    isctPoint2->first = atan2(t2.y(), t2.x());
+    //isctPoint2->second = atan2(t2.z(), sqrt(t2.x() * t2.x() + t2.y() * t2.y()));
+    isctPoint2->second = asin(t2.z());
+
+    return true;
+}
+
+// Returns the number of intersections (0, 1 or 2) between the great circle arc from p1 to p2 and a great circle through p3 and p4.
+// Up to two intersection points are returned in isctPoint1 and isctPoint2.
+// NOTE: If the two great circles lie (approximately) in the same plane, the function returns false (even if there are infinite numbers
+// of intersections!).
+int Math::greatCircleArcIntersectsGreatCircle(
+        const QPair<double, double> &p1, const QPair<double, double> &p2,
+        const QPair<double, double> &p3, const QPair<double, double> &p4,
+        QPair<double, double> *isctPoint1, QPair<double, double> *isctPoint2)
+{
+    // find the intersections between the two great circles
+    if (!greatCirclesIntersect(p1, p2, p3, p4, isctPoint1, isctPoint2))
+        return false; // no intersections
+
+    // find the arc length
+    const double arcLen = distance(p1, p2);
+
+    // check if each intersection is on the arc
+    const bool onArc1 = (distance(*isctPoint1, p1) <= arcLen) && (distance(*isctPoint1, p2) <= arcLen);
+    const bool onArc2 = (distance(*isctPoint2, p1) <= arcLen) && (distance(*isctPoint2, p2) <= arcLen);
+
+    // set return value and out parameter(s)
+    int n = 0;
+    if (onArc1) {
+        n = 1;
+        if (onArc2)
+            n = 2;
+    } else if (onArc2) {
+        n = 1;
+        *isctPoint1 = *isctPoint2;
+    }
+
+    return n;
+}
+
 // Returns true iff a point is considered inside a polygon.
 bool Math::pointInPolygon(const QPair<double, double> &point, const PointVector &points, bool inverse)
 {
@@ -281,13 +405,8 @@ void Math::sphericalToCartesian(double radius, double phi, double theta, double 
 
 void Math::cartesianToSpherical(double x, double y, double z, double &phi, double &theta)
 {
-    _4x4Matrix m;
-    theta = Math::angle(x, y);
-    m.loadRotateZ(-theta);
-    _4DPoint p;
-    p.set(x, y, z);
-    p.mulMatPoint(m);
-    phi = Math::angle(p.get(0), p.get(2));
+    phi = atan2(z, sqrt(x * x + y * y));
+    theta = atan2(y, x);
 }
 
 void Math::computeCamera(
@@ -726,6 +845,16 @@ _3DPoint::_3DPoint(const _3DPoint &src)
     c_[2] = src.z();
 }
 
+_3DPoint & _3DPoint::operator=(const _3DPoint &src)
+{
+    if (this != &src) {
+        c_[0] = src.x();
+        c_[1] = src.y();
+        c_[2] = src.z();
+    }
+    return *this;
+}
+
 _3DPoint::_3DPoint(double x, double y, double z)
 {
     c_[0] = x;
@@ -774,6 +903,12 @@ void _3DPoint::print(char lead[]) const
     for (int i = 0; i < 3; i++)
 	fprintf(stderr, "  %20.10f", c_[i]);
     fprintf(stderr, "\n");
+}
+
+QDebug operator<<(QDebug dbg, const _3DPoint &p)
+{
+    dbg.nospace() << "(" << p.x() << ", " << p.y() << ", " << p.z() << ")";
+    return dbg.space();
 }
 
 _4DPoint::_4DPoint()

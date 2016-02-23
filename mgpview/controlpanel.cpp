@@ -696,7 +696,15 @@ bool FreeLineFilter::intersects(const QPair<double, double> &p1, const QPair<dou
     const double lat1 = DEG2RAD(lat1SpinBox_->value());
     const double lon2 = DEG2RAD(lon2SpinBox_->value());
     const double lat2 = DEG2RAD(lat2SpinBox_->value());
-    return Math::greatCircleArcsIntersect(p1, p2, qMakePair(lon1, lat1), qMakePair(lon2, lat2), isctPoint);
+
+    QPair<double, double> isctPoint1;
+    QPair<double, double> isctPoint2;
+    const int n = Math::greatCircleArcIntersectsGreatCircle(p1, p2, qMakePair(lon1, lat1), qMakePair(lon2, lat2), &isctPoint1, &isctPoint2);
+    if (n == 1) {
+        *isctPoint = isctPoint1;
+        return true; // exactly one intersection
+    }
+    return false; // either zero, two or infinitely many intersections
 }
 
 QString FreeLineFilter::xmetExpr() const

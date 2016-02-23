@@ -21,6 +21,9 @@ public:
         return obj;
 	}
 
+    /** Draws the X, Y and Z axis. */
+    static void drawAxes();
+
     /** Draws coast contours on the earth sphere. The farther the eye
      * is from the earth surface, the more the contours are raised above the
      * surface. */
@@ -61,7 +64,7 @@ public:
     void drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &, float);
     void drawLonOrLatCircle(bool lon, _3DPoint* eye, double min_eye_dist, double max_eye_dist, double val, const QColor &, float);
 
-    void drawGreatCircleSegment(_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &, float);
+    void drawGreatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &, float, bool = true);
 
 //    /** Draws a cartesian key frame. */
 //    void drawCartesianKeyFrame(

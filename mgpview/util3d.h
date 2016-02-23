@@ -64,6 +64,7 @@ class _3DPoint
 public:
     _3DPoint();
     _3DPoint(const _3DPoint &);
+    _3DPoint & operator=(const _3DPoint &);
     _3DPoint(double x, double y, double z);
     void setPoint(double x, double y, double z) { c_[0] = x; c_[1] = y; c_[2] = z; }
     void setPoint(double* c) { c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2]; }
@@ -82,6 +83,8 @@ public:
 private:
     double c_[3];
 };
+
+QDebug operator<<(QDebug dbg, const _3DPoint &);
 
 #define DEG2RAD(d) ((d) / 180.0) * M_PI
 #define RAD2DEG(r) ((r) / M_PI) * 180
@@ -104,17 +107,25 @@ public:
     static double min(double a, double b) {return a < b ? a : b;}
     static double max(double a, double b) {return a > b ? a : b;}
     static double distance(const QPair<double, double> &, const QPair<double, double> &);
-    static QVector<_3DPoint> getGreatCirclePoints(double lon1, double lat1, double lon2, double lat2, int nSegments);
+    static QVector<_3DPoint> getGreatCirclePoints(const QPair<double, double> &, const QPair<double, double> &, int, bool = true);
 
     static double bearingBetween(const QPair<double, double> &, const QPair<double, double> &);
     static double crossTrackDistanceToGreatCircle(
             const QPair<double, double> &, const QPair<double, double> &, const QPair<double, double> &, double radius = 1.0);
 
-    static bool intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint);
+    static bool intersectsLatitude(const QPair<double, double> &, const QPair<double, double> &, double lat, QPair<double, double> *isctPoint);
     static bool greatCircleArcsIntersect(
-            const QPair<double, double> &p1, const QPair<double, double> &p2,
-            const QPair<double, double> &p3, const QPair<double, double> &p4,
-            QPair<double, double> *isctPoint = 0);
+            const QPair<double, double> &, const QPair<double, double> &,
+            const QPair<double, double> &, const QPair<double, double> &,
+            QPair<double, double> * = 0);
+    static bool greatCirclesIntersect(
+            const QPair<double, double> &, const QPair<double, double> &,
+            const QPair<double, double> &, const QPair<double, double> &,
+            QPair<double, double> *, QPair<double, double> *);
+    static int greatCircleArcIntersectsGreatCircle(
+            const QPair<double, double> &, const QPair<double, double> &,
+            const QPair<double, double> &, const QPair<double, double> &,
+            QPair<double, double> *, QPair<double, double> *);
     static bool pointInPolygon(const QPair<double, double> &, const PointVector &, bool = false);
 
     static bool isClockwise(const PointVector &);
