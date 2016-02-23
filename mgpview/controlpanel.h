@@ -27,7 +27,13 @@ class Filter : public QObject // ### does this need to be a QObject?
     friend class ControlPanel;
 
 public:
-    enum Type { None, WI, E_OF, W_OF, N_OF, S_OF, NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE };
+    enum Type {
+        None,
+        WI,
+        E_OF, W_OF, N_OF, S_OF,
+        E_OF_LINE, W_OF_LINE, N_OF_LINE, S_OF_LINE,
+        NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE
+    };
     static QString typeName(Type);
 
 protected:

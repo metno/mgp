@@ -129,10 +129,10 @@ QString Filter::typeName(Type type)
     case  W_OF: return  "W OF";
     case  N_OF: return  "N OF";
     case  S_OF: return  "S OF";
-//    case E_OF_LINE: return  "E OF LINE";
-//    case W_OF_LINE: return  "W OF LINE";
-//    case N_OF_LINE: return  "N OF LINE";
-//    case S_OF_LINE: return  "S OF LINE";
+    case E_OF_LINE: return  "E OF LINE";
+    case W_OF_LINE: return  "W OF LINE";
+    case N_OF_LINE: return  "N OF LINE";
+    case S_OF_LINE: return  "S OF LINE";
     case NE_OF_LINE: return "NE OF LINE";
     case NW_OF_LINE: return "NW OF LINE";
     case SE_OF_LINE: return "SE OF LINE";
@@ -669,8 +669,8 @@ bool FreeLineFilter::rejected(const QPair<double, double> &point) const
     double lon2 = lon2SpinBox_->value();
     double lat2 = lat2SpinBox_->value();
     if (
-            (((type_ == NE_OF_LINE) || (type_ == NW_OF_LINE)) && (lon1 > lon2)) ||
-            (((type_ == SE_OF_LINE) || (type_ == SW_OF_LINE)) && (lat1 > lat2))) {
+            (((type_ == NE_OF_LINE) || (type_ == NW_OF_LINE) || (type_ == N_OF_LINE) || (type_ == S_OF_LINE)) && (lon1 > lon2)) ||
+            (((type_ == SE_OF_LINE) || (type_ == SW_OF_LINE) || (type_ == E_OF_LINE) || (type_ == W_OF_LINE)) && (lat1 > lat2))) {
         std::swap(lon1, lon2);
         std::swap(lat1, lat2);
     }
@@ -685,6 +685,10 @@ bool FreeLineFilter::rejected(const QPair<double, double> &point) const
     case NW_OF_LINE: return crossDist > 0;
     case SE_OF_LINE: return crossDist < 0;
     case SW_OF_LINE: return crossDist > 0;
+    case  E_OF_LINE: return crossDist < 0;
+    case  W_OF_LINE: return crossDist > 0;
+    case  N_OF_LINE: return crossDist > 0;
+    case  S_OF_LINE: return crossDist < 0;
     default: return true;
     }
 
@@ -723,8 +727,7 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
     rx.setCaseSensitivity(Qt::CaseInsensitive);
 
     // look for keyword
-    rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+LINE")
-                  .arg((type_ == NE_OF_LINE) ? "NE" : ((type_ == NW_OF_LINE) ? "NW" : ((type_ == SE_OF_LINE) ? "SE" : "SW"))));
+    rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+LINE").arg(typeName(type_).section(' ', 0, 0)));
     const int rxpos1 = expr.indexOf(rx);
     if (rxpos1 < 0)
         return false; // no match
@@ -758,9 +761,15 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
 bool FreeLineFilter::validCombination(double lon1, double lat1, double lon2, double lat2) const
 {
-    return ((type_ == NW_OF_LINE) || (type_ == SE_OF_LINE))
-            ? (((lon1 < lon2) && (lat1 < lat2)) || ((lon1 > lon2) && (lat1 > lat2)))
-            : (((lon1 < lon2) && (lat1 > lat2)) || ((lon1 > lon2) && (lat1 < lat2)));
+    if ((type_ == E_OF_LINE) || (type_ == W_OF_LINE)) {
+        return lat1 != lat2;
+    } else if ((type_ == N_OF_LINE) || (type_ == S_OF_LINE)) {
+        return lon1 != lon2;
+    } else if ((type_ == NW_OF_LINE) || (type_ == SE_OF_LINE)) {
+        return ((lon1 < lon2) && (lat1 < lat2)) || ((lon1 > lon2) && (lat1 > lat2));
+    }
+    // (type_ == NE_OF_LINE) || (type_ == SW_OF_LINE)
+    return ((lon1 < lon2) && (lat1 > lat2)) || ((lon1 > lon2) && (lat1 < lat2));
 }
 
 BasePolygon::BasePolygon(Type type, const PointVector &points)
@@ -992,8 +1001,12 @@ void ControlPanel::initialize()
         QGridLayout *filterLayout = createFilterLayout();
         filterPage->setLayout(filterLayout);
 
-        // TBD
-        filterLayout->setRowStretch(1, 1);
+        // default values arbitrarily chosen for now
+        filters_.insert(Filter::E_OF_LINE, FreeLineFilter::create(filterLayout, 1, Filter::E_OF_LINE, QLineF(QPointF(-6, 65), QPointF(-5, 55))));
+        filters_.insert(Filter::W_OF_LINE, FreeLineFilter::create(filterLayout, 2, Filter::W_OF_LINE, QLineF(QPointF(18, 53), QPointF(20, 64))));
+        filters_.insert(Filter::N_OF_LINE, FreeLineFilter::create(filterLayout, 3, Filter::N_OF_LINE, QLineF(QPointF(-7, 54), QPointF(17, 55))));
+        filters_.insert(Filter::S_OF_LINE, FreeLineFilter::create(filterLayout, 4, Filter::S_OF_LINE, QLineF(QPointF(-7, 67), QPointF(19, 63))));
+        filterLayout->setRowStretch(5, 1);
 
         tw->addTab(filterPage, "{E|W|N|S} OF LINE");
     }
@@ -1443,7 +1456,9 @@ void ControlPanel::setFiltersFromXmetExpr()
     const QString text(xmetExprEdit_->toPlainText().trimmed());
     xmetExprEdit_->resetHighlighting();
 
-    bool matchesFound = false;
+    QList<QPair<int, int> > matchedRanges;
+    QList<QPair<QPair<int, int>, QString> > incompleteRanges;
+
     foreach (Filter *filter, filters_) {
         filter->enabledCheckBox_->setChecked(false);
         QPair<int, int> matchedRange(-1, -1);
@@ -1452,18 +1467,44 @@ void ControlPanel::setFiltersFromXmetExpr()
         if (filter->setFromXmetExpr(text, &matchedRange, &incompleteRange, &incompleteReason)) {
             filter->enabledCheckBox_->setChecked(true);
             xmetExprEdit_->addMatchedRange(matchedRange);
-            matchesFound = true;
+            matchedRanges.append(matchedRange);
         } else {
-            xmetExprEdit_->addIncompleteRange(incompleteRange, incompleteReason);
+            incompleteRanges.append(qMakePair(incompleteRange, incompleteReason));
         }
     }
+
+    for (int j = 0; j < matchedRanges.size(); ++j) {
+        qDebug() << "matchedRange" << j << ":" << matchedRanges.at(j);
+    }
+
+    // remove incomplete ranges that are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
+    QList<QPair<QPair<int, int>, QString> > finalIncompleteRanges;
+    for (int i = 0; i < incompleteRanges.size(); ++i) {
+        const int ilo = incompleteRanges.at(i).first.first;
+        const int ihi = incompleteRanges.at(i).first.second;
+        bool partOfMatchedRange = false;
+        for (int j = 0; j < matchedRanges.size(); ++j) {
+            const int mlo = matchedRanges.at(j).first;
+            const int mhi = matchedRanges.at(j).second;
+            if ((ilo >= mlo) && (ihi <= mhi)) {
+                partOfMatchedRange = true;
+                break;
+            }
+        }
+        if (!partOfMatchedRange)
+            finalIncompleteRanges.append(incompleteRanges.at(i));
+    }
+
+    // add the remaining incomplete ranges
+    for (int i = 0; i < finalIncompleteRanges.size(); ++i)
+        xmetExprEdit_->addIncompleteRange(finalIncompleteRanges.at(i).first, finalIncompleteRanges.at(i).second);
 
     xmetExprEdit_->showHighlighting();
 
     setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
 
     // update if necessary
-    if (matchesFound)
+    if (!matchedRanges.isEmpty())
         updateGLWidget();
 }
 

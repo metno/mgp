@@ -70,6 +70,10 @@ GLWidget::GLWidget(QWidget *parent)
     freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF_LINE));
     freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF_LINE));
     freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF_LINE));
+    freeLineFilterInfos_.insert(4, new FreeLineFilterInfo(Filter::E_OF_LINE));
+    freeLineFilterInfos_.insert(5, new FreeLineFilterInfo(Filter::W_OF_LINE));
+    freeLineFilterInfos_.insert(6, new FreeLineFilterInfo(Filter::N_OF_LINE));
+    freeLineFilterInfos_.insert(7, new FreeLineFilterInfo(Filter::S_OF_LINE));
 
     // --- END initialize filter infos -------------------
 
@@ -292,7 +296,7 @@ void GLWidget::paintGL()
     }
 
     // FreeLine filters
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 8; ++i) {
         const FreeLineFilterInfo *finfo = freeLineFilterInfos_.value(i);
         const bool curr = ControlPanel::instance().isCurrent(finfo->type);
         const bool valid = ControlPanel::instance().isValid(finfo->type);
