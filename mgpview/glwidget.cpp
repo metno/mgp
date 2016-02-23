@@ -246,13 +246,15 @@ void GLWidget::paintGL()
         const QColor color = curr ? (valid ? currValidColor : currInvalidColor) : (valid ? normalValidColor : normalInvalidColor);
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-        // draw polygon
-        glShadeModel(GL_FLAT);
-        gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_, color, lineWidth);
-        glShadeModel(GL_SMOOTH);
+        if (ControlPanel::instance().filterLinesVisible()) {
+            // draw polygon
+            glShadeModel(GL_FLAT);
+            gfx_util.drawSurfacePolygon(points, eye, minDolly_, maxDolly_, color, lineWidth);
+            glShadeModel(GL_SMOOTH);
+        }
 
         // draw points
-        if (ControlPanel::instance().isCurrent(Filter::WI)) {
+        if (ControlPanel::instance().filterPointsVisible() && ControlPanel::instance().isCurrent(Filter::WI)) {
             for (int i = 0; i < points->size(); ++i) {
 
                 float r, g, b;
@@ -271,19 +273,21 @@ void GLWidget::paintGL()
     }
 
     // LonOrLat filters
-    for (int i = 0; i < 4; ++i) {
-        const LonOrLatFilterInfo *finfo = lonOrLatFilterInfos_.value(i);
-        const bool curr = ControlPanel::instance().isCurrent(finfo->type);
-        const QColor color = curr ? currColor : normalColor;
-        const float lineWidth = curr ? currLineWidth : normalLineWidth;
+    if (ControlPanel::instance().filterLinesVisible()) {
+        for (int i = 0; i < 4; ++i) {
+            const LonOrLatFilterInfo *finfo = lonOrLatFilterInfos_.value(i);
+            const bool curr = ControlPanel::instance().isCurrent(finfo->type);
+            const QColor color = curr ? currColor : normalColor;
+            const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-        if (ControlPanel::instance().isEnabled(finfo->type)) {
-            // draw circle
-            bool ok = false;
-            gfx_util.drawLonOrLatCircle(
-                        finfo->isLon, eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toDouble(&ok),
-                        color, lineWidth);
-            Q_ASSERT(ok);
+            if (ControlPanel::instance().isEnabled(finfo->type)) {
+                // draw circle
+                bool ok = false;
+                gfx_util.drawLonOrLatCircle(
+                            finfo->isLon, eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toDouble(&ok),
+                            color, lineWidth);
+                Q_ASSERT(ok);
+            }
         }
     }
 
@@ -298,17 +302,21 @@ void GLWidget::paintGL()
         if (ControlPanel::instance().isEnabled(finfo->type)) {
             const QLineF line = ControlPanel::instance().value(finfo->type).toLineF();
 
-            // draw line
-            gfx_util.drawGreatCircle(eye, minDolly_, maxDolly_, line, color, lineWidth);
+            if (ControlPanel::instance().filterLinesVisible()) {
+                // draw line
+                gfx_util.drawGreatCircle(eye, minDolly_, maxDolly_, line, color, lineWidth);
 
-            // draw endpoints
-            if (ControlPanel::instance().isCurrent(finfo->type)) {
-                gfx_util.drawSurfaceBall(DEG2RAD(line.p1().x()), DEG2RAD(line.p1().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
-                gfx_util.drawSurfaceBall(DEG2RAD(line.p2().x()), DEG2RAD(line.p2().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
+                // draw the complete great circle passing through the endpoints
+                gfx_util.drawGreatCircle(eye, minDolly_, maxDolly_, line, valid ? normalValidColor : normalInvalidColor, normalLineWidth, false);
             }
 
-            // draw the complete great circle passing through the endpoints
-            gfx_util.drawGreatCircle(eye, minDolly_, maxDolly_, line, valid ? normalValidColor : normalInvalidColor, normalLineWidth, false);
+            if (ControlPanel::instance().filterPointsVisible()) {
+                // draw endpoints
+                if (ControlPanel::instance().isCurrent(finfo->type)) {
+                    gfx_util.drawSurfaceBall(DEG2RAD(line.p1().x()), DEG2RAD(line.p1().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
+                    gfx_util.drawSurfaceBall(DEG2RAD(line.p2().x()), DEG2RAD(line.p2().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
+                }
+            }
         }
     }
 

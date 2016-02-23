@@ -22,6 +22,7 @@
 #include <QSlider>
 #include <QBitArray>
 #include <QMessageBox>
+#include <QTabWidget>
 #include <algorithm>
 
 // Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
@@ -821,9 +822,23 @@ ControlPanel::ControlPanel()
     , basePolygonIntersectionsVisibleCheckBox_(0)
     , customBasePolygonEditableOnSphereCheckBox_(0)
     , filtersEditableOnSphereCheckBox_(0)
+    , filterLinesVisibleCheckBox_(0)
+    , filterPointsVisibleCheckBox_(0)
     , resultPolygonsLinesVisibleCheckBox_(0)
     , resultPolygonsPointsVisibleCheckBox_(0)
 {
+}
+
+static QGridLayout *createFilterLayout()
+{
+    QGridLayout *layout = new QGridLayout;
+    layout->addWidget(new QLabel("Type"), 0, 0, Qt::AlignHCenter);
+    layout->addWidget(new QLabel("Enabled"), 0, 1, Qt::AlignHCenter);
+    layout->addWidget(new QLabel("Current"), 0, 2, Qt::AlignHCenter);
+    layout->addWidget(new QLabel("Value"), 0, 3, 1, 2, Qt::AlignLeft);
+    for (int i = 0; i < 4; ++i)
+        layout->itemAtPosition(0, i)->widget()->setStyleSheet("font-weight:bold");
+    return layout;
 }
 
 void ControlPanel::initialize()
@@ -868,14 +883,16 @@ void ControlPanel::initialize()
     basePolygonLayout1->addWidget(basePolygonLinesVisibleCheckBox_);
 
     basePolygonPointsVisibleCheckBox_ = new QCheckBox("Points");
-    basePolygonPointsVisibleCheckBox_->setChecked(true);
+    basePolygonPointsVisibleCheckBox_->setChecked(false);
     connect(basePolygonPointsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     basePolygonLayout1->addWidget(basePolygonPointsVisibleCheckBox_);
 
     basePolygonIntersectionsVisibleCheckBox_ = new QCheckBox("Intersections");
-    basePolygonIntersectionsVisibleCheckBox_->setChecked(true);
+    basePolygonIntersectionsVisibleCheckBox_->setChecked(false);
     connect(basePolygonIntersectionsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     basePolygonLayout1->addWidget(basePolygonIntersectionsVisibleCheckBox_);
+
+    basePolygonLayout1->addStretch(1);
 
     QHBoxLayout *basePolygonLayout2 = new QHBoxLayout;
     basePolygonLayout->addLayout(basePolygonLayout2);
@@ -908,7 +925,7 @@ void ControlPanel::initialize()
 
     // --- BEGIN filter section -------------------------------------------
     QGroupBox *filterGroupBox = new QGroupBox("Filters");
-    QGridLayout *filterLayout = new QGridLayout;
+    QVBoxLayout *filterLayout = new QVBoxLayout;
     filterGroupBox->setLayout(filterLayout);
     mainLayout->addWidget(filterGroupBox);
 
@@ -916,35 +933,86 @@ void ControlPanel::initialize()
 //    filterLayout->addWidget(new QLabel("Filters:"), 0, 0, 1, 5);
 //    filterLayout->itemAtPosition(0, 0)->widget()->setStyleSheet("font-weight:bold; font-size:16px");
 
+    QHBoxLayout *filterLayout2 = new QHBoxLayout;
+    filterLayout->addLayout(filterLayout2);
+
     filtersEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
-    filterLayout->addWidget(filtersEditableOnSphereCheckBox_, 1, 0, 1, 5, Qt::AlignLeft);
+    filterLayout2->addWidget(filtersEditableOnSphereCheckBox_);
 
-    filterLayout->addWidget(new QLabel("Type"), 2, 0, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Enabled"), 2, 1, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Current"), 2, 2, Qt::AlignHCenter);
-    filterLayout->addWidget(new QLabel("Value"), 2, 3, 1, 2, Qt::AlignLeft);
-    for (int i = 0; i < 4; ++i)
-        filterLayout->itemAtPosition(2, i)->widget()->setStyleSheet("font-weight:bold");
+    filterLinesVisibleCheckBox_ = new QCheckBox("Lines");
+    filterLinesVisibleCheckBox_->setChecked(true);
+    connect(filterLinesVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    filterLayout2->addWidget(filterLinesVisibleCheckBox_);
 
-    // within filter (default value arbitrarily chosen for now)
-    PointVector wiPoints (new QVector<QPair<double, double> >);
-    wiPoints->append(qMakePair(0.17, 0.95));
-    wiPoints->append(qMakePair(0.3, 1.02));
-    wiPoints->append(qMakePair(0.25, 1.08));
-    wiPoints->append(qMakePair(0.18, 1.08));
-    filters_.insert(Filter::WI, WithinFilter::create(filterLayout, 3, Filter::WI, wiPoints));
+    filterPointsVisibleCheckBox_ = new QCheckBox("Points");
+    filterPointsVisibleCheckBox_->setChecked(true);
+    connect(filterPointsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    filterLayout2->addWidget(filterPointsVisibleCheckBox_);
 
-    // lon|lat filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 4, Filter::E_OF, 4));
-    filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 5, Filter::W_OF, 12));
-    filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 6, Filter::N_OF, 58));
-    filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 7, Filter::S_OF, 66));
+    QTabWidget *tw = new QTabWidget;
+    filterLayout->addWidget(tw);
 
-    // free line filters (default values arbitrarily chosen for now)
-    filters_.insert(Filter::NE_OF_LINE, FreeLineFilter::create(filterLayout, 8, Filter::NE_OF_LINE, QLineF(QPointF(-4, 65), QPointF(14, 55))));
-    filters_.insert(Filter::NW_OF_LINE, FreeLineFilter::create(filterLayout, 9, Filter::NW_OF_LINE, QLineF(QPointF(5, 53), QPointF(25, 64))));
-    filters_.insert(Filter::SE_OF_LINE, FreeLineFilter::create(filterLayout, 10, Filter::SE_OF_LINE, QLineF(QPointF(-1, 54), QPointF(17, 67))));
-    filters_.insert(Filter::SW_OF_LINE, FreeLineFilter::create(filterLayout, 11, Filter::SW_OF_LINE, QLineF(QPointF(-1, 67), QPointF(19, 57))));
+    // page for WI filter
+    {
+        QWidget *filterPage = new QWidget;
+        QGridLayout *filterLayout = createFilterLayout();
+        filterPage->setLayout(filterLayout);
+
+        // default value arbitrarily chosen for now
+        PointVector wiPoints (new QVector<QPair<double, double> >);
+        wiPoints->append(qMakePair(0.17, 0.95));
+        wiPoints->append(qMakePair(0.3, 1.02));
+        wiPoints->append(qMakePair(0.25, 1.08));
+        wiPoints->append(qMakePair(0.18, 1.08));
+        filters_.insert(Filter::WI, WithinFilter::create(filterLayout, 1, Filter::WI, wiPoints));
+        filterLayout->setRowStretch(2, 1);
+
+        tw->addTab(filterPage, "WI");
+    }
+
+    // page for '{E|W|N|S} OF' filters
+    {
+        QWidget *filterPage = new QWidget;
+        QGridLayout *filterLayout = createFilterLayout();
+        filterPage->setLayout(filterLayout);
+
+        // default values arbitrarily chosen for now
+        filters_.insert(Filter::E_OF, LonOrLatFilter::create(filterLayout, 1, Filter::E_OF, 4));
+        filters_.insert(Filter::W_OF, LonOrLatFilter::create(filterLayout, 2, Filter::W_OF, 12));
+        filters_.insert(Filter::N_OF, LonOrLatFilter::create(filterLayout, 3, Filter::N_OF, 58));
+        filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 4, Filter::S_OF, 66));
+        filterLayout->setRowStretch(5, 1);
+
+        tw->addTab(filterPage, "{E|W|N|S} OF");
+    }
+
+    // page for '{E|W|N|S} OF LINE' filters
+    {
+        QWidget *filterPage = new QWidget;
+        QGridLayout *filterLayout = createFilterLayout();
+        filterPage->setLayout(filterLayout);
+
+        // TBD
+        filterLayout->setRowStretch(1, 1);
+
+        tw->addTab(filterPage, "{E|W|N|S} OF LINE");
+    }
+
+    // page for '{NE|NW|SE|SW} OF LINE' filters
+    {
+        QWidget *filterPage = new QWidget;
+        QGridLayout *filterLayout = createFilterLayout();
+        filterPage->setLayout(filterLayout);
+
+        // default values arbitrarily chosen for now
+        filters_.insert(Filter::NE_OF_LINE, FreeLineFilter::create(filterLayout, 1, Filter::NE_OF_LINE, QLineF(QPointF(-4, 65), QPointF(14, 55))));
+        filters_.insert(Filter::NW_OF_LINE, FreeLineFilter::create(filterLayout, 2, Filter::NW_OF_LINE, QLineF(QPointF(5, 53), QPointF(25, 64))));
+        filters_.insert(Filter::SE_OF_LINE, FreeLineFilter::create(filterLayout, 3, Filter::SE_OF_LINE, QLineF(QPointF(-1, 54), QPointF(17, 67))));
+        filters_.insert(Filter::SW_OF_LINE, FreeLineFilter::create(filterLayout, 4, Filter::SW_OF_LINE, QLineF(QPointF(-1, 67), QPointF(19, 57))));
+        filterLayout->setRowStretch(5, 1);
+
+        tw->addTab(filterPage, "{NE|NW|SE|SW} OF LINE");
+    }
 
     // ensure exclusive/radio behavior for the 'current' state
     QButtonGroup *currBtnGroup = new QButtonGroup;
@@ -1086,6 +1154,16 @@ void ControlPanel::toggleFiltersEditableOnSphere()
     filtersEditableOnSphereCheckBox_->toggle();
 }
 
+bool ControlPanel::filterLinesVisible() const
+{
+    return filterLinesVisibleCheckBox_->isChecked();
+}
+
+bool ControlPanel::filterPointsVisible() const
+{
+    return filterPointsVisibleCheckBox_->isChecked();
+}
+
 // If we're in 'filters editable on sphere' mode and the current filter is enabled, this function initializes
 // dragging of that filter at the given pos.
 bool ControlPanel::startFilterDragging(const QPair<double, double> &point) const
@@ -1161,7 +1239,9 @@ static int currentPolygonPoint(const PointVector &points, const QPair<double, do
 
 int ControlPanel::currentWIFilterPoint(const QPair<double, double> &point, double tolerance)
 {
-    return currentPolygonPoint(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, point, tolerance);
+    return filters_.contains(Filter::WI)
+            ? currentPolygonPoint(qobject_cast<WithinFilter *>(filters_.value(Filter::WI))->points_, point, tolerance)
+            : -1;
 }
 
 int ControlPanel::currentCustomBasePolygonPoint(const QPair<double, double> &point, double tolerance)

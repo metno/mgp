@@ -187,6 +187,8 @@ public:
     QVector<QPair<double, double> > filterIntersections(const QPair<double, double> &, const QPair<double, double> &) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
+    bool filterLinesVisible() const;
+    bool filterPointsVisible() const;
     bool startFilterDragging(const QPair<double, double> &) const;
     void updateFilterDragging(const QPair<double, double> &);
 
@@ -229,6 +231,8 @@ private:
     QCheckBox *customBasePolygonEditableOnSphereCheckBox_;
 
     QCheckBox *filtersEditableOnSphereCheckBox_;
+    QCheckBox *filterLinesVisibleCheckBox_;
+    QCheckBox *filterPointsVisibleCheckBox_;
     QHash<Filter::Type, Filter *> filters_;
     Filter *currentFilter() const;
 
