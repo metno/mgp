@@ -107,13 +107,14 @@ public:
     static double min(double a, double b) {return a < b ? a : b;}
     static double max(double a, double b) {return a > b ? a : b;}
     static double distance(const QPair<double, double> &, const QPair<double, double> &);
-    static QVector<_3DPoint> getGreatCirclePoints(const QPair<double, double> &, const QPair<double, double> &, int, bool = true);
+    static QVector<_3DPoint> greatCirclePoints(const QPair<double, double> &, const QPair<double, double> &, int, bool = true);
+    static PointVector latitudeArcPoints(double, double, double, bool, int, bool);
 
     static double bearingBetween(const QPair<double, double> &, const QPair<double, double> &);
     static double crossTrackDistanceToGreatCircle(
             const QPair<double, double> &, const QPair<double, double> &, const QPair<double, double> &, double radius = 1.0);
 
-    static bool intersectsLatitude(const QPair<double, double> &, const QPair<double, double> &, double lat, QPair<double, double> *isctPoint);
+    static QVector<QPair<double, double> > latitudeIntersections(const QPair<double, double> &, const QPair<double, double> &, double);
     static bool greatCircleArcsIntersect(
             const QPair<double, double> &, const QPair<double, double> &,
             const QPair<double, double> &, const QPair<double, double> &,
@@ -137,9 +138,10 @@ public:
             double radius, double phi_eye, double theta_eye, double alt_eye, double phi_tgt, double theta_tgt, double alpha,
             _4DPoint &eye, _4DPoint &tgt_alpha, _4DPoint &up);
     static bool raySphereIntersect(
-	double px, double py, double pz, double rx, double ry, double rz,
-    double cx, double cy, double cz, double r, double &x, double &y, double &z);
+            double px, double py, double pz, double rx, double ry, double rz,
+            double cx, double cy, double cz, double r, double &x, double &y, double &z);
     static void computeLatLon(double x, double y, double z, double &lat, double &lon);
+    static PointVector reversed(const PointVector &);
     static PointVectors polygonIntersection(const PointVector &, const PointVector &, bool = false);
 };
 

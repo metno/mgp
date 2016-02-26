@@ -209,19 +209,11 @@ void GLWidget::paintGL()
         }
 
         if (ControlPanel::instance().basePolygonIntersectionsVisible()) {
-
             // draw intersections
-            for (int i = 0; i < points->size(); ++i) {
-
-                // draw points where filters intersect the great circle segment between this point and the previous one
-                const int prevIndex = (i - 1 + points->size()) % points->size();
-                const QVector<QPair<double, double> > isctPoints =
-                        ControlPanel::instance().filterIntersections(points->at(prevIndex), points->at(i));
-                for (int j = 0; j < isctPoints.size(); ++j)
-                    gfx_util.drawSurfaceBall(isctPoints.at(j).first, isctPoints.at(j).second, ballSize(), 1, 0, 1, 1);
-            }
+            const QVector<QPair<double, double> > isctPoints = ControlPanel::instance().filterIntersections(points);
+            for (int i = 0; i < isctPoints.size(); ++i)
+                gfx_util.drawSurfaceBall(isctPoints.at(i).first, isctPoints.at(i).second, ballSize(), 1, 0, 1, 1);
         }
-
     }
 
     // --- END draw base polygon --------------------------------

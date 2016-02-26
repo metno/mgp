@@ -185,7 +185,7 @@ void GfxUtils::drawSurfacePolygon(
         const double dist = Math::distance(points->at(i), points->at(prevIndex));
         if (dist > maxDist) {
             const int nSegments = static_cast<int>(ceil(dist / maxDist));
-            const QVector<_3DPoint> extraPoints = Math::getGreatCirclePoints(points->at(prevIndex), points->at(i), nSegments);
+            const QVector<_3DPoint> extraPoints = Math::greatCirclePoints(points->at(prevIndex), points->at(i), nSegments);
             for (int j = 1; j < (extraPoints.size() - 1); ++j)
                 glVertex3d(scale * extraPoints.at(j).x(), scale * extraPoints.at(j).y(), scale * extraPoints.at(j).z());
         }
@@ -464,7 +464,7 @@ void GfxUtils::drawGreatCircle(
     const double lat1 = DEG2RAD(line.p1().y());
     const double lon2 = DEG2RAD(line.p2().x());
     const double lat2 = DEG2RAD(line.p2().y());
-    const QVector<_3DPoint> points = Math::getGreatCirclePoints(qMakePair(lon1, lat1), qMakePair(lon2, lat2), res + 1, segmentOnly);
+    const QVector<_3DPoint> points = Math::greatCirclePoints(qMakePair(lon1, lat1), qMakePair(lon2, lat2), res + 1, segmentOnly);
 
     glBegin(GL_LINE_STRIP);
     for (int i = 0; i < points.size(); ++i)

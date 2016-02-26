@@ -21,6 +21,7 @@
 #include <QComboBox>
 #include <QSlider>
 #include <QBitArray>
+#include <QStack>
 #include <QMessageBox>
 #include <QTabWidget>
 #include <algorithm>
@@ -209,14 +210,19 @@ PointVectors WithinFilter::apply(const PointVector &inPoly) const
     return Math::polygonIntersection(inPoly, points_);
 }
 
-QVector<QPair<double, double> > WithinFilter::intersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
+QVector<QPair<double, double> > WithinFilter::intersections(const PointVector &inPoly) const
 {
     QVector<QPair<double, double> > points;
 
     for (int i = 0; i < points_->size(); ++i) {
         QPair<double, double> isctPoint;
-        if (Math::greatCircleArcsIntersect(points_->at(i), points_->at((i + 1) % points_->size()), p1, p2, &isctPoint))
-            points.append(isctPoint);
+        for (int j = 0; j < inPoly->size(); ++j) {
+            if (Math::greatCircleArcsIntersect(
+                        points_->at(i), points_->at((i + 1) % points_->size()),
+                        inPoly->at(j), inPoly->at((j + 1) % inPoly->size()),
+                        &isctPoint))
+                points.append(isctPoint);
+        }
     }
 
     return points; // FOR NOW
@@ -285,6 +291,8 @@ LineFilter::LineFilter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currChe
 
 PointVectors LineFilter::apply(const PointVector &inPoly) const
 {
+    Q_ASSERT((type_ != N_OF) && (type_ != S_OF));
+
     PointVectors outPolys = PointVectors(new QVector<PointVector>());
 
     // get rejection status for all points
@@ -356,12 +364,18 @@ PointVectors LineFilter::apply(const PointVector &inPoly) const
     return outPolys;
 }
 
-QVector<QPair<double, double> > LineFilter::intersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
+QVector<QPair<double, double> > LineFilter::intersections(const PointVector &inPoly) const
 {
+    Q_ASSERT((type_ != N_OF) && (type_ != S_OF));
+
     QVector<QPair<double, double> > points;
     QPair<double, double> point;
-    if ((rejected(p1) != rejected(p2)) && intersects(p1, p2, &point))
-        points.append(point);
+    for (int i = 0; i < inPoly->size(); ++i) {
+        const QPair<double, double> p1(inPoly->at(i));
+        const QPair<double, double> p2(inPoly->at((i + 1) % inPoly->size()));
+        if ((rejected(p1) != rejected(p2)) && intersects(p1, p2, &point))
+            points.append(point);
+    }
     return points;
 }
 
@@ -451,7 +465,7 @@ bool LonOrLatFilter::rejected(const QPair<double, double> &point) const
     case W_OF: return lon > val;
     case N_OF: return lat < val;
     case S_OF: return lat > val;
-    default: return true;
+    default: return true; // ### Q_ASSERT(false) instead?
     }
 
     return true;
@@ -459,9 +473,7 @@ bool LonOrLatFilter::rejected(const QPair<double, double> &point) const
 
 bool LonOrLatFilter::intersects(const QPair<double, double> &p1, const QPair<double, double> &p2, QPair<double, double> *isctPoint) const
 {
-    if ((type_ == N_OF) || (type_ == S_OF)) {
-        return Math::intersectsLatitude(p1, p2, DEG2RAD(valSpinBox_->value()), isctPoint);
-    }
+    Q_ASSERT((type_ != N_OF) && (type_ != S_OF));
 
     const double lon = DEG2RAD(valSpinBox_->value());
     const double minLat = qMin(p1.second, p2.second);
@@ -538,26 +550,209 @@ LatFilter::LatFilter(
 {
 }
 
+struct Node {
+    QPair<double, double> point_; // lon,lat radians of point represented by the node
+    bool rejected_; // true iff point is rejected by the filter
+    bool isct_; // true iff node represents an intersecion (if not it represents a vertex of the original input polygon)
+    bool entry_; // whether the intersection node represents an entry into (true) or an exit from (false) the area accepted by the filter
+                 // when traversing the original input polygon in clockwise direction
+    Node(const QPair<double, double> &point, bool rejected, bool isct, bool entry = false)
+        : point_(point), rejected_(rejected), isct_(isct), entry_(entry) {}
+    Node() {}
+};
+
+static bool longitudeLessThan(const Node &node1, const Node &node2)
+{
+    return node1.point_.first < node2.point_.first;
+}
+
+// Returns true if node2 is the immediate westward neighbour of node1 in ilist (assumed to be ordered on increasing longitude).
+static bool isWestwardNeighbour(const Node &node1, const Node &node2, const QList<Node> &ilist)
+{
+    // find node1 in ilist
+    int i = -1;
+    for (i = 0; i < ilist.size(); ++i)
+        if (node1.point_.first == ilist.at(i).point_.first)
+            break;
+    Q_ASSERT((i >= 0) && (i < ilist.size()));
+
+    // check if longitude of node2 matches the one of the previous node (i.e. the westward neighbour)
+    const int prev = (i - 1 + ilist.size()) % ilist.size();
+    return node2.point_.first == ilist.at(prev).point_.first;
+}
+
 PointVectors LatFilter::apply(const PointVector &inPoly) const
 {
-    // generate the clip polygon
-    PointVector clipPoly(new QVector<QPair<double, double> >());
-
+    Q_ASSERT((type_ == N_OF) || (type_ == S_OF));
+    Q_ASSERT(!inPoly->isEmpty());
     const double lat = DEG2RAD(valSpinBox_->value());
-    const int minRes = 4; // near pole
-    const int maxRes = 128; // near equator
-    // ### Notice the tradeoff betweeen speed and accuracy. The above min/max values are arbitrarily set.
-    // ### Maybe the resolution should be set interactively by the user?
-    const int res = minRes + (1 - qAbs(lat) / (M_PI / 2)) * (maxRes - minRes);
+    PointVectors outPolys = PointVectors(new QVector<PointVector>());
 
-    const double deltaLon = (2 * M_PI) / res;
-    double lon = 0;
-    for (int i = 0; i < res; i++, lon += deltaLon)
-        clipPoly->append(qMakePair(lon, lat));
 
-    const bool inverse = ((type_ == N_OF) && (lat < 0)) || ((type_ == S_OF) && (lat > 0));
+    // get clockwise version of input polygon
+    const PointVector inPolyCW(Math::isClockwise(inPoly) ? inPoly : Math::reversed(inPoly));
+    Q_ASSERT(Math::isClockwise(inPolyCW));
 
-    return Math::polygonIntersection(inPoly, clipPoly, inverse);
+    QList<Node> tlist; // trace list consisting of 1) vertices of input polygon in clockwise order and 2) filter intersections as they appear, e.g.:
+                       //   ORGV ORGV ISCT ORGV ISCT ISCT ORGV ORGV ISCT
+                       // notes:
+                       //    1: the first item is always an ORGV, but the last one doesn't have to be
+                       //    2: there may be 0, 1 or 2 ISCTs between any pair of ORGVs (since a great circle arc may cross a latitude 0, 1 or 2 times)
+    QList<Node> ilist; // intersection list consisting of all the ISCTs in tlist sorted by longitude (direction doesn't matter, but the value
+                       // obviously wraps at some point: e.g. 4 5 6 0 1 2 3,  6 5 4 3 2 1 0,  3 2 1 0 6 5 4, etc.)
+
+    // if the first original vertex lies outside the area accepted by the filter, A, the first intersection must represent an entry into A
+    bool entry = (type_ == N_OF) ? (inPolyCW->first().second < lat) : (inPolyCW->first().second > lat);
+
+    // generate tlist and initial ilist
+
+    int nrejected = 0;
+
+    for (int i = 0; i < inPolyCW->size(); ++i) {
+
+        const QPair<double, double> p1 = inPolyCW->at(i);
+        const QPair<double, double> p2 = inPolyCW->at((i + 1) % inPolyCW->size());
+
+        // append original vertex
+        const bool rej = rejected(p1);
+        if (rej)
+            nrejected++;
+        tlist.append(Node(p1, rej, false));
+
+        // append 0, 1 or 2 intersections
+        const QVector<QPair<double, double> > points = Math::latitudeIntersections(p1, p2, lat); // 2 iscts are ordered on increasing dist. from p1
+        for (int j = 0; j < points.size(); ++j) {
+            const Node node(points.at(j), false, true, entry);
+            entry = !entry; // assuming entries and exits always alternate strictly
+                            // (WARNING: this assumption probably doesn't hold for self-intersection polygons!)
+
+            // append to both lists
+            tlist.append(node);
+            ilist.append(node);
+        }
+    }
+
+    // check special cases when there's no intersections
+    if (ilist.isEmpty()) {
+
+        if (Math::pointInPolygon(qMakePair(0.0, M_PI / 2), inPolyCW) || Math::pointInPolygon(qMakePair(0.0, -M_PI / 2), inPolyCW)) {
+            // around pole, so return empty list for now
+            static int nn = 0;
+            qWarning() << nn++ << "polygon containing a pole is not yet supported!";
+            return outPolys;
+        }
+
+        if (nrejected == 0) {
+            // all points accepted, and not around pole, so return a list with one item: a deep copy
+            // (although implicitly shared for efficiency) of the input polygon
+            PointVector inPolyCopy(new QVector<QPair<double, double> >(*inPolyCW.data()));
+            outPolys->append(inPolyCopy);
+            return outPolys;
+        } else {
+            Q_ASSERT(nrejected == inPolyCW->size()); // ### can this fail in some cases?
+            // all(?) points reject, and not around pole, so return empty list
+            return outPolys;
+        }
+    }
+
+
+    // general case: intersections exist
+
+
+    // sort ilist on longitude
+    qSort(ilist.begin(), ilist.end(), longitudeLessThan);
+
+//    if (!ilist.isEmpty())
+//        qDebug() << "";
+//    for (int i = 0; i < ilist.size(); ++i)
+//        qDebug() << i << (ilist.at(i).entry_ ? "E" : "X") << ":" << ilist.at(i).point_.first;
+
+
+    // define the begin, end, and direction of tracing
+    int begin = -1;
+    for (begin = 0; begin < tlist.size(); ++begin) {
+        const Node node(tlist.at(begin));
+        const bool isct = node.isct_;
+        const bool entry = node.entry_;
+        // start new polygons at entries for N_OF and at exits for S_OF
+        if (isct && (((type_ == N_OF) && entry) || ((type_ == S_OF) && (!entry))))
+            break;
+    }
+    Q_ASSERT((begin >= 0) && (begin < tlist.size()));
+    const int add = (type_ == N_OF) ? 1 : -1; // trace clockwise for N_OF and counterclockwise for S_OF
+
+    QStack<PointVector> polyStack; // stack of polygons
+    QStack<Node> isctStack; // stack of intersections
+
+    bool firstIter = true;
+    for (int i = begin; firstIter || (i != begin); i = (i + add + tlist.size()) % tlist.size(), firstIter = false) {
+        const Node node(tlist.at(i));
+
+        if (node.isct_) {
+
+            if (((type_ == N_OF) && node.entry_) || ((type_ == S_OF) && (!node.entry_))) {
+
+                // intersection may start a new polygon or connect with intersection of an already started one
+
+                if ((!isctStack.isEmpty()) && (isWestwardNeighbour(isctStack.top(), node, ilist))) {
+                    // create extra edges along latitude in westwards direction from previously visited intersection to this one
+                    Q_ASSERT(!polyStack.isEmpty());
+                    const Node node2(isctStack.pop());
+                    *polyStack.top() += *Math::latitudeArcPoints(lat, node2.point_.first, node.point_.first, false, 32, false);
+
+                } else {
+                    // start new polygon
+                    polyStack.push(PointVector(new QVector<QPair<double, double> >()));
+
+                    // record intersection for subsequent matching against an intersection of the opposite type
+                    isctStack.push(node);
+                }
+
+                Q_ASSERT(!polyStack.isEmpty());
+                polyStack.top()->append(node.point_); // in any case, add the intersection itself
+
+            } else {
+
+                // intersection may close the current polygon
+
+                Q_ASSERT(!polyStack.isEmpty());
+                polyStack.top()->append(node.point_); // in any case, add the intersection itself
+
+                if ((!isctStack.isEmpty()) && (isWestwardNeighbour(node, isctStack.top(), ilist))) {
+                    // create extra edges along latitude in westwards direction from this intersection to previously visited one
+                    const Node node2(isctStack.pop());
+                    *polyStack.top() += *Math::latitudeArcPoints(lat, node.point_.first, node2.point_.first, false, 32, false);
+
+                    // close current polygon
+                    outPolys->append(polyStack.pop());
+
+                } else {
+                    // record intersection for subsequent matching against an intersection of the opposite type
+                    isctStack.push(node);
+                }
+
+            }
+
+        } else if (!node.rejected_) {
+            // node is vertex of input polygon inside accepted area, so add it to current polygon
+            Q_ASSERT(!polyStack.isEmpty());
+            polyStack.top()->append(node.point_);
+
+        } else {
+            // node is vertex of input polygon outside accepted area, so just skip it
+        }
+    }
+
+    return outPolys;
+}
+
+QVector<QPair<double, double> > LatFilter::intersections(const PointVector &inPoly) const
+{
+    QVector<QPair<double, double> > points;
+    const double lat = DEG2RAD(valSpinBox_->value());
+    for (int i = 0; i < inPoly->size(); ++i)
+        points += Math::latitudeIntersections(inPoly->at(i), inPoly->at((i + 1) % inPoly->size()), lat);
+    return points;
 }
 
 FreeLineFilter::FreeLineFilter(
@@ -1146,13 +1341,13 @@ bool ControlPanel::rejectedByAnyFilter(const QPair<double, double> &point) const
     return false;
 }
 
-// Returns all intersection points between enabled filters and the great circle segment between p1 and p2.
-QVector<QPair<double, double> > ControlPanel::filterIntersections(const QPair<double, double> &p1, const QPair<double, double> &p2) const
+// Returns all intersection points between enabled filters and a polygon.
+QVector<QPair<double, double> > ControlPanel::filterIntersections(const PointVector &inPoly) const
 {
     QVector<QPair<double, double> > points;
     foreach (Filter *filter, filters_) {
         if (filter->enabledCheckBox_->isChecked())
-            points += filter->intersections(p1, p2);
+            points += filter->intersections(inPoly);
     }
     return points;
 }

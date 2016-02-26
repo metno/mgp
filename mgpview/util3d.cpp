@@ -73,7 +73,7 @@ double Math::distance(const QPair<double, double> &p1, const QPair<double, doubl
 }
 
 // Returns the points of the great circle through p1 and p2. If segmentOnly is true, only the part of the circle between p1 and p2 is returned.
-QVector<_3DPoint> Math::getGreatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly)
+QVector<_3DPoint> Math::greatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly)
 {
     QVector<_3DPoint> points;
     const double lon1 = p1.first;
@@ -142,6 +142,25 @@ QVector<_3DPoint> Math::getGreatCirclePoints(const QPair<double, double> &p1, co
     return points;
 }
 
+// Returns the points at latitude lat from longitude lon1 to lon2. The two input longitudes are included iff inclusive is true.
+PointVector Math::latitudeArcPoints(double lat, double lon1, double lon2, bool eastwards, int nSegments, bool inclusive)
+{
+    PointVector points(new QVector<QPair<double, double> >());
+
+//    Q_ASSERT((lon1 >= -M_PI) && (lon1 <= M_PI));
+//    Q_ASSERT((lon2 >= -M_PI) && (lon2 <= M_PI));
+    const double lonDist0 = (lon1 < lon2) ? (lon2 - lon1) : ((lon2 + 2 * M_PI) - lon1);
+    const double lonDist = eastwards ? lonDist0 : (2 * M_PI - lonDist0);
+    const double lonDelta = (lonDist / nSegments) * (eastwards ? 1 : -1);
+    double lon = lon1 + (inclusive ? 0 : lonDelta);
+    const int n = inclusive ? (nSegments + 1) : (nSegments - 1);
+
+    for (int i = 0; i < n; ++i, lon += lonDelta)
+        points->append(qMakePair(fmod(lon, 2 * M_PI), lat));
+
+    return points;
+}
+
 /**
  * Returns the (initial) bearing from one point to another.
  *
@@ -182,11 +201,14 @@ double Math::crossTrackDistanceToGreatCircle(
     return asin(sin(delta_13) * sin(theta_13 - theta_12)) * radius;
 }
 
-// Returns true iff the great circle passing through p1 and p2 intersects lat. The intersection point closest to p1 and p2 is returned in isctPoint.
+// Returns the points (0, 1 or 2) where lat intersects the great circle arc from p1 to p2.
+// If two intersections are found, the one closest to p1 appears first in the result vector.
 // Adopted from 'Crossing parallels' on http://williams.best.vwh.net/avform.htm .
 // Alternative approach: http://math.stackexchange.com/questions/1157278/find-the-intersection-point-of-a-great-circle-arc-and-latitude-line .
-bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat, QPair<double, double> *isctPoint)
+QVector<QPair<double, double> > Math::latitudeIntersections(const QPair<double, double> &p1, const QPair<double, double> &p2, double lat)
 {
+    QVector<QPair<double, double> > points;
+
     const double lon1 = p1.first;
     const double lat1 = p1.second;
     const double lon2 = p2.first;
@@ -197,25 +219,32 @@ bool Math::intersectsLatitude(const QPair<double, double> &p1, const QPair<doubl
     const double B = sin(lat1) * cos(lat2) * cos(lat) * cos(l12) - cos(lat1) * sin(lat2) * cos(lat);
     const double C = cos(lat1) * cos(lat2) * sin(lat) * sin(l12);
     const double lon = atan2(B, A); // atan2(y, x) convention
-    if (fabs(C) <= sqrt(A * A + B * B)) {
-        const double dlon = acos(C / sqrt(A * A + B * B));
-        const double lon3_1 = fmod(lon1 + dlon + lon + M_PI, 2 * M_PI) - M_PI;
-        const double lon3_2 = fmod(lon1 - dlon + lon + M_PI, 2 * M_PI) - M_PI;
+    const double lenAB = sqrt(A * A + B * B);
+    if (fabs(C) <= lenAB) {
+        const double dlon = acos(C / lenAB);
+        const double lon3 = fmod(lon1 + dlon + lon + M_PI, 2 * M_PI) - M_PI;
+        const double lon4 = fmod(lon1 - dlon + lon + M_PI, 2 * M_PI) - M_PI;
 
-        const QPair<double, double> p3_1(lon3_1, lat);
-        const double dist11 = distance(p1, p3_1);
-        const double dist21 = distance(p2, p3_1);
-        const QPair<double, double> p3_2(lon3_2, lat);
-        const double dist12 = distance(p1, p3_2);
-        const double dist22 = distance(p2, p3_2);
-        isctPoint->first = ((dist11 + dist21) < (dist12 + dist22)) ? lon3_1 : lon3_2;
+        const double dist12 = distance(p1, p2);
 
-        isctPoint->second = lat;
+        const QPair<double, double> p3(lon3, lat);
+        const double dist13 = distance(p1, p3);
+        const double dist23 = distance(p2, p3);
+        if ((dist13 < dist12) && (dist23 < dist12))
+            points.append(p3);
 
-        return true;
+        const QPair<double, double> p4(lon4, lat);
+        const double dist14 = distance(p1, p4);
+        const double dist24 = distance(p2, p4);
+        if ((dist14 < dist12) && (dist24 < dist12)) {
+            if ((!points.isEmpty()) && (dist14 < dist13))
+                points.prepend(p4);
+            else
+                points.append(p4);
+        }
     }
 
-    return false; // no crossing
+    return points;
 }
 
 // Returns true iff the great circle arc from p1 to p2 intersects the great circle arc from p3 to p4.
@@ -510,7 +539,7 @@ void Math::computeLatLon(double x, double y, double z, double &lat, double &lon)
 */
 }
 
-static PointVector reversed(const PointVector &points)
+PointVector Math::reversed(const PointVector &points)
 {
     PointVector copy(new QVector<QPair<double, double> >());
     for (int i = points->size() - 1; i >= 0; --i)
@@ -539,7 +568,7 @@ struct Node {
     QPair<double, double> point_; // lon,lat radians of point represented by the node
     int isctId_; // non-negative intersection ID, or < 0 if the node does not represent an intersection
     QLinkedList<Node>::iterator neighbour_; // pointer to corresponding intersection node in other list
-    bool entry_; // whether the intersection node represents an entry into (true) or exit from (false) the clipped polygon
+    bool entry_; // whether the intersection node represents an entry into (true) or an exit from (false) the clipped polygon
     bool visited_; // whether the intersection node has already been processed in the generation of output polygons
     Node(const QPair<double, double> &point, int isctId = -1) : point_(point), isctId_(isctId), entry_(false), visited_(false) {}
 };

@@ -47,8 +47,8 @@ protected:
     // Applies the filter to a polygon and returns the result as zero or more polygons within the original area.
     virtual PointVectors apply(const PointVector &) const = 0;
 
-    // Returns all intersection points between the filter and the given great circle segment.
-    virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const = 0;
+    // Returns all intersection points between the filter and the given polygon.
+    virtual QVector<QPair<double, double> > intersections(const PointVector &) const = 0;
 
     // Returns the SIGMET/AIRMET expression corresponding to the filter state.
     virtual QString xmetExpr() const = 0;
@@ -78,7 +78,7 @@ class WithinFilter : public Filter
     virtual bool rejected(const QPair<double, double> &) const;
 
     virtual PointVectors apply(const PointVector &) const;
-    virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const;
+    virtual QVector<QPair<double, double> > intersections(const PointVector &) const;
     virtual QString xmetExpr() const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
 
@@ -94,7 +94,7 @@ protected:
     virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const = 0;
 
     virtual PointVectors apply(const PointVector &) const;
-    virtual QVector<QPair<double, double> > intersections(const QPair<double, double> &, const QPair<double, double> &) const;
+    virtual QVector<QPair<double, double> > intersections(const PointVector &) const;
 };
 
 class LonOrLatFilter : public LineFilter
@@ -132,6 +132,7 @@ class LatFilter : public LonOrLatFilter
 
     LatFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
     virtual PointVectors apply(const PointVector &) const;
+    virtual QVector<QPair<double, double> > intersections(const PointVector &) const;
 };
 
 class FreeLineFilter : public LineFilter {
@@ -190,7 +191,7 @@ public:
     QVariant value(Filter::Type) const;
 
     bool rejectedByAnyFilter(const QPair<double, double> &) const;
-    QVector<QPair<double, double> > filterIntersections(const QPair<double, double> &, const QPair<double, double> &) const;
+    QVector<QPair<double, double> > filterIntersections(const PointVector &) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
     bool filterLinesVisible() const;
