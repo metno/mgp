@@ -9,6 +9,7 @@
 #include <QSharedPointer>
 #include <QVector>
 #include <QPair>
+#include <QDialog>
 
 class QGroupBox;
 class QCheckBox;
@@ -21,6 +22,7 @@ class TextEdit;
 class QPushButton;
 class QMouseEvent;
 class QTabWidget;
+class QTextEdit;
 
 class Filter : public QObject // ### does this need to be a QObject?
 {
@@ -184,6 +186,16 @@ struct FilterTabInfo
         page_(page), baseText_(baseText), filterTypes_(filterTypes) {}
 };
 
+class ResultPolygonsExportPanel : public QDialog
+{
+    Q_OBJECT
+public:
+    ResultPolygonsExportPanel();
+    void setPolygons(const PointVectors &);
+private:
+    QTextEdit *textEdit_;
+};
+
 class ControlPanel : public QWidget
 {
     Q_OBJECT
@@ -268,11 +280,14 @@ private:
     QTabWidget *filterTabWidget_;
     QList<FilterTabInfo> filterTabInfos_;
 
+    ResultPolygonsExportPanel *resPolysExportPanel_;
+
 private slots:
     void close();
     void updateGLWidget();
     void updateFilterTabTexts();
     void basePolygonTypeChanged();
+    void exportResultPolygons();
     void setXmetExprFromFilters();
     void setFiltersFromXmetExpr();
     void handleXmetExprChanged();

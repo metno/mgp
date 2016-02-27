@@ -24,6 +24,7 @@
 #include <QStack>
 #include <QMessageBox>
 #include <QTabWidget>
+#include <QDialogButtonBox>
 #include <algorithm>
 
 // Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
@@ -1031,6 +1032,62 @@ BasePolygon *BasePolygon::create(Type type)
     }
 }
 
+ResultPolygonsExportPanel::ResultPolygonsExportPanel()
+{
+    setWindowTitle("Result Polygon(s)");
+
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    setLayout(mainLayout);
+
+    textEdit_ = new QTextEdit;
+    textEdit_->setReadOnly(true);
+    mainLayout->addWidget(textEdit_);
+
+    QDialogButtonBox *bbox = new QDialogButtonBox(QDialogButtonBox::Close);
+    connect(bbox, SIGNAL(rejected()), this, SLOT(reject()));
+    mainLayout->addWidget(bbox);
+}
+
+void ResultPolygonsExportPanel::setPolygons(const PointVectors &polygons)
+{
+    QString html;
+
+    html += "<html>";
+    html += "<head>";
+    html += "<style type=\"text/css\">";
+    html += "table { border:1px; border-collapse:collapse }";
+    html += "th { padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; border:1px; padding-left:3px; padding-right:3px }";
+    html += "tr { padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; border:1px }";
+    html += "td { padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; border:1px; padding-left:3px; padding-right:3px }";
+    html += "</style>";
+    html += "</head><body>";
+
+    if (polygons->isEmpty())
+        html += "no result polygons";
+
+    for (int i = 0; i < polygons->size(); ++i) {
+        if (i > 0)
+            html += "<br/><br/>";
+        const PointVector polygon = polygons->at(i);
+        html += QString("<span style='font-size:large; font-weight:bold'>Polygon %1:%2 (%3 vertices):</span>")
+                .arg(i + 1).arg(polygons->size()).arg(polygon->size());
+        //html += QString("%1 vertices (skipped)<br/>").arg(polygon->size());
+        html += "<table><tr><td></td><td>Longitude</td><td>Latitude</td></tr>";
+        for (int j = 0; j < polygon->size(); ++j) {
+            const QPair<double, double> point = polygon->at(j);
+            html += QString("<tr><td align=right>%1</td><td align=right>%2</td><td align=right>%3</td></tr>")
+                    .arg(j + 1)
+                    .arg(RAD2DEG(point.first),  7, 'f', 2)
+                    .arg(RAD2DEG(point.second), 6, 'f', 2);
+        }
+        html += "</table></br>";
+    }
+
+    html += "</body></html>";
+
+    textEdit_->setHtml(html);
+}
+
 ControlPanel &ControlPanel::instance()
 {
     static ControlPanel cp;
@@ -1313,6 +1370,12 @@ void ControlPanel::initialize()
     resultPolygonsLayout2->addWidget(resultPolygonsPointsVisibleCheckBox_);
 
     resultPolygonsLayout2->addStretch(1);
+
+    QPushButton *exportButton = new QPushButton("Export");
+    connect(exportButton, SIGNAL(clicked()), SLOT(exportResultPolygons()));
+    resultPolygonsLayout2->addWidget(exportButton);
+
+    resPolysExportPanel_ = new ResultPolygonsExportPanel;
 
     // --- END result polygons section -------------------------------------------
 
@@ -1698,6 +1761,12 @@ void ControlPanel::basePolygonTypeChanged()
 {
     customBasePolygonEditableOnSphereCheckBox_->setVisible(currentBasePolygonType() == BasePolygon::Custom);
     updateGLWidget();
+}
+
+void ControlPanel::exportResultPolygons()
+{
+    resPolysExportPanel_->setPolygons(resultPolygons());
+    resPolysExportPanel_->exec();
 }
 
 // Sets a canonical SIGMET/AIRMET expression from the current filters.
