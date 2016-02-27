@@ -1668,10 +1668,6 @@ void ControlPanel::setFiltersFromXmetExpr()
         }
     }
 
-    for (int j = 0; j < matchedRanges.size(); ++j) {
-        qDebug() << "matchedRange" << j << ":" << matchedRanges.at(j);
-    }
-
     // remove incomplete ranges that are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
     QList<QPair<QPair<int, int>, QString> > finalIncompleteRanges;
     for (int i = 0; i < incompleteRanges.size(); ++i) {
