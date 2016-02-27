@@ -635,12 +635,36 @@ PointVectors LatFilter::apply(const PointVector &inPoly) const
     // check special cases when there's no intersections
     if (ilist.isEmpty()) {
 
-        if (Math::pointInPolygon(qMakePair(0.0, M_PI / 2), inPolyCW) || Math::pointInPolygon(qMakePair(0.0, -M_PI / 2), inPolyCW)) {
-            // around pole, so return empty list for now
-            static int nn = 0;
-            qWarning() << nn++ << "polygon containing a pole is not yet supported!";
-            return outPolys;
+        const bool aroundNorthPole = Math::pointInPolygon(qMakePair(0.0,  M_PI / 2), inPolyCW);
+        const bool aroundSouthPole = Math::pointInPolygon(qMakePair(0.0, -M_PI / 2), inPolyCW);
+
+        if (((type_ == N_OF) && aroundNorthPole) || ((type_ == S_OF) && aroundSouthPole)) {
+            if (nrejected == 0) {
+                // Q_ASSERT(nrejected == inPolyCW->size());
+                // return a list with one item: a deep copy (although implicitly shared for efficiency) of the input polygon
+                PointVector inPolyCopy(new QVector<QPair<double, double> >(*inPolyCW.data()));
+                outPolys->append(inPolyCopy);
+                return outPolys;
+            } else {
+                // return polygon along latitude
+                const int res = 32;
+                outPolys->append(Math::latitudeArcPoints(lat, 0, (2 * M_PI) / res, false, res, true));
+                return outPolys;
+            }
+        } else if (((type_ == N_OF) && aroundSouthPole) || ((type_ == S_OF) && aroundNorthPole)) {
+            if (nrejected == 0) {
+                // Q_ASSERT(nrejected == inPolyCW->size());
+                // special case that is not yet supported (result may contain a hole etc.); return empty list for now
+                //qWarning() << "special case not yet supported!";
+                return outPolys;
+
+            } else {
+                // return empty list
+                return outPolys;
+            }
         }
+
+        Q_ASSERT(!(aroundNorthPole || aroundSouthPole));
 
         if (nrejected == 0) {
             // all points accepted, and not around pole, so return a list with one item: a deep copy
