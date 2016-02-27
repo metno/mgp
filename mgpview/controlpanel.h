@@ -20,6 +20,7 @@ class QSlider;
 class TextEdit;
 class QPushButton;
 class QMouseEvent;
+class QTabWidget;
 
 class Filter : public QObject // ### does this need to be a QObject?
 {
@@ -174,6 +175,15 @@ protected:
     PointVector points_; // first component = longitude in radians, second component = latitude in radians
 };
 
+struct FilterTabInfo
+{
+    QWidget *page_;
+    QString baseText_;
+    QList<int> filterTypes_;
+    FilterTabInfo(QWidget *page, const QString &baseText, const QList<int> &filterTypes) :
+        page_(page), baseText_(baseText), filterTypes_(filterTypes) {}
+};
+
 class ControlPanel : public QWidget
 {
     Q_OBJECT
@@ -255,9 +265,13 @@ private:
     void addPointToPolygon(PointVector &, int);
     void removePointFromPolygon(PointVector &, int);
 
+    QTabWidget *filterTabWidget_;
+    QList<FilterTabInfo> filterTabInfos_;
+
 private slots:
     void close();
     void updateGLWidget();
+    void updateFilterTabTexts();
     void basePolygonTypeChanged();
     void setXmetExprFromFilters();
     void setFiltersFromXmetExpr();

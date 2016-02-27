@@ -118,6 +118,7 @@ Filter::Filter(Type type, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     , dragged_(false)
 {
     connect(enabledCheckBox_, SIGNAL(stateChanged(int)), &ControlPanel::instance(), SLOT(updateGLWidget()));
+    connect(enabledCheckBox_, SIGNAL(stateChanged(int)), &ControlPanel::instance(), SLOT(updateFilterTabTexts()));
     connect(currCheckBox_, SIGNAL(stateChanged(int)), &ControlPanel::instance(), SLOT(updateGLWidget()));
 }
 
@@ -1054,6 +1055,7 @@ ControlPanel::ControlPanel()
     , filterPointsVisibleCheckBox_(0)
     , resultPolygonsLinesVisibleCheckBox_(0)
     , resultPolygonsPointsVisibleCheckBox_(0)
+    , filterTabWidget_(0)
 {
 }
 
@@ -1177,8 +1179,8 @@ void ControlPanel::initialize()
     connect(filterPointsVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     filterLayout2->addWidget(filterPointsVisibleCheckBox_);
 
-    QTabWidget *tw = new QTabWidget;
-    filterLayout->addWidget(tw);
+    filterTabWidget_ = new QTabWidget;
+    filterLayout->addWidget(filterTabWidget_);
 
     // page for WI filter
     {
@@ -1195,7 +1197,12 @@ void ControlPanel::initialize()
         filters_.insert(Filter::WI, WithinFilter::create(filterLayout, 1, Filter::WI, wiPoints));
         filterLayout->setRowStretch(2, 1);
 
-        tw->addTab(filterPage, "WI");
+        const QString baseText("WI");
+        filterTabWidget_->addTab(filterPage, baseText);
+
+        QList<int> filterTypes;
+        filterTypes.append(Filter::WI);
+        filterTabInfos_.append(FilterTabInfo(filterPage, baseText, filterTypes));
     }
 
     // page for '{E|W|N|S} OF' filters
@@ -1211,7 +1218,15 @@ void ControlPanel::initialize()
         filters_.insert(Filter::S_OF, LonOrLatFilter::create(filterLayout, 4, Filter::S_OF, 66));
         filterLayout->setRowStretch(5, 1);
 
-        tw->addTab(filterPage, "{E|W|N|S} OF");
+        const QString baseText("{E|W|N|S} OF");
+        filterTabWidget_->addTab(filterPage, baseText);
+
+        QList<int> filterTypes;
+        filterTypes.append(Filter::E_OF);
+        filterTypes.append(Filter::W_OF);
+        filterTypes.append(Filter::N_OF);
+        filterTypes.append(Filter::S_OF);
+        filterTabInfos_.append(FilterTabInfo(filterPage, baseText, filterTypes));
     }
 
     // page for '{E|W|N|S} OF LINE' filters
@@ -1227,7 +1242,15 @@ void ControlPanel::initialize()
         filters_.insert(Filter::S_OF_LINE, FreeLineFilter::create(filterLayout, 4, Filter::S_OF_LINE, QLineF(QPointF(-7, 67), QPointF(19, 63))));
         filterLayout->setRowStretch(5, 1);
 
-        tw->addTab(filterPage, "{E|W|N|S} OF LINE");
+        const QString baseText("{E|W|N|S} OF LINE");
+        filterTabWidget_->addTab(filterPage, baseText);
+
+        QList<int> filterTypes;
+        filterTypes.append(Filter::E_OF_LINE);
+        filterTypes.append(Filter::W_OF_LINE);
+        filterTypes.append(Filter::N_OF_LINE);
+        filterTypes.append(Filter::S_OF_LINE);
+        filterTabInfos_.append(FilterTabInfo(filterPage, baseText, filterTypes));
     }
 
     // page for '{NE|NW|SE|SW} OF LINE' filters
@@ -1243,7 +1266,15 @@ void ControlPanel::initialize()
         filters_.insert(Filter::SW_OF_LINE, FreeLineFilter::create(filterLayout, 4, Filter::SW_OF_LINE, QLineF(QPointF(-1, 67), QPointF(19, 57))));
         filterLayout->setRowStretch(5, 1);
 
-        tw->addTab(filterPage, "{NE|NW|SE|SW} OF LINE");
+        const QString baseText("{NE|NW|SE|SW} OF LINE");
+        filterTabWidget_->addTab(filterPage, baseText);
+
+        QList<int> filterTypes;
+        filterTypes.append(Filter::NE_OF_LINE);
+        filterTypes.append(Filter::NW_OF_LINE);
+        filterTypes.append(Filter::SE_OF_LINE);
+        filterTypes.append(Filter::SW_OF_LINE);
+        filterTabInfos_.append(FilterTabInfo(filterPage, baseText, filterTypes));
     }
 
     // ensure exclusive/radio behavior for the 'current' state
@@ -1256,6 +1287,9 @@ void ControlPanel::initialize()
     filters_.value(initCurrType)->currCheckBox_->blockSignals(true);
     filters_.value(initCurrType)->currCheckBox_->setChecked(true);
     filters_.value(initCurrType)->currCheckBox_->blockSignals(false);
+
+    // initialize tab texts
+    updateFilterTabTexts();
 
     // --- END filter section -------------------------------------------
 
@@ -1642,6 +1676,22 @@ void ControlPanel::close()
 void ControlPanel::updateGLWidget()
 {
     MainWindow::instance().glWidget()->updateGL();
+}
+
+void ControlPanel::updateFilterTabTexts()
+{
+    foreach (FilterTabInfo fti, filterTabInfos_) {
+        const int tabIndex = filterTabWidget_->indexOf(fti.page_);
+        Q_ASSERT(tabIndex >= 0);
+
+        int enabledCount = 0;
+        foreach (int type, fti.filterTypes_) {
+            if (filters_.value(static_cast<Filter::Type>(type))->enabledCheckBox_->isChecked())
+                enabledCount++;
+        }
+
+        filterTabWidget_->setTabText(tabIndex, QString("[%1] %2").arg(enabledCount).arg(fti.baseText_));
+    }
 }
 
 void ControlPanel::basePolygonTypeChanged()
