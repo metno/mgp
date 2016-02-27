@@ -734,9 +734,9 @@ PointVectors LatFilter::apply(const PointVector &inPoly) const
             }
 
         } else if (!node.rejected_) {
-            // node is vertex of input polygon inside accepted area, so add it to current polygon
-            Q_ASSERT(!polyStack.isEmpty());
-            polyStack.top()->append(node.point_);
+            // node is vertex of input polygon inside accepted area, so add it to any current polygon
+            if (!polyStack.isEmpty())
+                polyStack.top()->append(node.point_);
 
         } else {
             // node is vertex of input polygon outside accepted area, so just skip it
