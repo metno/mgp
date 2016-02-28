@@ -27,6 +27,8 @@
 #include <QDialogButtonBox>
 #include <algorithm>
 
+#include "mgp.h"
+
 // Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
 // Examples:
 //          0 -> E000 (or E00000)
@@ -1128,6 +1130,48 @@ static QGridLayout *createFilterLayout()
     return layout;
 }
 
+static void testMGP()
+{
+#if USEMGP
+    // create a base polygon
+    PointVector polygon = PointVector(new QVector<QPair<double, double> >);
+    polygon->append(qMakePair(DEG2RAD(7), DEG2RAD(60)));
+    polygon->append(qMakePair(DEG2RAD(13), DEG2RAD(60)));
+    polygon->append(qMakePair(DEG2RAD(10), DEG2RAD(65)));
+
+    // create an 'E OF' filter object
+    // ... option 1:
+    mgp::EOfFilter *eOfFilter = new mgp::EOfFilter;
+    // ... option 2:
+//    mgp::EOfFilter *eOfFilter = new mgp::EOfFilter(0.1);
+    // ... option 3:
+//    mgp::EOfFilter *eOfFilter = new mgp::EOfFilter;
+//    eOfFilter->setValue(0.2);
+
+    // create a filter sequence (consisting of the 'E OF' filter only)
+    mgp::Filters filters1(new QList<mgp::Filter>);
+    filters1->append(mgp::Filter(eOfFilter));
+
+    // apply the filter sequence to the base polygon
+    const PointVectors polygons = mgp::applyFilters(polygon, filters1);
+    qDebug() << "polygons->size():" << polygons->size();
+
+    // get the canonical SIGMET/AIRMET expression corresponding to the filter sequence
+    const QString xmetExpr1 = mgp::xmetExprFromFilters(filters1);
+    qDebug() << "xmetExpr1:" << xmetExpr1;
+
+    // get the filter sequence corresponding to a SIGMET/AIRMET expression
+    const QString xmetExpr2(
+                "ENBD SIGMET C02 VALID 200406/200806 ENVV- ENOR NORWAY FIR SEV MTW FCST N OF N6200 AND S OF N6500"
+                "-   AND E OF LINE N6200 E00630 - N6500 E01130 SFC/FL150 MOV NE NC");
+    QList<QPair<int, int> > matchedRanges;
+    QList<QPair<QPair<int, int>, QString> > incompleteRanges;
+    mgp::Filters filters2 = mgp::filtersFromXmetExpr(xmetExpr2, &matchedRanges, &incompleteRanges);
+    qDebug() << "filters:" << filters2;
+
+#endif
+}
+
 void ControlPanel::initialize()
 {
     setWindowTitle("Control Panel");
@@ -1421,6 +1465,12 @@ void ControlPanel::initialize()
     connect(closeButton, SIGNAL(clicked()), SLOT(close()));
     botPanel->layout()->addWidget(closeButton);
     // --- END bottom section -----------------------------------------------
+
+
+#if USEMGP
+    testMGP();
+#endif
+
 }
 
 void ControlPanel::keyPressEvent(QKeyEvent *event)
