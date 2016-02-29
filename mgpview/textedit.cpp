@@ -13,7 +13,7 @@ TextEdit::TextEdit(QWidget *parent)
 
 void TextEdit::resetHighlighting()
 {
-    setPlainText(toPlainText().trimmed());
+    setPlainText(toPlainText());
     matched_ = QBitArray(toPlainText().size(), false);
     incomplete_ = QBitArray(toPlainText().size(), false);
     reason_.clear();
@@ -44,7 +44,7 @@ void TextEdit::showHighlighting()
     const QString incomWeight("bold");
 
     QString html;
-    const QString text(toPlainText().trimmed());
+    const QString text(toPlainText());
     if (text.isEmpty()|| matched_.isEmpty())
         return;
 
@@ -83,7 +83,8 @@ void TextEdit::showHighlighting()
 
         prevMatch = currMatch;
         prevIncom = currIncom;
-        html += text[i]; // add character itself
+
+        html += (QChar(text[i]).isSpace() ? QString("&nbsp;") : QString(text[i])); // add character itself
     }
 
     setHtml(html);
