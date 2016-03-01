@@ -287,10 +287,10 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
             const double lat = xmetExtractLat(rx.cap(1), ok2);
             if (ok1 && ok2)
                 points->append(qMakePair(lon, lat));
-            const int nextPos = rxpos + rx.matchedLength();
-            lastPos += nextPos;
             if (!(ok1 && ok2))
                 break;
+            const int nextPos = rxpos + rx.matchedLength();
+            lastPos += nextPos;
             s = s.mid(nextPos);
         } else { // no match
             break;
