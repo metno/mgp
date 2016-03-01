@@ -270,8 +270,9 @@ private:
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
     TextEdit *xmetExprEdit_;
-    //QPushButton *setFiltersFromXmetExprButton_;
+    QPushButton *setFiltersFromXmetExprButton_;
     QString setFiltersFromXmetExprButtonText_;
+    QCheckBox *autoSetFiltersCheckBox_;
 
     void updatePolygonPointDragging(PointVector &, int, const QPair<double, double> &);
     void addPointToPolygon(PointVector &, int);

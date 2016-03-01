@@ -1442,13 +1442,18 @@ void ControlPanel::initialize()
     connect(setXmetExprFromFiltersButton, SIGNAL(clicked()), SLOT(setXmetExprFromFilters()));
     xmetExprLayout2->addWidget(setXmetExprFromFiltersButton);
 
-//    setFiltersFromXmetExprButtonText_ = "Set filters from expression";
-//    setFiltersFromXmetExprButton_ = new QPushButton(setFiltersFromXmetExprButtonText_);
-//    setFiltersFromXmetExprButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-//    connect(setFiltersFromXmetExprButton_, SIGNAL(clicked()), SLOT(setFiltersFromXmetExpr()));
-//    xmetExprLayout2->addWidget(setFiltersFromXmetExprButton_);
-
     xmetExprLayout2->addStretch(1);
+
+    setFiltersFromXmetExprButtonText_ = "Set filters from expression";
+    setFiltersFromXmetExprButton_ = new QPushButton(setFiltersFromXmetExprButtonText_);
+    setFiltersFromXmetExprButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    connect(setFiltersFromXmetExprButton_, SIGNAL(clicked()), SLOT(setFiltersFromXmetExpr()));
+    xmetExprLayout2->addWidget(setFiltersFromXmetExprButton_);
+
+    autoSetFiltersCheckBox_ = new QCheckBox("Auto");
+    connect(autoSetFiltersCheckBox_, SIGNAL(toggled(bool)), setFiltersFromXmetExprButton_, SLOT(setDisabled(bool)));
+    connect(autoSetFiltersCheckBox_, SIGNAL(toggled(bool)), SLOT(setFiltersFromXmetExpr()));
+    xmetExprLayout2->addWidget(autoSetFiltersCheckBox_);
 
     // --- END SIGMET/AIRMET area expression section -------------------------------------------
 
@@ -1834,7 +1839,7 @@ void ControlPanel::setXmetExprFromFilters()
 
     xmetExprEdit_->setHtml(s);
 
-//    setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
+    setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
 }
 
 // Sets the filters from the SIGMET/AIRMET expression if possible.
@@ -1884,7 +1889,7 @@ void ControlPanel::setFiltersFromXmetExpr()
 
     xmetExprEdit_->showHighlighting();
 
-    //setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
+    setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
 
     // update if necessary
     if (!matchedRanges.isEmpty())
@@ -1893,15 +1898,18 @@ void ControlPanel::setFiltersFromXmetExpr()
 
 void ControlPanel::handleXmetExprChanged()
 {
-    //setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_ + " *"); // indicate non-updated changes exist
+    if (autoSetFiltersCheckBox_->isChecked()) {
+        // update filters right away
+        QTextCursor cursor(xmetExprEdit_->textCursor());
+        const int cursorPos = cursor.position();
 
-    QTextCursor cursor(xmetExprEdit_->textCursor());
-    const int cursorPos = cursor.position();
+        xmetExprEdit_->blockSignals(true);
+        setFiltersFromXmetExpr();
+        xmetExprEdit_->blockSignals(false);
 
-    xmetExprEdit_->blockSignals(true);
-    setFiltersFromXmetExpr();
-    xmetExprEdit_->blockSignals(false);
-
-    cursor.setPosition(cursorPos);
-    xmetExprEdit_->setTextCursor(cursor);
+        cursor.setPosition(cursorPos);
+        xmetExprEdit_->setTextCursor(cursor);
+    } else {
+        setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_ + " *"); // indicate that non-updated changes exist
+    }
 }
