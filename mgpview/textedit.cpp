@@ -33,7 +33,8 @@ void TextEdit::addIncompleteRange(const QPair<int, int> &range, const QString &r
 
 void TextEdit::showHighlighting()
 {
-    const QString defaultColor("#888");
+    const QString defaultColor("#000");
+    //const QString defaultColor("#888");
     const QString defaultBGColor("#fff");
     const QString defaultWeight("regular");
     const QString matchColor("#088");

@@ -41,7 +41,9 @@ static QString xmetFormatLon(double val)
         lon -= 360;
     lon = qMin(180.0, qMax(-180.0, lon));
     const int ipart = int(floor(fabs(lon)));
-    const int fpart = int(floor(round(100 * (fabs(lon) - ipart))));
+    //const int fbase = 100;
+    const int fbase = 60; // minutes
+    const int fpart = int(floor(round(fbase * (fabs(lon) - ipart))));
     return QString("%1%2%3")
             .arg((lon < 0) ? "W" : "E")
             .arg(ipart, 3, 10, QLatin1Char('0'))
@@ -58,7 +60,9 @@ static QString xmetFormatLat(double val)
     double lat = RAD2DEG(fmod(val, M_PI));
     lat = qMin(qMax(lat, -90.0), 90.0);
     const int ipart = int(floor(fabs(lat)));
-    const int fpart = int(floor(round(100 * (fabs(lat) - ipart))));
+    //const int fbase = 100;
+    const int fbase = 60; // minutes
+    const int fpart = int(floor(round(fbase * (fabs(lat) - ipart))));
     return QString("%1%2%3")
             .arg(lat < 0 ? "S" : "N")
             .arg(ipart, 2, 10, QLatin1Char('0'))
@@ -70,7 +74,7 @@ static QString xmetFormatLat(double val)
 //   E000 (or E00000) -> 0
 //   W18000 (or W180) -> -M_PI
 //   E09000 (or E090) -> M_PI / 2
-static double xmetExtractLon(const QString &s)
+static double xmetExtractLon(const QString &s, bool &success)
 {
     Q_ASSERT((s.size() == 4) || (s.size() == 6));
     Q_ASSERT((s[0].toLower() == 'e') || (s[0].toLower() == 'w'));
@@ -84,8 +88,14 @@ static double xmetExtractLon(const QString &s)
         fpart = s.mid(4, 2).toInt(&ok);
         Q_ASSERT(ok);
     }
-    Q_ASSERT((fpart >= 0) && (fpart <= 99));
-    const double lon = DEG2RAD(ipart + fpart / 100.0) * ((s[0].toLower() == 'e') ? 1 : -1);
+    //const int fbase = 100;
+    const int fbase = 60; // minutes
+    if (!((fpart >= 0) && (fpart <= (fbase - 1)))) {
+        success = false;
+        return 0;
+    }
+    const double lon = DEG2RAD(ipart + fpart / double(fbase)) * ((s[0].toLower() == 'e') ? 1 : -1);
+    success = true;
     return lon;
 }
 
@@ -95,7 +105,7 @@ static double xmetExtractLon(const QString &s)
 //    S00 (or S0000) -> 0
 //    S9000 (or S90) -> -M_PI / 2
 //    N4500 (or N45) -> M_PI / 4
-static double xmetExtractLat(const QString &s)
+static double xmetExtractLat(const QString &s, bool &success)
 {
     Q_ASSERT((s.size() == 3) || (s.size() == 5));
     Q_ASSERT((s[0].toLower() == 'n') || (s[0].toLower() == 's'));
@@ -109,8 +119,14 @@ static double xmetExtractLat(const QString &s)
         fpart = s.mid(3, 2).toInt(&ok);
         Q_ASSERT(ok);
     }
-    Q_ASSERT((fpart >= 0) && (fpart <= 99));
-    const double lat = DEG2RAD(ipart + fpart / 100.0) * ((s[0].toLower() == 'n') ? 1 : -1);
+    //const int fbase = 100;
+    const int fbase = 60; // minutes
+    if (!((fpart >= 0) && (fpart <= (fbase - 1)))) {
+        success = false;
+        return 0;
+    }
+    const double lat = DEG2RAD(ipart + fpart / double(fbase)) * ((s[0].toLower() == 'n') ? 1 : -1);
+    success = true;
     return lat;
 }
 
@@ -265,9 +281,16 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
         // read next coordinate
         const int rxpos = s.indexOf(rx);
         if (rxpos >= 0) { // match
-            points->append(qMakePair(xmetExtractLon(rx.cap(2)), xmetExtractLat(rx.cap(1))));
+            bool ok1 = false;
+            bool ok2 = false;
+            const double lon = xmetExtractLon(rx.cap(2), ok1);
+            const double lat = xmetExtractLat(rx.cap(1), ok2);
+            if (ok1 && ok2)
+                points->append(qMakePair(lon, lat));
             const int nextPos = rxpos + rx.matchedLength();
             lastPos += nextPos;
+            if (!(ok1 && ok2))
+                break;
             s = s.mid(nextPos);
         } else { // no match
             break;
@@ -284,7 +307,7 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
     // error
     incompleteRange->first = firstPos;
     incompleteRange->second = lastPos;
-    *incompleteReason = QString("failed to extract at least three coordinates after 'WI'");
+    *incompleteReason = QString("failed to extract at least three valid coordinates after 'WI'");
     return false;
 }
 
@@ -526,11 +549,14 @@ bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
     if (rxpos2 >= 0) { // match
-        const double val = ((type_ == N_OF) || (type_ == S_OF)) ? xmetExtractLat(rx.cap(1)) : xmetExtractLon(rx.cap(1));
-        valSpinBox_->setValue(RAD2DEG(val));
-        matchedRange->first = rxpos1;
-        matchedRange->second = rxpos1 + matchedLen1 + rxpos2 + rx.matchedLength() - 1;
-        return true; // success
+        bool ok = false;
+        const double val = ((type_ == N_OF) || (type_ == S_OF)) ? xmetExtractLat(rx.cap(1), ok) : xmetExtractLon(rx.cap(1), ok);
+        if (ok) {
+            valSpinBox_->setValue(RAD2DEG(val));
+            matchedRange->first = rxpos1;
+            matchedRange->second = rxpos1 + matchedLen1 + rxpos2 + rx.matchedLength() - 1;
+            return true; // success
+        }
     }
 
     // error
@@ -966,10 +992,20 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
     if (rxpos2 >= 0) { // match
-        lon1SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(2))));
-        lat1SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(1))));
-        lon2SpinBox_->setValue(RAD2DEG(xmetExtractLon(rx.cap(4))));
-        lat2SpinBox_->setValue(RAD2DEG(xmetExtractLat(rx.cap(3))));
+        bool ok1 = false;
+        bool ok2 = false;
+        bool ok3 = false;
+        bool ok4 = false;
+        const double lon1 = xmetExtractLon(rx.cap(2), ok1);
+        const double lat1 = xmetExtractLat(rx.cap(1), ok2);
+        const double lon2 = xmetExtractLon(rx.cap(4), ok3);
+        const double lat2 = xmetExtractLat(rx.cap(3), ok4);
+        if (!(ok1 && ok2 && ok3 && ok4))
+            return false;
+        lon1SpinBox_->setValue(RAD2DEG(lon1));
+        lat1SpinBox_->setValue(RAD2DEG(lat1));
+        lon2SpinBox_->setValue(RAD2DEG(lon2));
+        lat2SpinBox_->setValue(RAD2DEG(lat2));
         matchedRange->first = rxpos1;
         matchedRange->second = rxpos1 + matchedLen1 + rxpos2 + rx.matchedLength() - 1;
         return true; // success
@@ -978,7 +1014,7 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
     // error
     incompleteRange->first = rxpos1;
     incompleteRange->second = rxpos1 + matchedLen1 - 1;
-    *incompleteReason = QString("failed to extract two coordinates after '%1'").arg(typeName(type_));
+    *incompleteReason = QString("failed to extract two valid coordinates after '%1'").arg(typeName(type_));
     return false;
 }
 
