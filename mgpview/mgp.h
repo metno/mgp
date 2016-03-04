@@ -64,8 +64,8 @@ protected:
 class PolygonFilter : public FilterBase
 {
 public:
-    void setValue(const Polygon &);
-    Polygon value() const;
+    void setPolygon(const Polygon &);
+    Polygon polygon() const;
 protected:
     PolygonFilter();
     PolygonFilter(const Polygon &);
@@ -187,16 +187,16 @@ private:
 class FreeLineFilter : public LineFilter
 {
 public:
-    void setValue(const Point &, const Point &);
-    void setValue(const QPair<Point, Point> &);
-    QPair<Point, Point> value() const;
+    void setLine(const Point &, const Point &);
+    void setLine(const QPair<Point, Point> &);
+    QPair<Point, Point> line() const;
 protected:
     FreeLineFilter(const QPair<Point, Point> &);
-    QPair<Point, Point> value_;
-    double lon1() const { return value_.first.first; }
-    double lat1() const { return value_.first.second; }
-    double lon2() const { return value_.second.first; }
-    double lat2() const { return value_.second.second; }
+    QPair<Point, Point> line_;
+    double lon1() const { return line_.first.first; }
+    double lat1() const { return line_.first.second; }
+    double lon2() const { return line_.second.first; }
+    double lat2() const { return line_.second.second; }
 private:
     virtual bool isValid() const;
     virtual bool intersects(const Point &, const Point &, Point *) const;

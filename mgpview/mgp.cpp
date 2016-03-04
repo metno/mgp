@@ -109,12 +109,12 @@ static double xmetExtractLat(const QString &s, bool &success)
     return lat;
 }
 
-void PolygonFilter::setValue(const Polygon &polygon)
+void PolygonFilter::setPolygon(const Polygon &polygon)
 {
     polygon_ = polygon;
 }
 
-Polygon PolygonFilter::value() const
+Polygon PolygonFilter::polygon() const
 {
     return polygon_;
 }
@@ -755,23 +755,23 @@ bool SOfFilter::rejected(const Point &point) const
     return point.second > value_;
 }
 
-void FreeLineFilter::setValue(const Point &p1, const Point &p2)
+void FreeLineFilter::setLine(const Point &p1, const Point &p2)
 {
-    value_ = qMakePair(p1, p2);
+    line_ = qMakePair(p1, p2);
 }
 
-void FreeLineFilter::setValue(const QPair<Point, Point> &line)
+void FreeLineFilter::setLine(const QPair<Point, Point> &line)
 {
-    value_ = line;
+    line_ = line;
 }
 
-QPair<Point, Point> FreeLineFilter::value() const
+QPair<Point, Point> FreeLineFilter::line() const
 {
-    return value_;
+    return line_;
 }
 
 FreeLineFilter::FreeLineFilter(const QPair<Point, Point> &line)
-    : value_(line)
+    : line_(line)
 {
 }
 
@@ -832,7 +832,7 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
         const double lat2 = xmetExtractLat(rx.cap(3), ok4);
         if (!(ok1 && ok2 && ok3 && ok4))
             return false;
-        setValue(qMakePair(qMakePair(lon1, lat1), qMakePair(lon2, lat2)));
+        setLine(qMakePair(qMakePair(lon1, lat1), qMakePair(lon2, lat2)));
         matchedRange->first = rxpos1;
         matchedRange->second = rxpos1 + matchedLen1 + rxpos2 + rx.matchedLength() - 1;
         return true; // success
