@@ -166,6 +166,24 @@ Polygons WithinFilter::apply(const Polygon &inPoly) const
     return math::polygonIntersection(inPoly, polygon_);
 }
 
+QVector<Point> WithinFilter::intersections(const Polygon &inPoly) const
+{
+    QVector<Point> points;
+
+    for (int i = 0; i < polygon_->size(); ++i) {
+        Point isctPoint;
+        for (int j = 0; j < inPoly->size(); ++j) {
+            if (math::greatCircleArcsIntersect(
+                        polygon_->at(i), polygon_->at((i + 1) % polygon_->size()),
+                        inPoly->at(j), inPoly->at((j + 1) % inPoly->size()),
+                        &isctPoint))
+                points.append(isctPoint);
+        }
+    }
+
+    return points;
+}
+
 bool WithinFilter::rejected(const Point &point) const
 {
     return !math::pointInPolygon(point, polygon_);
@@ -250,6 +268,11 @@ Polygons UnionFilter::apply(const Polygon &) const
     return Polygons(); // ### TBD when filter is supported
 }
 
+QVector<Point> UnionFilter::intersections(const Polygon &) const
+{
+    return QVector<Point>(); // ### TBD when filter is supported
+}
+
 bool UnionFilter::rejected(const Point &) const
 {
     return false;
@@ -263,6 +286,35 @@ bool UnionFilter::setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int,
 QString UnionFilter::xmetExpr() const
 {
     return QString(); // ### TBD when filter is supported
+}
+
+QString LineFilter::directionName() const
+{
+    switch (type()) {
+    case E_OF:
+    case E_OF_LINE:
+        return "E";
+    case W_OF:
+    case W_OF_LINE:
+        return "W";
+    case N_OF:
+    case N_OF_LINE:
+        return "N";
+    case S_OF:
+    case S_OF_LINE:
+        return "S";
+    case NE_OF_LINE:
+        return "NE";
+    case NW_OF_LINE:
+        return "NW";
+    case SE_OF_LINE:
+        return "SE";
+    case SW_OF_LINE:
+        return "SW";
+    default:
+        ;
+    }
+    return QString();
 }
 
 Polygons LineFilter::apply(const Polygon &inPoly) const
@@ -338,33 +390,19 @@ Polygons LineFilter::apply(const Polygon &inPoly) const
     return outPolys;
 }
 
-QString LineFilter::directionName() const
+QVector<Point> LineFilter::intersections(const Polygon &inPoly) const
 {
-    switch (type()) {
-    case E_OF:
-    case E_OF_LINE:
-        return "E";
-    case W_OF:
-    case W_OF_LINE:
-        return "W";
-    case N_OF:
-    case N_OF_LINE:
-        return "N";
-    case S_OF:
-    case S_OF_LINE:
-        return "S";
-    case NE_OF_LINE:
-        return "NE";
-    case NW_OF_LINE:
-        return "NW";
-    case SE_OF_LINE:
-        return "SE";
-    case SW_OF_LINE:
-        return "SW";
-    default:
-        ;
+    Q_ASSERT(!((type() == N_OF) || (type() == S_OF)));
+
+    QVector<Point> points;
+    Point point;
+    for (int i = 0; i < inPoly->size(); ++i) {
+        const Point p1(inPoly->at(i));
+        const Point p2(inPoly->at((i + 1) % inPoly->size()));
+        if ((rejected(p1) != rejected(p2)) && intersects(p1, p2, &point))
+            points.append(point);
     }
-    return QString();
+    return points;
 }
 
 LonOrLatFilter::LonOrLatFilter(double value)
@@ -708,6 +746,14 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
     }
 
     return outPolys;
+}
+
+QVector<Point> LatFilter::intersections(const Polygon &inPoly) const
+{
+    QVector<Point> points;
+    for (int i = 0; i < inPoly->size(); ++i)
+        points += math::latitudeIntersections(inPoly->at(i), inPoly->at((i + 1) % inPoly->size()), value_);
+    return points;
 }
 
 bool LatFilter::intersects(const Point &p1, const Point &p2, Point *isctPoint) const

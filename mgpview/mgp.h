@@ -39,6 +39,9 @@ public:
     // Returns the polygons resulting from applying the filter to the given polygon.
     virtual Polygons apply(const Polygon &) const = 0;
 
+    // Returns all intersection points between the filter and the given polygon.
+    virtual QVector<Point> intersections(const Polygon &) const = 0;
+
     // Sets the filter state from a SIGMET/AIRMET expression. (### more documentation here!)
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *) = 0;
 
@@ -82,6 +85,7 @@ public:
 private:
     virtual Type type() const { return WI; }
     virtual Polygons apply(const Polygon &) const;
+    virtual QVector<Point> intersections(const Polygon &inPoly) const;
     virtual bool rejected(const Point &) const;
     virtual QString xmetExpr() const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
@@ -95,6 +99,7 @@ public:
 private:
     virtual Type type() const { return Unsupported; } // ###
     virtual Polygons apply(const Polygon &) const;
+    virtual QVector<Point> intersections(const Polygon &inPoly) const;
     virtual bool rejected(const Point &) const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
     virtual QString xmetExpr() const;
@@ -102,14 +107,16 @@ private:
 
 class LineFilter : public FilterBase
 {
-private:
-    virtual Polygons apply(const Polygon &) const;
 protected:
     // Returns true and intersection point iff filter intersects great circle arc between given two points. If the filter intersects
     // the arc twice, the intersection closest to the first endpoint is returned.
     virtual bool intersects(const Point &, const Point &, Point *) const = 0;
 
     QString directionName() const;
+
+private:
+    virtual Polygons apply(const Polygon &) const;
+    virtual QVector<Point> intersections(const Polygon &inPoly) const;
 };
 
 class LonOrLatFilter : public LineFilter
@@ -160,6 +167,7 @@ public:
     LatFilter(double);
 private:
     virtual Polygons apply(const Polygon &) const;
+    virtual QVector<Point> intersections(const Polygon &inPoly) const;
     virtual bool intersects(const Point &, const Point &, Point *) const;
     bool isNOfFilter() const;
 };
