@@ -1170,7 +1170,7 @@ static void testMGP()
 {
 #if USEMGP
     // create a base polygon
-    PointVector polygon = PointVector(new QVector<QPair<double, double> >);
+    mgp::Polygon polygon = mgp::Polygon(new QVector<QPair<double, double> >);
     polygon->append(qMakePair(DEG2RAD(7), DEG2RAD(60)));
     polygon->append(qMakePair(DEG2RAD(13), DEG2RAD(60)));
     polygon->append(qMakePair(DEG2RAD(10), DEG2RAD(65)));
@@ -1184,12 +1184,12 @@ static void testMGP()
 //    mgp::EOfFilter *eOfFilter = new mgp::EOfFilter;
 //    eOfFilter->setValue(0.2);
 
-    // create a filter sequence (consisting of the 'E OF' filter only)
+    // create a filter sequence
     mgp::Filters filters1(new QList<mgp::Filter>);
     filters1->append(mgp::Filter(eOfFilter));
 
     // apply the filter sequence to the base polygon
-    const PointVectors polygons = mgp::applyFilters(polygon, filters1);
+    const mgp::Polygons polygons = mgp::applyFilters(polygon, filters1);
     qDebug() << "polygons->size():" << polygons->size();
 
     // get the canonical SIGMET/AIRMET expression corresponding to the filter sequence

@@ -248,7 +248,7 @@ QVector<QPair<double, double> > Math::latitudeIntersections(const QPair<double, 
 }
 
 // Returns true iff the great circle arc from p1 to p2 intersects the great circle arc from p3 to p4.
-// The intersection point closest to p1 and p2 is returned in isctPoint.
+// The intersection point closest to p1 and p2 is returned in *isctPoint.
 // NOTE: If the two great circles lie (approximately) in the same plane, the function returns false (even if there are infinite numbers
 // of intersections!).
 // Adopted from http://www.mathworks.com/matlabcentral/newsreader/view_thread/276271 .
