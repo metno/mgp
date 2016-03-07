@@ -1,6 +1,6 @@
 TODO:
 
-1: Fixed bug in algorithm that applies a {'S|N} OF' filter to the input polygon.
+1: Fix bug in algorithm that applies a {'S|N} OF' filter to the input polygon.
    Reproduce like this:
      a: set up a single 'S OF' filter.
      b: create a custom base polygon of size 3 where
