@@ -1,0 +1,19 @@
+TODO:
+
+1: Fix bug in algorithm that applies a {'S|N} OF' filter to the input polygon.
+   Reproduce like this:
+     a: set up a single 'S OF' filter.
+     b: create a custom base polygon of size 3 where
+           1) all vertices are either accepted by the filter (i.e. having latitude values lower than that of the filter), and
+           2) exactly two edges intersect the filter (generating four intersection points in total)
+           3) move one of the vertices that have no intersection between them and watch how these vertices sometimes are part of a result polygon
+              (# result polygons = 2) and sometimes not (# result polygons = 1 -> ERROR!).
+
+    TIP 1: The switching between the correct and incorrect state seems to correspond with the input polygon being classified as clockwise or not.
+    TIP 2: If the input polygon is not automatically reversed so that it is classified as clockwise at the beginning of the algoritm, the bug appears
+           in a different way: Now the entire affected result polygon is either always included in or excluded from the result depending on how the input
+           polygon is visually oriented in the first place. Moving one of the two affected vertices (without changing visual orientation) then apparently has no effect.
+
+
+2: Clean up code. Remove unused functions etc.
+
