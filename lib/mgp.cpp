@@ -148,7 +148,7 @@ void PolygonFilter::setFromVariant(const QVariant &var)
         bool ok1 = false;
         bool ok2 = false;
         const double lon = list.at(i).toDouble(&ok1);
-        const double lat = list.at(i).toDouble(&ok2);
+        const double lat = list.at(i + 1).toDouble(&ok2);
         Q_ASSERT(ok1 && ok2);
         polygon_->append(qMakePair(lon, lat));
     }
