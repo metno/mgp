@@ -2,8 +2,7 @@
 #define GFXUTILS_H
 
 #include <qgl.h>
-#include "util3d.h"
-#include "cartesiankeyframe.h"
+#include "mgpmath.h"
 #include "common.h"
 #include <QList>
 #include <QString>
@@ -11,6 +10,8 @@
 #include <QSharedPointer>
 #include <QVector>
 #include <QPair>
+
+class DynPoly;
 
 class GfxUtils
 {
@@ -27,11 +28,11 @@ public:
     /** Draws coast contours on the earth sphere. The farther the eye
      * is from the earth surface, the more the contours are raised above the
      * surface. */
-    void drawCoastContours(_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_, double max_eye_dist = 5 * earth_radius_);
+    void drawCoastContours(mgp::math::_3DPoint* eye, double min_eye_dist = 0.05 * earth_radius_, double max_eye_dist = 5 * earth_radius_);
 
     /** Draws a polygon on the earth surface. The farther the eye is from the earth surface, the more the contours are raised above the surface. */
     void drawSurfacePolygon(
-            const PointVector &points, _3DPoint* eye,
+            const mgp::Polygon &points, mgp::math::_3DPoint* eye,
             double min_eye_dist = 0.05 * earth_radius_ ,
             double max_eye_dist = 5 * earth_radius_,
             const QColor &color = QColor::fromRgbF(0, 0, 1),
@@ -58,13 +59,13 @@ public:
     /** Draws the lat/lon circles of the earth surface. The farther the eye
      * is from the earth surface, the more the circles are raised above the
      * surface. */
-    void drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_eye_dist);
+    void drawLatLonCircles(mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist);
 
-    void drawLatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &, float);
-    void drawLonCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &, float);
-    void drawLonOrLatCircle(bool lon, _3DPoint* eye, double min_eye_dist, double max_eye_dist, double val, const QColor &, float);
+    void drawLatCircle(mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &, float);
+    void drawLonCircle(mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &, float);
+    void drawLonOrLatCircle(bool lon, mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist, double val, const QColor &, float);
 
-    void drawGreatCircle(_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &, float, bool = true);
+    void drawGreatCircle(mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &, const QColor &, float, bool = true);
 
 //    /** Draws a cartesian key frame. */
 //    void drawCartesianKeyFrame(
@@ -85,14 +86,14 @@ private:
 
     // Methods and variables relevant for coast contours.
     void createCoast();
-    _3DPoint* points_;
+    mgp::math::_3DPoint* points_;
     DynPoly* polys_;
     int n_polys_;
 
     /** Earth radius in meters. */
     static const double earth_radius_;
 
-    double computeRaise(_3DPoint* eye, double min_eye_dist, double max_eye_dist);
+    double computeRaise(mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist);
 };
 
 #endif // GFXUTILS_H

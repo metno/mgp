@@ -5,10 +5,206 @@
 #include <QLinkedList>
 #include <float.h>
 #include <stdexcept>
+#include <algorithm>
 #include <iostream>
+#include <cstdio>
 
 MGP_BEGIN_NAMESPACE
 MGPMATH_BEGIN_NAMESPACE
+
+_4x4Matrix::_4x4Matrix()
+{
+    loadIdentity();
+}
+
+void _4x4Matrix::mulMat(const _4x4Matrix &m)
+{
+    _4x4Matrix orig = *this;
+
+    for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+    {
+        c_[i][j] = 0;
+        for (int k = 0; k < 4; k++)
+        c_[i][j] += (orig.get(i, k) * m.get(k, j));
+    }
+}
+
+void _4x4Matrix::mulMatLeft(const _4x4Matrix &m)
+{
+    _4x4Matrix orig = *this;
+
+    for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+    {
+        c_[i][j] = 0;
+        for (int k = 0; k < 4; k++)
+        c_[i][j] += (m.get(i, k) * orig.get(k, j));
+    }
+}
+
+void _4x4Matrix::loadIdentity()
+{
+    for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+        c_[i][j] = (i == j) ? 1 : 0;
+}
+
+void _4x4Matrix::loadRotateX(double theta)
+{
+    loadIdentity();
+    c_[1][1] =  cos(theta);
+    c_[1][2] = -sin(theta);
+    c_[2][1] =  sin(theta);
+    c_[2][2] =  cos(theta);
+}
+
+void _4x4Matrix::loadRotateY(double theta)
+{
+    loadIdentity();
+    c_[0][0] =  cos(theta);
+    c_[0][2] =  sin(theta);
+    c_[2][0] = -sin(theta);
+    c_[2][2] =  cos(theta);
+}
+
+void _4x4Matrix::loadRotateZ(double theta)
+{
+    loadIdentity();
+    c_[0][0] =  cos(theta);
+    c_[0][1] = -sin(theta);
+    c_[1][0] =  sin(theta);
+    c_[1][1] =  cos(theta);
+}
+
+void _4x4Matrix::loadTranslate(double x, double y, double z)
+{
+    loadIdentity();
+    c_[0][3] = x;
+    c_[1][3] = y;
+    c_[2][3] = z;
+}
+
+void _4x4Matrix::print(char lead[]) const
+{
+    fprintf(stderr, "%s:\n", lead);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++)
+            fprintf(stderr, "  %20.10f", c_[i][j]);
+        fprintf(stderr, "\n");
+    }
+}
+
+_4DPoint::_4DPoint()
+{
+    for (int i = 0; i < 3; i++) c_[i] = 0;
+}
+
+_4DPoint::_4DPoint(const _4DPoint &src)
+{
+    for (int i = 0; i < 4; i++) c_[i] = src.get(i);
+}
+
+_4DPoint::_4DPoint(double x, double y, double z)
+{
+    set(x, y, z);
+}
+
+// Multiplies m with this point (m * this) storing the result in
+// this point.
+void _4DPoint::mulMatPoint(const _4x4Matrix &m)
+{
+    _4DPoint orig =  *this;
+    for (int i = 0; i < 4; i++)
+    {
+    c_[i] = 0;
+    for (int j = 0; j < 4; j++)
+        c_[i] += (m.get(i, j) * orig.get(j));
+    }
+}
+
+// Computes and returns the dot product of this point and m.
+double _4DPoint::dot(const _4DPoint &p)
+{
+    return
+    c_[0] * p.get(0) +
+    c_[1] * p.get(1) +
+    c_[2] * p.get(2);
+}
+
+// Computes the cross product of this point and p (this X p) storing the
+// result in this point.
+void _4DPoint::cross(const _4DPoint &p)
+{
+    _4DPoint orig =  *this;
+
+    c_[0] = orig.get(1) * p.get(2) - orig.get(2) * p.get(1);
+    c_[1] = orig.get(2) * p.get(0) - orig.get(0) * p.get(2);
+    c_[2] = orig.get(0) * p.get(1) - orig.get(1) * p.get(0);
+}
+
+// Rotates this point an angle alpha around p storing the result in this point.
+void _4DPoint::rotate(const _4DPoint &p, const double alpha)
+{
+    _4DPoint p0(p);
+    _4x4Matrix m, m1;
+
+    // Compute theta and phi ...
+    double theta, phi;
+    Math::computeLatLon(p0.x(), p0.y(), p0.z(), phi, theta);
+
+    // Compute final transformation ...
+    m1.loadRotateZ(theta);
+
+    m.loadRotateY(-phi);
+    m1.mulMat(m);
+
+    m.loadRotateX(alpha);
+    m1.mulMat(m);
+
+    m.loadRotateY(phi);
+    m1.mulMat(m);
+
+    m.loadRotateZ(-theta);
+    m1.mulMat(m);
+
+    // Multiply with this point ...
+    mulMatPoint(m1);
+}
+
+void _4DPoint::normalize()
+{
+    Math::normalize(c_[0], c_[1], c_[2]);
+}
+
+void _4DPoint::scale(double fact)
+{
+    c_[0] *= fact;
+    c_[1] *= fact;
+    c_[2] *= fact;
+}
+
+void _4DPoint::add(const _4DPoint &p)
+{
+    c_[0] += p.get(0);
+    c_[1] += p.get(1);
+    c_[2] += p.get(2);
+}
+
+void _4DPoint::subtract(const _4DPoint &p)
+{
+    c_[0] -= p.get(0);
+    c_[1] -= p.get(1);
+    c_[2] -= p.get(2);
+}
+
+void _4DPoint::print(char lead[]) const
+{
+    fprintf(stderr, "%s:\n", lead);
+    for (int i = 0; i < 4; i++)
+        fprintf(stderr, "  %20.10f", c_[i]);
+    fprintf(stderr, "\n");
+}
 
 _3DPoint::_3DPoint()
 {
@@ -62,6 +258,20 @@ double _3DPoint::dot(const _3DPoint &a, const _3DPoint &b)
     return a.x() * b.x() + a.y() * b.y() + a.z() * b.z();
 }
 
+void Math::normalize(double &x, double &y)
+{
+    double
+    nrm = norm(x, y),
+    xx = x / nrm,
+    yy = y / nrm;
+
+    if ((!finite(xx)) || (!finite(yy)))
+        throw std::runtime_error("norm too small");
+
+    x = xx;
+    y = yy;
+}
+
 void Math::normalize(double &x, double &y, double &z)
 {
     double
@@ -78,9 +288,24 @@ void Math::normalize(double &x, double &y, double &z)
     z = zz;
 }
 
+double Math::norm(double x, double y)
+{
+    return sqrt(x * x + y * y);
+}
+
 double Math::norm(double x, double y, double z)
 {
     return sqrt(x * x + y * y + z * z);
+}
+
+double Math::angle(double x, double y)
+{
+    Math::normalize(x, y);
+    double a = asin(y);
+    if (x < 0) a = M_PI - a;
+    if (a < 0)          a += (2 * M_PI); else
+    if (a > (2 * M_PI)) a -= (2 * M_PI);
+    return a;
 }
 
 double Math::distance(const Point &p1, const Point &p2)
@@ -113,6 +338,89 @@ double Math::bearingBetween(const Point &p1, const Point &p2)
     const double theta = atan2(y, x);
 
     return fmod(theta + 2 * M_PI, 2 * M_PI);
+}
+
+void Math::sphericalToCartesian(double radius, double phi, double theta, double &x, double &y, double &z)
+{
+    x = radius * cos(phi) * cos(theta);
+    y = radius * cos(phi) * sin(theta);
+    z = radius * sin(phi);
+}
+
+void Math::cartesianToSpherical(double x, double y, double z, double &phi, double &theta)
+{
+    phi = atan2(z, sqrt(x * x + y * y));
+    theta = atan2(y, x);
+}
+
+// Determines if the ray originating from point (px, py, pz) in
+// direction (rx, ry, rz) intersects the sphere having center
+// (cx, cy, cz) and radius r. In the case of intersection, the
+// nearest intersection point is returned in (x, y, z).
+//
+bool Math::raySphereIntersect(double px, double py, double pz, double rx, double ry, double rz, double cx, double cy, double cz, double r, double &x, double &y, double &z)
+{
+    // Equation of ray:
+    //   x = px + t * rx
+    //   y = py + t * ry
+    //   z = pz + t * rz
+    //
+    // Equation of sphere:
+    //   (x - cx)^2 + (y - cy)^2 + (z - cz)^2 = r^2
+    //
+    // Subsititute for x, y, z and solve for t (2nd degree polynomial):
+
+    double
+    a = Math::sqr(rx) +  Math::sqr(ry) +  Math::sqr(rz),
+    b = 2 * (rx * (px - cx) + ry * (py - cy) + rz * (pz - cz)),
+    c = Math::sqr(px - cx) + Math::sqr(py - cy) +
+        Math::sqr(pz - cz) - Math::sqr(r),
+    sqrt_arg = Math::sqr(b) - 4.0 * a * c;
+
+    if (sqrt_arg < 0)
+    return false; // No intersection.
+
+    // Compute nearest intersection point ...
+    double
+    t1 = (-b + sqrt(sqrt_arg)) / (2 * a),
+    t2 = (-b - sqrt(sqrt_arg)) / (2 * a),
+    t_lo = std::min(t1, t2);
+
+    if (t_lo < 0)
+    return false; // Intersection behind (px, py, pz)
+
+    x = px + t_lo * rx;
+    y = py + t_lo * ry;
+    z = pz + t_lo * rz;
+
+    return true;
+}
+
+void Math::computeLatLon(double x, double y, double z, double &lat, double &lon)
+{
+    Math::normalize(x, y, z);
+
+    lat = asin(z);
+
+/* NEW: */
+    try
+    {
+        lon = Math::angle(x, y);
+    }
+    catch (std::runtime_error &)
+    {
+        lon = 0;
+    }
+
+/* OLD:
+    lon = atan(y / x);
+    if (isnan(lon))
+    lon = (y > 0) ? M_PI_2 : (3 * M_PI_2);
+    else if (x < 0)
+    lon += M_PI;
+    else if (y < 0)
+    lon += (2 * M_PI);
+*/
 }
 
 void _3DPoint::normalize()
@@ -233,6 +541,75 @@ double crossTrackDistanceToGreatCircle(const Point &p0, const Point &p1, const P
     const double theta_13 = Math::bearingBetween(p1, p0);
     const double theta_12 = Math::bearingBetween(p1, p2);
     return asin(sin(delta_13) * sin(theta_13 - theta_12));
+}
+
+QVector<_3DPoint> greatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly)
+{
+    QVector<_3DPoint> points;
+    const double lon1 = p1.first;
+    const double lat1 = p1.second;
+    const double lon2 = p2.first;
+    const double lat2 = p2.second;
+
+    if (segmentOnly) {
+        // compute the points between p1 and p2
+        for (int i = 0; i <= nSegments; ++i) {
+            const double t = i / double(nSegments);
+            const double d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2));
+            const double A = sin((1 - t) * d) / sin(d);
+            const double B = sin(t * d) / sin(d);
+            const double x = A * cos(lat1) * cos(lon1) + B * cos(lat2) * cos(lon2);
+            const double y = A * cos(lat1) * sin(lon1) + B * cos(lat2) * sin(lon2);
+            const double z = A * sin(lat1) + B * sin(lat2);
+            points.append(_3DPoint(x, y, z));
+        }
+    } else {
+        // compute the points of the complete circle
+        const _3DPoint a0 = _3DPoint::fromSpherical(p1.first, p1.second);
+        const _3DPoint a1 = _3DPoint::fromSpherical(p2.first, p2.second);
+        _3DPoint p;
+        try {
+            p = _3DPoint::normalized(_3DPoint::cross(a0, a1)); // plane normal
+        } catch (std::runtime_error e) {
+            return points; // this could for example happen if a0 and a1 are identical, in which case the great circle is undefined
+        }
+
+        // compute the plane normal
+        double planePhi;
+        double planeTheta;
+        Math::cartesianToSpherical(p.x(), p.y(), p.z(), planePhi, planeTheta);
+
+        // compute elements of rotation matrices
+        const double alpha = M_PI / 2 - planePhi;
+        const double cos1 = cos(alpha);
+        const double sin1 = sin(alpha);
+        const double cos2 = cos(planeTheta);
+        const double sin2 = sin(planeTheta);
+
+        const double deltaTheta = (2 * M_PI) / nSegments;
+        double theta = 0;
+        for (int i = 0; i <= nSegments; ++i, theta += deltaTheta) {
+            // compute unrotated point along equator
+            const double x0 = cos(theta);
+            const double y0 = sin(theta);
+            const double z0 = 0;
+
+            // rotate according to plane normal ...
+            // ... rotate M_PI / 2 - planePhi around Y axis
+            const double x1 = x0 * cos1 + z0 * sin1;
+            const double y1 = y0;
+            const double z1 = -x0 * sin1 + z0 * cos1;
+
+            // ... rotate planeTheta around Z axis
+            const double x2 = x1 * cos2 - y1 * sin2;
+            const double y2 = x1 * sin2 + y1 * cos2;
+            const double z2 = z1;
+
+            points.append(_3DPoint(x2, y2, z2));
+        }
+    }
+
+    return points;
 }
 
 bool pointInPolygon(const Point &point, const Polygon &polygon)

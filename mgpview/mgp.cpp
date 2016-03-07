@@ -3,6 +3,7 @@
 #include <QBitArray>
 #include <QRegExp>
 #include <QStack>
+#include <algorithm>
 
 #include <QDebug>
 
@@ -19,10 +20,15 @@ static QString xmetFormatLon(double val)
     if (lon > 180)
         lon -= 360;
     lon = qMin(180.0, qMax(-180.0, lon));
-    const int ipart = int(floor(fabs(lon)));
+    int ipart = int(floor(fabs(lon)));
     //const int fbase = 100;
     const int fbase = 60; // minutes
-    const int fpart = int(floor(round(fbase * (fabs(lon) - ipart))));
+    int fpart = int(floor(round(fbase * (fabs(lon) - ipart))));
+    if (fpart >= fbase) {
+        ipart++;
+        fpart -= fbase;
+    }
+    Q_ASSERT((fpart >= 0) && (fpart < fbase));
     return QString("%1%2%3")
             .arg((lon < 0) ? "W" : "E")
             .arg(ipart, 3, 10, QLatin1Char('0'))
@@ -38,10 +44,15 @@ static QString xmetFormatLat(double val)
 {
     double lat = RAD2DEG(fmod(val, M_PI));
     lat = qMin(qMax(lat, -90.0), 90.0);
-    const int ipart = int(floor(fabs(lat)));
+    int ipart = int(floor(fabs(lat)));
     //const int fbase = 100;
     const int fbase = 60; // minutes
-    const int fpart = int(floor(round(fbase * (fabs(lat) - ipart))));
+    int fpart = int(floor(round(fbase * (fabs(lat) - ipart))));
+    if (fpart >= fbase) {
+        ipart++;
+        fpart -= fbase;
+    }
+    Q_ASSERT((fpart >= 0) && (fpart < fbase));
     return QString("%1%2%3")
             .arg(lat < 0 ? "S" : "N")
             .arg(ipart, 2, 10, QLatin1Char('0'))
@@ -126,6 +137,31 @@ PolygonFilter::PolygonFilter()
 PolygonFilter::PolygonFilter(const Polygon &polygon)
     : polygon_(polygon)
 {
+}
+
+void PolygonFilter::setFromVariant(const QVariant &var)
+{
+    polygon_->clear();
+    const QVariantList list = var.toList();
+    Q_ASSERT(!(list.size() % 2));
+    for (int i = 0; i < list.size(); i += 2) {
+        bool ok1 = false;
+        bool ok2 = false;
+        const double lon = list.at(i).toDouble(&ok1);
+        const double lat = list.at(i).toDouble(&ok2);
+        Q_ASSERT(ok1 && ok2);
+        polygon_->append(qMakePair(lon, lat));
+    }
+}
+
+QVariant PolygonFilter::toVariant() const
+{
+    QVariantList list;
+    for (int i = 0; i < polygon_->size(); ++i) {
+        list.append(polygon_->at(i).first);
+        list.append(polygon_->at(i).second);
+    }
+    return list;
 }
 
 bool PolygonFilter::isValid() const
@@ -405,17 +441,34 @@ QVector<Point> LineFilter::intersections(const Polygon &inPoly) const
     return points;
 }
 
-LonOrLatFilter::LonOrLatFilter(double value)
-    : value_(value)
+LonOrLatFilter::LonOrLatFilter(double lolValue)
+    : value_(lolValue)
 {
 }
 
-void LonOrLatFilter::setValue(double value)
+void LonOrLatFilter::setValue(double lolValue)
 {
-    value_ = value;
+    value_ = lolValue;
 }
 
 double LonOrLatFilter::value() const
+{
+    return value_;
+}
+
+bool LonOrLatFilter::isLonFilter() const
+{
+    return (type() == E_OF) || (type() == W_OF);
+}
+
+void LonOrLatFilter::setFromVariant(const QVariant &var)
+{
+    bool ok = false;
+    value_ = var.toDouble(&ok);
+    Q_ASSERT(ok);
+}
+
+QVariant LonOrLatFilter::toVariant() const
 {
     return value_;
 }
@@ -463,12 +516,7 @@ bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
 QString LonOrLatFilter::xmetExpr() const
 {
-    return QString("%1 OF %2").arg(directionName()).arg(xmetFormatLon(value_));
-}
-
-bool LonOrLatFilter::isLonFilter() const
-{
-    return (type() == E_OF) || (type() == W_OF);
+    return QString("%1 OF %2").arg(directionName()).arg(isLonFilter() ? xmetFormatLon(value_) : xmetFormatLat(value_));
 }
 
 LonFilter::LonFilter(double value)
@@ -651,7 +699,7 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
             outPolys->append(inPolyCopy);
             return outPolys;
         } else {
-            Q_ASSERT(nrejected == inPolyCW->size()); // ### can this fail in some cases?
+            // Q_ASSERT(nrejected == inPolyCW->size()); // ### fails in some cases, but should it?
             // all(?) points reject, and not around pole, so return empty list
             return outPolys;
         }
@@ -811,14 +859,43 @@ void FreeLineFilter::setLine(const QPair<Point, Point> &line)
     line_ = line;
 }
 
-QPair<Point, Point> FreeLineFilter::line() const
+void FreeLineFilter::setPoint1(const Point &point)
 {
-    return line_;
+    setLine(point, point2());
+}
+
+void FreeLineFilter::setPoint2(const Point &point)
+{
+    setLine(point1(), point);
 }
 
 FreeLineFilter::FreeLineFilter(const QPair<Point, Point> &line)
     : line_(line)
 {
+}
+
+void FreeLineFilter::setFromVariant(const QVariant &var)
+{
+    const QVariantList list = var.toList();
+    Q_ASSERT(list.size() == 4);
+    bool ok0 = false;
+    bool ok1 = false;
+    bool ok2 = false;
+    bool ok3 = false;
+    Point p1(qMakePair(list.at(0).toDouble(&ok0), list.at(1).toDouble(&ok1)));
+    Point p2(qMakePair(list.at(2).toDouble(&ok2), list.at(3).toDouble(&ok3)));
+    Q_ASSERT(ok0 && ok1 && ok2 && ok3);
+    setLine(p1, p2);
+}
+
+QVariant FreeLineFilter::toVariant() const
+{
+    QVariantList list;
+    list.append(lon1());
+    list.append(lat1());
+    list.append(lon2());
+    list.append(lat2());
+    return list;
 }
 
 bool FreeLineFilter::isValid() const

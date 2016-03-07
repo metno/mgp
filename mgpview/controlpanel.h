@@ -4,12 +4,15 @@
 #include "common.h"
 #include <QWidget>
 #include <QHash>
+#include <QList>
 #include <QLineF>
 #include <QVariant>
 #include <QSharedPointer>
 #include <QVector>
 #include <QPair>
 #include <QDialog>
+
+#include "mgp.h"
 
 class QGroupBox;
 class QCheckBox;
@@ -24,142 +27,87 @@ class QMouseEvent;
 class QTabWidget;
 class QTextEdit;
 
-class Filter : public QObject // ### does this need to be a QObject?
+class FilterControlBase : public QObject
 {
     Q_OBJECT
     friend class ControlPanel;
 
-public:
-    enum Type {
-        None,
-        WI,
-        E_OF, W_OF, N_OF, S_OF,
-        E_OF_LINE, W_OF_LINE, N_OF_LINE, S_OF_LINE,
-        NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE
-    };
-    static QString typeName(Type);
-
 protected:
-    Filter(Type, QCheckBox *, QCheckBox *);
-    virtual QVariant value() const = 0;
-    virtual bool startDragging(const QPair<double, double> &) = 0;
-    virtual void updateDragging(const QPair<double, double> &) = 0;
-    virtual bool isValid() const = 0;
-    virtual bool rejected(const QPair<double, double> &) const = 0;
+    FilterControlBase(mgp::FilterBase *, QCheckBox *, QCheckBox *);
 
-    // Applies the filter to a polygon and returns the result as zero or more polygons within the original area.
-    virtual PointVectors apply(const PointVector &) const = 0;
+    mgp::Filter filter_;
+    mgp::Filter filter() const { return filter_; }
+    virtual void update() = 0;
 
-    // Returns all intersection points between the filter and the given polygon.
-    virtual QVector<QPair<double, double> > intersections(const PointVector &) const = 0;
-
-    // Returns the SIGMET/AIRMET expression corresponding to the filter state.
-    virtual QString xmetExpr() const = 0;
-
-    // Sets the filter state from a SIGMET/AIRMET expression. Returns true iff the state was successfully set.
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *) = 0;
-
-    Type type_;
     QCheckBox *enabledCheckBox_;
     QCheckBox *currCheckBox_;
 
+    virtual QVariant value() const = 0;
+
+    virtual bool startDragging(const mgp::Point &) = 0;
+    virtual void updateDragging(const mgp::Point &) = 0;
     bool dragged_;
 };
 
-class WithinFilter : public Filter
+class WithinFilterControl : public FilterControlBase
+{
+    friend class ControlPanel;
+
+    WithinFilterControl(mgp::WithinFilter *, QCheckBox *, QCheckBox *);
+    static FilterControlBase *create(QGridLayout *, int, mgp::WithinFilter *);
+    void update();
+
+    virtual QVariant value() const;
+
+    virtual bool startDragging(const mgp::Point &);
+    virtual void updateDragging(const mgp::Point &);
+};
+
+class LonOrLatFilterControl : public FilterControlBase
 {
     Q_OBJECT
+
     friend class ControlPanel;
 
-    WithinFilter(Type, QCheckBox *, QCheckBox *, const PointVector &);
-    static Filter *create(QGridLayout *, int, Type, const PointVector &);
+    LonOrLatFilterControl(mgp::LonOrLatFilter *, QCheckBox *, QCheckBox *, QDoubleSpinBox *);
+    static FilterControlBase *create(QGridLayout *, int, mgp::LonOrLatFilter *);
+    void update();
 
-    virtual QVariant value() const;
-    virtual bool startDragging(const QPair<double, double> &);
-    virtual void updateDragging(const QPair<double, double> &);
-    virtual bool isValid() const;
-    virtual bool rejected(const QPair<double, double> &) const;
-
-    virtual PointVectors apply(const PointVector &) const;
-    virtual QVector<QPair<double, double> > intersections(const PointVector &) const;
-    virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
-
-    PointVector points_;
-};
-
-class LineFilter : public Filter
-{
-protected:
-    LineFilter(Type, QCheckBox *, QCheckBox *);
-
-    // Returns true and intersection point iff filter intersects great circle segment between given two points.
-    virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const = 0;
-
-    virtual PointVectors apply(const PointVector &) const;
-    virtual QVector<QPair<double, double> > intersections(const PointVector &) const;
-};
-
-class LonOrLatFilter : public LineFilter
-{
-    friend class ControlPanel;
-
-protected:
-
-    LonOrLatFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
-    static Filter *create(QGridLayout *, int, Type, double);
-    virtual QVariant value() const;
-    virtual bool startDragging(const QPair<double, double> &);
-    virtual void updateDragging(const QPair<double, double> &);
-    virtual bool isValid() const;
-    virtual bool rejected(const QPair<double, double> &) const;
-    virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
-    virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
-
+    QSharedPointer<mgp::LonOrLatFilter> lonOrLatFilter_;
     QDoubleSpinBox *valSpinBox_;
-};
-
-class LonFilter : public LonOrLatFilter
-{
-    friend class ControlPanel;
-    friend class LonOrLatFilter;
-
-    LonFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
-};
-
-class LatFilter : public LonOrLatFilter
-{
-    friend class ControlPanel;
-    friend class LonOrLatFilter;
-
-    LatFilter(Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, double);
-    virtual PointVectors apply(const PointVector &) const;
-    virtual QVector<QPair<double, double> > intersections(const PointVector &) const;
-};
-
-class FreeLineFilter : public LineFilter {
-    friend class ControlPanel;
-
-    FreeLineFilter(
-            Type, QCheckBox *, QCheckBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, const QLineF &);
-    static Filter *create(QGridLayout *, int, Type, const QLineF &);
     virtual QVariant value() const;
-    virtual bool startDragging(const QPair<double, double> &);
-    virtual void updateDragging(const QPair<double, double> &);
-    virtual bool isValid() const;
-    virtual bool rejected(const QPair<double, double> &) const;
-    virtual bool intersects(const QPair<double, double> &, const QPair<double, double> &, QPair<double, double> *) const;
-    virtual QString xmetExpr() const;
-    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
 
+    virtual bool startDragging(const mgp::Point &);
+    virtual void updateDragging(const mgp::Point &);
+
+private slots:
+    void handleSpinBoxValueChanged();
+};
+
+class FreeLineFilterControl : public FilterControlBase
+{
+Q_OBJECT
+
+    friend class ControlPanel;
+
+    FreeLineFilterControl(
+            mgp::FreeLineFilter *, QCheckBox *, QCheckBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *, QDoubleSpinBox *);
+    static FilterControlBase *create(QGridLayout *, int, mgp::FreeLineFilter *);
+    void update();
+
+    QSharedPointer<mgp::FreeLineFilter> freeLineFilter_;
     QDoubleSpinBox *lon1SpinBox_;
     QDoubleSpinBox *lat1SpinBox_;
     QDoubleSpinBox *lon2SpinBox_;
     QDoubleSpinBox *lat2SpinBox_;
+    virtual QVariant value() const;
 
+    virtual bool startDragging(const mgp::Point &);
+    virtual void updateDragging(const mgp::Point &);
     bool firstEndpointDragged_;
-    bool validCombination(double, double, double, double) const;
+
+private slots:
+    void handleSpinBoxValueChanged();
 };
 
 class BasePolygon
@@ -171,18 +119,18 @@ public:
     static QString typeName(Type);
 
 protected:
-    BasePolygon(Type, const PointVector & = PointVector());
+    BasePolygon(Type, const mgp::Polygon & = mgp::Polygon());
     static BasePolygon *create(Type);
     Type type_;
-    PointVector points_; // first component = longitude in radians, second component = latitude in radians
+    mgp::Polygon polygon_; // first component = longitude in radians, second component = latitude in radians
 };
 
 struct FilterTabInfo
 {
     QWidget *page_;
     QString baseText_;
-    QList<int> filterTypes_;
-    FilterTabInfo(QWidget *page, const QString &baseText, const QList<int> &filterTypes) :
+    QList<mgp::FilterBase::Type> filterTypes_;
+    FilterTabInfo(QWidget *page, const QString &baseText, const QList<mgp::FilterBase::Type> &filterTypes) :
         page_(page), baseText_(baseText), filterTypes_(filterTypes) {}
 };
 
@@ -191,7 +139,7 @@ class ResultPolygonsExportPanel : public QDialog
     Q_OBJECT
 public:
     ResultPolygonsExportPanel();
-    void setPolygons(const PointVectors &);
+    void setPolygons(const mgp::Polygons &);
 private:
     QTextEdit *textEdit_;
 };
@@ -205,42 +153,42 @@ public:
     void initialize();
     void open();
 
-    bool isEnabled(Filter::Type) const;
-    bool isCurrent(Filter::Type) const;
-    bool isValid(Filter::Type) const;
+    bool isEnabled(mgp::FilterBase::Type) const;
+    bool isCurrent(mgp::FilterBase::Type) const;
+    bool isValid(mgp::FilterBase::Type) const;
 
-    PointVector WIFilterPoints() const;
-    QVariant value(Filter::Type) const;
+    mgp::Polygon WIFilterPolygon() const;
+    QVariant value(mgp::FilterBase::Type) const;
 
-    bool rejectedByAnyFilter(const QPair<double, double> &) const;
-    QVector<QPair<double, double> > filterIntersections(const PointVector &) const;
+    bool rejectedByAnyFilter(const mgp::Point &) const;
+    QVector<mgp::Point> filterIntersections(const mgp::Polygon &) const;
     bool filtersEditableOnSphere() const;
     void toggleFiltersEditableOnSphere();
     bool filterLinesVisible() const;
     bool filterPointsVisible() const;
-    bool startFilterDragging(const QPair<double, double> &) const;
-    void updateFilterDragging(const QPair<double, double> &);
+    bool startFilterDragging(const mgp::Point &) const;
+    void updateFilterDragging(const mgp::Point &);
 
     BasePolygon::Type currentBasePolygonType() const;
     bool basePolygonLinesVisible() const;
     bool basePolygonPointsVisible() const;
     bool basePolygonIntersectionsVisible() const;
-    PointVector currentBasePolygonPoints() const;
-    int currentWIFilterPoint(const QPair<double, double> &, double);
-    int currentCustomBasePolygonPoint(const QPair<double, double> &, double);
+    mgp::Polygon currentBasePolygon() const;
+    int currentWIFilterPoint(const mgp::Point &, double);
+    int currentCustomBasePolygonPoint(const mgp::Point &, double);
     bool customBasePolygonEditableOnSphere() const;
-    void updateWIFilterPointDragging(int, const QPair<double, double> &);
-    void updateCustomBasePolygonPointDragging(int, const QPair<double, double> &);
+    void updateWIFilterPointDragging(int, const mgp::Point &);
+    void updateCustomBasePolygonPointDragging(int, const mgp::Point &);
     void addPointToWIFilter(int);
     void addPointToCustomBasePolygon(int);
     void removePointFromWIFilter(int);
     void removePointFromCustomBasePolygon(int);
     bool currentBasePolygonIsClockwise() const;
-    bool withinCurrentBasePolygon(const QPair<double, double> &) const;
+    bool withinCurrentBasePolygon(const mgp::Point &) const;
 
     bool resultPolygonsLinesVisible() const;
     bool resultPolygonsPointsVisible() const;
-    PointVectors resultPolygons() const;
+    mgp::Polygons resultPolygons() const;
     void updateResultPolygonsGroupBoxTitle(int);
 
     float ballSizeFrac();
@@ -262,8 +210,11 @@ private:
     QCheckBox *filtersEditableOnSphereCheckBox_;
     QCheckBox *filterLinesVisibleCheckBox_;
     QCheckBox *filterPointsVisibleCheckBox_;
-    QHash<Filter::Type, Filter *> filters_;
-    Filter *currentFilter() const;
+    QHash<mgp::FilterBase::Type, FilterControlBase *> filterControls_;
+    FilterControlBase *currentFilter() const;
+    mgp::Filters enabledAndValidFilters() const;
+
+    QSharedPointer<mgp::WithinFilter> wiFilter_;
 
     QGroupBox *resultPolygonsGroupBox_;
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
@@ -274,18 +225,20 @@ private:
     QString setFiltersFromXmetExprButtonText_;
     QCheckBox *autoSetFiltersCheckBox_;
 
-    void updatePolygonPointDragging(PointVector &, int, const QPair<double, double> &);
-    void addPointToPolygon(PointVector &, int);
-    void removePointFromPolygon(PointVector &, int);
+    void updatePolygonPointDragging(const mgp::Polygon &, int, const mgp::Point &);
+    void addPointToPolygon(const mgp::Polygon &, int);
+    void removePointFromPolygon(const mgp::Polygon &, int);
 
     QTabWidget *filterTabWidget_;
     QList<FilterTabInfo> filterTabInfos_;
 
     ResultPolygonsExportPanel *resPolysExportPanel_;
 
+public slots:
+    void updateGLWidget();
+
 private slots:
     void close();
-    void updateGLWidget();
     void updateFilterTabTexts();
     void basePolygonTypeChanged();
     void exportResultPolygons();

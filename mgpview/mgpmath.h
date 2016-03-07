@@ -11,6 +11,58 @@ MGPMATH_BEGIN_NAMESPACE
 
 // --- BEGIN classes --------------------------------------------------
 
+class _4x4Matrix
+{
+public:
+    _4x4Matrix();
+    void set(int i, int j, double val) {c_[i][j] = val;};
+    double get(int i, int j) const {return c_[i][j];};
+    // Right-multiplies this matrix with m (this * m) storing the result in
+    // this matrix:
+    void mulMat(const _4x4Matrix& m);
+    // Left-multiplies this matrix with m (m * this) storing the result in
+    // this matrix:
+    void mulMatLeft(const _4x4Matrix& m);
+    void loadIdentity();
+
+    // Rotates around a primary axis
+    void loadRotateX(double theta);
+    void loadRotateY(double theta);
+    void loadRotateZ(double theta);
+
+    void loadTranslate(double x, double y, double z);
+
+    void print(char lead[]) const;
+private:
+    double c_[4][4];
+};
+
+class _4DPoint
+{
+public:
+    _4DPoint();
+    _4DPoint(const _4DPoint&);
+    _4DPoint(double x, double y, double z);
+    void set(int i, double val) {c_[i] = val;}
+    void set(double x, double y, double z)
+        {c_[0] = x; c_[1] = y; c_[2] = z; c_[3] = 1;}
+    double get(int i) const {return c_[i];}
+    double x() const {return c_[0];}
+    double y() const {return c_[1];}
+    double z() const {return c_[2];}
+    void mulMatPoint(const _4x4Matrix& m);
+    double dot(const _4DPoint& p);
+    void cross(const _4DPoint& p);
+    void rotate(const _4DPoint& p, const double alpha);
+    void normalize();
+    void scale(double fact);
+    void add(const _4DPoint& p);
+    void subtract(const _4DPoint& p);
+    void print(char lead[]) const;
+private:
+    double c_[4];
+};
+
 class _3DPoint
 {
 public:
@@ -37,8 +89,12 @@ private:
 class Math
 {
 public:
+    static double sqr(double x) {return x * x;}
+    static void normalize(double &x, double &y);
     static void normalize(double &x, double &y, double &z);
+    static double norm(double x, double y);
     static double norm(double x, double y, double z);
+    static double angle(double x, double y);
 
     /**
      * Returns the spherical distance (i.e. along the great circle on the unit sphere) between two points.
@@ -51,6 +107,13 @@ public:
 
     // Returns the initial bearing from p1 to p2 in radians from north.
     static double bearingBetween(const Point &p1, const Point &p2);
+
+    static void sphericalToCartesian(double radius, double phi, double theta, double &x, double &y,	double &z);
+    static void cartesianToSpherical(double x, double y, double z, double &phi, double &theta);
+    static bool raySphereIntersect(
+            double px, double py, double pz, double rx, double ry, double rz,
+            double cx, double cy, double cz, double r, double &x, double &y, double &z);
+    static void computeLatLon(double x, double y, double z, double &lat, double &lon);
 };
 
 // --- END classes --------------------------------------------------
@@ -78,6 +141,9 @@ int greatCircleArcIntersectsGreatCircle(const Point &p1, const Point &p2, const 
 // Returns signed distance from p0 to the great circle arc from p1 to p2.
 // The return value is negative iff p0 is considered to be to the left of the arc.
 double crossTrackDistanceToGreatCircle(const Point &p0, const Point &p1, const Point &p2);
+
+// Returns the points of the great circle through p1 and p2. If segmentOnly is true, only the part of the circle between p1 and p2 is returned.
+QVector<_3DPoint> greatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly = true);
 
 // Returns true iff a point is considered inside a polygon.
 bool pointInPolygon(const Point &point, const Polygon &polygon);

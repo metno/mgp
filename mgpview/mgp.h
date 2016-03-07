@@ -6,6 +6,7 @@
 #include <QPair>
 #include <QList>
 #include <QString>
+#include <QVariant>
 #include <math.h>
 
 #define MGP_BEGIN_NAMESPACE namespace mgp {
@@ -33,6 +34,21 @@ class FilterBase
 public:
     virtual ~FilterBase() {}
 
+    enum Type {
+        Unsupported,
+        WI,
+        E_OF, W_OF, N_OF, S_OF,
+        E_OF_LINE, W_OF_LINE, N_OF_LINE, S_OF_LINE,
+        NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE
+    };
+    virtual Type type() const = 0;
+
+    // Sets the filter value from a QVariant.
+    virtual void setFromVariant(const QVariant &) = 0;
+
+    // Returns the filter value as a QVariant.
+    virtual QVariant toVariant() const = 0;
+
     // Returns true iff the filter is considered to be in a valid state.
     virtual bool isValid() const = 0;
 
@@ -47,16 +63,6 @@ public:
 
     // Returns the canonical SIGMET/AIRMET expression corresponding to the filter state.
     virtual QString xmetExpr() const = 0;
-
-protected:
-    enum Type {
-        Unsupported,
-        WI,
-        E_OF, W_OF, N_OF, S_OF,
-        E_OF_LINE, W_OF_LINE, N_OF_LINE, S_OF_LINE,
-        NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE
-    };
-    virtual Type type() const = 0;
 
     // Returns true iff the given point is rejected by the filter. A point that is rejected would not be included in any polygon returned
     // by apply() (regardless of the shape of the input polygon), and vice versa: a point that is not rejected will always be included in one of
@@ -74,6 +80,8 @@ protected:
     PolygonFilter(const Polygon &);
     Polygon polygon_;
 private:
+    virtual void setFromVariant(const QVariant &);
+    virtual QVariant toVariant() const;
     virtual bool isValid() const;
 };
 
@@ -87,8 +95,8 @@ private:
     virtual Polygons apply(const Polygon &) const;
     virtual QVector<Point> intersections(const Polygon &inPoly) const;
     virtual bool rejected(const Point &) const;
-    virtual QString xmetExpr() const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
+    virtual QString xmetExpr() const;
 };
 
 class UnionFilter : public PolygonFilter
@@ -107,12 +115,13 @@ private:
 
 class LineFilter : public FilterBase
 {
+public:
+    QString directionName() const;
+
 protected:
     // Returns true and intersection point iff filter intersects great circle arc between given two points. If the filter intersects
     // the arc twice, the intersection closest to the first endpoint is returned.
     virtual bool intersects(const Point &, const Point &, Point *) const = 0;
-
-    QString directionName() const;
 
 private:
     virtual Polygons apply(const Polygon &) const;
@@ -124,13 +133,15 @@ class LonOrLatFilter : public LineFilter
 public:
     void setValue(double);
     double value() const;
+    bool isLonFilter() const;
 protected:
     LonOrLatFilter(double);
     double value_;
 private:
+    virtual void setFromVariant(const QVariant &);
+    virtual QVariant toVariant() const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
     virtual QString xmetExpr() const;
-    bool isLonFilter() const;
 };
 
 class LonFilter : public LonOrLatFilter
@@ -197,15 +208,21 @@ class FreeLineFilter : public LineFilter
 public:
     void setLine(const Point &, const Point &);
     void setLine(const QPair<Point, Point> &);
-    QPair<Point, Point> line() const;
-protected:
-    FreeLineFilter(const QPair<Point, Point> &);
-    QPair<Point, Point> line_;
+    void setPoint1(const Point &);
+    void setPoint2(const Point &);
+    QPair<Point, Point> line() const { return line_; }
+    Point point1() const { return line_.first; }
+    Point point2() const { return line_.second; }
     double lon1() const { return line_.first.first; }
     double lat1() const { return line_.first.second; }
     double lon2() const { return line_.second.first; }
     double lat2() const { return line_.second.second; }
+protected:
+    FreeLineFilter(const QPair<Point, Point> &);
+    QPair<Point, Point> line_;
 private:
+    virtual void setFromVariant(const QVariant &);
+    virtual QVariant toVariant() const;
     virtual bool isValid() const;
     virtual bool intersects(const Point &, const Point &, Point *) const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);

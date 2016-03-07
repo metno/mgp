@@ -5,6 +5,17 @@
 
 #include <stdio.h> // 4 TESTING!
 
+class DynPoly
+{
+public:
+    void setSize(int size) {size_ = size; id_ = new int[size];}
+    void setId(int i, int val) {id_[i] = val;}
+    int getId(int i) {return id_[i];}
+    int getSize() {return size_;}
+private:
+    int size_, * id_;
+};
+
 const double GfxUtils::earth_radius_ = 6378000;
 
 GfxUtils::GfxUtils()
@@ -70,7 +81,7 @@ void GfxUtils::createCoast()
     maxPolys = 30;
     actualpts = actualpolys = 0;
 
-    points_ = new _3DPoint[maxPts];
+    points_ = new mgp::math::_3DPoint[maxPts];
     polys_ = new DynPoly[maxPolys];
 
     //
@@ -135,7 +146,7 @@ void GfxUtils::createCoast()
 //    fprintf(stderr, "n_polys_ = %d\n", n_polys_);
 }
 
-void GfxUtils::drawCoastContours(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
+void GfxUtils::drawCoastContours(mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist)
 {
     glColor3f(0.0, 0.0, 0.0);
     glLineWidth(1.0);
@@ -162,7 +173,7 @@ void GfxUtils::drawCoastContours(_3DPoint* eye, double min_eye_dist, double max_
 }
 
 void GfxUtils::drawSurfacePolygon(
-        const PointVector &points, _3DPoint* eye, double min_eye_dist, double max_eye_dist,
+        const mgp::Polygon &polygon, mgp::math::_3DPoint* eye, double min_eye_dist, double max_eye_dist,
         const QColor &color, float lineWidth)
 {
     glColor3f(color.redF(), color.greenF(), color.blueF());
@@ -171,27 +182,28 @@ void GfxUtils::drawSurfacePolygon(
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
     const double scale = raise_fact * earth_radius_;
 
-    Q_ASSERT(points);
+    Q_ASSERT(polygon);
 
     glBegin(GL_LINE_LOOP);
-    // loop over base points
-    for (int i = 0; i < points->size(); ++i) {
+    // loop over base polygon
+    for (int i = 0; i < polygon->size(); ++i) {
         double x, y, z;
 
         // for a smoother curve (and to prevent it from intersecting the earth surface!),
         // draw extra points between this base point and the previous base point
-        const int prevIndex = (i - 1 + points->size()) % points->size();
+        const int prevIndex = (i - 1 + polygon->size()) % polygon->size();
         const double maxDist = 0.01 * 2 * M_PI; // for now
-        const double dist = Math::distance(points->at(i), points->at(prevIndex));
+        const double dist = mgp::math::Math::distance(polygon->at(i), polygon->at(prevIndex));
         if (dist > maxDist) {
             const int nSegments = static_cast<int>(ceil(dist / maxDist));
-            const QVector<_3DPoint> extraPoints = Math::greatCirclePoints(points->at(prevIndex), points->at(i), nSegments);
+            const QVector<mgp::math::_3DPoint> extraPoints =
+                    mgp::math::greatCirclePoints(polygon->at(prevIndex), polygon->at(i), nSegments);
             for (int j = 1; j < (extraPoints.size() - 1); ++j)
                 glVertex3d(scale * extraPoints.at(j).x(), scale * extraPoints.at(j).y(), scale * extraPoints.at(j).z());
         }
 
         // draw base point
-        Math::sphericalToCartesian(scale, points->at(i).second, points->at(i).first, x, y, z);
+        mgp::math::Math::sphericalToCartesian(scale, polygon->at(i).second, polygon->at(i).first, x, y, z);
         glVertex3d(x, y, z);
     }
     glEnd();
@@ -244,7 +256,7 @@ void GfxUtils::drawLine(double x0, double y0, double z0, double x1, double y1, d
     glLineWidth(width);
     glBegin(GL_LINES);
     glVertex3d(x0, y0, z0);
-    _4DPoint p(x1, y1, z1);
+    mgp::math::_4DPoint p(x1, y1, z1);
     p.scale(scale_fact);
     glVertex3d(x0 + p.get(0), y0 + p.get(1), z0 + p.get(2));
     glEnd();
@@ -262,7 +274,7 @@ void GfxUtils::drawCone(double x0, double y0, double z0, double x1, double y1, d
     glTranslated(x0, y0, z0);
 
     double lat, lon;
-	Math::computeLatLon(x1, y1, z1, lat, lon);
+    mgp::math::Math::computeLatLon(x1, y1, z1, lat, lon);
 	glRotated((lon / M_PI) * 180, 0, 0, 1);
 	glRotated(((M_PI_2 - lat) / M_PI) * 180, 0, 1, 0);
 	if (reverse)
@@ -327,7 +339,7 @@ void GfxUtils::drawBaseCircle(double radius, float r, float g, float b, float li
     glEnd();
 }
 
-double GfxUtils::computeRaise(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
+double GfxUtils::computeRaise(mgp::math::_3DPoint *eye, double min_eye_dist, double max_eye_dist)
 {
     const double eye_dist = sqrt(
 	eye->x() * eye->x() +
@@ -344,7 +356,7 @@ double GfxUtils::computeRaise(_3DPoint* eye, double min_eye_dist, double max_eye
 	(max_raise - min_raise);
 }
 
-void GfxUtils::drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_eye_dist)
+void GfxUtils::drawLatLonCircles(mgp::math::_3DPoint *eye, double min_eye_dist, double max_eye_dist)
 {
     int i;
     const double
@@ -406,7 +418,7 @@ void GfxUtils::drawLatLonCircles(_3DPoint* eye, double min_eye_dist, double max_
 }
 
 void GfxUtils::drawLatCircle(
-        _3DPoint* eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &color, float lineWidth)
+        mgp::math::_3DPoint *eye, double min_eye_dist, double max_eye_dist, double lat, const QColor &color, float lineWidth)
 {
     const double raise = computeRaise(eye, min_eye_dist, max_eye_dist);
     const double theta = (lat / 90) * (M_PI / 2);
@@ -423,7 +435,7 @@ void GfxUtils::drawLatCircle(
 }
 
 void GfxUtils::drawLonCircle(
-        _3DPoint* eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &color, const float lineWidth)
+        mgp::math::_3DPoint *eye, double min_eye_dist, double max_eye_dist, double lon, const QColor &color, const float lineWidth)
 {
     const double raise = computeRaise(eye, min_eye_dist, max_eye_dist);
     const float r = color.redF();
@@ -438,7 +450,7 @@ void GfxUtils::drawLonCircle(
 }
 
 void GfxUtils::drawLonOrLatCircle(
-        bool lon, _3DPoint* eye, double min_eye_dist, double max_eye_dist, double val, const QColor &color, float lineWidth)
+        bool lon, mgp::math::_3DPoint *eye, double min_eye_dist, double max_eye_dist, double val, const QColor &color, float lineWidth)
 {
     if (lon)
         drawLonCircle(eye, min_eye_dist, max_eye_dist, val, color, lineWidth);
@@ -449,7 +461,7 @@ void GfxUtils::drawLonOrLatCircle(
 // Draws the great circle between surface positions line.p1() and line.p2(). If segmentOnly is true, only the part of the circle between
 // the two endpoints is drawn.
 void GfxUtils::drawGreatCircle(
-        _3DPoint* eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color, float lineWidth, bool segmentOnly)
+        mgp::math::_3DPoint *eye, double min_eye_dist, double max_eye_dist, const QLineF &line, const QColor &color, float lineWidth, bool segmentOnly)
 {
     const double raise_fact = 1 + computeRaise(eye, min_eye_dist, max_eye_dist) / earth_radius_;
     const double scale = raise_fact * earth_radius_;
@@ -464,7 +476,8 @@ void GfxUtils::drawGreatCircle(
     const double lat1 = DEG2RAD(line.p1().y());
     const double lon2 = DEG2RAD(line.p2().x());
     const double lat2 = DEG2RAD(line.p2().y());
-    const QVector<_3DPoint> points = Math::greatCirclePoints(qMakePair(lon1, lat1), qMakePair(lon2, lat2), res + 1, segmentOnly);
+    const QVector<mgp::math::_3DPoint> points =
+            mgp::math::greatCirclePoints(qMakePair(lon1, lat1), qMakePair(lon2, lat2), res + 1, segmentOnly);
 
     glBegin(GL_LINE_STRIP);
     for (int i = 0; i < points.size(); ++i)

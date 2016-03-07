@@ -1,5 +1,4 @@
 #include "glwidget.h"
-#include "util3d.h"
 #include "gfxutils.h"
 #include "mainwindow.h"
 #include "common.h"
@@ -18,15 +17,21 @@
 
 #include <stdio.h> // 4 TESTING!
 
-LonOrLatFilterInfo::LonOrLatFilterInfo(Filter::Type type_, bool isLon_)
-    : type(type_)
-    , isLon(isLon_)
+CartesianKeyFrame::CartesianKeyFrame(const CartesianKeyFrame& src)
+    : eye_(src.eye_)
+    , tgt_(src.tgt_)
+    , up_(src.up_)
 {
 }
 
-FreeLineFilterInfo::FreeLineFilterInfo(Filter::Type type_)
-    : type(type_)
+CartesianKeyFrame::CartesianKeyFrame(
+    double ex, double ey, double ez,
+    double tx, double ty, double tz,
+    double ux, double uy, double uz)
 {
+    setEye(ex, ey, ez);
+    setTgt(tx, ty, tz);
+    setUp (ux, uy, uz);
 }
 
 const double
@@ -55,27 +60,25 @@ GLWidget::GLWidget(QWidget *parent)
     , currWIFilterPoint_(-1)
     , currCustomBasePolygonPoint_(-1)
 {
-    // --- BEGIN initialize filter infos -------------------
+    // --- BEGIN register filter types -------------------
 
     // LonOrLat filters
-
-    lonOrLatFilterInfos_.insert(0, new LonOrLatFilterInfo(Filter::E_OF, true));
-    lonOrLatFilterInfos_.insert(1, new LonOrLatFilterInfo(Filter::W_OF, true));
-    lonOrLatFilterInfos_.insert(2, new LonOrLatFilterInfo(Filter::N_OF, false));
-    lonOrLatFilterInfos_.insert(3, new LonOrLatFilterInfo(Filter::S_OF, false));
-
+    lonOrLatFilterTypes_.append(mgp::FilterBase::E_OF);
+    lonOrLatFilterTypes_.append(mgp::FilterBase::W_OF);
+    lonOrLatFilterTypes_.append(mgp::FilterBase::N_OF);
+    lonOrLatFilterTypes_.append(mgp::FilterBase::S_OF);
 
     // FreeLine filters
-    freeLineFilterInfos_.insert(0, new FreeLineFilterInfo(Filter::NE_OF_LINE));
-    freeLineFilterInfos_.insert(1, new FreeLineFilterInfo(Filter::NW_OF_LINE));
-    freeLineFilterInfos_.insert(2, new FreeLineFilterInfo(Filter::SE_OF_LINE));
-    freeLineFilterInfos_.insert(3, new FreeLineFilterInfo(Filter::SW_OF_LINE));
-    freeLineFilterInfos_.insert(4, new FreeLineFilterInfo(Filter::E_OF_LINE));
-    freeLineFilterInfos_.insert(5, new FreeLineFilterInfo(Filter::W_OF_LINE));
-    freeLineFilterInfos_.insert(6, new FreeLineFilterInfo(Filter::N_OF_LINE));
-    freeLineFilterInfos_.insert(7, new FreeLineFilterInfo(Filter::S_OF_LINE));
+    freeLineFilterTypes_.append(mgp::FilterBase::E_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::W_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::N_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::S_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::NE_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::NW_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::SE_OF_LINE);
+    freeLineFilterTypes_.append(mgp::FilterBase::SW_OF_LINE);
 
-    // --- END initialize filter infos -------------------
+    // --- END register filter types -------------------
 
 
     setMouseTracking(true);
@@ -132,10 +135,10 @@ void GLWidget::paintGL()
     glLoadIdentity();
     //
     CartesianKeyFrame ckf = computeCamera();
-    _3DPoint
-	* eye = ckf.getEye(),
-	* tgt = ckf.getTgt(),
-	* up  = ckf.getUp();
+    mgp::math::_3DPoint
+            * eye = ckf.getEye(),
+            * tgt = ckf.getTgt(),
+            * up  = ckf.getUp();
     //
     GLfloat light_pos[] = {0, 0, 1, 1};
     glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
@@ -172,8 +175,8 @@ void GLWidget::paintGL()
 
     // --- BEGIN draw base polygon --------------------------------
 
-    if (ControlPanel::instance().currentBasePolygonPoints()) {
-        const PointVector points = ControlPanel::instance().currentBasePolygonPoints();
+    if (ControlPanel::instance().currentBasePolygon()) {
+        const mgp::Polygon points = ControlPanel::instance().currentBasePolygon();
 
         if (ControlPanel::instance().basePolygonLinesVisible()) {
             glShadeModel(GL_FLAT);
@@ -210,7 +213,7 @@ void GLWidget::paintGL()
 
         if (ControlPanel::instance().basePolygonIntersectionsVisible()) {
             // draw intersections
-            const QVector<QPair<double, double> > isctPoints = ControlPanel::instance().filterIntersections(points);
+            const QVector<mgp::Point> isctPoints = ControlPanel::instance().filterIntersections(points);
             for (int i = 0; i < isctPoints.size(); ++i)
                 gfx_util.drawSurfaceBall(isctPoints.at(i).first, isctPoints.at(i).second, ballSize(), 1, 0, 1, 1);
         }
@@ -233,12 +236,12 @@ void GLWidget::paintGL()
     const float currLineWidth = 5;
 
     // Within filter
-    if (ControlPanel::instance().isEnabled(Filter::WI))
+    if (ControlPanel::instance().isEnabled(mgp::FilterBase::WI))
     {
-        const PointVector points = ControlPanel::instance().WIFilterPoints();
+        const mgp::Polygon points = ControlPanel::instance().WIFilterPolygon();
 
-        const bool curr = ControlPanel::instance().isCurrent(Filter::WI);
-        const bool valid = ControlPanel::instance().isValid(Filter::WI);
+        const bool curr = ControlPanel::instance().isCurrent(mgp::FilterBase::WI);
+        const bool valid = ControlPanel::instance().isValid(mgp::FilterBase::WI);
         const QColor color = curr ? (valid ? currValidColor : currInvalidColor) : (valid ? normalValidColor : normalInvalidColor);
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
@@ -250,7 +253,7 @@ void GLWidget::paintGL()
         }
 
         // draw points
-        if (ControlPanel::instance().filterPointsVisible() && ControlPanel::instance().isCurrent(Filter::WI)) {
+        if (ControlPanel::instance().filterPointsVisible() && ControlPanel::instance().isCurrent(mgp::FilterBase::WI)) {
             for (int i = 0; i < points->size(); ++i) {
 
                 float r, g, b;
@@ -271,16 +274,17 @@ void GLWidget::paintGL()
     // LonOrLat filters
     if (ControlPanel::instance().filterLinesVisible()) {
         for (int i = 0; i < 4; ++i) {
-            const LonOrLatFilterInfo *finfo = lonOrLatFilterInfos_.value(i);
-            const bool curr = ControlPanel::instance().isCurrent(finfo->type);
+            const mgp::FilterBase::Type type = lonOrLatFilterTypes_.at(i);
+            const bool curr = ControlPanel::instance().isCurrent(type);
             const QColor color = curr ? currColor : normalColor;
             const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-            if (ControlPanel::instance().isEnabled(finfo->type)) {
+            if (ControlPanel::instance().isEnabled(type)) {
                 // draw circle
                 bool ok = false;
+                const bool isLon = (type == mgp::FilterBase::E_OF) || (type == mgp::FilterBase::W_OF);
                 gfx_util.drawLonOrLatCircle(
-                            finfo->isLon, eye, minDolly_, maxDolly_, ControlPanel::instance().value(finfo->type).toDouble(&ok),
+                            isLon, eye, minDolly_, maxDolly_, ControlPanel::instance().value(type).toDouble(&ok),
                             color, lineWidth);
                 Q_ASSERT(ok);
             }
@@ -289,14 +293,14 @@ void GLWidget::paintGL()
 
     // FreeLine filters
     for (int i = 0; i < 8; ++i) {
-        const FreeLineFilterInfo *finfo = freeLineFilterInfos_.value(i);
-        const bool curr = ControlPanel::instance().isCurrent(finfo->type);
-        const bool valid = ControlPanel::instance().isValid(finfo->type);
+        const mgp::FilterBase::Type type = freeLineFilterTypes_.at(i);
+        const bool curr = ControlPanel::instance().isCurrent(type);
+        const bool valid = ControlPanel::instance().isValid(type);
         const QColor color = curr ? (valid ? currValidColor : currInvalidColor) : (valid ? normalValidColor : normalInvalidColor);
         const float lineWidth = curr ? currLineWidth : normalLineWidth;
 
-        if (ControlPanel::instance().isEnabled(finfo->type)) {
-            const QLineF line = ControlPanel::instance().value(finfo->type).toLineF();
+        if (ControlPanel::instance().isEnabled(type)) {
+            const QLineF line = ControlPanel::instance().value(type).toLineF();
 
             if (ControlPanel::instance().filterLinesVisible()) {
                 // draw line
@@ -308,7 +312,7 @@ void GLWidget::paintGL()
 
             if (ControlPanel::instance().filterPointsVisible()) {
                 // draw endpoints
-                if (ControlPanel::instance().isCurrent(finfo->type)) {
+                if (ControlPanel::instance().isCurrent(type)) {
                     gfx_util.drawSurfaceBall(DEG2RAD(line.p1().x()), DEG2RAD(line.p1().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
                     gfx_util.drawSurfaceBall(DEG2RAD(line.p2().x()), DEG2RAD(line.p2().y()), ballSize(), 1.0, 1.0, 1.0, 0.8);
                 }
@@ -322,7 +326,7 @@ void GLWidget::paintGL()
     // --- BEGIN draw result polygons --------------------------------
 
     if (ControlPanel::instance().resultPolygonsLinesVisible() || ControlPanel::instance().resultPolygonsPointsVisible()) {
-        const PointVectors polygons = ControlPanel::instance().resultPolygons();
+        const mgp::Polygons polygons = ControlPanel::instance().resultPolygons();
         ControlPanel::instance().updateResultPolygonsGroupBoxTitle(polygons->size());
 
         if (ControlPanel::instance().resultPolygonsLinesVisible()) {
@@ -368,7 +372,7 @@ void GLWidget::paintGL()
     glFlush();
 }
 
-void GLWidget::computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray)
+void GLWidget::computeRay(int x, int y, mgp::math::_4DPoint &eye, mgp::math::_4DPoint &ray)
 {
     // Transform window coordinates into world coordinates ...
     GLint viewport[4];
@@ -383,7 +387,7 @@ void GLWidget::computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray)
 
     // Compute ray from eye through the pixel ...
     CartesianKeyFrame ckf = computeCamera();
-    _3DPoint *eye2 = ckf.getEye();
+    mgp::math::_3DPoint *eye2 = ckf.getEye();
     ray.set(wx - eye2->x(), wy - eye2->y(), wz - eye2->z());
     ray.normalize();
     eye.set(eye2->x(), eye2->y(), eye2->z());
@@ -391,17 +395,17 @@ void GLWidget::computeRay(int x, int y, _4DPoint &eye, _4DPoint &ray)
 
 bool GLWidget::intersectsEarth(QMouseEvent *event, double &lon, double &lat)
 {
-    _4DPoint eye, ray;
+    mgp::math::_4DPoint eye, ray;
     computeRay(event->x(), event->y(), eye, ray);
 
     double wx, wy, wz;
-    if (Math::raySphereIntersect(
+    if (mgp::math::Math::raySphereIntersect(
                 eye.x(), eye.y(), eye.z(),
                 ray.x(), ray.y(), ray.z(),
                 0, 0, 0,
                 GfxUtils::instance().getEarthRadius(),
                 wx, wy, wz)) {
-        Math::computeLatLon(wx, wy, wz, lat, lon);
+        mgp::math::Math::computeLatLon(wx, wy, wz, lat, lon);
         lon = fmod(lon + M_PI, 2 * M_PI) - M_PI; // [0, 2PI] -> [-PI, PI]
         return true;
     }
@@ -417,13 +421,13 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
                 && (currWIFilterPoint_ >= 0)) {
             contextMenu.addAction(addWIFilterPointAction_);
             contextMenu.addAction(removeWIFilterPointAction_);
-            removeWIFilterPointAction_->setEnabled(ControlPanel::instance().WIFilterPoints()->size() > 3);
+            removeWIFilterPointAction_->setEnabled(ControlPanel::instance().WIFilterPolygon()->size() > 3);
         } else if ((ControlPanel::instance().currentBasePolygonType() == BasePolygon::Custom)
                 && ControlPanel::instance().customBasePolygonEditableOnSphere()
                 && (currCustomBasePolygonPoint_ >= 0)) {
             contextMenu.addAction(addCustomBasePolygonPointAction_);
             contextMenu.addAction(removeCustomBasePolygonPointAction_);
-            removeCustomBasePolygonPointAction_->setEnabled(ControlPanel::instance().currentBasePolygonPoints()->size() > 3);
+            removeCustomBasePolygonPointAction_->setEnabled(ControlPanel::instance().currentBasePolygon()->size() > 3);
         }
 
         contextMenu.exec(QCursor::pos());
@@ -435,7 +439,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         dragBaseY_ = event->y();
         if ((event->button() == Qt::LeftButton)
                 && ControlPanel::instance().filtersEditableOnSphere()
-                && ControlPanel::instance().isCurrent(Filter::WI)
+                && ControlPanel::instance().isCurrent(mgp::FilterBase::WI)
                 && (currWIFilterPoint_ >= 0)) {
             // ... WI filter
             draggingWIFilter_ = true;
@@ -579,37 +583,35 @@ CartesianKeyFrame GLWidget::computeCamera()
 
     // Compute matrix for rotating x-axis according to inclination and
     // heading ...
-    _4x4Matrix m_rot1, m_tmp;
+    mgp::math::_4x4Matrix m_rot1, m_tmp;
     m_rot1.loadRotateY((1 - incl_) * M_PI_2);
     m_tmp.loadRotateX(fmod((heading_ + 0.5) * 2 * M_PI, 2 * M_PI));
     m_rot1.mulMatLeft(m_tmp);
 
     // Compute matrix for rotating the x unit vector into the focus vector ...
     double lat, lon;
-    Math::computeLatLon(focus_.x(), focus_.y(), focus_.z(), lat, lon);
+    mgp::math::Math::computeLatLon(focus_.x(), focus_.y(), focus_.z(), lat, lon);
     //
-    _4x4Matrix m_rot2;
+    mgp::math::_4x4Matrix m_rot2;
     m_rot2.loadRotateY(-lat);
     m_tmp.loadRotateZ(lon);
     m_rot2.mulMatLeft(m_tmp);
 
     // Set matrix for translating the origin into the focus point ...
-    _4x4Matrix m_tsl;
-    m_tsl.loadTranslate(
-    Math::norm(focus_.x(), focus_.y(), focus_.z()), 0, 0);
+    mgp::math::_4x4Matrix m_tsl;
+    m_tsl.loadTranslate(mgp::math::Math::norm(focus_.x(), focus_.y(), focus_.z()), 0, 0);
 
     // Compute eye-point ...
-    _4x4Matrix m_eye = m_rot1;
+    mgp::math::_4x4Matrix m_eye = m_rot1;
     m_eye.mulMatLeft(m_tsl);
     m_eye.mulMatLeft(m_rot2);
-    _4DPoint eye(
-    minDolly_ + pow(dolly_, 2) * (maxDolly_ - minDolly_), 0, 0);
+    mgp::math::_4DPoint eye(minDolly_ + pow(dolly_, 2) * (maxDolly_ - minDolly_), 0, 0);
     eye.mulMatPoint(m_eye);
 
     // Compute up-vector ...
-    _4x4Matrix m_up = m_rot1;
+    mgp::math::_4x4Matrix m_up = m_rot1;
     m_up.mulMatLeft(m_rot2);
-    _4DPoint up(0, 0, 1);
+    mgp::math::_4DPoint up(0, 0, 1);
     up.mulMatPoint(m_up);
 
 
@@ -617,8 +619,8 @@ CartesianKeyFrame GLWidget::computeCamera()
     CartesianKeyFrame ckf;
     ckf.setEye(eye.get(0), eye.get(1), eye.get(2));
     ckf.setTgt(focus_.x() - eye.get(0),
-	       focus_.y() - eye.get(1),
-	       focus_.z() - eye.get(2));
+               focus_.y() - eye.get(1),
+               focus_.z() - eye.get(2));
     ckf.setUp(up.get(0), up.get(1), up.get(2));
     return ckf;
 }
@@ -647,7 +649,7 @@ void GLWidget::setCurrentFocusPos(double lon, double lat)
     updateGL();
 }
 
-QPair<double, double> GLWidget::currentFocusPos() const
+mgp::Point GLWidget::currentFocusPos() const
 {
     return qMakePair(focusLon_, focusLat_);
 }
