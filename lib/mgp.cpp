@@ -1060,7 +1060,10 @@ Polygons applyFilters(const Polygons &inPolys, const Filters &filters)
 {
     // initialize final output
     Polygons outPolys(new QVector<Polygon>());
-    *outPolys += *inPolys;
+    if (inPolys && (!inPolys->isEmpty()))
+        *outPolys += *inPolys;
+    else
+        return outPolys; // empty input, so return empty output
 
     // apply valid filters
     for (int i = 0; i < filters->size(); ++i) {

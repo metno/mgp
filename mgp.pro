@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS = lib apps
+SUBDIRS = lib apps tests
 CONFIG += ordered
