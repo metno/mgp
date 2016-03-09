@@ -1,6 +1,8 @@
 #include "mgp.h"
+#include "mgpmath.h"
 #include <QtTest/QtTest>
 
+Q_DECLARE_METATYPE(mgp::Point)
 Q_DECLARE_METATYPE(mgp::Polygon)
 Q_DECLARE_METATYPE(mgp::Polygons)
 Q_DECLARE_METATYPE(mgp::Filters)
@@ -15,6 +17,9 @@ private slots:
 
     void applyFiltersOverloadWithEmptyInput_data();
     void applyFiltersOverloadWithEmptyInput();
+
+    void applyFiltersOverload_data();
+    void applyFiltersOverload();
 };
 
 // Returns true iff two polygons are considered equal.
@@ -179,6 +184,42 @@ void TestMgp::applyFiltersOverloadWithEmptyInput()
 
     const mgp::Polygons outPolys = mgp::applyFilters(polygon, filters);
     QVERIFY(equal(outPolys, expectedResult));
+}
+
+void TestMgp::applyFiltersOverload_data()
+{
+    QTest::addColumn<mgp::Polygon>("polygon");
+    QTest::addColumn<mgp::Filters>("filters");
+    QTest::addColumn<mgp::Point>("point");
+    QTest::addColumn<bool>("inside");
+
+    mgp::Polygon polygon(new QVector<mgp::Point>());
+    mgp::Filters filters(new QList<mgp::Filter>());
+
+    //-------------------------------------------------------------
+    polygon->clear();
+    polygon->append(qMakePair(DEG2RAD(0), DEG2RAD(60)));
+    polygon->append(qMakePair(DEG2RAD(10), DEG2RAD(60)));
+    polygon->append(qMakePair(DEG2RAD(5), DEG2RAD(70)));
+    filters->clear();
+    filters->append(mgp::Filter(new mgp::SOfFilter(DEG2RAD(65))));
+    QTest::newRow("S_OF inside") << polygon << filters << qMakePair(DEG2RAD(5), DEG2RAD(63)) << true;
+    QTest::newRow("S_OF outside") << polygon << filters << qMakePair(DEG2RAD(5), DEG2RAD(67)) << false;
+}
+
+void TestMgp::applyFiltersOverload()
+{
+    QFETCH(mgp::Polygon, polygon);
+    QFETCH(mgp::Filters, filters);
+    QFETCH(mgp::Point, point);
+    QFETCH(bool, inside);
+
+    const mgp::Polygons outPolys = mgp::applyFilters(polygon, filters);
+    int nInsides = 0;
+    for (int i = 0; i < outPolys->size(); ++i)
+        if (mgp::math::pointInPolygon(point, outPolys->at(i)))
+            nInsides++;
+    QVERIFY((inside && (nInsides > 0)) || ((!inside) && (nInsides == 0)));
 }
 
 QTEST_MAIN(TestMgp)
