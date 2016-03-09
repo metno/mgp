@@ -1,29 +1,12 @@
-#include "mgp.h"
+#include "testmgp.h"
 #include "mgpmath.h"
-#include <QtTest/QtTest>
 
 Q_DECLARE_METATYPE(mgp::Point)
 Q_DECLARE_METATYPE(mgp::Polygon)
 Q_DECLARE_METATYPE(mgp::Polygons)
 Q_DECLARE_METATYPE(mgp::Filters)
 
-class TestMgp: public QObject
-{
-    Q_OBJECT
-
-private slots:
-    void applyFiltersWithEmptyInput_data();
-    void applyFiltersWithEmptyInput();
-
-    void applyFiltersOverloadWithEmptyInput_data();
-    void applyFiltersOverloadWithEmptyInput();
-
-    void applyFiltersOverload_data();
-    void applyFiltersOverload();
-};
-
-// Returns true iff two polygons are considered equal.
-static bool equal(const mgp::Polygon &poly1, const mgp::Polygon &poly2)
+bool TestMgp::equal(const mgp::Polygon &poly1, const mgp::Polygon &poly2)
 {
     const bool isEmpty1 = (!poly1) || poly1->isEmpty();
     const bool isEmpty2 = (!poly2) || poly2->isEmpty();
@@ -40,14 +23,12 @@ static bool equal(const mgp::Polygon &poly1, const mgp::Polygon &poly2)
     return *poly1 == *poly2;
 }
 
-// Returns true iff a polygon is considered empty.
-static bool empty(const mgp::Polygon &poly)
+bool TestMgp::empty(const mgp::Polygon &poly)
 {
     return (!poly) || poly->isEmpty();
 }
 
-// Returns true iff a set of polygons is considered empty.
-static bool empty(const mgp::Polygons &polys)
+bool TestMgp::empty(const mgp::Polygons &polys)
 {
     if ((!polys) || polys->isEmpty())
         return true;
@@ -57,8 +38,7 @@ static bool empty(const mgp::Polygons &polys)
     return true;
 }
 
-// Returns true iff two sets of polygons are considered equal.
-static bool equal(const mgp::Polygons &polys1, const mgp::Polygons &polys2)
+bool TestMgp::equal(const mgp::Polygons &polys1, const mgp::Polygons &polys2)
 {
     const bool isEmpty1 = empty(polys1);
     const bool isEmpty2 = empty(polys2);
@@ -223,4 +203,3 @@ void TestMgp::applyFiltersOverload()
 }
 
 QTEST_MAIN(TestMgp)
-#include "testmgp.moc"
