@@ -1066,7 +1066,7 @@ Polygons applyFilters(const Polygons &inPolys, const Filters &filters)
         return outPolys; // empty input, so return empty output
 
     // apply valid filters
-    for (int i = 0; i < filters->size(); ++i) {
+    for (int i = 0; filters && (i < filters->size()); ++i) {
         const Filter filter = filters->at(i);
         if (!filter->isValid())
             continue;
@@ -1096,7 +1096,7 @@ Polygons applyFilters(const Polygons &inPolys, const Filters &filters)
 Polygons applyFilters(const Polygon &polygon, const Filters &filters)
 {
     Polygons polygons = Polygons(new QVector<Polygon>());
-    polygons->append(polygon);
+    polygons->append(polygon ? polygon : Polygon(new QVector<Point>()));
     return applyFilters(polygons, filters);
 }
 

@@ -1,8 +1,10 @@
 CONFIG += qtestlib
 TEMPLATE = app
 TARGET = testmgp
-DEPENDPATH += . ../lib
+
 INCLUDEPATH += . ../lib
+DEPENDPATH += . ../lib
+PRE_TARGETDEPS += ../lib/libmgp.a
 
 SOURCES += testmgp.cpp
 

@@ -366,6 +366,7 @@ Polygons applyFilters(const Polygons &polygons, const Filters &filters);
 /**
  * Applies a filter sequence to a single polygon.
  *
+ * \note This is an overloaded function.
  * \param[in] polygon Polygon.
  * \param[in] filters Sequence of zero or more filters.
  * \return The list of polygons that results from applying \c filters to \c polygon.
