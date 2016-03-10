@@ -12,5 +12,4 @@ Package: metno-mgp
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: MET Norway MGP demo application
- This package contains a demo application for the MGP polygon clipping
- library.
+ This package contains a demo application for the MGP polygon library.
