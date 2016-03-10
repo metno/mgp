@@ -11,5 +11,15 @@ SOURCES += main.cpp mainwindow.cpp glwidget.cpp gfxutils.cpp controlpanel.cpp te
 
 LIBS += -L ../../lib -lmgp -lglut -lGLU
 
-target.path = $$PREFIX/bin
-INSTALLS += target
+BINDIR = $$PREFIX/bin
+DATADIR = $$PREFIX/share
+
+target.path = $$BINDIR
+
+desktop.path = $$DATADIR/applications
+desktop.files += ../../desktop/metno-$${TARGET}.desktop
+
+icon64.path = $$DATADIR/pixmaps
+icon64.files += ../../icons/$${TARGET}.png
+
+INSTALLS += target desktop icon64

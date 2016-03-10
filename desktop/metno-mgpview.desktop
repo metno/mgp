@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=MGPView
+GenericName=MGPView
+Comment=Demo-applikasjon for MGP (MET Geografiske Polygoner)
+Exec=mgpview
+Icon=mgpview
+MimeType=;
+ServiceTypes=
+Terminal=false
+Type=Application
+Categories=Science;Meteorologisk
