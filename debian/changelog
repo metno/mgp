@@ -1,3 +1,10 @@
+metno-mgp (1.1.2-1) unstable; urgency=low
+
+    * increased icon contrast
+
+ -- Jo Asplin <jo.asplin@met.no>  Fri, 11 Mar 2016 12:52:00 +0100
+
+
 metno-mgp (1.1.1-1) unstable; urgency=low
 
     * added desktop file
