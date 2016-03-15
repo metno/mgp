@@ -468,6 +468,7 @@ void ControlPanel::initialize()
     basePolygonLayout2->addWidget(basePolygonComboBox_);
 
     customBasePolygonEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
+    connect(customBasePolygonEditableOnSphereCheckBox_, SIGNAL(stateChanged(int)), SLOT(customBasePolygonEditableOnSphereCheckBoxStateChanged()));
     connect(customBasePolygonEditableOnSphereCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     basePolygonLayout2->addWidget(customBasePolygonEditableOnSphereCheckBox_);
 
@@ -497,6 +498,7 @@ void ControlPanel::initialize()
     filterLayout->addLayout(filterLayout2);
 
     filtersEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
+    connect(filtersEditableOnSphereCheckBox_, SIGNAL(stateChanged(int)), SLOT(filtersEditableOnSphereCheckBoxStateChanged()));
     filterLayout2->addWidget(filtersEditableOnSphereCheckBox_);
 
     filterLinesVisibleCheckBox_ = new QCheckBox("Lines");
@@ -1099,4 +1101,16 @@ void ControlPanel::handleXmetExprChanged()
     } else {
         setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_ + " *"); // indicate that non-updated changes exist
     }
+}
+
+void ControlPanel::customBasePolygonEditableOnSphereCheckBoxStateChanged()
+{
+    if (customBasePolygonEditableOnSphereCheckBox_->isChecked())
+        filtersEditableOnSphereCheckBox_->setChecked(false);
+}
+
+void ControlPanel::filtersEditableOnSphereCheckBoxStateChanged()
+{
+    if (filtersEditableOnSphereCheckBox_->isChecked())
+        customBasePolygonEditableOnSphereCheckBox_->setChecked(false);
 }

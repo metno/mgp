@@ -245,6 +245,8 @@ private slots:
     void setXmetExprFromFilters();
     void setFiltersFromXmetExpr();
     void handleXmetExprChanged();
+    void customBasePolygonEditableOnSphereCheckBoxStateChanged();
+    void filtersEditableOnSphereCheckBoxStateChanged();
 };
 
 #endif // CONTROLPANEL_H

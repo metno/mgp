@@ -30,7 +30,7 @@ MainWindow &MainWindow::instance()
 
 MainWindow::MainWindow()
 {
-    setWindowTitle("MGPView 0.0.0");
+    setWindowTitle("MGPView 1.1.3");
 
     QGridLayout *mainLayout = new QGridLayout;
 
