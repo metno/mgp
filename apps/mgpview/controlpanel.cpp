@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include "glwidget.h"
 #include "enor_fir.h"
+#include "enob_fir.h"
 #include "textedit.h"
 #include <QVBoxLayout>
 #include <QGridLayout>
@@ -285,21 +286,33 @@ static mgp::Polygon createENORFIR()
     return points;
 }
 
+static mgp::Polygon createENOBFIR()
+{
+    mgp::Polygon points = mgp::Polygon(new QVector<mgp::Point>);
+
+    const int npoints = sizeof(enob_fir) / sizeof(float) / 2;
+    for (int i = 0; i < npoints; ++i) {
+        const double lon = DEG2RAD(enob_fir[2 * i + 1]);
+        const double lat = DEG2RAD(enob_fir[2 * i]);
+        points->append(qMakePair(lon, lat));
+    }
+    return points;
+}
+
 BasePolygon *BasePolygon::create(Type type)
 {
     if (type == None) {
         return new BasePolygon(None);
-
     } else if (type == Custom) {
         mgp::Polygon points = mgp::Polygon(new QVector<mgp::Point>);
         points->append(qMakePair(DEG2RAD(7), DEG2RAD(60)));
         points->append(qMakePair(DEG2RAD(13), DEG2RAD(60)));
         points->append(qMakePair(DEG2RAD(10), DEG2RAD(65)));
         return new BasePolygon(Custom, points);
-
     } else if (type == ENOR_FIR) {
         return new BasePolygon(ENOR_FIR, createENORFIR());
-
+    } else if (type == ENOB_FIR) {
+        return new BasePolygon(ENOB_FIR, createENOBFIR());
     } else {
         return new BasePolygon(type); // for now
     }
@@ -460,6 +473,7 @@ void ControlPanel::initialize()
     basePolygonComboBox_ = new QComboBox;
     basePolygonComboBox_->addItem("Custom", BasePolygon::Custom);
     basePolygonComboBox_->addItem("ENOR FIR", BasePolygon::ENOR_FIR);
+    basePolygonComboBox_->addItem("ENOB FIR", BasePolygon::ENOB_FIR);
     basePolygonComboBox_->addItem("XXXX FIR", BasePolygon::XXXX_FIR);
     basePolygonComboBox_->addItem("YYYY FIR", BasePolygon::YYYY_FIR);
     basePolygonComboBox_->addItem("ZZZZ FIR", BasePolygon::ZZZZ_FIR);
@@ -477,6 +491,7 @@ void ControlPanel::initialize()
     //basePolygons_.insert(BasePolygon::None, BasePolygon::create(BasePolygon::None)); // ### necessary?
     basePolygons_.insert(BasePolygon::Custom, BasePolygon::create(BasePolygon::Custom));
     basePolygons_.insert(BasePolygon::ENOR_FIR, BasePolygon::create(BasePolygon::ENOR_FIR));
+    basePolygons_.insert(BasePolygon::ENOB_FIR, BasePolygon::create(BasePolygon::ENOB_FIR));
     basePolygons_.insert(BasePolygon::XXXX_FIR, BasePolygon::create(BasePolygon::XXXX_FIR));
     basePolygons_.insert(BasePolygon::YYYY_FIR, BasePolygon::create(BasePolygon::YYYY_FIR));
     basePolygons_.insert(BasePolygon::ZZZZ_FIR, BasePolygon::create(BasePolygon::ZZZZ_FIR));

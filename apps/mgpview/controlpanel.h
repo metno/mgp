@@ -115,7 +115,7 @@ class BasePolygon
     friend class ControlPanel;
 
 public:
-    enum Type { None, Custom, ENOR_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
+    enum Type { None, Custom, ENOR_FIR, ENOB_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
     static QString typeName(Type);
 
 protected:
