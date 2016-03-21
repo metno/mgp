@@ -192,9 +192,9 @@ void GLWidget::paintGL()
             for (int i = 0; i < points->size(); ++i) {
 
                 float r, g, b;
-                if (i == currCustomBasePolygonPoint_) {
-                    r = 1.0;
-                    g = 1.0;
+                if ((i == currCustomBasePolygonPoint_) && ControlPanel::instance().customBasePolygonEditableOnSphere()) {
+                    r = 0.6;
+                    g = 0.6;
                     b = 0.0;
                 } else if (ControlPanel::instance().rejectedByAnyFilter(points->at(i))) {
                     r = 0.8;
@@ -257,7 +257,7 @@ void GLWidget::paintGL()
             for (int i = 0; i < points->size(); ++i) {
 
                 float r, g, b;
-                if (i == currWIFilterPoint_) {
+                if ((i == currWIFilterPoint_) && ControlPanel::instance().filtersEditableOnSphere()) {
                     r = 0.6;
                     g = 0.6;
                     b = 0.0;
