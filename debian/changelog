@@ -1,3 +1,9 @@
+metno-mgp (1.1.5-2) unstable; urgency=low
+
+    * set better defaults
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 21 Mar 2016 09:32:00 +0100
+
 metno-mgp (1.1.4-2) unstable; urgency=low
 
     * updated version in main window title

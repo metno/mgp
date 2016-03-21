@@ -430,7 +430,7 @@ void ControlPanel::initialize()
     QHBoxLayout *bsLayout = new QHBoxLayout;
     bsLayout->addWidget(new QLabel("Ball size:"));
     bsSlider_ = new QSlider(Qt::Horizontal);
-    bsSlider_->setValue(bsSlider_->minimum() + 0.5 * (bsSlider_->maximum() - bsSlider_->minimum()));
+    bsSlider_->setValue(bsSlider_->minimum() + 0.3 * (bsSlider_->maximum() - bsSlider_->minimum()));
     connect(bsSlider_, SIGNAL(valueChanged(int)), SLOT(updateGLWidget()));
     bsLayout->addWidget(bsSlider_);
     generalLayout->addLayout(bsLayout);
@@ -472,11 +472,10 @@ void ControlPanel::initialize()
 
     basePolygonComboBox_ = new QComboBox;
     basePolygonComboBox_->addItem("Custom", BasePolygon::Custom);
-    basePolygonComboBox_->addItem("ENOR FIR", BasePolygon::ENOR_FIR);
+    const QString enorFirLabel("ENOR FIR");
+    basePolygonComboBox_->addItem(enorFirLabel, BasePolygon::ENOR_FIR);
     basePolygonComboBox_->addItem("ENOB FIR", BasePolygon::ENOB_FIR);
-    basePolygonComboBox_->addItem("XXXX FIR", BasePolygon::XXXX_FIR);
-    basePolygonComboBox_->addItem("YYYY FIR", BasePolygon::YYYY_FIR);
-    basePolygonComboBox_->addItem("ZZZZ FIR", BasePolygon::ZZZZ_FIR);
+    basePolygonComboBox_->setCurrentIndex(basePolygonComboBox_->findText(enorFirLabel));
     basePolygonComboBox_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     connect(basePolygonComboBox_, SIGNAL(currentIndexChanged(int)), SLOT(basePolygonTypeChanged()));
     basePolygonLayout2->addWidget(basePolygonComboBox_);
@@ -506,13 +505,11 @@ void ControlPanel::initialize()
     mainLayout->addWidget(filterGroupBox);
 
     // header
-//    filterLayout->addWidget(new QLabel("Filters:"), 0, 0, 1, 5);
-//    filterLayout->itemAtPosition(0, 0)->widget()->setStyleSheet("font-weight:bold; font-size:16px");
-
     QHBoxLayout *filterLayout2 = new QHBoxLayout;
     filterLayout->addLayout(filterLayout2);
 
     filtersEditableOnSphereCheckBox_ = new QCheckBox("Editable on earth sphere");
+    filtersEditableOnSphereCheckBox_->setChecked(true);
     connect(filtersEditableOnSphereCheckBox_, SIGNAL(stateChanged(int)), SLOT(filtersEditableOnSphereCheckBoxStateChanged()));
     filterLayout2->addWidget(filtersEditableOnSphereCheckBox_);
 
@@ -647,10 +644,13 @@ void ControlPanel::initialize()
     foreach (FilterControlBase *filter, filterControls_)
         currBtnGroup->addButton(filter->currCheckBox_);
 
-    const mgp::FilterBase::Type initCurrType = mgp::FilterBase::E_OF;
+    const mgp::FilterBase::Type initCurrType = mgp::FilterBase::WI;
     filterControls_.value(initCurrType)->currCheckBox_->blockSignals(true);
     filterControls_.value(initCurrType)->currCheckBox_->setChecked(true);
     filterControls_.value(initCurrType)->currCheckBox_->blockSignals(false);
+    filterControls_.value(initCurrType)->enabledCheckBox_->blockSignals(true);
+    filterControls_.value(initCurrType)->enabledCheckBox_->setChecked(true);
+    filterControls_.value(initCurrType)->enabledCheckBox_->blockSignals(false);
 
     // initialize tab texts
     updateFilterTabTexts();
@@ -669,6 +669,7 @@ void ControlPanel::initialize()
     resultPolygonsLayout->addLayout(resultPolygonsLayout2);
 
     resultPolygonsLinesVisibleCheckBox_ = new QCheckBox("Lines");
+    resultPolygonsLinesVisibleCheckBox_->setChecked(true);
     connect(resultPolygonsLinesVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     resultPolygonsLayout2->addWidget(resultPolygonsLinesVisibleCheckBox_);
 

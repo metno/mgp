@@ -258,8 +258,8 @@ void GLWidget::paintGL()
 
                 float r, g, b;
                 if (i == currWIFilterPoint_) {
-                    r = 1.0;
-                    g = 1.0;
+                    r = 0.6;
+                    g = 0.6;
                     b = 0.0;
                 } else {
                     r = 1.0;
