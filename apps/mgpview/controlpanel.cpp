@@ -121,7 +121,7 @@ FilterControlBase *LonOrLatFilterControl::create(QGridLayout *layout, int row, m
 
 void LonOrLatFilterControl::update()
 {
-   valSpinBox_->setValue(RAD2DEG(lonOrLatFilter_->value()));
+    valSpinBox_->setValue(RAD2DEG(lonOrLatFilter_->value()));
 }
 
 QVariant LonOrLatFilterControl::value() const
@@ -215,12 +215,19 @@ FilterControlBase *FreeLineFilterControl::create(QGridLayout *layout, int row, m
     return filterControl;
 }
 
+static void setSpinBoxValueSilently(QDoubleSpinBox *spinBox, double value)
+{
+    spinBox->blockSignals(true);
+    spinBox->setValue(value);
+    spinBox->blockSignals(false);
+}
+
 void FreeLineFilterControl::update()
 {
-   lon1SpinBox_->setValue(RAD2DEG(freeLineFilter_->lon1()));
-   lat1SpinBox_->setValue(RAD2DEG(freeLineFilter_->lat1()));
-   lon2SpinBox_->setValue(RAD2DEG(freeLineFilter_->lon2()));
-   lat2SpinBox_->setValue(RAD2DEG(freeLineFilter_->lat2()));
+    setSpinBoxValueSilently(lon1SpinBox_, RAD2DEG(freeLineFilter_->lon1()));
+    setSpinBoxValueSilently(lat1SpinBox_, RAD2DEG(freeLineFilter_->lat1()));
+    setSpinBoxValueSilently(lon2SpinBox_, RAD2DEG(freeLineFilter_->lon2()));
+    setSpinBoxValueSilently(lat2SpinBox_, RAD2DEG(freeLineFilter_->lat2()));
 }
 
 QVariant FreeLineFilterControl::value() const

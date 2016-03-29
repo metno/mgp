@@ -1,3 +1,9 @@
+metno-mgp (1.1.5-4) unstable; urgency=low
+
+    * fixed bug
+
+ -- Jo Asplin <jo.asplin@met.no>  Tue, 29 Mar 2016 11:30:00 +0100
+
 metno-mgp (1.1.5-3) unstable; urgency=low
 
     * more consistent color highlighting
