@@ -4,7 +4,6 @@
 #include "glwidget.h"
 #include "enor_fir.h"
 #include "enob_fir.h"
-#include "textedit.h"
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -701,9 +700,9 @@ void ControlPanel::initialize()
     xmetExprGroupBox->setLayout(xmetExprLayout);
     mainLayout->addWidget(xmetExprGroupBox);
 
-    xmetExprEdit_ = new TextEdit;
-    xmetExprLayout->addWidget(xmetExprEdit_);
-    connect(xmetExprEdit_, SIGNAL(textChanged()), SLOT(handleXmetExprChanged()));
+    xmetAreaEdit_ = new mgp::XMETAreaEdit;
+    xmetExprLayout->addWidget(xmetAreaEdit_);
+    connect(xmetAreaEdit_, SIGNAL(textChanged()), SLOT(handleXmetExprChanged()));
 
     QHBoxLayout *xmetExprLayout2 = new QHBoxLayout;
     xmetExprLayout->addLayout(xmetExprLayout2);
@@ -714,17 +713,6 @@ void ControlPanel::initialize()
     xmetExprLayout2->addWidget(setXmetExprFromFiltersButton);
 
     xmetExprLayout2->addStretch(1);
-
-    setFiltersFromXmetExprButtonText_ = "Set filters from expression";
-    setFiltersFromXmetExprButton_ = new QPushButton(setFiltersFromXmetExprButtonText_);
-    setFiltersFromXmetExprButton_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    connect(setFiltersFromXmetExprButton_, SIGNAL(clicked()), SLOT(setFiltersFromXmetExpr()));
-    xmetExprLayout2->addWidget(setFiltersFromXmetExprButton_);
-
-    autoSetFiltersCheckBox_ = new QCheckBox("Auto");
-    connect(autoSetFiltersCheckBox_, SIGNAL(toggled(bool)), setFiltersFromXmetExprButton_, SLOT(setDisabled(bool)));
-    connect(autoSetFiltersCheckBox_, SIGNAL(toggled(bool)), SLOT(setFiltersFromXmetExpr()));
-    xmetExprLayout2->addWidget(autoSetFiltersCheckBox_);
 
     // --- END SIGMET/AIRMET area expression section -------------------------------------------
 
@@ -1068,34 +1056,17 @@ void ControlPanel::exportResultPolygons()
 // Sets a canonical SIGMET/AIRMET expression from the currently enabled and valid filters.
 void ControlPanel::setXmetExprFromFilters()
 {
-    xmetExprEdit_->setHtml(mgp::xmetExprFromFilters(enabledAndValidFilters()));
-    setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
+    xmetAreaEdit_->setHtml(mgp::xmetExprFromFilters(enabledAndValidFilters()));
+    xmetAreaEdit_->update();
 }
 
-// Sets the filters from the SIGMET/AIRMET expression if possible.
-void ControlPanel::setFiltersFromXmetExpr()
+void ControlPanel::handleXmetExprChanged()
 {
-    // disable all filters
+    // update filters
     foreach (FilterControlBase *filterControl, filterControls_) {
         filterControl->enabledCheckBox_->setChecked(false);
     }
-
-    // parse expression
-    QList<QPair<int, int> > matchedRanges;
-    QList<QPair<QPair<int, int>, QString> > incompleteRanges;
-    const mgp::Filters filters = mgp::filtersFromXmetExpr(xmetExprEdit_->toPlainText(), &matchedRanges, &incompleteRanges);
-
-    // update text edit
-    xmetExprEdit_->resetHighlighting();
-    for (int i = 0; i < matchedRanges.size(); ++i)
-        xmetExprEdit_->addMatchedRange(matchedRanges.at(i));
-    for (int i = 0; i < incompleteRanges.size(); ++i)
-        xmetExprEdit_->addIncompleteRange(incompleteRanges.at(i).first, incompleteRanges.at(i).second);
-    xmetExprEdit_->showHighlighting();
-
-    setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_); // indicate that all changes are updated
-
-    // update filters
+    const mgp::Filters filters = xmetAreaEdit_->filters();
     foreach (mgp::Filter filter, *filters) {
         FilterControlBase *filterControl = filterControls_.value(filter->type());
         filterControl->filter()->setFromVariant(filter->toVariant());
@@ -1104,26 +1075,7 @@ void ControlPanel::setFiltersFromXmetExpr()
     }
 
     // update GL widget
-    if (!matchedRanges.isEmpty())
-        updateGLWidget();
-}
-
-void ControlPanel::handleXmetExprChanged()
-{
-    if (autoSetFiltersCheckBox_->isChecked()) {
-        // update filters right away
-        QTextCursor cursor(xmetExprEdit_->textCursor());
-        const int cursorPos = cursor.position();
-
-        xmetExprEdit_->blockSignals(true);
-        setFiltersFromXmetExpr();
-        xmetExprEdit_->blockSignals(false);
-
-        cursor.setPosition(cursorPos);
-        xmetExprEdit_->setTextCursor(cursor);
-    } else {
-        setFiltersFromXmetExprButton_->setText(setFiltersFromXmetExprButtonText_ + " *"); // indicate that non-updated changes exist
-    }
+    updateGLWidget();
 }
 
 void ControlPanel::customBasePolygonEditableOnSphereCheckBoxStateChanged()

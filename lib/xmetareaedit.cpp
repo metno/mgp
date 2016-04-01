@@ -1,17 +1,30 @@
-#include "textedit.h"
+#include "mgp.h"
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QAbstractTextDocumentLayout>
 #include <QToolTip>
 #include <QDebug>
 
-TextEdit::TextEdit(QWidget *parent)
+MGP_BEGIN_NAMESPACE
+
+XMETAreaEdit::XMETAreaEdit(QWidget *parent)
     : QTextEdit(parent)
+{
+    init();
+}
+
+XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent)
+    : QTextEdit(text, parent)
+{
+    init();
+}
+
+void XMETAreaEdit::init()
 {
     setMouseTracking(true);
 }
 
-void TextEdit::resetHighlighting()
+void XMETAreaEdit::resetHighlighting()
 {
     setPlainText(toPlainText());
     matched_ = QBitArray(toPlainText().size(), false);
@@ -19,19 +32,19 @@ void TextEdit::resetHighlighting()
     reason_.clear();
 }
 
-void TextEdit::addMatchedRange(const QPair<int, int> &range)
+void XMETAreaEdit::addMatchedRange(const QPair<int, int> &range)
 {
     matched_.fill(true, range.first, range.second + 1);
 }
 
-void TextEdit::addIncompleteRange(const QPair<int, int> &range, const QString &reason)
+void XMETAreaEdit::addIncompleteRange(const QPair<int, int> &range, const QString &reason)
 {
     incomplete_.fill(true, range.first, range.second + 1);
     for (int i = range.first; i <= range.second; ++i)
         reason_.insert(i, reason);
 }
 
-void TextEdit::showHighlighting()
+void XMETAreaEdit::showHighlighting()
 {
     const QString defaultColor("#000");
     //const QString defaultColor("#888");
@@ -91,7 +104,7 @@ void TextEdit::showHighlighting()
     setHtml(html);
 }
 
-void TextEdit::mouseMoveEvent(QMouseEvent *event)
+void XMETAreaEdit::mouseMoveEvent(QMouseEvent *event)
 {
     QTextEdit::mouseMoveEvent(event);
     const QPoint scrollBarPos(
@@ -105,7 +118,47 @@ void TextEdit::mouseMoveEvent(QMouseEvent *event)
         QToolTip::showText(QCursor::pos(), "");
 }
 
-void TextEdit::mousePressEvent(QMouseEvent *event)
+void XMETAreaEdit::mousePressEvent(QMouseEvent *event)
 {
     QTextEdit::mousePressEvent(event);
 }
+
+bool XMETAreaEdit::update()
+{
+    // update filters from expression
+    QList<QPair<int, int> > matchedRanges;
+    QList<QPair<QPair<int, int>, QString> > incompleteRanges;
+    const QString text = toPlainText();
+    filters_ = mgp::filtersFromXmetExpr(text, &matchedRanges, &incompleteRanges);
+
+    // update highlighting from matched and incomplete ranges
+
+    QTextCursor cursor(textCursor());
+    const int cursorPos = cursor.position();
+    blockSignals(true);
+
+    resetHighlighting();
+    for (int i = 0; i < matchedRanges.size(); ++i)
+        addMatchedRange(matchedRanges.at(i));
+    for (int i = 0; i < incompleteRanges.size(); ++i)
+        addIncompleteRange(incompleteRanges.at(i).first, incompleteRanges.at(i).second);
+    showHighlighting();
+
+    blockSignals(false);
+    cursor.setPosition(cursorPos);
+    setTextCursor(cursor);
+
+    // return true iff at least one non-whitespace character is found outside any matched range
+    for (int i = 0; i < matched_.size(); ++i)
+        if ((!matched_.testBit(i)) && (!text.at(i).isSpace()))
+            return false; // found at least one non-whitespace character in an unmatched range
+    return true;
+}
+
+mgp::Filters XMETAreaEdit::filters()
+{
+    update();
+    return filters_;
+}
+
+MGP_END_NAMESPACE

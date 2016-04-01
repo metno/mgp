@@ -7,6 +7,8 @@
 #include <QList>
 #include <QString>
 #include <QVariant>
+#include <QTextEdit>
+#include <QBitArray>
 #include <math.h>
 
 #define MGP_BEGIN_NAMESPACE namespace mgp {
@@ -45,6 +47,7 @@ typedef QSharedPointer<QVector<Polygon> > Polygons;
 
 #define DEG2RAD(d) ((d) / 180.0) * M_PI
 #define RAD2DEG(r) ((r) / M_PI) * 180
+
 
 // --- BEGIN classes --------------------------------------------------
 
@@ -345,11 +348,46 @@ private:
     virtual Type type() const { return SW_OF_LINE; }
 };
 
-// --- END classes --------------------------------------------------
-
 
 typedef QSharedPointer<FilterBase> Filter;
 typedef QSharedPointer<QList<Filter> > Filters;
+
+
+//! This class extends a QTextEdit with validation and highlighting of a SIGMET/AIRMET area expression.
+class XMETAreaEdit : public QTextEdit
+{
+public:
+    XMETAreaEdit(QWidget *parent = 0);
+    XMETAreaEdit(const QString &text, QWidget *parent = 0);
+
+    /**
+     * Updates filters and highlighting.
+     * \return True iff each non-whitespace character is part of a matched range.
+     */
+    bool update();
+
+    /**
+     * Extracts the complete filters found in the text
+     * \return The sequence of complete filters ordered by occurrence. If a given filter type (like 'S OF ...') appears more than
+     * once, only the first occurrence is returned.
+     */
+    Filters filters();
+
+private:
+    void init();
+    virtual void mouseMoveEvent(QMouseEvent *);
+    virtual void mousePressEvent(QMouseEvent *);
+    void resetHighlighting();
+    void addMatchedRange(const QPair<int, int> &);
+    void addIncompleteRange(const QPair<int, int> &, const QString &);
+    void showHighlighting();
+    QBitArray matched_;
+    QBitArray incomplete_;
+    QHash<int, QString> reason_;
+    Filters filters_;
+};
+
+// --- END classes --------------------------------------------------
 
 
 // --- BEGIN global functions --------------------------------------------------
@@ -380,11 +418,6 @@ Polygons applyFilters(const Polygon &polygon, const Filters &filters);
  * \return The canonical area part of a SIGMET/AIRMET expression that corresponds to \c filters.
  */
 QString xmetExprFromFilters(const Filters &filters);
-
-// Returns the filter sequence that corresponds to a SIGMET/AIRMET expression.
-// Out parameters:
-//   1: The list of matched ranges.
-//   2: The list of incomplete ranges and reasons.
 
 /**
  * Converts a SIGMET/AIRMET area expression to a filter sequence.

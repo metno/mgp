@@ -220,10 +220,7 @@ private:
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
-    TextEdit *xmetExprEdit_;
-    QPushButton *setFiltersFromXmetExprButton_;
-    QString setFiltersFromXmetExprButtonText_;
-    QCheckBox *autoSetFiltersCheckBox_;
+    mgp::XMETAreaEdit *xmetAreaEdit_;
 
     void updatePolygonPointDragging(const mgp::Polygon &, int, const mgp::Point &);
     void addPointToPolygon(const mgp::Polygon &, int);
@@ -243,7 +240,6 @@ private slots:
     void basePolygonTypeChanged();
     void exportResultPolygons();
     void setXmetExprFromFilters();
-    void setFiltersFromXmetExpr();
     void handleXmetExprChanged();
     void customBasePolygonEditableOnSphereCheckBoxStateChanged();
     void filtersEditableOnSphereCheckBoxStateChanged();
