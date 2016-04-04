@@ -46,16 +46,21 @@ void XMETAreaEdit::addIncompleteRange(const QPair<int, int> &range, const QStrin
 
 void XMETAreaEdit::showHighlighting()
 {
-    const QString defaultColor("#000");
-    //const QString defaultColor("#888");
+    const QString defaultColor("#f00");
     const QString defaultBGColor("#fff");
     const QString defaultWeight("regular");
-    const QString matchColor("#088");
+
+    //const QString matchColor("#088");
+    const QString matchColor("#000");
     const QString matchBGColor("#fff");
-    const QString matchWeight("bold");
-    const QString incomColor("#800");
+    //const QString matchWeight("bold");
+    const QString matchWeight("regular");
+
+    //const QString incomColor("#088");
+    const QString incomColor("#000");
     const QString incomBGColor("#ff0");
-    const QString incomWeight("bold");
+    //const QString incomWeight("bold");
+    const QString incomWeight("regular");
 
     QString html;
     const QString text(toPlainText());
