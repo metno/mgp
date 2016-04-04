@@ -627,6 +627,8 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
     QList<Node> ilist; // intersection list consisting of all the ISCTs in tlist sorted by longitude (direction doesn't matter, but the value
                        // obviously wraps at some point: e.g. 4 5 6 0 1 2 3,  6 5 4 3 2 1 0,  3 2 1 0 6 5 4, etc.)
 
+    // --- BEGIN generate tlist and initial ilist ------
+
     // if the first original vertex lies outside the area accepted by the filter, A, the first intersection must represent an entry into A
     bool entry = isNOfFilter() ? (inPolyCW->first().second < lat) : (inPolyCW->first().second > lat);
 
@@ -639,24 +641,54 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
         const Point p1 = inPolyCW->at(i);
         const Point p2 = inPolyCW->at((i + 1) % inPolyCW->size());
 
+        const bool rej1 = rejected(p1);
+        const bool rej2 = rejected(p2);
+
         // append original vertex
-        const bool rej = rejected(p1);
-        if (rej)
+        if (rej1)
             nrejected++;
-        tlist.append(Node(p1, rej, false));
+        tlist.append(Node(p1, rej1, false));
 
-        // append 0, 1 or 2 intersections
-        const QVector<Point> points = math::latitudeIntersections(p1, p2, lat); // 2 iscts are ordered on increasing dist. from p1
-        for (int j = 0; j < points.size(); ++j) {
-            const Node node(points.at(j), false, true, entry);
-            entry = !entry; // assuming entries and exits always alternate strictly
-                            // (WARNING: this assumption probably doesn't hold for self-intersection polygons!)
+        // find 0, 1 or 2 intersections between latitude circle and this edge
+        const QVector<Point> ipoints = math::latitudeIntersections(p1, p2, lat); // 2 iscts are ordered on increasing dist. from p1
 
-            // append to both lists
-            tlist.append(node);
-            ilist.append(node);
+        if (ipoints.size() == 2) { // intersection type 1
+
+            for (int j = 0; j < ipoints.size(); ++j) {
+                // --- BEGIN add intersection ------
+                const Node node(ipoints.at(j), false, true, entry);
+                entry = !entry; // assuming entries and exits always alternate strictly
+                                // (WARNING: this assumption probably doesn't hold for self-intersection polygons!)
+                // append to both lists
+                tlist.append(node);
+                ilist.append(node);
+                // --- END add intersection ------
+            }
+
+        } else if (rej1 != rej2) { // intersection type 2
+
+            if (ipoints.size() == 1) {
+                // --- BEGIN add intersection ------
+                const Node node(ipoints.at(0), false, true, entry);
+                entry = !entry;
+                tlist.append(node);
+                ilist.append(node);
+                // --- END add intersection ------
+            } else { // latitude circle passes exactly on one of the edge vertices!
+                Q_ASSERT(ipoints.size() == 0);
+                const Point p = (qAbs(p1.second - lat) < qAbs(p2.second - lat)) ? p1 : p2;
+                // --- BEGIN add intersection ------
+                const Node node(p, false, true, entry);
+                entry = !entry;
+                tlist.append(node);
+                ilist.append(node);
+                // --- END add intersection ------
+            }
         }
     }
+
+    // --- END generate tlist and initial ilist ------
+
 
     // check special cases when there's no intersections
     if (ilist.isEmpty()) {
