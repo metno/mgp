@@ -609,6 +609,16 @@ static bool isWestwardNeighbour(const Node &node1, const Node &node2, const QLis
     return node2.point_.first == ilist.at(prev).point_.first;
 }
 
+static void addIntersection(const Point point, bool &entry, QList<Node> *tlist, QList<Node> *ilist)
+{
+    const Node node(point, false, true, entry);
+    entry = !entry; // assuming entries and exits always alternate strictly
+                    // (WARNING: this assumption probably doesn't hold for self-intersection polygons!)
+    // append to both lists
+    tlist->append(node);
+    ilist->append(node);
+}
+
 Polygons LatFilter::apply(const Polygon &inPoly) const
 {
     Q_ASSERT(!inPoly->isEmpty());
@@ -652,37 +662,16 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
         // find 0, 1 or 2 intersections between latitude circle and this edge
         const QVector<Point> ipoints = math::latitudeIntersections(p1, p2, lat); // 2 iscts are ordered on increasing dist. from p1
 
+        // add intersection(s)
         if (ipoints.size() == 2) { // intersection type 1
-
-            for (int j = 0; j < ipoints.size(); ++j) {
-                // --- BEGIN add intersection ------
-                const Node node(ipoints.at(j), false, true, entry);
-                entry = !entry; // assuming entries and exits always alternate strictly
-                                // (WARNING: this assumption probably doesn't hold for self-intersection polygons!)
-                // append to both lists
-                tlist.append(node);
-                ilist.append(node);
-                // --- END add intersection ------
-            }
-
+            for (int j = 0; j < ipoints.size(); ++j)
+                addIntersection(ipoints.at(j), entry, &tlist, &ilist);
         } else if (rej1 != rej2) { // intersection type 2
-
             if (ipoints.size() == 1) {
-                // --- BEGIN add intersection ------
-                const Node node(ipoints.at(0), false, true, entry);
-                entry = !entry;
-                tlist.append(node);
-                ilist.append(node);
-                // --- END add intersection ------
+                addIntersection(ipoints.at(0), entry, &tlist, &ilist);
             } else { // latitude circle passes exactly on one of the edge vertices!
                 Q_ASSERT(ipoints.size() == 0);
-                const Point p = (qAbs(p1.second - lat) < qAbs(p2.second - lat)) ? p1 : p2;
-                // --- BEGIN add intersection ------
-                const Node node(p, false, true, entry);
-                entry = !entry;
-                tlist.append(node);
-                ilist.append(node);
-                // --- END add intersection ------
+                addIntersection((qAbs(p1.second - lat) < qAbs(p2.second - lat)) ? p1 : p2, entry, &tlist, &ilist);
             }
         }
     }
