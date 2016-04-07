@@ -239,7 +239,7 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
     // get as many coordinates as possible after the "WI"
     Polygon polygon(new QVector<Point>());
     QRegExp rx(
-                "(?:^|^\\s+|^\\s*-\\s*)"
+                "(?:^\\s+|^\\s*-\\s*)"
                 "([NS](?:\\d\\d|\\d\\d\\d\\d))"
                 "\\s*"
                 "([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
