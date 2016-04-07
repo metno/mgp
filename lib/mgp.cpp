@@ -1190,21 +1190,23 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
         }
     }
 
-    // remove incomplete ranges that are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
+    // only keep non-empty incomplete ranges are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
     for (int i = 0; i < initIncompleteRanges.size(); ++i) {
         const int ilo = initIncompleteRanges.at(i).first.first;
         const int ihi = initIncompleteRanges.at(i).first.second;
-        bool partOfMatchedRange = false;
-        for (int j = 0; j < matchedRanges->size(); ++j) {
-            const int mlo = matchedRanges->at(j).first;
-            const int mhi = matchedRanges->at(j).second;
-            if ((ilo >= mlo) && (ihi <= mhi)) {
-                partOfMatchedRange = true;
-                break;
+        if (ilo >= 0) { // only consider non-empty ranges
+            bool partOfMatchedRange = false;
+            for (int j = 0; j < matchedRanges->size(); ++j) {
+                const int mlo = matchedRanges->at(j).first;
+                const int mhi = matchedRanges->at(j).second;
+                if ((ilo >= mlo) && (ihi <= mhi)) {
+                    partOfMatchedRange = true;
+                    break;
+                }
             }
+            if (!partOfMatchedRange)
+                incompleteRanges->append(initIncompleteRanges.at(i));
         }
-        if (!partOfMatchedRange)
-            incompleteRanges->append(initIncompleteRanges.at(i));
     }
 
     // return matched candidate filters ordered on match position
