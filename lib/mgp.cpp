@@ -480,11 +480,17 @@ bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     // look for keyword
     rx.setPattern(QString("(?:^|\\s+)%1\\s+OF").arg(directionName()));
-    const int rxpos1 = expr.indexOf(rx);
+    int rxpos1 = expr.indexOf(rx);
     if (rxpos1 < 0)
         return false; // no match
 
-    const int matchedLen1 = rx.matchedLength();
+    int matchedLen1 = rx.matchedLength();
+
+    // strip off leading whitespace
+    while (expr.at(rxpos1).isSpace()) {
+        rxpos1++;
+        matchedLen1--;
+    }
 
     // look for value
     if (isLonFilter()) {
@@ -1141,7 +1147,9 @@ struct ParseMatchInfo
 {
     Filter filter_;
     int loMatchPos_;
-    ParseMatchInfo(Filter filter, int loMatchPos) : filter_(filter), loMatchPos_(loMatchPos) {}
+    int hiMatchPos_;
+    ParseMatchInfo(Filter filter, int loMatchPos, int hiMatchPos)
+        : filter_(filter), loMatchPos_(loMatchPos), hiMatchPos_(hiMatchPos) {}
 };
 
 static bool parseMatchInfoLessThan(const ParseMatchInfo &pminfo1, const ParseMatchInfo &pminfo2)
@@ -1184,13 +1192,13 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
         QString incompleteReason;
         if (filter->setFromXmetExpr(expr, &matchedRange, &incompleteRange, &incompleteReason)) {
             matchedRanges->append(matchedRange);
-            pmInfos.append(ParseMatchInfo(filter, matchedRange.first));
+            pmInfos.append(ParseMatchInfo(filter, matchedRange.first, matchedRange.second));
         } else {
             initIncompleteRanges.append(qMakePair(incompleteRange, incompleteReason));
         }
     }
 
-    // only keep non-empty incomplete ranges are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
+    // only keep non-empty incomplete ranges that are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
     for (int i = 0; i < initIncompleteRanges.size(); ++i) {
         const int ilo = initIncompleteRanges.at(i).first.first;
         const int ihi = initIncompleteRanges.at(i).first.second;
@@ -1209,8 +1217,28 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
         }
     }
 
-    // return matched candidate filters ordered on match position
+    // sort candidate filters on match position
     qSort(pmInfos.begin(), pmInfos.end(), parseMatchInfoLessThan);
+
+    // allow the single word 'AND' between one lon/lat filter and another
+    {
+        QRegExp rx("^\\s+and\\s+$");
+        for (int i = 1; i < pmInfos.size(); ++i) {
+            const LonFilter *lon1 = dynamic_cast<LonFilter *>(pmInfos.at(i - 1).filter_.data());
+            const LonFilter *lon2 = dynamic_cast<LonFilter *>(pmInfos.at(i).filter_.data());
+            const LatFilter *lat1 = dynamic_cast<LatFilter *>(pmInfos.at(i - 1).filter_.data());
+            const LatFilter *lat2 = dynamic_cast<LatFilter *>(pmInfos.at(i).filter_.data());
+            if ((lon1 || lat1) && (lon2 || lat2)) {
+                const int lo = pmInfos.at(i - 1).hiMatchPos_ + 1;
+                const int hi = pmInfos.at(i).loMatchPos_ - 1;
+                const QString text = expr.mid(lo, (hi - lo) + 1);
+                if (text.toLower().contains(rx))
+                    matchedRanges->append(qMakePair(lo, hi));
+            }
+        }
+    }
+
+    // return matched candidate filters ordered on match position
     Filters resultFilters(new QList<Filter>());
     foreach (ParseMatchInfo pmInfo, pmInfos) {
         resultFilters->append(pmInfo.filter_);
