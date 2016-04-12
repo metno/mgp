@@ -1,3 +1,10 @@
+metno-mgp (1.1.7-1) unstable; urgency=low
+
+    * restricted WI filter syntax
+    * allowed 'AND' between two lat/lon filters
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 12 Apr 2016 12:38:00 +0100
+
 metno-mgp (1.1.6-1) unstable; urgency=low
 
     * fixed bug in latitude intersection
