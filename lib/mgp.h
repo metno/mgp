@@ -367,7 +367,19 @@ public:
         ENOB // BODO OCEANIC
     };
 
-    Polygon polygon(Code) const;
+    /**
+     * Converts a FIR code to a polygon.
+     * @param[in] fir FIR code.
+     * @return a non-empty polygon for a supported FIR code, otherwise an empty polygon.
+     */
+    Polygon polygon(Code fir) const;
+
+    /**
+     * Returns the first supported FIR found in a SIGMET/AIRMET area expression.
+     * @param[in] expr SIGMET/AIRMET area expression.
+     * @return The code for the first supported FIR found in the expression, otherwise the code for an unsupported FIR.
+     */
+    static Code firFromXmetExpr(const QString &expr);
 
 private:
     FIR();
@@ -439,20 +451,6 @@ Polygons applyFilters(const Polygons &polygons, const Filters &filters);
  * \return The list of polygons that results from applying \c filters to \c polygon.
  */
 Polygons applyFilters(const Polygon &polygon, const Filters &filters);
-
-/**
- * Converts a FIR code to a polygon.
- * @param[in] fir FIR code.
- * @return a non-empty polygon for a supported FIR code, otherwise an empty polygon.
- */
-Polygon polygonFromFir(FIR::Code fir);
-
-/**
- * Returns the first supported FIR found in a SIGMET/AIRMET area expression.
- * @param[in] expr SIGMET/AIRMET area expression.
- * @return The code for the first supported FIR found in the expression, otherwise the code for an unsupported FIR.
- */
-FIR::Code firFromXmetExpr(const QString &expr);
 
 /**
  * Converts a filter sequence to a SIGMET/AIRMET area expression.

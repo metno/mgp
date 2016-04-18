@@ -1127,6 +1127,19 @@ Polygon FIR::polygon(Code code) const
     return fir_.value(code);
 }
 
+FIR::Code FIR::firFromXmetExpr(const QString &expr)
+{
+    const int enorPos = expr.indexOf("enor", 0, Qt::CaseInsensitive);
+    const int enobPos = expr.indexOf("enob", 0, Qt::CaseInsensitive);
+    if ((enorPos < 0) && (enobPos < 0))
+        return FIR::Unsupported;
+    if (enorPos < 0)
+        return FIR::ENOB;
+    if (enobPos < 0)
+        return FIR::ENOR;
+    return (enorPos < enobPos) ? FIR::ENOR : FIR::ENOB;
+}
+
 //------------------------------------------------------------------------------------------------
 
 Polygons applyFilters(const Polygons &inPolys, const Filters &filters)
@@ -1171,24 +1184,6 @@ Polygons applyFilters(const Polygon &polygon, const Filters &filters)
     Polygons polygons = Polygons(new QVector<Polygon>());
     polygons->append(polygon ? polygon : Polygon(new QVector<Point>()));
     return applyFilters(polygons, filters);
-}
-
-Polygon polygonFromFir(FIR::Code fir)
-{
-    return FIR::instance().polygon(fir);
-}
-
-FIR::Code firFromXmetExpr(const QString &expr)
-{
-    const int enorPos = expr.indexOf("enor", 0, Qt::CaseInsensitive);
-    const int enobPos = expr.indexOf("enob", 0, Qt::CaseInsensitive);
-    if ((enorPos < 0) && (enobPos < 0))
-        return FIR::Unsupported;
-    if (enorPos < 0)
-        return FIR::ENOB;
-    if (enobPos < 0)
-        return FIR::ENOR;
-    return (enorPos < enobPos) ? FIR::ENOR : FIR::ENOB;
 }
 
 QString xmetExprFromFilters(const Filters &filters)
