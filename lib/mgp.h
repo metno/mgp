@@ -375,11 +375,11 @@ public:
     Polygon polygon(Code fir) const;
 
     /**
-     * Returns the first supported FIR found in a SIGMET/AIRMET area expression.
-     * @param[in] expr SIGMET/AIRMET area expression.
-     * @return The code for the first supported FIR found in the expression, otherwise the code for an unsupported FIR.
+     * Returns the first supported FIR found in a text.
+     * @param[in] text Text.
+     * @return The code for the first supported FIR found in the text, otherwise the code for an unsupported FIR.
      */
-    static Code firFromXmetExpr(const QString &expr);
+    static Code firFromText(const QString &text);
 
 private:
     FIR();

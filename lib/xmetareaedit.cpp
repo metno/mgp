@@ -133,7 +133,7 @@ bool XMETAreaEdit::update()
     const QString text = toPlainText();
 
     // update FIR from expression
-    fir_ = mgp::FIR::instance().firFromXmetExpr(text);
+    fir_ = mgp::FIR::instance().firFromText(text);
 
     // update filters from expression
     QList<QPair<int, int> > matchedRanges;

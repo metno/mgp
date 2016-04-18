@@ -1127,10 +1127,10 @@ Polygon FIR::polygon(Code code) const
     return fir_.value(code);
 }
 
-FIR::Code FIR::firFromXmetExpr(const QString &expr)
+FIR::Code FIR::firFromText(const QString &text)
 {
-    const int enorPos = expr.indexOf("enor", 0, Qt::CaseInsensitive);
-    const int enobPos = expr.indexOf("enob", 0, Qt::CaseInsensitive);
+    const int enorPos = text.indexOf("enor", 0, Qt::CaseInsensitive);
+    const int enobPos = text.indexOf("enob", 0, Qt::CaseInsensitive);
     if ((enorPos < 0) && (enobPos < 0))
         return FIR::Unsupported;
     if (enorPos < 0)
