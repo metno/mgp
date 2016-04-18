@@ -353,6 +353,28 @@ typedef QSharedPointer<FilterBase> Filter;
 typedef QSharedPointer<QList<Filter> > Filters;
 
 
+class FIR
+{
+public:
+    static FIR &instance();
+
+    /**
+     * Supported Flight Information Regions
+     */
+    enum Code {
+        Unsupported,
+        ENOR, // NORWAY
+        ENOB // BODO OCEANIC
+    };
+
+    Polygon polygon(Code) const;
+
+private:
+    FIR();
+    QHash<Code, Polygon> fir_;
+};
+
+
 //! This class extends a QTextEdit with validation and highlighting of a SIGMET/AIRMET area expression.
 class XMETAreaEdit : public QTextEdit
 {
@@ -373,6 +395,12 @@ public:
      */
     Filters filters();
 
+    /**
+     * Extracts the first FIR found in the text
+     * \return The code for the first supported FIR found in the text, otherwise the code for an unsupported FIR.
+     */
+    FIR::Code fir();
+
 private:
     void init();
     virtual void mouseMoveEvent(QMouseEvent *);
@@ -385,6 +413,7 @@ private:
     QBitArray incomplete_;
     QHash<int, QString> reason_;
     Filters filters_;
+    FIR::Code fir_;
 };
 
 // --- END classes --------------------------------------------------
@@ -412,6 +441,20 @@ Polygons applyFilters(const Polygons &polygons, const Filters &filters);
 Polygons applyFilters(const Polygon &polygon, const Filters &filters);
 
 /**
+ * Converts a FIR code to a polygon.
+ * @param[in] fir FIR code.
+ * @return a non-empty polygon for a supported FIR code, otherwise an empty polygon.
+ */
+Polygon polygonFromFir(FIR::Code fir);
+
+/**
+ * Returns the first supported FIR found in a SIGMET/AIRMET area expression.
+ * @param[in] expr SIGMET/AIRMET area expression.
+ * @return The code for the first supported FIR found in the expression, otherwise the code for an unsupported FIR.
+ */
+FIR::Code firFromXmetExpr(const QString &expr);
+
+/**
  * Converts a filter sequence to a SIGMET/AIRMET area expression.
  *
  * \param[in] filters Sequence of zero or more filters.
@@ -422,7 +465,7 @@ QString xmetExprFromFilters(const Filters &filters);
 /**
  * Converts a SIGMET/AIRMET area expression to a filter sequence.
  *
- * \param[in]  expr             SIGMET/AIRMET area expression
+ * \param[in]  expr             SIGMET/AIRMET area expression.
  * \param[out] matchedRanges    Sequence of string position ranges of each fully matched filter in \c expr.
  * \param[out] incompleteRanges Sequence of string position ranges of each incomplete (half matched) filter in \c expr along with the reasons why they didn't match.
  * \return The filter sequence representing fully matched filters in the order of appearance in \c expr.

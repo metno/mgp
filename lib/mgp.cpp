@@ -1,5 +1,7 @@
 #include "mgp.h"
 #include "mgpmath.h"
+#include "enor_fir.h"
+#include "enob_fir.h"
 #include <QBitArray>
 #include <QRegExp>
 #include <QStack>
@@ -1081,6 +1083,50 @@ SWOfLineFilter::SWOfLineFilter(const QPair<Point, Point> &line)
 {
 }
 
+FIR &FIR::instance()
+{
+    static FIR fir;
+    return fir;
+}
+
+static Polygon createENORFIR()
+{
+    Polygon points = Polygon(new QVector<Point>);
+
+    const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
+    for (int i = 0; i < npoints; ++i) {
+        const double lon = DEG2RAD(enor_fir[2 * i + 1]);
+        const double lat = DEG2RAD(enor_fir[2 * i]);
+        points->append(qMakePair(lon, lat));
+    }
+    return points;
+}
+
+static Polygon createENOBFIR()
+{
+    Polygon points = Polygon(new QVector<Point>);
+
+    const int npoints = sizeof(enob_fir) / sizeof(float) / 2;
+    for (int i = 0; i < npoints; ++i) {
+        const double lon = DEG2RAD(enob_fir[2 * i + 1]);
+        const double lat = DEG2RAD(enob_fir[2 * i]);
+        points->append(qMakePair(lon, lat));
+    }
+    return points;
+}
+
+FIR::FIR()
+{
+    fir_.insert(ENOR, createENORFIR());
+    fir_.insert(ENOB, createENOBFIR());
+    fir_.insert(Unsupported, mgp::Polygon(new QVector<mgp::Point>));
+}
+
+Polygon FIR::polygon(Code code) const
+{
+    return fir_.value(code);
+}
+
 //------------------------------------------------------------------------------------------------
 
 Polygons applyFilters(const Polygons &inPolys, const Filters &filters)
@@ -1125,6 +1171,24 @@ Polygons applyFilters(const Polygon &polygon, const Filters &filters)
     Polygons polygons = Polygons(new QVector<Polygon>());
     polygons->append(polygon ? polygon : Polygon(new QVector<Point>()));
     return applyFilters(polygons, filters);
+}
+
+Polygon polygonFromFir(FIR::Code fir)
+{
+    return FIR::instance().polygon(fir);
+}
+
+FIR::Code firFromXmetExpr(const QString &expr)
+{
+    const int enorPos = expr.indexOf("enor", 0, Qt::CaseInsensitive);
+    const int enobPos = expr.indexOf("enob", 0, Qt::CaseInsensitive);
+    if ((enorPos < 0) && (enobPos < 0))
+        return FIR::Unsupported;
+    if (enorPos < 0)
+        return FIR::ENOB;
+    if (enobPos < 0)
+        return FIR::ENOR;
+    return (enorPos < enobPos) ? FIR::ENOR : FIR::ENOB;
 }
 
 QString xmetExprFromFilters(const Filters &filters)

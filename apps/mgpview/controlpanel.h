@@ -115,7 +115,7 @@ class BasePolygon
     friend class ControlPanel;
 
 public:
-    enum Type { None, Custom, ENOR_FIR, ENOB_FIR, XXXX_FIR, YYYY_FIR, ZZZZ_FIR };
+    enum Type { None, Custom, ENOR_FIR, ENOB_FIR };
     static QString typeName(Type);
 
 protected:
@@ -123,6 +123,7 @@ protected:
     static BasePolygon *create(Type);
     Type type_;
     mgp::Polygon polygon_; // first component = longitude in radians, second component = latitude in radians
+    static Type typeFromFir(mgp::FIR::Code);
 };
 
 struct FilterTabInfo

@@ -130,10 +130,14 @@ void XMETAreaEdit::mousePressEvent(QMouseEvent *event)
 
 bool XMETAreaEdit::update()
 {
+    const QString text = toPlainText();
+
+    // update FIR from expression
+    fir_ = mgp::firFromXmetExpr(text);
+
     // update filters from expression
     QList<QPair<int, int> > matchedRanges;
     QList<QPair<QPair<int, int>, QString> > incompleteRanges;
-    const QString text = toPlainText();
     filters_ = mgp::filtersFromXmetExpr(text, &matchedRanges, &incompleteRanges);
 
     // update highlighting from matched and incomplete ranges
@@ -164,6 +168,12 @@ mgp::Filters XMETAreaEdit::filters()
 {
     update();
     return filters_;
+}
+
+mgp::FIR::Code XMETAreaEdit::fir()
+{
+    update();
+    return fir_;
 }
 
 MGP_END_NAMESPACE

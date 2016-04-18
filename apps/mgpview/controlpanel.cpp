@@ -2,8 +2,6 @@
 #include "common.h"
 #include "mainwindow.h"
 #include "glwidget.h"
-#include "enor_fir.h"
-#include "enob_fir.h"
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -279,32 +277,6 @@ BasePolygon::BasePolygon(Type type, const mgp::Polygon &points)
 {
 }
 
-static mgp::Polygon createENORFIR()
-{
-    mgp::Polygon points = mgp::Polygon(new QVector<mgp::Point>);
-
-    const int npoints = sizeof(enor_fir) / sizeof(float) / 2;
-    for (int i = 0; i < npoints; ++i) {
-        const double lon = DEG2RAD(enor_fir[2 * i + 1]);
-        const double lat = DEG2RAD(enor_fir[2 * i]);
-        points->append(qMakePair(lon, lat));
-    }
-    return points;
-}
-
-static mgp::Polygon createENOBFIR()
-{
-    mgp::Polygon points = mgp::Polygon(new QVector<mgp::Point>);
-
-    const int npoints = sizeof(enob_fir) / sizeof(float) / 2;
-    for (int i = 0; i < npoints; ++i) {
-        const double lon = DEG2RAD(enob_fir[2 * i + 1]);
-        const double lat = DEG2RAD(enob_fir[2 * i]);
-        points->append(qMakePair(lon, lat));
-    }
-    return points;
-}
-
 BasePolygon *BasePolygon::create(Type type)
 {
     if (type == None) {
@@ -316,11 +288,22 @@ BasePolygon *BasePolygon::create(Type type)
         points->append(qMakePair(DEG2RAD(10), DEG2RAD(65)));
         return new BasePolygon(Custom, points);
     } else if (type == ENOR_FIR) {
-        return new BasePolygon(ENOR_FIR, createENORFIR());
+        return new BasePolygon(ENOR_FIR, mgp::FIR::instance().polygon(mgp::FIR::ENOR));
     } else if (type == ENOB_FIR) {
-        return new BasePolygon(ENOB_FIR, createENOBFIR());
+        return new BasePolygon(ENOB_FIR, mgp::FIR::instance().polygon(mgp::FIR::ENOB));
     } else {
         return new BasePolygon(type); // for now
+    }
+}
+
+BasePolygon::Type BasePolygon::typeFromFir(mgp::FIR::Code fir)
+{
+    if (fir == mgp::FIR::ENOR) {
+        return ENOR_FIR;
+    } else if (fir == mgp::FIR::ENOB) {
+        return ENOB_FIR;
+    } else {
+        return Custom;
     }
 }
 
@@ -497,9 +480,6 @@ void ControlPanel::initialize()
     basePolygons_.insert(BasePolygon::Custom, BasePolygon::create(BasePolygon::Custom));
     basePolygons_.insert(BasePolygon::ENOR_FIR, BasePolygon::create(BasePolygon::ENOR_FIR));
     basePolygons_.insert(BasePolygon::ENOB_FIR, BasePolygon::create(BasePolygon::ENOB_FIR));
-    basePolygons_.insert(BasePolygon::XXXX_FIR, BasePolygon::create(BasePolygon::XXXX_FIR));
-    basePolygons_.insert(BasePolygon::YYYY_FIR, BasePolygon::create(BasePolygon::YYYY_FIR));
-    basePolygons_.insert(BasePolygon::ZZZZ_FIR, BasePolygon::create(BasePolygon::ZZZZ_FIR));
 
     // --- END base polygon section -------------------------------------------
 
@@ -1073,6 +1053,9 @@ void ControlPanel::handleXmetExprChanged()
         filterControl->update();
         filterControl->enabledCheckBox_->setChecked(true);
     }
+
+    // update base polygon
+    basePolygonComboBox_->setCurrentIndex(basePolygonComboBox_->findData(BasePolygon::typeFromFir(xmetAreaEdit_->fir())));
 
     // update GL widget
     updateGLWidget();

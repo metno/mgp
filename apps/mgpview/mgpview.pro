@@ -6,7 +6,7 @@ INCLUDEPATH += . ../../lib
 DEPENDPATH += . ../../lib
 PRE_TARGETDEPS += ../../lib/libmgp.a
 
-HEADERS += mainwindow.h common.h coast_data.h enor_fir.h enob_fir.h glwidget.h gfxutils.h controlpanel.h
+HEADERS += mainwindow.h common.h coast_data.h glwidget.h gfxutils.h controlpanel.h
 SOURCES += main.cpp mainwindow.cpp glwidget.cpp gfxutils.cpp controlpanel.cpp
 
 LIBS += -L ../../lib -lmgp -lglut -lGLU
