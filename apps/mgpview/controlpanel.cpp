@@ -1054,8 +1054,9 @@ void ControlPanel::handleXmetExprChanged()
         filterControl->enabledCheckBox_->setChecked(true);
     }
 
-    // update base polygon
-    basePolygonComboBox_->setCurrentIndex(basePolygonComboBox_->findData(BasePolygon::typeFromFir(xmetAreaEdit_->fir())));
+    // update base polygon if a supported FIR is found
+    if (xmetAreaEdit_->fir() != mgp::FIR::Unsupported)
+        basePolygonComboBox_->setCurrentIndex(basePolygonComboBox_->findData(BasePolygon::typeFromFir(xmetAreaEdit_->fir())));
 
     // update GL widget
     updateGLWidget();
