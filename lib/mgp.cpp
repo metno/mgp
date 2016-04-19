@@ -672,8 +672,10 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
 
         // add intersection(s)
         if (ipoints.size() == 2) { // intersection type 1
-            for (int j = 0; j < ipoints.size(); ++j)
-                addIntersection(ipoints.at(j), entry, &tlist, &ilist);
+            for (int j = 0; j < ipoints.size(); ++j) {
+                if ((j == 1) && (ipoints.at(0).second != ipoints.at(1).second))
+                    addIntersection(ipoints.at(j), entry, &tlist, &ilist);
+            }
         } else if (rej1 != rej2) { // intersection type 2
             if (ipoints.size() == 1) {
                 addIntersection(ipoints.at(0), entry, &tlist, &ilist);
