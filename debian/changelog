@@ -1,3 +1,10 @@
+metno-mgp (1.1.8-1) unstable; urgency=low
+
+    * handle FIRs directly in the API
+    * auto-select FIR from text edit in MGPView
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 19 Apr 2016 09:15:00 +0100
+
 metno-mgp (1.1.7-1) unstable; urgency=low
 
     * restricted WI filter syntax
