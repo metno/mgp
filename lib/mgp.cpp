@@ -673,6 +673,8 @@ Polygons LatFilter::apply(const Polygon &inPoly) const
         // add intersection(s)
         if (ipoints.size() == 2) { // intersection type 1
             for (int j = 0; j < ipoints.size(); ++j) {
+                // ### The following line fixes one problem, but introduces another since it now no longer handles
+                //     the case where the latitude circle intersects a very long base polygon edge in two places!
                 if ((j == 1) && (ipoints.at(0).second != ipoints.at(1).second))
                     addIntersection(ipoints.at(j), entry, &tlist, &ilist);
             }
