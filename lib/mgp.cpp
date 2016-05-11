@@ -1133,8 +1133,8 @@ Polygon FIR::polygon(Code code) const
 
 FIR::Code FIR::firFromText(const QString &text)
 {
-    const int enorPos = text.indexOf("enor", 0, Qt::CaseInsensitive);
-    const int enobPos = text.indexOf("enob", 0, Qt::CaseInsensitive);
+    const int enorPos = text.indexOf("enor norway fir", 0, Qt::CaseInsensitive);
+    const int enobPos = text.indexOf("enob bodo oceanic fir", 0, Qt::CaseInsensitive);
     if ((enorPos < 0) && (enobPos < 0))
         return FIR::Unsupported;
     if (enorPos < 0)
