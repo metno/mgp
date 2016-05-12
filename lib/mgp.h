@@ -368,6 +368,11 @@ public:
     };
 
     /**
+     * Returns supported FIR names.
+     */
+    QStringList supportedNames() const;
+
+    /**
      * Converts a FIR code to a polygon.
      * @param[in] fir FIR code.
      * @return a non-empty polygon for a supported FIR code, otherwise an empty polygon.
@@ -379,11 +384,23 @@ public:
      * @param[in] text Text.
      * @return The code for the first supported FIR found in the text, otherwise the code for an unsupported FIR.
      */
-    static Code firFromText(const QString &text);
+    Code firFromText(const QString &text);
 
 private:
     FIR();
-    QHash<Code, Polygon> fir_;
+
+    struct FIRInfo
+    {
+        Polygon polygon_;
+        QString name_;
+        FIRInfo() {}
+        FIRInfo(const Polygon &polygon, const QString &name)
+            : polygon_(polygon)
+            , name_(name)
+        {}
+    };
+
+    QHash<Code, FIRInfo> fir_;
 };
 
 

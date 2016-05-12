@@ -1121,27 +1121,31 @@ static Polygon createENOBFIR()
 
 FIR::FIR()
 {
-    fir_.insert(ENOR, createENORFIR());
-    fir_.insert(ENOB, createENOBFIR());
-    fir_.insert(Unsupported, mgp::Polygon(new QVector<mgp::Point>));
+    fir_.insert(ENOR, FIRInfo(createENORFIR(), "ENOR NORWAY FIR"));
+    fir_.insert(ENOB, FIRInfo(createENOBFIR(), "ENOB BODO OCEANIC FIR"));
+}
+
+QStringList FIR::supportedNames() const
+{
+    QStringList snames;
+    foreach (Code code, fir_.keys()) {
+        snames.append(fir_.value(code).name_);
+    }
+    return snames;
 }
 
 Polygon FIR::polygon(Code code) const
 {
-    return fir_.value(code);
+    return fir_.value(code).polygon_;
 }
 
 FIR::Code FIR::firFromText(const QString &text)
 {
-    const int enorPos = text.indexOf("enor norway fir", 0, Qt::CaseInsensitive);
-    const int enobPos = text.indexOf("enob bodo oceanic fir", 0, Qt::CaseInsensitive);
-    if ((enorPos < 0) && (enobPos < 0))
-        return FIR::Unsupported;
-    if (enorPos < 0)
-        return FIR::ENOB;
-    if (enobPos < 0)
-        return FIR::ENOR;
-    return (enorPos < enobPos) ? FIR::ENOR : FIR::ENOB;
+    foreach (Code code, fir_.keys()) {
+        if (text.indexOf(fir_.value(code).name_, 0, Qt::CaseInsensitive) >= 0)
+            return code;
+    }
+    return FIR::Unsupported;
 }
 
 //------------------------------------------------------------------------------------------------
