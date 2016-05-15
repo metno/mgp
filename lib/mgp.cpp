@@ -13,9 +13,9 @@ MGP_BEGIN_NAMESPACE
 
 // Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
 // Examples:
-//        0 -> E000 (or E00000)
-//    -M_PI -> W18000 (or W180)
-//   M_PI_2 -> E09000 (or E090)
+//        0 -> E00000)
+//    -M_PI -> W18000
+//   M_PI_2 -> E09000
 static QString xmetFormatLon(double val)
 {
     double lon = RAD2DEG(fmod(val, 2 * M_PI));
@@ -34,14 +34,14 @@ static QString xmetFormatLon(double val)
     return QString("%1%2%3")
             .arg((lon < 0) ? "W" : "E")
             .arg(ipart, 3, 10, QLatin1Char('0'))
-            .arg((fpart == 0) ? QString() : QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
+            .arg(QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
 }
 
 // Returns the SIGMET/AIRMET degrees form of a latitude value in radians ([-M_PI_2, M_PI_2]).
 // Examples:
-//         0 -> N00 (or N0000)
-//   -M_PI_2 -> S9000 (or S90)
-//    M_PI_4 -> N4500 (or N45)
+//         0 -> N0000
+//   -M_PI_2 -> S9000
+//    M_PI_4 -> N4500
 static QString xmetFormatLat(double val)
 {
     double lat = RAD2DEG(fmod(val, M_PI));
@@ -58,28 +58,25 @@ static QString xmetFormatLat(double val)
     return QString("%1%2%3")
             .arg(lat < 0 ? "S" : "N")
             .arg(ipart, 2, 10, QLatin1Char('0'))
-            .arg((fpart == 0) ? QString() : QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
+            .arg(QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
 }
 
 // Returns the longitude value in radians ([-M_PI, M_PI]) corresponding to a SIGMET/AIRMET longitude degrees expression.
 // Examples:
-//   E000 (or E00000) -> 0
-//   W18000 (or W180) -> -M_PI
-//   E09000 (or E090) ->  M_PI_2
+//   E00000 -> 0
+//   W18000 -> -M_PI
+//   E09000 ->  M_PI_2
 static double xmetExtractLon(const QString &s, bool &success)
 {
-    Q_ASSERT((s.size() == 4) || (s.size() == 6));
+    Q_ASSERT(s.size() == 6);
     Q_ASSERT((s[0].toLower() == 'e') || (s[0].toLower() == 'w'));
     bool ok;
     int ipart = s.mid(1, 3).toInt(&ok) % 360;
     Q_ASSERT(ok);
     if (ipart > 180)
         ipart = qAbs(ipart - 360);
-    int fpart = 0;
-    if (s.size() == 6) {
-        fpart = s.mid(4, 2).toInt(&ok);
-        Q_ASSERT(ok);
-    }
+    const int fpart = s.mid(4, 2).toInt(&ok);
+    Q_ASSERT(ok);
     //const int fbase = 100;
     const int fbase = 60; // minutes
     if (!((fpart >= 0) && (fpart <= (fbase - 1)))) {
@@ -93,24 +90,21 @@ static double xmetExtractLon(const QString &s, bool &success)
 
 // Returns the latitude value in radians ([-M_PI_2, M_PI_2]) corresponding to a SIGMET/AIRMET latitude degrees expression.
 // Examples:
-//    N00 (or N0000) -> 0
-//    S00 (or S0000) -> 0
-//    S9000 (or S90) -> -M_PI_2
-//    N4500 (or N45) ->  M_PI_4
+//    N0000 -> 0
+//    S0000 -> 0
+//    S9000 -> -M_PI_2
+//    N4500 ->  M_PI_4
 static double xmetExtractLat(const QString &s, bool &success)
 {
-    Q_ASSERT((s.size() == 3) || (s.size() == 5));
+    Q_ASSERT(s.size() == 5);
     Q_ASSERT((s[0].toLower() == 'n') || (s[0].toLower() == 's'));
     bool ok;
     int ipart = s.mid(1, 2).toInt(&ok);
     Q_ASSERT(ok);
     Q_ASSERT(ipart >= 0);
     ipart = qMin(ipart, 90);
-    int fpart = 0;
-    if (s.size() == 5) {
-        fpart = s.mid(3, 2).toInt(&ok);
-        Q_ASSERT(ok);
-    }
+    const int fpart = s.mid(3, 2).toInt(&ok);
+    Q_ASSERT(ok);
     //const int fbase = 100;
     const int fbase = 60; // minutes
     if (!((fpart >= 0) && (fpart <= (fbase - 1)))) {
@@ -242,9 +236,9 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
     Polygon polygon(new QVector<Point>());
     QRegExp rx(
                 "(?:^\\s+|^\\s*-\\s*)"
-                "([NS](?:\\d\\d|\\d\\d\\d\\d))"
+                "([NS]\\d\\d\\d\\d)"
                 "\\s*"
-                "([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                "([EW]\\d\\d\\d\\d\\d)"
                 );
     rx.setCaseSensitivity(Qt::CaseInsensitive);
 
@@ -496,9 +490,9 @@ bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     // look for value
     if (isLonFilter()) {
-        rx.setPattern("^\\s+([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))");
+        rx.setPattern("^\\s+([EW]\\d\\d\\d\\d\\d)");
     } else {
-        rx.setPattern("^\\s+([NS](?:\\d\\d|\\d\\d\\d\\d))");
+        rx.setPattern("^\\s+([NS]\\d\\d\\d\\d)");
     }
 
     const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
@@ -971,9 +965,9 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     // look for values
     rx.setPattern(
-                "^\\s+([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                "^\\s+([NS]\\d\\d\\d\\d)\\s*([EW]\\d\\d\\d\\d\\d)"
                 "\\s*(?:-|)\\s*"
-                "([NS](?:\\d\\d|\\d\\d\\d\\d))\\s*([EW](?:\\d\\d\\d|\\d\\d\\d\\d\\d))"
+                "([NS]\\d\\d\\d\\d)\\s*([EW]\\d\\d\\d\\d\\d)"
                 );
 
     const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
