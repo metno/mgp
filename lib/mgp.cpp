@@ -234,15 +234,18 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
 
     // get as many coordinates as possible after the "WI"
     Polygon polygon(new QVector<Point>());
-    QRegExp rx(
-                "(?:^\\s+|^\\s*-\\s*)"
+    const QString basePattern(
                 "([NS]\\d\\d\\d\\d)"
                 "\\s*"
                 "([EW]\\d\\d\\d\\d\\d)"
                 );
+    QRegExp rx;
     rx.setCaseSensitivity(Qt::CaseInsensitive);
-
+    bool first = true;
     while (true) {
+        rx.setPattern(QString("%1%2").arg(first ? "^\\s+" : "^\\s+-\\s+").arg(basePattern));
+        first = false;
+
         // read next coordinate
         const int rxpos = s.indexOf(rx);
         if (rxpos >= 0) { // match
@@ -280,7 +283,8 @@ QString WithinFilter::xmetExpr() const
 {
     QString s("WI");
     for (int i = 0; i < polygon_->size(); ++i)
-        s += QString(" %1 %2").arg(xmetFormatLat(polygon_->at(i).second)).arg(xmetFormatLon(polygon_->at(i).first));
+        s += QString("%1 %2 %3")
+                .arg((i == 0) ? "" : " -").arg(xmetFormatLat(polygon_->at(i).second)).arg(xmetFormatLon(polygon_->at(i).first));
     return s;
 }
 
@@ -966,7 +970,7 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
     // look for values
     rx.setPattern(
                 "^\\s+([NS]\\d\\d\\d\\d)\\s*([EW]\\d\\d\\d\\d\\d)"
-                "\\s*(?:-|)\\s*"
+                "\\s+-\\s+"
                 "([NS]\\d\\d\\d\\d)\\s*([EW]\\d\\d\\d\\d\\d)"
                 );
 
