@@ -482,7 +482,7 @@ QString xmetExprFromFilters(const Filters &filters);
  *
  * \param[in]  expr             SIGMET/AIRMET area expression.
  * \param[out] matchedRanges    Sequence of string position ranges of each fully matched filter in \c expr.
- * \param[out] incompleteRanges Sequence of string position ranges of each incomplete (half matched) filter in \c expr along with the reasons why they didn't match.
+ * \param[out] incompleteRanges Sequence of string position ranges of each incomplete (partly matched) filter in \c expr along with the reasons why they didn't match.
  * \return The filter sequence representing fully matched filters in the order of appearance in \c expr.
  */
 Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matchedRanges = 0, QList<QPair<QPair<int, int>, QString> > *incompleteRanges = 0);

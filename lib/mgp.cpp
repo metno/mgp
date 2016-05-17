@@ -1196,12 +1196,19 @@ QString xmetExprFromFilters(const Filters &filters)
 {
     QString s;
     bool addSpace = false;
+    bool prevValidIsLonOrLat = false;
     for (int i = 0; i < filters->size(); ++i) {
         const Filter filter = filters->at(i);
         if (filter->isValid()) {
             if (addSpace)
                 s += " ";
             addSpace = true; // add a space from now on
+
+            const bool isLonOrLat = dynamic_cast<LonOrLatFilter *>(filter.data());
+            if (isLonOrLat && prevValidIsLonOrLat)
+                s += "AND ";
+            prevValidIsLonOrLat = isLonOrLat;
+
             s += filter->xmetExpr();
         }
     }
@@ -1213,8 +1220,9 @@ struct ParseMatchInfo
     Filter filter_;
     int loMatchPos_;
     int hiMatchPos_;
+    bool skip_;
     ParseMatchInfo(Filter filter, int loMatchPos, int hiMatchPos)
-        : filter_(filter), loMatchPos_(loMatchPos), hiMatchPos_(hiMatchPos) {}
+        : filter_(filter), loMatchPos_(loMatchPos), hiMatchPos_(hiMatchPos), skip_(false) {}
 };
 
 static bool parseMatchInfoLessThan(const ParseMatchInfo &pminfo1, const ParseMatchInfo &pminfo2)
@@ -1299,6 +1307,8 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
                 const QString text = expr.mid(lo, (hi - lo) + 1);
                 if (text.toLower().contains(rx))
                     matchedRanges->append(qMakePair(lo, hi));
+                else
+                    pmInfos[i - 1].skip_ = true;
             }
         }
     }
@@ -1306,7 +1316,13 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
     // return matched candidate filters ordered on match position
     Filters resultFilters(new QList<Filter>());
     foreach (ParseMatchInfo pmInfo, pmInfos) {
-        resultFilters->append(pmInfo.filter_);
+        if (!pmInfo.skip_) {
+            resultFilters->append(pmInfo.filter_);
+        } else {
+            const QPair<int, int> range = qMakePair(pmInfo.loMatchPos_, pmInfo.hiMatchPos_);
+            matchedRanges->removeOne(range);
+            incompleteRanges->append(qMakePair(range, QString("missing 'AND' after expression")));
+        }
     }
     return resultFilters;
 }
