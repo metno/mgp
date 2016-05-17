@@ -1220,9 +1220,9 @@ struct ParseMatchInfo
     Filter filter_;
     int loMatchPos_;
     int hiMatchPos_;
-    bool skip_;
+    bool missingAnd_;
     ParseMatchInfo(Filter filter, int loMatchPos, int hiMatchPos)
-        : filter_(filter), loMatchPos_(loMatchPos), hiMatchPos_(hiMatchPos), skip_(false) {}
+        : filter_(filter), loMatchPos_(loMatchPos), hiMatchPos_(hiMatchPos), missingAnd_(false) {}
 };
 
 static bool parseMatchInfoLessThan(const ParseMatchInfo &pminfo1, const ParseMatchInfo &pminfo2)
@@ -1305,10 +1305,10 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
                 const int lo = pmInfos.at(i - 1).hiMatchPos_ + 1;
                 const int hi = pmInfos.at(i).loMatchPos_ - 1;
                 const QString text = expr.mid(lo, (hi - lo) + 1);
-                if (text.toLower().contains(rx))
-                    matchedRanges->append(qMakePair(lo, hi));
+                if (!text.toLower().contains(rx))
+                    pmInfos[i - 1].missingAnd_ = true;
                 else
-                    pmInfos[i - 1].skip_ = true;
+                    matchedRanges->append(qMakePair(lo, hi));
             }
         }
     }
@@ -1316,12 +1316,12 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
     // return matched candidate filters ordered on match position
     Filters resultFilters(new QList<Filter>());
     foreach (ParseMatchInfo pmInfo, pmInfos) {
-        if (!pmInfo.skip_) {
-            resultFilters->append(pmInfo.filter_);
-        } else {
+        if (pmInfo.missingAnd_) {
             const QPair<int, int> range = qMakePair(pmInfo.loMatchPos_, pmInfo.hiMatchPos_);
             matchedRanges->removeOne(range);
             incompleteRanges->append(qMakePair(range, QString("missing 'AND' after expression")));
+        } else {
+            resultFilters->append(pmInfo.filter_);
         }
     }
     return resultFilters;
