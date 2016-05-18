@@ -408,8 +408,16 @@ private:
 class XMETAreaEdit : public QTextEdit
 {
 public:
-    XMETAreaEdit(QWidget *parent = 0);
-    XMETAreaEdit(const QString &text, QWidget *parent = 0);
+    /**
+     * @param wiExclusive See documentation in filtersFromXmetExpr().
+     */
+    XMETAreaEdit(QWidget *parent = 0, bool wiExclusive = true);
+
+    /**
+     * @param text        Initial text.
+     * @param wiExclusive See documentation in filtersFromXmetExpr().
+     */
+    XMETAreaEdit(const QString &text, QWidget *parent = 0, bool wiExclusive = true);
 
     /**
      * Updates filters and highlighting.

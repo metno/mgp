@@ -692,6 +692,7 @@ void ControlPanel::initialize()
     xmetExprLayout2->addWidget(setXmetExprFromFiltersButton);
 
     wiExclusiveCheckBox_ = new QCheckBox("WI Exclusive");
+    wiExclusiveCheckBox_->setChecked(xmetAreaEdit_->wiExclusive());
     connect(wiExclusiveCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateWIExclusive()));
     xmetExprLayout2->addWidget(wiExclusiveCheckBox_);
 

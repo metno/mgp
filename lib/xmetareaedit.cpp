@@ -7,14 +7,16 @@
 
 MGP_BEGIN_NAMESPACE
 
-XMETAreaEdit::XMETAreaEdit(QWidget *parent)
+XMETAreaEdit::XMETAreaEdit(QWidget *parent, bool wiExclusive__)
     : QTextEdit(parent)
+    , wiExclusive_(wiExclusive__)
 {
     init();
 }
 
-XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent)
+XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent, bool wiExclusive__)
     : QTextEdit(text, parent)
+    , wiExclusive_(wiExclusive__)
 {
     init();
 }
@@ -22,7 +24,6 @@ XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent)
 void XMETAreaEdit::init()
 {
     setMouseTracking(true);
-    wiExclusive_ = false;
 }
 
 void XMETAreaEdit::resetHighlighting()
