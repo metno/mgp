@@ -688,9 +688,12 @@ void ControlPanel::initialize()
     xmetExprLayout->addLayout(xmetExprLayout2);
 
     QPushButton *setXmetExprFromFiltersButton = new QPushButton("Set expression from filters");
-    setXmetExprFromFiltersButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     connect(setXmetExprFromFiltersButton, SIGNAL(clicked()), SLOT(setXmetExprFromFilters()));
     xmetExprLayout2->addWidget(setXmetExprFromFiltersButton);
+
+    wiExclusiveCheckBox_ = new QCheckBox("WI Exclusive");
+    connect(wiExclusiveCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateWIExclusive()));
+    xmetExprLayout2->addWidget(wiExclusiveCheckBox_);
 
     xmetExprLayout2->addStretch(1);
 
@@ -1038,6 +1041,12 @@ void ControlPanel::setXmetExprFromFilters()
 {
     xmetAreaEdit_->setHtml(mgp::xmetExprFromFilters(enabledAndValidFilters()));
     xmetAreaEdit_->update();
+}
+
+void ControlPanel::updateWIExclusive()
+{
+    xmetAreaEdit_->setWIExclusive(wiExclusiveCheckBox_->isChecked());
+    handleXmetExprChanged();
 }
 
 void ControlPanel::handleXmetExprChanged()

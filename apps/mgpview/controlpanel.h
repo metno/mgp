@@ -223,6 +223,8 @@ private:
 
     mgp::XMETAreaEdit *xmetAreaEdit_;
 
+    QCheckBox *wiExclusiveCheckBox_;
+
     void updatePolygonPointDragging(const mgp::Polygon &, int, const mgp::Point &);
     void addPointToPolygon(const mgp::Polygon &, int);
     void removePointFromPolygon(const mgp::Polygon &, int);
@@ -241,6 +243,7 @@ private slots:
     void basePolygonTypeChanged();
     void exportResultPolygons();
     void setXmetExprFromFilters();
+    void updateWIExclusive();
     void handleXmetExprChanged();
     void customBasePolygonEditableOnSphereCheckBoxStateChanged();
     void filtersEditableOnSphereCheckBoxStateChanged();

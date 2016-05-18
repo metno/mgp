@@ -1218,19 +1218,36 @@ QString xmetExprFromFilters(const Filters &filters)
 struct ParseMatchInfo
 {
     Filter filter_;
-    int loMatchPos_;
-    int hiMatchPos_;
+    int loPos_;
+    int hiPos_;
     bool missingAnd_;
-    ParseMatchInfo(Filter filter, int loMatchPos, int hiMatchPos)
-        : filter_(filter), loMatchPos_(loMatchPos), hiMatchPos_(hiMatchPos), missingAnd_(false) {}
+    ParseMatchInfo(Filter filter, int loPos, int hiPos)
+        : filter_(filter), loPos_(loPos), hiPos_(hiPos), missingAnd_(false) {}
 };
 
-static bool parseMatchInfoLessThan(const ParseMatchInfo &pminfo1, const ParseMatchInfo &pminfo2)
+static bool parseMatchInfoLessThan(const ParseMatchInfo &pmi1, const ParseMatchInfo &pmi2)
 {
-    return pminfo1.loMatchPos_ < pminfo2.loMatchPos_;
+    return pmi1.loPos_ < pmi2.loPos_;
 }
 
-Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matchedRanges, QList<QPair<QPair<int, int>, QString> > *incompleteRanges)
+struct ParseIncompleteInfo
+{
+    Filter filter_;
+    int loPos_;
+    int hiPos_;
+    QString reason_;
+    ParseIncompleteInfo(Filter filter, int loPos, int hiPos, const QString &reason)
+        : filter_(filter), loPos_(loPos), hiPos_(hiPos), reason_(reason) {}
+};
+
+static bool parseIncompleteInfoLessThan(const ParseIncompleteInfo &pii1, const ParseIncompleteInfo &pii2)
+{
+    return pii1.loPos_ < pii2.loPos_;
+}
+
+Filters filtersFromXmetExpr(
+        const QString &expr, QList<QPair<int, int> > *matchedRanges, QList<QPair<QPair<int, int>, QString> > *incompleteRanges,
+        bool wiExclusive)
 {
     // ### NOTE: for now, we assume that any given filter may match at most once. Whether this makes sense depends on the filter:
     // - 'S OF' shouldn't match more than once (but if it does, only the one with the southernmost value should apply!)
@@ -1256,44 +1273,46 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
     candFilters.append(Filter(new SEOfLineFilter));
     candFilters.append(Filter(new SWOfLineFilter));
 
-    QList<QPair<QPair<int, int>, QString> > initIncompleteRanges;
+    // find initial matched and incomplete ranges
     QList<ParseMatchInfo> pmInfos;
-
+    QList<ParseIncompleteInfo> piInfos;
     foreach (Filter filter, candFilters) {
         QPair<int, int> matchedRange(-1, -1);
         QPair<int, int> incompleteRange(-1, -1);
         QString incompleteReason;
         if (filter->setFromXmetExpr(expr, &matchedRange, &incompleteRange, &incompleteReason)) {
-            matchedRanges->append(matchedRange);
+            //matchedRanges->append(matchedRange);
             pmInfos.append(ParseMatchInfo(filter, matchedRange.first, matchedRange.second));
-        } else {
-            initIncompleteRanges.append(qMakePair(incompleteRange, incompleteReason));
+        } else if (incompleteRange.first >= 0) {
+            //initIncompleteRanges.append(qMakePair(incompleteRange, incompleteReason));
+            piInfos.append(ParseIncompleteInfo(filter, incompleteRange.first, incompleteRange.second, incompleteReason));
         }
     }
 
-    // only keep non-empty incomplete ranges that are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
-    for (int i = 0; i < initIncompleteRanges.size(); ++i) {
-        const int ilo = initIncompleteRanges.at(i).first.first;
-        const int ihi = initIncompleteRanges.at(i).first.second;
-        if (ilo >= 0) { // only consider non-empty ranges
+    // only keep incomplete ranges that are not already part of a matched range (e.g. 'E OF' is part of 'E OF LINE')
+    {
+        QList<ParseIncompleteInfo> piInfos2;
+        for (int i = 0; i < piInfos.size(); ++i) {
+            const int ilo = piInfos.at(i).loPos_;
+            const int ihi = piInfos.at(i).hiPos_;
             bool partOfMatchedRange = false;
-            for (int j = 0; j < matchedRanges->size(); ++j) {
-                const int mlo = matchedRanges->at(j).first;
-                const int mhi = matchedRanges->at(j).second;
-                if ((ilo >= mlo) && (ihi <= mhi)) {
+            for (int j = 0; j < pmInfos.size(); ++j) {
+                if ((ilo >= pmInfos.at(j).loPos_) && (ihi <= pmInfos.at(j).hiPos_)) {
                     partOfMatchedRange = true;
                     break;
                 }
             }
             if (!partOfMatchedRange)
-                incompleteRanges->append(initIncompleteRanges.at(i));
+                piInfos2.append(piInfos.at(i));
         }
+        piInfos = piInfos2;
     }
 
-    // sort candidate filters on match position
+    // sort matched ranges on position
     qSort(pmInfos.begin(), pmInfos.end(), parseMatchInfoLessThan);
 
-    // allow the single word 'AND' between one lon/lat filter and another
+    // require the single word 'AND' between adjacent lon/lat filters
+    QList<QPair<int, int> > extraMatchedRanges;
     {
         QRegExp rx("^\\s+and\\s+$");
         for (int i = 1; i < pmInfos.size(); ++i) {
@@ -1302,28 +1321,118 @@ Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matche
             const LatFilter *lat1 = dynamic_cast<LatFilter *>(pmInfos.at(i - 1).filter_.data());
             const LatFilter *lat2 = dynamic_cast<LatFilter *>(pmInfos.at(i).filter_.data());
             if ((lon1 || lat1) && (lon2 || lat2)) {
-                const int lo = pmInfos.at(i - 1).hiMatchPos_ + 1;
-                const int hi = pmInfos.at(i).loMatchPos_ - 1;
+                const int lo = pmInfos.at(i - 1).hiPos_ + 1;
+                const int hi = pmInfos.at(i).loPos_ - 1;
                 const QString text = expr.mid(lo, (hi - lo) + 1);
                 if (!text.toLower().contains(rx))
                     pmInfos[i - 1].missingAnd_ = true;
                 else
-                    matchedRanges->append(qMakePair(lo, hi));
+                    extraMatchedRanges.append(qMakePair(lo, hi));
             }
         }
     }
 
-    // return matched candidate filters ordered on match position
+    // change status of each matched lon/lat filter that misses an 'AND' before an adjacent lon/lat filter from
+    // matched to incomplete
+    {
+        QList<ParseMatchInfo> pmInfos2;
+        foreach (ParseMatchInfo pmInfo, pmInfos) {
+            if (pmInfo.missingAnd_) {
+                const QPair<int, int> range = qMakePair(pmInfo.loPos_, pmInfo.hiPos_);
+                piInfos.append(ParseIncompleteInfo(pmInfo.filter_, range.first, range.second, QString("missing single 'AND' between expressions")));
+            } else {
+                pmInfos2.append(pmInfo);
+            }
+        }
+        pmInfos = pmInfos2;
+    }
+
+    // sort incomplete ranges on position
+    qSort(piInfos.begin(), piInfos.end(), parseIncompleteInfoLessThan);
+
+    // handle 'WI exclusive' mode
+    bool keepWIFilter = false;
+    if (wiExclusive) {
+        int wiMatchLoPos = -1;
+        int wiMatchHiPos = -1;
+        for (int i = 0; i < pmInfos.size(); ++i) {
+            if (dynamic_cast<WithinFilter *>(pmInfos.at(i).filter_.data())) {
+                wiMatchLoPos = pmInfos.at(i).loPos_;
+                wiMatchHiPos = pmInfos.at(i).hiPos_;
+                break;
+            }
+        }
+        int wiIncompleteLoPos = -1;
+        int wiIncompleteHiPos = -1;
+        if (wiMatchLoPos == -1) {
+            for (int i = 0; i < piInfos.size(); ++i) {
+                if (dynamic_cast<WithinFilter *>(piInfos.at(i).filter_.data())) {
+                    wiIncompleteLoPos = piInfos.at(i).loPos_;
+                    wiIncompleteHiPos = piInfos.at(i).hiPos_;
+                    break;
+                }
+            }
+        }
+
+        if ((wiMatchLoPos == -1) && (wiIncompleteLoPos == -1)) {
+            // no WI filter found, neither matched nor incomplete
+            keepWIFilter = false;
+        } else if ((pmInfos.size() + piInfos.size()) == 1) {
+            // no other (matched or incomplete) filters found in addition to the (matched or incomplete) WI filter
+            keepWIFilter = true;
+        } else {
+            int wiLoPos = -1;
+            int wiHiPos = -1;
+            if (wiMatchLoPos >= 0) {
+                wiLoPos = wiMatchLoPos;
+                wiHiPos = wiMatchHiPos;
+            } else {
+                wiLoPos = wiIncompleteLoPos;
+                wiHiPos = wiIncompleteHiPos;
+            }
+            Q_ASSERT(wiLoPos >= 0);
+            Q_ASSERT(wiLoPos < wiHiPos);
+
+            int loPos = -1;
+            if (!pmInfos.isEmpty())
+                loPos = pmInfos.first().loPos_;
+            if (!piInfos.isEmpty())
+                loPos = (loPos == -1) ? piInfos.first().loPos_ : qMin(loPos, piInfos.first().loPos_);
+            Q_ASSERT(loPos >= 0);
+
+            if (loPos < wiLoPos) {
+                // another (matched or incomplete) filter occurs before the (matched or incomplete) WI filter
+                keepWIFilter = false;
+            } else {
+                // the (matched or incomplete) WI filter occurs before any other (matched or incomplete) filter
+                keepWIFilter = true;
+            }
+        }
+    } // handle 'WI exclusive' mode
+
+    // copy to matched ranges and result filters
     Filters resultFilters(new QList<Filter>());
     foreach (ParseMatchInfo pmInfo, pmInfos) {
-        if (pmInfo.missingAnd_) {
-            const QPair<int, int> range = qMakePair(pmInfo.loMatchPos_, pmInfo.hiMatchPos_);
-            matchedRanges->removeOne(range);
-            incompleteRanges->append(qMakePair(range, QString("missing 'AND' after expression")));
-        } else {
+        const WithinFilter *wiFilter = dynamic_cast<WithinFilter *>(pmInfo.filter_.data());
+        if ((!wiExclusive) || ((keepWIFilter && wiFilter) || ((!keepWIFilter) && (!wiFilter)))) {
+            matchedRanges->append(qMakePair(pmInfo.loPos_, pmInfo.hiPos_));
             resultFilters->append(pmInfo.filter_);
         }
     }
+    if ((!wiExclusive) || (!keepWIFilter)) {
+        // add extra matched ranges
+        for (int i = 0; i < extraMatchedRanges.size(); ++i)
+            matchedRanges->append(extraMatchedRanges.at(i));
+    }
+
+    // copy to incomplete ranges
+    foreach (ParseIncompleteInfo piInfo, piInfos) {
+        const WithinFilter *wiFilter = dynamic_cast<WithinFilter *>(piInfo.filter_.data());
+        if ((!wiExclusive) || ((keepWIFilter && wiFilter) || ((!keepWIFilter) && (!wiFilter)))) {
+            incompleteRanges->append(qMakePair(qMakePair(piInfo.loPos_, piInfo.hiPos_), piInfo.reason_));
+        }
+    }
+
     return resultFilters;
 }
 

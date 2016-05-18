@@ -430,6 +430,16 @@ public:
      */
     FIR::Code fir();
 
+    /**
+     * Enables or disables WI exclusive mode (whether the WI filter is allowed to occur together with other filter types).
+     */
+    void setWIExclusive(bool);
+
+    /**
+     * Gets whether WI exclusive mode is enabled.
+     */
+    bool wiExclusive() const;
+
 private:
     void init();
     virtual void mouseMoveEvent(QMouseEvent *);
@@ -443,6 +453,7 @@ private:
     QHash<int, QString> reason_;
     Filters filters_;
     FIR::Code fir_;
+    bool wiExclusive_;
 };
 
 // --- END classes --------------------------------------------------
@@ -483,9 +494,12 @@ QString xmetExprFromFilters(const Filters &filters);
  * \param[in]  expr             SIGMET/AIRMET area expression.
  * \param[out] matchedRanges    Sequence of string position ranges of each fully matched filter in \c expr.
  * \param[out] incompleteRanges Sequence of string position ranges of each incomplete (partly matched) filter in \c expr along with the reasons why they didn't match.
+ * \param[in]  wiExclusive      If true, the WI filter is not allowed to occur together with other types of filters.
  * \return The filter sequence representing fully matched filters in the order of appearance in \c expr.
  */
-Filters filtersFromXmetExpr(const QString &expr, QList<QPair<int, int> > *matchedRanges = 0, QList<QPair<QPair<int, int>, QString> > *incompleteRanges = 0);
+Filters filtersFromXmetExpr(
+        const QString &expr, QList<QPair<int, int> > *matchedRanges = 0, QList<QPair<QPair<int, int>, QString> > *incompleteRanges = 0,
+        bool wiExclusive = true);
 
 // --- END global functions --------------------------------------------------
 

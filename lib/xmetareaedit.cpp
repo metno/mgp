@@ -22,6 +22,7 @@ XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent)
 void XMETAreaEdit::init()
 {
     setMouseTracking(true);
+    wiExclusive_ = false;
 }
 
 void XMETAreaEdit::resetHighlighting()
@@ -138,7 +139,7 @@ bool XMETAreaEdit::update()
     // update filters from expression
     QList<QPair<int, int> > matchedRanges;
     QList<QPair<QPair<int, int>, QString> > incompleteRanges;
-    filters_ = mgp::filtersFromXmetExpr(text, &matchedRanges, &incompleteRanges);
+    filters_ = mgp::filtersFromXmetExpr(text, &matchedRanges, &incompleteRanges, wiExclusive_);
 
     // update highlighting from matched and incomplete ranges
 
@@ -174,6 +175,17 @@ mgp::FIR::Code XMETAreaEdit::fir()
 {
     update();
     return fir_;
+}
+
+void XMETAreaEdit::setWIExclusive(bool on)
+{
+    wiExclusive_ = on;
+    //update();
+}
+
+bool XMETAreaEdit::wiExclusive() const
+{
+    return wiExclusive_;
 }
 
 MGP_END_NAMESPACE
