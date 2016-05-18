@@ -1,3 +1,15 @@
+metno-mgp (1.1.9-1) unstable; urgency=low
+
+    * Made FIR matching more specific to minimize risk of false matches
+    * Provided supported FIR names in API
+    * Always represent zero minutes as '00'
+    * Made separating dash mandatory in WI and LINE expressions
+    * Made 'AND' between adjacent lat/lon expressions mandatory
+    * Added 'WI exclusive' mode
+    * Set 'WI exclusive' mode via XMETAreaEdit ctor
+
+ -- Jo Asplin <jo.asplin@met.no>  Wed, 18 May 2016 09:27:00 +0100
+
 metno-mgp (1.1.8-3) unstable; urgency=low
 
     * fixed bug in latitude filter
