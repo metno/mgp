@@ -512,7 +512,7 @@ int greatCircleArcIntersectsGreatCircle(const Point &p1, const Point &p2, const 
 {
     // find the intersections between the two great circles
     if (!greatCirclesIntersect(p1, p2, p3, p4, isctPoint1, isctPoint2))
-        return false; // no intersections
+        return 0; // no intersections
 
     // find the arc length
     const double arcLen = Math::distance(p1, p2);

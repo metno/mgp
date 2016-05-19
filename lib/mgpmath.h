@@ -134,7 +134,7 @@ bool greatCirclesIntersect(const Point &p1, const Point &p2, const Point &p3, co
 
 // Returns the number of intersections (0, 1 or 2) between the great circle arc from p1 to p2 and a great circle through p3 and p4.
 // Up to two intersection points are returned in isctPoint1 and isctPoint2.
-// NOTE: If the two great circles lie (approximately) in the same plane, the function returns false (even if there are infinite numbers
+// NOTE: If the two great circles lie (approximately) in the same plane, the function returns 0 (even if there are infinite numbers
 // of intersections!).
 int greatCircleArcIntersectsGreatCircle(const Point &p1, const Point &p2, const Point &p3, const Point &p4, Point *isctPoint1, Point *isctPoint2);
 
