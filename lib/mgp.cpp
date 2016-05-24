@@ -2,6 +2,7 @@
 #include "mgpmath.h"
 #include "enor_fir.h"
 #include "enob_fir.h"
+#include "polygonintersector.h"
 #include <QBitArray>
 #include <QRegExp>
 #include <QStack>
@@ -1435,5 +1436,26 @@ Filters filtersFromXmetExpr(
 
     return resultFilters;
 }
+
+void setIntersectablePolygons(const Polygons &polygons)
+{
+    PolygonIntersector::instance().setPolygons(polygons); // creates new quadtree based on lat/lon bounding boxes ...
+}
+
+QList<QPair<int, Polygons> > intersectedPolygons(const Polygons &intersectors)
+{
+    return PolygonIntersector::instance().intersection(intersectors);
+}
+
+double area(const Polygon &polygon)
+{
+    return -1; // ### TBD
+}
+
+double area(const Polygons &polygons)
+{
+    return -1; // ### TBD
+}
+
 
 MGP_END_NAMESPACE

@@ -509,6 +509,35 @@ Filters filtersFromXmetExpr(
         const QString &expr, QList<QPair<int, int> > *matchedRanges = 0, QList<QPair<QPair<int, int>, QString> > *incompleteRanges = 0,
         bool wiExclusive = true);
 
+/**
+ * Sets the list of polygons that will be intersected in intersectedPolygons().
+ * @param polygons The list of intersectable polygons indexed from 0 to n-1.
+ */
+void setIntersectablePolygons(const Polygons &polygons);
+
+/**
+ * Intersects the polygons last specified in setIntersectablePolygons().
+ * @param intersectors The polygons used for intersecting.
+ * @return A list consisting of the following for each intersected polygon P:
+ *   1) the (zero-based) index of P in the list passed to setIntersectedPolygons()
+ *   2) the intersected subpolygons within P
+ */
+QList<QPair<int, Polygons> > intersectedPolygons(const Polygons &intersectors);
+
+/**
+ * Computes the area of a polygon.
+ * \param[in] polygon Polygon.
+ * \return The area of the polygon in square kilometers.
+ */
+double area(const Polygon &polygon);
+
+/**
+ * Computes the area of a set of polygons.
+ * \param[in] polygons Polygons.
+ * \return The total area of the polygons in square kilometers.
+ */
+double area(const Polygons &polygons);
+
 // --- END global functions --------------------------------------------------
 
 MGP_END_NAMESPACE

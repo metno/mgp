@@ -388,6 +388,7 @@ ControlPanel::ControlPanel()
     , resultPolygonsLinesVisibleCheckBox_(0)
     , resultPolygonsPointsVisibleCheckBox_(0)
     , filterTabWidget_(0)
+    , isctPolysLinesVisibleCheckBox_(0)
 {
 }
 
@@ -701,6 +702,21 @@ void ControlPanel::initialize()
     // --- END SIGMET/AIRMET area expression section -------------------------------------------
 
 
+    // --- BEGIN intersectable polygons section -------------------------------------------
+    isctPolysGroupBox_ = new QGroupBox;
+    updateIntersectablePolygonsGroupBoxTitle(-1);
+    QVBoxLayout *isctPolysLayout = new QVBoxLayout;
+    isctPolysGroupBox_->setLayout(isctPolysLayout);
+    mainLayout->addWidget(isctPolysGroupBox_);
+
+    isctPolysLinesVisibleCheckBox_ = new QCheckBox("Enabled");
+    isctPolysLayout->addWidget(isctPolysLinesVisibleCheckBox_);
+
+    createIntersectablePolygons();
+
+    // --- END intersectable polygons section -------------------------------------------
+
+
     // --- BEGIN bottom section -----------------------------------------------
     QFrame *botPanel = new QFrame;
     botPanel->setLayout(new QHBoxLayout);
@@ -966,7 +982,12 @@ bool ControlPanel::resultPolygonsPointsVisible() const
 // Returns polygons resulting from applying the sequence of enabled and valid filters to the base polygon.
 mgp::Polygons ControlPanel::resultPolygons() const
 {
-    return mgp::applyFilters(currentBasePolygon(), enabledAndValidFilters());
+    const mgp::Polygons polygons = mgp::applyFilters(currentBasePolygon(), enabledAndValidFilters());
+
+    if (intersectablePolygonsLinesVisible())
+        polygonIntersection_ = mgp::intersectedPolygons(polygons);
+
+    return polygons;
 }
 
 void ControlPanel::updateResultPolygonsGroupBoxTitle(int n)
@@ -1068,7 +1089,7 @@ void ControlPanel::handleXmetExprChanged()
     if (xmetAreaEdit_->fir() != mgp::FIR::Unsupported)
         basePolygonComboBox_->setCurrentIndex(basePolygonComboBox_->findData(BasePolygon::typeFromFir(xmetAreaEdit_->fir())));
 
-    // update GL widget
+    // update GL widgetQList<QPair<int, Polygons> >
     updateGLWidget();
 }
 
@@ -1082,4 +1103,56 @@ void ControlPanel::filtersEditableOnSphereCheckBoxStateChanged()
 {
     if (filtersEditableOnSphereCheckBox_->isChecked())
         customBasePolygonEditableOnSphereCheckBox_->setChecked(false);
+}
+
+bool ControlPanel::intersectablePolygonsLinesVisible() const
+{
+    return isctPolysLinesVisibleCheckBox_->isChecked();
+}
+
+mgp::Polygons ControlPanel::intersectablePolygons() const
+{
+    return intersectablePolygons_;
+}
+
+QList<QPair<int, mgp::Polygons> > ControlPanel::polygonIntersection() const
+{
+    return polygonIntersection_;
+}
+
+void ControlPanel::updateIntersectablePolygonsGroupBoxTitle(int nCandidates, int nCandsIntersected, int nIsctPolys)
+{
+    isctPolysGroupBox_->setTitle(
+                QString("Intersectable Polygons%1")
+                .arg(nCandidates < 0
+                     ? QString()
+                     : QString(" (candidates: %1; intersected: %2; total polygons: %3)").arg(nCandidates).arg(nCandsIntersected).arg(nIsctPolys)));
+}
+
+void ControlPanel::createIntersectablePolygons()
+{
+    intersectablePolygons_ = mgp::Polygons(new QVector<mgp::Polygon>);
+
+    // test polygon 1
+    {
+        mgp::Polygon polygon = mgp::Polygon(new QVector<mgp::Point>);
+        polygon->append(qMakePair(DEG2RAD(10.26), DEG2RAD(59.10)));
+        polygon->append(qMakePair(DEG2RAD(9.67), DEG2RAD(59.2)));
+        polygon->append(qMakePair(DEG2RAD(10.04), DEG2RAD(59.45)));
+        polygon->append(qMakePair(DEG2RAD(10.37), DEG2RAD(59.3)));
+        intersectablePolygons_->append(polygon);
+    }
+
+    // test polygon 2
+    {
+        mgp::Polygon polygon = mgp::Polygon(new QVector<mgp::Point>);
+        polygon->append(qMakePair(DEG2RAD(10), DEG2RAD(60)));
+        polygon->append(qMakePair(DEG2RAD(10), DEG2RAD(60.5)));
+        polygon->append(qMakePair(DEG2RAD(9), DEG2RAD(60.5)));
+        polygon->append(qMakePair(DEG2RAD(9.5), DEG2RAD(60.25)));
+        polygon->append(qMakePair(DEG2RAD(9), DEG2RAD(60)));
+        intersectablePolygons_->append(polygon);
+    }
+
+    mgp::setIntersectablePolygons(intersectablePolygons_);
 }

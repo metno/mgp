@@ -2,6 +2,9 @@ TEMPLATE = app
 TARGET = mgpview 
 QT += opengl 
 
+CONFIG += debug
+
+
 INCLUDEPATH += . ../../lib
 DEPENDPATH += . ../../lib
 PRE_TARGETDEPS += ../../lib/libmgp.a

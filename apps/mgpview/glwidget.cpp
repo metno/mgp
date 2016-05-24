@@ -355,6 +355,54 @@ void GLWidget::paintGL()
     // --- END draw result polygons --------------------------------
 
 
+    // --- BEGIN draw intersectable polygons --------------------------------
+
+    if (ControlPanel::instance().intersectablePolygonsLinesVisible()) {
+        int nCandidates = -1;
+        int nCandsIntersected = -1;
+        int nIsctPolys = 0;
+
+        {
+            const mgp::Polygons polygons = ControlPanel::instance().intersectablePolygons();
+            nCandidates = polygons->size();
+
+            // draw lines
+            glShadeModel(GL_FLAT);
+            for (int i = 0; i < polygons->size(); ++i)
+                if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
+                    gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(0, 0, 0), 1);
+            glShadeModel(GL_SMOOTH);
+        }
+
+        // draw intersection
+        {
+            const QList<QPair<int, mgp::Polygons> > isct = ControlPanel::instance().polygonIntersection();
+            nCandsIntersected = isct.size();
+
+            // draw lines
+            glShadeModel(GL_FLAT);
+            for (int i = 0; i < isct.size(); ++i) {
+                const QPair<int, mgp::Polygons> isctItem = isct.at(i);
+                const mgp::Polygons polygons = isctItem.second;
+                for (int j = 0; j < polygons->size(); ++j) {
+                    if (polygons->at(j) && (!polygons->at(j)->isEmpty())) {
+                        gfx_util.drawSurfacePolygon(polygons->at(j), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 0, 1), 4);
+                        nIsctPolys++;
+                    }
+                }
+            }
+            glShadeModel(GL_SMOOTH);
+        }
+
+        ControlPanel::instance().updateIntersectablePolygonsGroupBoxTitle(nCandidates, nCandsIntersected, nIsctPolys);
+
+    } else {
+        ControlPanel::instance().updateIntersectablePolygonsGroupBoxTitle(-1);
+    }
+
+    // --- END draw intersectable polygons --------------------------------
+
+
     if (mouseHitsEarth_) {
         // show mouse position
         QString s;
