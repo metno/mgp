@@ -538,6 +538,11 @@ double area(const Polygon &polygon);
  */
 double area(const Polygons &polygons);
 
+/**
+ * Returns the polygons for the Norwegian municipalities.
+ */
+Polygons norwegianMunicipalities();
+
 // --- END global functions --------------------------------------------------
 
 MGP_END_NAMESPACE

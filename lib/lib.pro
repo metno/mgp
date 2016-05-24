@@ -1,8 +1,10 @@
 TEMPLATE = lib
 CONFIG += staticlib debug
+QT += xml xmlpatterns
 TARGET = mgp 
-SOURCES += mgpmath.cpp xmetareaedit.cpp mgp.cpp polygonintersector.cpp
-HEADERS += mgpmath.h mgp.h enor_fir.h enob_fir.h polygonintersector.h
+SOURCES += mgpmath.cpp xmetareaedit.cpp mgp.cpp polygonintersector.cpp kml.cpp
+HEADERS += mgpmath.h mgp.h data/enor_fir.h data/enob_fir.h data/norway_municipalities.kml polygonintersector.h kml.h
+RESOURCES = mgp.qrc
 
 #target.path = /usr/lib
 #INSTALLS += target

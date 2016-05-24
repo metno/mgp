@@ -1,14 +1,25 @@
 #include "mgp.h"
 #include "mgpmath.h"
-#include "enor_fir.h"
-#include "enob_fir.h"
+#include "data/enor_fir.h"
+#include "data/enob_fir.h"
 #include "polygonintersector.h"
+#include "kml.h"
 #include <QBitArray>
 #include <QRegExp>
 #include <QStack>
+#include <QFile>
 #include <algorithm>
 
 #include <QDebug>
+
+static void initResource()
+{
+    static bool called = false;
+    if (!called) {
+        Q_INIT_RESOURCE(mgp);
+        called = true;
+    }
+}
 
 MGP_BEGIN_NAMESPACE
 
@@ -1457,5 +1468,27 @@ double area(const Polygons &polygons)
     return -1; // ### TBD
 }
 
+Polygons norwegianMunicipalities()
+{
+    const Polygons emptyPolygons = Polygons(new QVector<Polygon>);
+
+    initResource();
+    const QString fname(":data/norway_municipalities.kml");
+    QFile file(fname);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning("failed to open %s for reading", fname.toLatin1().constData());
+        return emptyPolygons;
+    }
+
+    QByteArray data = file.readAll();
+    QString error;
+    const Polygons polygons = kml::kml2polygons(data, &error);
+    if (!error.isEmpty()) {
+        qWarning("failed to extract polygons from KML file: %s", error.toLatin1().constData());
+        return emptyPolygons;
+    }
+
+    return polygons;
+}
 
 MGP_END_NAMESPACE

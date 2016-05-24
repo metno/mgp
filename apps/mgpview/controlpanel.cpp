@@ -1134,6 +1134,7 @@ void ControlPanel::createIntersectablePolygons()
 {
     intersectablePolygons_ = mgp::Polygons(new QVector<mgp::Polygon>);
 
+#if 0
     // test polygon 1
     {
         mgp::Polygon polygon = mgp::Polygon(new QVector<mgp::Point>);
@@ -1154,6 +1155,10 @@ void ControlPanel::createIntersectablePolygons()
         polygon->append(qMakePair(DEG2RAD(9), DEG2RAD(60)));
         intersectablePolygons_->append(polygon);
     }
+
+#else
+    intersectablePolygons_ = mgp::norwegianMunicipalities();
+#endif
 
     mgp::setIntersectablePolygons(intersectablePolygons_);
 }
