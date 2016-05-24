@@ -710,6 +710,7 @@ void ControlPanel::initialize()
     mainLayout->addWidget(isctPolysGroupBox_);
 
     isctPolysLinesVisibleCheckBox_ = new QCheckBox("Enabled");
+    connect(isctPolysLinesVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     isctPolysLayout->addWidget(isctPolysLinesVisibleCheckBox_);
 
     createIntersectablePolygons();

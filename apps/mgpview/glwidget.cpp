@@ -370,7 +370,7 @@ void GLWidget::paintGL()
             glShadeModel(GL_FLAT);
             for (int i = 0; i < polygons->size(); ++i)
                 if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
-                    gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(0, 0, 0), 1);
+                    gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(0.7, 0.4, 0), 1);
             glShadeModel(GL_SMOOTH);
         }
 
