@@ -192,10 +192,11 @@ public:
     mgp::Polygons resultPolygons() const;
     void updateResultPolygonsGroupBoxTitle(int);
 
-    bool intersectablePolygonsLinesVisible() const;
+    bool intersectablePolygonsVisible() const;
+    bool polygonIntersectionVisible() const;
     mgp::Polygons intersectablePolygons() const;
     QList<QPair<int, mgp::Polygons> > polygonIntersection() const;
-    void updateIntersectablePolygonsGroupBoxTitle(int, int = -1, int = -1);
+    void updatePolygonIntersectionGroupBoxTitle(int, int = -1, int = -1);
 
     float ballSizeFrac();
 
@@ -239,8 +240,9 @@ private:
 
     ResultPolygonsExportPanel *resPolysExportPanel_;
 
-    QGroupBox *isctPolysGroupBox_;
-    QCheckBox *isctPolysLinesVisibleCheckBox_;
+    QGroupBox *polygonIntersectionGroupBox_;
+    QCheckBox *intersectableVisibleCheckBox_;
+    QCheckBox *intersectionVisibleCheckBox_;
     mgp::Polygons intersectablePolygons_;
     mutable QList<QPair<int, mgp::Polygons> > polygonIntersection_;
     void createIntersectablePolygons();

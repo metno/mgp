@@ -388,7 +388,8 @@ ControlPanel::ControlPanel()
     , resultPolygonsLinesVisibleCheckBox_(0)
     , resultPolygonsPointsVisibleCheckBox_(0)
     , filterTabWidget_(0)
-    , isctPolysLinesVisibleCheckBox_(0)
+    , intersectableVisibleCheckBox_(0)
+    , intersectionVisibleCheckBox_(0)
 {
 }
 
@@ -702,20 +703,24 @@ void ControlPanel::initialize()
     // --- END SIGMET/AIRMET area expression section -------------------------------------------
 
 
-    // --- BEGIN intersectable polygons section -------------------------------------------
-    isctPolysGroupBox_ = new QGroupBox;
-    updateIntersectablePolygonsGroupBoxTitle(-1);
-    QVBoxLayout *isctPolysLayout = new QVBoxLayout;
-    isctPolysGroupBox_->setLayout(isctPolysLayout);
-    mainLayout->addWidget(isctPolysGroupBox_);
+    // --- BEGIN polygon intersection section -------------------------------------------
+    polygonIntersectionGroupBox_ = new QGroupBox;
+    updatePolygonIntersectionGroupBoxTitle(-1);
+    QVBoxLayout *polyIsctLayout = new QVBoxLayout;
+    polygonIntersectionGroupBox_->setLayout(polyIsctLayout);
+    mainLayout->addWidget(polygonIntersectionGroupBox_);
 
-    isctPolysLinesVisibleCheckBox_ = new QCheckBox("Enabled");
-    connect(isctPolysLinesVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
-    isctPolysLayout->addWidget(isctPolysLinesVisibleCheckBox_);
+    intersectableVisibleCheckBox_ = new QCheckBox("Intersectable");
+    connect(intersectableVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    polyIsctLayout->addWidget(intersectableVisibleCheckBox_);
+
+    intersectionVisibleCheckBox_ = new QCheckBox("Intersection (WARNING: for now this activates a very slow computation!!!)");
+    connect(intersectionVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
+    polyIsctLayout->addWidget(intersectionVisibleCheckBox_);
 
     createIntersectablePolygons();
 
-    // --- END intersectable polygons section -------------------------------------------
+    // --- END polygon intersection section -------------------------------------------
 
 
     // --- BEGIN bottom section -----------------------------------------------
@@ -985,7 +990,7 @@ mgp::Polygons ControlPanel::resultPolygons() const
 {
     const mgp::Polygons polygons = mgp::applyFilters(currentBasePolygon(), enabledAndValidFilters());
 
-    if (intersectablePolygonsLinesVisible())
+    if (polygonIntersectionVisible())
         polygonIntersection_ = mgp::intersectedPolygons(polygons);
 
     return polygons;
@@ -1106,9 +1111,14 @@ void ControlPanel::filtersEditableOnSphereCheckBoxStateChanged()
         customBasePolygonEditableOnSphereCheckBox_->setChecked(false);
 }
 
-bool ControlPanel::intersectablePolygonsLinesVisible() const
+bool ControlPanel::intersectablePolygonsVisible() const
 {
-    return isctPolysLinesVisibleCheckBox_->isChecked();
+    return intersectableVisibleCheckBox_->isChecked();
+}
+
+bool ControlPanel::polygonIntersectionVisible() const
+{
+    return intersectionVisibleCheckBox_->isChecked();
 }
 
 mgp::Polygons ControlPanel::intersectablePolygons() const
@@ -1121,10 +1131,10 @@ QList<QPair<int, mgp::Polygons> > ControlPanel::polygonIntersection() const
     return polygonIntersection_;
 }
 
-void ControlPanel::updateIntersectablePolygonsGroupBoxTitle(int nCandidates, int nCandsIntersected, int nIsctPolys)
+void ControlPanel::updatePolygonIntersectionGroupBoxTitle(int nCandidates, int nCandsIntersected, int nIsctPolys)
 {
-    isctPolysGroupBox_->setTitle(
-                QString("Intersectable Polygons%1")
+    polygonIntersectionGroupBox_->setTitle(
+                QString("Polygon Intersection%1")
                 .arg(nCandidates < 0
                      ? QString()
                      : QString(" (candidates: %1; intersected: %2; total polygons: %3)").arg(nCandidates).arg(nCandsIntersected).arg(nIsctPolys)));

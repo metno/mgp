@@ -1,3 +1,9 @@
+metno-mgp (1.1.11-1) unstable; urgency=low
+
+    * Show intersectable polygons without showing intersection
+
+ -- Jo Asplin <jo.asplin@met.no>  Wed, 25 May 2016 12:26:00 +0100
+
 metno-mgp (1.1.10-1) unstable; urgency=low
 
     * Added Norwegian municipalities as intersectable polygons

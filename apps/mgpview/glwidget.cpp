@@ -357,7 +357,7 @@ void GLWidget::paintGL()
 
     // --- BEGIN draw intersectable polygons --------------------------------
 
-    if (ControlPanel::instance().intersectablePolygonsLinesVisible()) {
+    if (ControlPanel::instance().intersectablePolygonsVisible() || ControlPanel::instance().polygonIntersectionVisible()) {
         int nCandidates = -1;
         int nCandsIntersected = -1;
         int nIsctPolys = 0;
@@ -366,12 +366,14 @@ void GLWidget::paintGL()
             const mgp::Polygons polygons = ControlPanel::instance().intersectablePolygons();
             nCandidates = polygons->size();
 
-            // draw lines
-            glShadeModel(GL_FLAT);
-            for (int i = 0; i < polygons->size(); ++i)
-                if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
-                    gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(0.7, 0.4, 0), 1);
-            glShadeModel(GL_SMOOTH);
+            if (ControlPanel::instance().intersectablePolygonsVisible()) {
+                // draw lines
+                glShadeModel(GL_FLAT);
+                for (int i = 0; i < polygons->size(); ++i)
+                    if (polygons->at(i) && (!polygons->at(i)->isEmpty()))
+                        gfx_util.drawSurfacePolygon(polygons->at(i), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(0.7, 0.4, 0), 1);
+                glShadeModel(GL_SMOOTH);
+            }
         }
 
         // draw intersection
@@ -379,25 +381,27 @@ void GLWidget::paintGL()
             const QList<QPair<int, mgp::Polygons> > isct = ControlPanel::instance().polygonIntersection();
             nCandsIntersected = isct.size();
 
-            // draw lines
-            glShadeModel(GL_FLAT);
-            for (int i = 0; i < isct.size(); ++i) {
-                const QPair<int, mgp::Polygons> isctItem = isct.at(i);
-                const mgp::Polygons polygons = isctItem.second;
-                for (int j = 0; j < polygons->size(); ++j) {
-                    if (polygons->at(j) && (!polygons->at(j)->isEmpty())) {
-                        gfx_util.drawSurfacePolygon(polygons->at(j), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 0, 1), 4);
-                        nIsctPolys++;
+            if (ControlPanel::instance().polygonIntersectionVisible()) {
+                // draw lines
+                glShadeModel(GL_FLAT);
+                for (int i = 0; i < isct.size(); ++i) {
+                    const QPair<int, mgp::Polygons> isctItem = isct.at(i);
+                    const mgp::Polygons polygons = isctItem.second;
+                    for (int j = 0; j < polygons->size(); ++j) {
+                        if (polygons->at(j) && (!polygons->at(j)->isEmpty())) {
+                            gfx_util.drawSurfacePolygon(polygons->at(j), eye, minDolly_, maxDolly_ * 0.9, QColor::fromRgbF(1, 0, 1), 4);
+                            nIsctPolys++;
+                        }
                     }
                 }
+                glShadeModel(GL_SMOOTH);
             }
-            glShadeModel(GL_SMOOTH);
         }
 
-        ControlPanel::instance().updateIntersectablePolygonsGroupBoxTitle(nCandidates, nCandsIntersected, nIsctPolys);
+        ControlPanel::instance().updatePolygonIntersectionGroupBoxTitle(nCandidates, nCandsIntersected, nIsctPolys);
 
     } else {
-        ControlPanel::instance().updateIntersectablePolygonsGroupBoxTitle(-1);
+        ControlPanel::instance().updatePolygonIntersectionGroupBoxTitle(-1);
     }
 
     // --- END draw intersectable polygons --------------------------------
