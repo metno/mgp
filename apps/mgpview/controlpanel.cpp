@@ -714,7 +714,7 @@ void ControlPanel::initialize()
     connect(intersectableVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     polyIsctLayout->addWidget(intersectableVisibleCheckBox_);
 
-    intersectionVisibleCheckBox_ = new QCheckBox("Intersection (WARNING: for now this activates a very slow computation!!!)");
+    intersectionVisibleCheckBox_ = new QCheckBox("Intersection (WARNING: for now, this activates a very slow computation!!!)");
     connect(intersectionVisibleCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateGLWidget()));
     polyIsctLayout->addWidget(intersectionVisibleCheckBox_);
 
