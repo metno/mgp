@@ -973,11 +973,17 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     // look for keyword
     rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+LINE").arg(directionName()));
-    const int rxpos1 = expr.indexOf(rx);
+    int rxpos1 = expr.indexOf(rx);
     if (rxpos1 < 0)
         return false; // no match
 
-    const int matchedLen1 = rx.matchedLength();
+    int matchedLen1 = rx.matchedLength();
+
+    // strip off leading whitespace
+    while (expr.at(rxpos1).isSpace()) {
+        rxpos1++;
+        matchedLen1--;
+    }
 
     // look for values
     rx.setPattern(
@@ -1208,7 +1214,7 @@ QString xmetExprFromFilters(const Filters &filters)
 {
     QString s;
     bool addSpace = false;
-    bool prevValidIsLonOrLat = false;
+    bool prevValidIsLine = false;
     for (int i = 0; i < filters->size(); ++i) {
         const Filter filter = filters->at(i);
         if (filter->isValid()) {
@@ -1216,10 +1222,10 @@ QString xmetExprFromFilters(const Filters &filters)
                 s += " ";
             addSpace = true; // add a space from now on
 
-            const bool isLonOrLat = dynamic_cast<LonOrLatFilter *>(filter.data());
-            if (isLonOrLat && prevValidIsLonOrLat)
+            const bool isLine = dynamic_cast<LineFilter *>(filter.data());
+            if (isLine && prevValidIsLine)
                 s += "AND ";
-            prevValidIsLonOrLat = isLonOrLat;
+            prevValidIsLine = isLine;
 
             s += filter->xmetExpr();
         }
@@ -1328,11 +1334,9 @@ Filters filtersFromXmetExpr(
     {
         QRegExp rx("^\\s+and\\s+$");
         for (int i = 1; i < pmInfos.size(); ++i) {
-            const LonFilter *lon1 = dynamic_cast<LonFilter *>(pmInfos.at(i - 1).filter_.data());
-            const LonFilter *lon2 = dynamic_cast<LonFilter *>(pmInfos.at(i).filter_.data());
-            const LatFilter *lat1 = dynamic_cast<LatFilter *>(pmInfos.at(i - 1).filter_.data());
-            const LatFilter *lat2 = dynamic_cast<LatFilter *>(pmInfos.at(i).filter_.data());
-            if ((lon1 || lat1) && (lon2 || lat2)) {
+            const LineFilter *lf1 = dynamic_cast<LineFilter *>(pmInfos.at(i - 1).filter_.data());
+            const LineFilter *lf2 = dynamic_cast<LineFilter *>(pmInfos.at(i).filter_.data());
+            if (lf1 && lf2) {
                 const int lo = pmInfos.at(i - 1).hiPos_ + 1;
                 const int hi = pmInfos.at(i).loPos_ - 1;
                 const QString text = expr.mid(lo, (hi - lo) + 1);
