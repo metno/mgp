@@ -1,0 +1,3 @@
+apps/mgpview/mgpview usr/bin/
+desktop/metno-mgpview.desktop usr/share/applications
+icons/mgpview.png usr/share/pixmaps/

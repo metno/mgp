@@ -3,8 +3,7 @@ Section: science
 Priority: extra
 Maintainer: Norwegian Meteorological Institute met.no <jo.asplin@met.no>
 Build-Depends: debhelper (>= 9),
- qt4-qmake, libqt4-dev,
-# libqt4-dev-bin,    - required for Trusty (Ubuntu 14.04)
+ libqt4-dev, libqt4-dev-bin | qt4-qmake,
  libqt4-opengl-dev
 Standards-Version: 3.9.2
 
@@ -13,3 +12,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: MET Norway MGP demo application
  This package contains a demo application for the MGP polygon library.
+
+Package: metno-mgp-dev
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: MET Norway MGP lib
+ This package contains the MGP polygon library.
