@@ -248,14 +248,14 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
     Polygon polygon(new QVector<Point>());
     const QString basePattern(
                 "([NS]\\d\\d\\d\\d)"
-                "\\s*"
+                " "
                 "([EW]\\d\\d\\d\\d\\d)"
                 );
     QRegExp rx;
     rx.setCaseSensitivity(Qt::CaseInsensitive);
     bool first = true;
     while (true) {
-        rx.setPattern(QString("%1%2").arg(first ? "^\\s+" : "^\\s+-\\s+").arg(basePattern));
+        rx.setPattern(QString("%1%2").arg(first ? "^ " : "^ - ").arg(basePattern));
         first = false;
 
         // read next coordinate
