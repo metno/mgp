@@ -1,3 +1,9 @@
+metno-mgp (1.1.12-1) precise; urgency=low
+
+  * Allowed only single spaces in WI-expression
+
+ -- Jo Asplin <jo.asplin@met.no>  Tue, 30 Aug 2016 06:16:00 +0200
+
 metno-mgp (1.1.11-4) precise; urgency=low
 
   * new debian package to fix nvidia dependency
