@@ -491,7 +491,7 @@ bool LonOrLatFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
     rx.setCaseSensitivity(Qt::CaseInsensitive);
 
     // look for keyword
-    rx.setPattern(QString("(?:^|\\s+)%1\\s+OF").arg(directionName()));
+    rx.setPattern(QString("(?:^|\\s+)%1 OF").arg(directionName()));
     int rxpos1 = expr.indexOf(rx);
     if (rxpos1 < 0)
         return false; // no match
@@ -972,7 +972,7 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
     rx.setCaseSensitivity(Qt::CaseInsensitive);
 
     // look for keyword
-    rx.setPattern(QString("(?:^|\\s+)%1\\s+OF\\s+LINE").arg(directionName()));
+    rx.setPattern(QString("(?:^|\\s+)%1 OF LINE").arg(directionName()));
     int rxpos1 = expr.indexOf(rx);
     if (rxpos1 < 0)
         return false; // no match
@@ -987,9 +987,9 @@ bool FreeLineFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *match
 
     // look for values
     rx.setPattern(
-                "^\\s+([NS]\\d\\d\\d\\d)\\s*([EW]\\d\\d\\d\\d\\d)"
-                "\\s+-\\s+"
-                "([NS]\\d\\d\\d\\d)\\s*([EW]\\d\\d\\d\\d\\d)"
+                "^ ([NS]\\d\\d\\d\\d) ([EW]\\d\\d\\d\\d\\d)"
+                " - "
+                "([NS]\\d\\d\\d\\d) ([EW]\\d\\d\\d\\d\\d)"
                 );
 
     const int rxpos2 = expr.mid(rxpos1 + matchedLen1).indexOf(rx);
