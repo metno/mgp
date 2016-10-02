@@ -15,8 +15,11 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 
-void MainWindow::init()
+QString MainWindow::initExpr_ = QString();
+
+void MainWindow::init(const QString &initExpr)
 {
+    initExpr_ = initExpr;
     isInit_ = true;
 }
 
@@ -83,7 +86,7 @@ MainWindow::MainWindow()
     setLayout(mainLayout);
     resize(800, 800);
 
-    ControlPanel::instance().initialize();
+    ControlPanel::instance().initialize(initExpr_);
 }
 
 bool MainWindow::isInit_ = false;

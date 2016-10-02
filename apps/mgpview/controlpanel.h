@@ -151,7 +151,7 @@ class ControlPanel : public QWidget
 
 public:
     static ControlPanel &instance();
-    void initialize();
+    void initialize(const QString &);
     void open();
 
     bool isEnabled(mgp::FilterBase::Type) const;
@@ -247,6 +247,8 @@ private:
     mutable QList<QPair<int, mgp::Polygons> > polygonIntersection_;
     void createIntersectablePolygons();
 
+    QString initExpr_;
+
 public slots:
     void updateGLWidget();
 
@@ -260,6 +262,7 @@ private slots:
     void handleXmetExprChanged();
     void customBasePolygonEditableOnSphereCheckBoxStateChanged();
     void filtersEditableOnSphereCheckBoxStateChanged();
+    void setInitExpr();
 };
 
 #endif // CONTROLPANEL_H

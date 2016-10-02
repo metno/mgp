@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QWidget>
+#include <QString>
 
 class GLWidget;
 class QSlider;
@@ -12,12 +13,13 @@ class MainWindow : public QWidget
     Q_OBJECT
 
 public:
-    static void init();
+    static void init(const QString &);
     static MainWindow &instance();
     void handleKeyPressEvent(QKeyEvent *);
     GLWidget *glWidget() const;
 
 private:
+    static QString initExpr_;
     static bool isInit_;
     MainWindow();
     GLWidget *glw_;

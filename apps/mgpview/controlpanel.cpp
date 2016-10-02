@@ -21,6 +21,7 @@
 #include <QMessageBox>
 #include <QTabWidget>
 #include <QDialogButtonBox>
+#include <QTimer>
 
 FilterControlBase::FilterControlBase(mgp::FilterBase *filter, QCheckBox *enabledCheckBox, QCheckBox *currCheckBox)
     : filter_(mgp::Filter(filter))
@@ -405,7 +406,12 @@ static QGridLayout *createFilterLayout()
     return layout;
 }
 
-void ControlPanel::initialize()
+void ControlPanel::setInitExpr()
+{
+    xmetAreaEdit_->setPlainText(initExpr_);
+}
+
+void ControlPanel::initialize(const QString &initExpr)
 {
     setWindowTitle("Control Panel");
     QVBoxLayout *mainLayout = new QVBoxLayout;
@@ -734,6 +740,13 @@ void ControlPanel::initialize()
     connect(closeButton, SIGNAL(clicked()), SLOT(close()));
     botPanel->layout()->addWidget(closeButton);
     // --- END bottom section -----------------------------------------------
+
+
+    // set any initial SIGMET/AIRMET area expression
+    if (!initExpr.isEmpty()) {
+        initExpr_ = initExpr;
+        QTimer::singleShot(0, this, SLOT(setInitExpr()));
+    }
 }
 
 void ControlPanel::keyPressEvent(QKeyEvent *event)
