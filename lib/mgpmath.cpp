@@ -235,9 +235,22 @@ _3DPoint::_3DPoint(double x, double y, double z)
     c_[2] = z;
 }
 
+_3DPoint::_3DPoint(const Point &p)
+{
+    Math::sphericalToCartesian(1, p.second, p.first, c_[0], c_[1], c_[2]);
+}
+
 double _3DPoint::norm() const
 {
     return sqrt(c_[0] * c_[0] + c_[1] * c_[1] + c_[2] * c_[2]);
+}
+
+Point _3DPoint::toSpherical() const
+{
+    double lon, lat;
+    Math::cartesianToSpherical(c_[0], c_[1], c_[2], lat, lon);
+
+    return qMakePair(lon, lat);
 }
 
 _3DPoint _3DPoint::fromSpherical(double lon, double lat)
@@ -543,6 +556,65 @@ double crossTrackDistanceToGreatCircle(const Point &p0, const Point &p1, const P
     return asin(sin(delta_13) * sin(theta_13 - theta_12));
 }
 
+
+// Returns the projection of p0 on the great circle between p1 and p2.
+// NOTE: We assume that this function may throw std::runtime_error iff p1 and p2 are identical or very close.
+static Point pointProjOnGreatCircle(const Point &p0, const Point &p1, const Point &p2)
+{
+    // Adopted from http://gis.stackexchange.com/questions/144007/project-location-on-a-great-circle-path
+
+    // compute normal of great circle plane
+    const _3DPoint U = _3DPoint::normalized(_3DPoint::cross(_3DPoint(p1), _3DPoint(p2)));
+
+    const _3DPoint P = _3DPoint(p0);
+
+    // compute distance from p0 to great circle plane
+    const double d = _3DPoint::dot(P, U);
+
+    // project p0 to great circle plane
+    // >>>>> X' = (x', y', z') = X - d*U = (x - d*xu, y - d*yu, z - d*zu).
+    const _3DPoint P_mark1 = _3DPoint(P.x() - d * U.x(), P.y() - d * U.y(), P.z() - d * U.z());
+
+    // extend radially to great circle itself (### should be combined with previous statement for better performance!)
+    // >>>>> X'' = X' / |X'|.
+    const _3DPoint P_mark2 = _3DPoint::normalized(P_mark1);
+
+    // convert back to spherical coordinate
+    return P_mark2.toSpherical();
+}
+
+
+double distanceToGreatCircleArc(const Point &p0, const Point &p1, const Point &p2)
+{
+    // check if the projected p0 is located inside or outside of the arc
+    {
+        const double d12 = Math::distance(p1, p2);
+
+        Point p0_proj;
+        try {
+            p0_proj = pointProjOnGreatCircle(p0, p1, p2);
+
+            const double d01_proj = Math::distance(p0_proj, p1);
+            const double d02_proj = Math::distance(p0_proj, p2);
+
+            if (qMax(d01_proj, d02_proj) > d12) {
+                // ... outside, so return the distance between p0 and the nearest endpoint
+                const double d01 = Math::distance(p0, p1);
+                const double d02 = Math::distance(p0, p2);
+                return qMin(d01, d02);
+            }
+
+        } catch (std::runtime_error e) {
+            // assume this is because p1 and p2 are identical or very close
+            return qMin(Math::distance(p0, p1), Math::distance(p0, p2));
+        }
+    }
+
+    // ... inside (and p1 and p2 sufficiently far apart), so return the unsigned projection distance
+    return qAbs(crossTrackDistanceToGreatCircle(p0, p1, p2));
+}
+
+
 QVector<_3DPoint> greatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly)
 {
     QVector<_3DPoint> points;
@@ -702,6 +774,67 @@ static void printLists(const QString &tag, const QLinkedList<Node> &slist, const
     }
 }
 
+
+// Removes coincident neighbours in p.
+static void removeCoincidentNeighbours(const Polygon &p)
+{
+    const double epsilon = 0.001;
+    for (int i = p->size() - 1; i >= 0; --i) {
+        if (Math::distance(p->at(i), p->at((i + 1) % p->size())) < epsilon)
+            p->remove(i);
+    }
+
+}
+
+
+// Returns a version of p0 that is perturbed at least epsilon away from the segment between p1 and p2.
+static Point perturbedVertex(const Point &p0, const Point &p1, const Point &p2, double epsilon)
+{
+    const bool moreSouthNorth = (qAbs(p1.first - p2.first) < qAbs(p1.second - p2.second));
+
+    Point p(p0);
+    if (moreSouthNorth)
+        p.first += (3 * epsilon);
+    else
+        p.second += (3 * epsilon);
+
+    return p;
+}
+
+
+// Attempts to ensure that each edge in the clip polygon (c) is intersectable with relevant edges in the subject polygon (s)
+// by eliminating degenerate cases as far as possible. This reduces the possibility of polygonIntersection() generating a false
+// result. Degenerate cases are essentially those in which a vertex is too close to an edge. This may in turn lead to ambiguities
+// that cause the main algorithm to fail.
+//
+static void fixDegenerate(const Polygon &s, const Polygon &c)
+{
+    const double epsilon = 0.0001; // seems appropriate for cases we have encountered in practice so far
+    const int nc = c->size();
+    const int ns = s->size();
+
+    // *** STEP 1: perturb each vertex in s so that none is too close to an edge in c. ***
+    for (int i = 0; i < nc; ++i) {
+        for (int j = 0; j < ns; ++j) {
+            if (distanceToGreatCircleArc(s->at(j), c->at(i), c->at((i + 1) % nc)) < epsilon) {
+                // vertex(s, j) is too close to edge(c, i, i + 1), so perturb vertex(s, j) ...
+                (*s)[j] = perturbedVertex(s->at(j), c->at(i), c->at((i + 1) % nc), epsilon);
+            }
+        }
+    }
+
+    // *** STEP 2: perturb each vertex in c so that none is too close to an edge in s. ***
+    for (int j = 0; j < ns; ++j) {
+        for (int i = 0; i < nc; ++i) {
+            if (distanceToGreatCircleArc(c->at(i), s->at(j), s->at((j + 1) % ns)) < epsilon) {
+                // vertex(c, i) is too close to edge(s, j, j + 1), so perturb vertex(c, i) ...
+                (*c)[i] = perturbedVertex(c->at(i), s->at(j), s->at((j + 1) % ns), epsilon);
+            }
+        }
+    }
+}
+
+
 Polygons polygonIntersection(const Polygon &subject, const Polygon &clip)
 {
     // This function implements the Greiner-Hormann clipping algorithm:
@@ -717,15 +850,29 @@ Polygons polygonIntersection(const Polygon &subject, const Polygon &clip)
 
 #if 0
     // set up input polygons and ensure they are oriented clockwise
-    const Polygon C(isClockwise(clip) ? clip : reversed(clip));
-    Q_ASSERT(isClockwise(C));
-    const Polygon S(isClockwise(subject) ? subject : reversed(subject));
-    Q_ASSERT(isClockwise(S));
+    Polygon subject_orient(isClockwise(subject) ? subject : reversed(subject));
+    Q_ASSERT(isClockwise(subject_orient));
+    Polygon clip_orient(isClockwise(clip) ? clip : reversed(clip));
+    Q_ASSERT(isClockwise(clip_orient));
 #else
-    // set up input polygons regardless of orientation (seems to work fine)
-    const Polygon C(clip);
-    const Polygon S(subject);
+    // set up input polygons regardless of orientation (seems to work fine ... but check both cases!)
+    Polygon subject_orient(new QVector<Point>(*subject.data()));
+    Polygon clip_orient(new QVector<Point>(*clip.data()));
 #endif
+
+    // deep-copy both polygons in order not to modify the originals (hm ... maybe do this right at the beginning instead?)
+    const Polygon S(new QVector<Point>(*subject_orient.data()));
+    const Polygon C(new QVector<Point>(*clip_orient.data()));
+
+    // eliminate coincident neighbours in C (assuming for now that S doesn't have any)
+    removeCoincidentNeighbours(C);
+
+    // ensure that C is still large enough for an intersection to make sense
+    if (C->size() < 3)
+        return Polygons();
+
+    // eliminate degenerate cases
+    fixDegenerate(S, C);
 
     // find intersections
     int isctId = 0;

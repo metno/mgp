@@ -45,6 +45,7 @@ typedef QPair<double, double> Point;
 typedef QSharedPointer<QVector<Point> > Polygon;
 typedef QSharedPointer<QVector<Polygon> > Polygons;
 
+
 #define DEG2RAD(d) ((d) / 180.0) * M_PI
 #define RAD2DEG(r) ((r) / M_PI) * 180
 

@@ -70,6 +70,7 @@ public:
     _3DPoint(const _3DPoint &);
     _3DPoint & operator=(const _3DPoint &);
     _3DPoint(double x, double y, double z);
+    _3DPoint(const Point &p);
     void setPoint(double x, double y, double z) { c_[0] = x; c_[1] = y; c_[2] = z; }
     void setPoint(double* c) { c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2]; }
     double* getPoint() { return c_; }
@@ -77,6 +78,7 @@ public:
     double y() const { return c_[1]; }
     double z() const { return c_[2]; }
     double norm() const;
+    Point toSpherical() const;
     static _3DPoint fromSpherical(double lon, double lat);
     static _3DPoint cross(const _3DPoint &p1, const _3DPoint &p2);
     static double dot(const _3DPoint &p1, const _3DPoint &p2);
@@ -142,13 +144,16 @@ int greatCircleArcIntersectsGreatCircle(const Point &p1, const Point &p2, const 
 // The return value is negative iff p0 is considered to be to the left of the arc.
 double crossTrackDistanceToGreatCircle(const Point &p0, const Point &p1, const Point &p2);
 
+// Returns distance from p0 to the great circle arc from p1 to p2.
+double distanceToGreatCircleArc(const Point &p0, const Point &p1, const Point &p2);
+
 // Returns the points of the great circle through p1 and p2. If segmentOnly is true, only the part of the circle between p1 and p2 is returned.
 QVector<_3DPoint> greatCirclePoints(const QPair<double, double> &p1, const QPair<double, double> &p2, int nSegments, bool segmentOnly = true);
 
 // Returns true iff a point is considered inside a polygon.
 bool pointInPolygon(const Point &point, const Polygon &polygon);
 
-// Returns the polygons that form the intersection of two polygons.
+// Returns the polygons that form the intersection of two polygons. If an error occurs or intersection is not possible, an empty result is returned.
 Polygons polygonIntersection(const Polygon &subject, const Polygon &clip);
 
 // Returns the points (0, 1 or 2) where lat intersects the great circle arc from p1 to p2.
