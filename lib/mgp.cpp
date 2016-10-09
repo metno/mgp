@@ -128,6 +128,100 @@ static double xmetExtractLat(const QString &s, bool &success)
     return lat;
 }
 
+void PointFilter::setPoint(const Point &point)
+{
+    point_ = point;
+}
+
+Point PointFilter::point() const
+{
+    return point_;
+}
+
+PointFilter::PointFilter()
+{
+}
+
+PointFilter::PointFilter(const Point &point)
+    : point_(point)
+{
+}
+
+void PointFilter::setFromVariant(const QVariant &var)
+{
+    const QVariantList list = var.toList();
+    Q_ASSERT(list.size() == 2);
+    bool ok0 = false;
+    bool ok1 = false;
+    Point p(qMakePair(list.at(0).toDouble(&ok0), list.at(1).toDouble(&ok1)));
+    Q_ASSERT(ok0 && ok1);
+    point_ = p;
+}
+
+QVariant PointFilter::toVariant() const
+{
+    QVariantList list;
+    list.append(lon());
+    list.append(lat());
+    return list;
+}
+
+bool PointFilter::isValid() const
+{
+    return (lon() >= -M_PI) && (lon() <= M_PI) && (lat() >= -M_PI_2) && (lat() <= M_PI_2);
+}
+
+Polygons PointFilter::apply(const Polygon &polygons) const
+{
+    Polygons outPolys = Polygons(new QVector<Polygon>());
+    Polygon copy(new QVector<Point>(*polygons.data()));
+    outPolys->append(copy);
+    return outPolys;
+}
+
+QVector<Point> PointFilter::intersections(const Polygon &) const
+{
+    return QVector<Point>(); // n/a
+}
+
+bool PointFilter::rejected(const Point &) const
+{
+    return false; // n/a
+}
+
+bool PointFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange, QPair<int, int> *incompleteRange, QString *incompleteReason)
+{
+    QRegExp rx;
+    rx.setCaseSensitivity(Qt::CaseInsensitive);
+
+    // look for coordinate
+    rx.setPattern("^([NS]\\d\\d\\d\\d) ([EW]\\d\\d\\d\\d\\d)$");
+    int rxpos = expr.indexOf(rx);
+    int matchedLen = rx.matchedLength();
+
+    if (rxpos >= 0) { // match
+        bool ok1 = false;
+        bool ok2 = false;
+        const double lon = xmetExtractLon(rx.cap(2), ok1);
+        const double lat = xmetExtractLat(rx.cap(1), ok2);
+        if (!(ok1 && ok2))
+            return false;
+        setPoint(qMakePair(lon, lat));
+        matchedRange->first = rxpos;
+        matchedRange->second = rxpos + matchedLen - 1;
+        return true; // success
+    }
+
+    return false;
+}
+
+QString PointFilter::xmetExpr() const
+{
+    return QString("%1 %2")
+            .arg(xmetFormatLat(lat()))
+            .arg(xmetFormatLon(lon()));
+}
+
 void PolygonFilter::setPolygon(const Polygon &polygon)
 {
     polygon_ = polygon;
@@ -568,7 +662,7 @@ EOfFilter::EOfFilter(double value)
 
 bool EOfFilter::isValid() const
 {
-    return (value_ >= -M_PI) || (value_ <= M_PI);
+    return (value_ >= -M_PI) && (value_ <= M_PI);
 }
 
 bool EOfFilter::rejected(const Point &point) const
@@ -583,7 +677,7 @@ WOfFilter::WOfFilter(double value)
 
 bool WOfFilter::isValid() const
 {
-    return (value_ >= -M_PI) || (value_ <= M_PI);
+    return (value_ >= -M_PI) && (value_ <= M_PI);
 }
 
 bool WOfFilter::rejected(const Point &point) const
@@ -869,7 +963,7 @@ NOfFilter::NOfFilter(double value)
 
 bool NOfFilter::isValid() const
 {
-    return (value_ >= -M_PI_2) || (value_ <= M_PI_2);
+    return (value_ >= -M_PI_2) && (value_ <= M_PI_2);
 }
 
 bool NOfFilter::rejected(const Point &point) const
@@ -884,7 +978,7 @@ SOfFilter::SOfFilter(double value)
 
 bool SOfFilter::isValid() const
 {
-    return (value_ >= -M_PI_2) || (value_ <= M_PI_2);
+    return (value_ >= -M_PI_2) && (value_ <= M_PI_2);
 }
 
 bool SOfFilter::rejected(const Point &point) const
@@ -1267,6 +1361,22 @@ Filters filtersFromXmetExpr(
         const QString &expr, QList<QPair<int, int> > *matchedRanges, QList<QPair<QPair<int, int>, QString> > *incompleteRanges,
         bool wiExclusive)
 {
+    // handle PointFilter as a special case
+    {
+        QPair<int, int> matchedRange(-1, -1);
+        QPair<int, int> incompleteRange(-1, -1);
+        QString incompleteReason;
+        Filter filter(new PointFilter);
+        if (filter->setFromXmetExpr(expr, &matchedRange, &incompleteRange, &incompleteReason)) {
+            matchedRanges->append(matchedRange);
+            Filters resultFilters(new QList<Filter>());
+            resultFilters->append(filter);
+            return resultFilters;
+            //pmInfos.append(ParseMatchInfo(filter, matchedRange.first, matchedRange.second));
+        }
+    }
+
+
     // ### NOTE: for now, we assume that any given filter may match at most once. Whether this makes sense depends on the filter:
     // - 'S OF' shouldn't match more than once (but if it does, only the one with the southernmost value should apply!)
     // - 'WI' and 'S OF LINE' could both match more than once.

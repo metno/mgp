@@ -1099,9 +1099,11 @@ void ControlPanel::handleXmetExprChanged()
     const mgp::Filters filters = xmetAreaEdit_->filters();
     foreach (mgp::Filter filter, *filters) {
         FilterControlBase *filterControl = filterControls_.value(filter->type());
-        filterControl->filter()->setFromVariant(filter->toVariant());
-        filterControl->update();
-        filterControl->enabledCheckBox_->setChecked(true);
+        if (filterControl) {
+            filterControl->filter()->setFromVariant(filter->toVariant());
+            filterControl->update();
+            filterControl->enabledCheckBox_->setChecked(true);
+        }
     }
 
     // update base polygon if a supported FIR is found

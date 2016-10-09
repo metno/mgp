@@ -60,7 +60,7 @@ public:
 
     enum Type {
         Unsupported,
-        WI,
+        POINT, WI,
         E_OF, W_OF, N_OF, S_OF,
         E_OF_LINE, W_OF_LINE, N_OF_LINE, S_OF_LINE,
         NE_OF_LINE, NW_OF_LINE, SE_OF_LINE, SW_OF_LINE
@@ -97,6 +97,30 @@ public:
      * those polygons.
      */
     virtual bool rejected(const Point &) const = 0;
+};
+
+//! This filter represent a single point.
+class PointFilter : public FilterBase
+{
+public:
+    PointFilter();
+    void setPoint(const Point &);
+    Point point() const;
+    double lon() const { return point_.first; }
+    double lat() const { return point_.second; }
+protected:
+    PointFilter(const Point &);
+    Point point_;
+private:
+    virtual void setFromVariant(const QVariant &);
+    virtual QVariant toVariant() const;
+    virtual bool isValid() const;
+    virtual Type type() const { return POINT; }
+    virtual Polygons apply(const Polygon &) const;
+    virtual QVector<Point> intersections(const Polygon &inPoly) const;
+    virtual bool rejected(const Point &) const;
+    virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
+    virtual QString xmetExpr() const;
 };
 
 //! This is the base class for filters that represent regions explicitly defined as closed polygons.
