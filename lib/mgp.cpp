@@ -290,12 +290,14 @@ bool PolygonFilter::isValid() const
     return true;
 }
 
-WithinFilter::WithinFilter()
+WithinFilter::WithinFilter(bool keywordImplicit)
+    : keywordImplicit_(keywordImplicit)
 {
 }
 
-WithinFilter::WithinFilter(const Polygon &polygon)
+WithinFilter::WithinFilter(const Polygon &polygon, bool keywordImplicit)
     : PolygonFilter(polygon)
+    , keywordImplicit_(keywordImplicit)
 {
 }
 
@@ -329,14 +331,25 @@ bool WithinFilter::rejected(const Point &point) const
 
 bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matchedRange, QPair<int, int> *incompleteRange, QString *incompleteReason)
 {
-    // get first "WI"
-    const int firstPos = expr.indexOf("WI", 0, Qt::CaseInsensitive);
-    if (firstPos < 0)
-        return false; // not found at all
-    if ((firstPos > 0) && (!expr[firstPos - 1].isSpace()))
-        return false; // not at beginning or after space
-    int lastPos = firstPos + 1;
-    QString s = expr.mid(lastPos + 1); // move to first position after "WI"
+    int firstPos = -1;
+    int lastPos = -1;
+    QString s;
+    if (keywordImplicit_) {
+        if (expr.isEmpty())
+            return false; // nothing to parse
+        firstPos = 0;
+        lastPos = -1;
+        s = expr;
+    } else {
+        // get first "WI"
+        firstPos = expr.indexOf("WI", 0, Qt::CaseInsensitive);
+        if (firstPos < 0)
+            return false; // not found at all
+        if ((firstPos > 0) && (!expr[firstPos - 1].isSpace()))
+            return false; // not at beginning or after space
+        lastPos = firstPos + 1;
+        s = expr.mid(lastPos + 1); // move to first position after "WI"
+    }
 
     // get as many coordinates as possible after the "WI"
     Polygon polygon(new QVector<Point>());
@@ -349,7 +362,7 @@ bool WithinFilter::setFromXmetExpr(const QString &expr, QPair<int, int> *matched
     rx.setCaseSensitivity(Qt::CaseInsensitive);
     bool first = true;
     while (true) {
-        rx.setPattern(QString("%1%2").arg(first ? "^ " : "^ - ").arg(basePattern));
+        rx.setPattern(QString("%1%2").arg(first ? (keywordImplicit_ ? "^" : "^ ") : "^ - ").arg(basePattern));
         first = false;
 
         // read next coordinate
@@ -1359,7 +1372,7 @@ static bool parseIncompleteInfoLessThan(const ParseIncompleteInfo &pii1, const P
 
 Filters filtersFromXmetExpr(
         const QString &expr, QList<QPair<int, int> > *matchedRanges, QList<QPair<QPair<int, int>, QString> > *incompleteRanges,
-        bool wiExclusive, bool wiOnly)
+        bool wiExclusive, bool wiOnly, bool wiKeywordImplicit)
 {
     // handle PointFilter as a special case
     {
@@ -1384,7 +1397,7 @@ Filters filtersFromXmetExpr(
 
     // candidate filters (the result will consist of a subset of these, ordered according to their appearance in the)
     QList<Filter> candFilters;
-    candFilters.append(Filter(new WithinFilter));
+    candFilters.append(Filter(new WithinFilter(wiOnly && wiKeywordImplicit)));
 
     if (!wiOnly) {
         candFilters.append(Filter(new EOfFilter));

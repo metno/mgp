@@ -709,6 +709,12 @@ void ControlPanel::initialize(const QString &initExpr)
     connect(wiOnlyCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateWIOnly()));
     xmetExprLayout2->addWidget(wiOnlyCheckBox_);
 
+    wiKeywordImplicitCheckBox_ = new QCheckBox("WI Keyword Implicit");
+    wiKeywordImplicitCheckBox_->setChecked(xmetAreaEdit_->wiKeywordImplicit());
+    connect(wiKeywordImplicitCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateWIKeywordImplicit()));
+    xmetExprLayout2->addWidget(wiKeywordImplicitCheckBox_);
+
+    updateWICheckBoxSensitivities();
 
     xmetExprLayout2->addStretch(1);
 
@@ -1099,7 +1105,20 @@ void ControlPanel::updateWIExclusive()
 void ControlPanel::updateWIOnly()
 {
     xmetAreaEdit_->setWIOnly(wiOnlyCheckBox_->isChecked());
+    updateWICheckBoxSensitivities();
     handleXmetExprChanged();
+}
+
+void ControlPanel::updateWIKeywordImplicit()
+{
+    xmetAreaEdit_->setWIKeywordImplicit(wiKeywordImplicitCheckBox_->isChecked());
+    handleXmetExprChanged();
+}
+
+void ControlPanel::updateWICheckBoxSensitivities()
+{
+    wiKeywordImplicitCheckBox_->setEnabled(wiOnlyCheckBox_->isChecked());
+    wiExclusiveCheckBox_->setEnabled(!wiOnlyCheckBox_->isChecked());
 }
 
 void ControlPanel::handleXmetExprChanged()

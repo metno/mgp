@@ -7,18 +7,20 @@
 
 MGP_BEGIN_NAMESPACE
 
-XMETAreaEdit::XMETAreaEdit(QWidget *parent, bool wiExclusive__, bool wiOnly__)
+XMETAreaEdit::XMETAreaEdit(QWidget *parent, bool wiExclusive__, bool wiOnly__, bool wiKeywordImplicit__)
     : QTextEdit(parent)
     , wiExclusive_(wiExclusive__)
     , wiOnly_(wiOnly__)
+    , wiKeywordImplicit_(wiKeywordImplicit__)
 {
     init();
 }
 
-XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent, bool wiExclusive__, bool wiOnly__)
+XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent, bool wiExclusive__, bool wiOnly__, bool wiKeywordImplicit__)
     : QTextEdit(text, parent)
     , wiExclusive_(wiExclusive__)
     , wiOnly_(wiOnly__)
+    , wiKeywordImplicit_(wiKeywordImplicit__)
 {
     init();
 }
@@ -142,7 +144,7 @@ bool XMETAreaEdit::update()
     // update filters from expression
     QList<QPair<int, int> > matchedRanges;
     QList<QPair<QPair<int, int>, QString> > incompleteRanges;
-    filters_ = mgp::filtersFromXmetExpr(text, &matchedRanges, &incompleteRanges, wiExclusive_, wiOnly_);
+    filters_ = mgp::filtersFromXmetExpr(text, &matchedRanges, &incompleteRanges, wiExclusive_, wiOnly_, wiKeywordImplicit_);
 
     // update highlighting from matched and incomplete ranges
 
@@ -198,6 +200,16 @@ void XMETAreaEdit::setWIOnly(bool on)
 bool XMETAreaEdit::wiOnly() const
 {
     return wiOnly_;
+}
+
+void XMETAreaEdit::setWIKeywordImplicit(bool on)
+{
+    wiKeywordImplicit_ = on;
+}
+
+bool XMETAreaEdit::wiKeywordImplicit() const
+{
+    return wiKeywordImplicit_;
 }
 
 MGP_END_NAMESPACE

@@ -231,6 +231,7 @@ private:
 
     QCheckBox *wiExclusiveCheckBox_;
     QCheckBox *wiOnlyCheckBox_;
+    QCheckBox *wiKeywordImplicitCheckBox_;
 
     void updatePolygonPointDragging(const mgp::Polygon &, int, const mgp::Point &);
     void addPointToPolygon(const mgp::Polygon &, int);
@@ -248,6 +249,8 @@ private:
     mutable QList<QPair<int, mgp::Polygons> > polygonIntersection_;
     void createIntersectablePolygons();
 
+    void updateWICheckBoxSensitivities();
+
     QString initExpr_;
 
 public slots:
@@ -261,6 +264,7 @@ private slots:
     void setXmetExprFromFilters();
     void updateWIExclusive();
     void updateWIOnly();
+    void updateWIKeywordImplicit();
     void handleXmetExprChanged();
     void customBasePolygonEditableOnSphereCheckBoxStateChanged();
     void filtersEditableOnSphereCheckBoxStateChanged();

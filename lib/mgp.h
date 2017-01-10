@@ -146,10 +146,10 @@ class WithinFilter : public PolygonFilter
 {
 public:
     /** Constructs an object with an empty polygon. */
-    WithinFilter();
+    WithinFilter(bool = false);
 
     /** Constructs an object with a given polygon. */
-    WithinFilter(const Polygon &);
+    WithinFilter(const Polygon &, bool = false);
 
 private:
     virtual Type type() const { return WI; }
@@ -158,6 +158,7 @@ private:
     virtual bool rejected(const Point &) const;
     virtual bool setFromXmetExpr(const QString &, QPair<int, int> *, QPair<int, int> *, QString *);
     virtual QString xmetExpr() const;
+    bool keywordImplicit_;
 };
 
 //! This filter is currently not implemented, but eventually it is intended to generate the union of two explicitly defined polygons.
@@ -434,17 +435,21 @@ class XMETAreaEdit : public QTextEdit
 {
 public:
     /**
-     * @param wiExclusive See documentation in filtersFromXmetExpr().
-     * @param wiOnly      See documentation in filtersFromXmetExpr().
+     * @param wiExclusive       See documentation in filtersFromXmetExpr().
+     * @param wiOnly            See documentation in filtersFromXmetExpr().
+     * @param wiKeywordImplicit See documentation in filtersFromXmetExpr().
      */
-    XMETAreaEdit(QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = true);
+    XMETAreaEdit(QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = true, bool wiKeywordImplicit = false);
+//    XMETAreaEdit(QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = false, bool wiKeywordImplicit = false);
 
     /**
-     * @param text        Initial text.
-     * @param wiExclusive See documentation in filtersFromXmetExpr().
-     * @param wiOnly      See documentation in filtersFromXmetExpr().
+     * @param text              Initial text.
+     * @param wiExclusive       See documentation in filtersFromXmetExpr().
+     * @param wiOnly            See documentation in filtersFromXmetExpr().
+     * @param wiKeywordImplicit See documentation in filtersFromXmetExpr().
      */
-    XMETAreaEdit(const QString &text, QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = true);
+    XMETAreaEdit(const QString &text, QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = true, bool wiKeywordImplicit = false);
+//    XMETAreaEdit(const QString &text, QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = false, bool wiKeywordImplicit = false);
 
     /**
      * Updates filters and highlighting.
@@ -485,6 +490,17 @@ public:
      */
     bool wiOnly() const;
 
+    /**
+     * Sets whether the 'WI' keyword is implicit. If set, the presence of the 'WI' keyword would be considered
+     * a syntax error.
+     */
+    void setWIKeywordImplicit(bool);
+
+    /**
+     * Gets whether the 'WI' keyword is implicit.
+     */
+    bool wiKeywordImplicit() const;
+
 private:
     void init();
     virtual void mouseMoveEvent(QMouseEvent *);
@@ -500,6 +516,7 @@ private:
     FIR::Code fir_;
     bool wiExclusive_;
     bool wiOnly_;
+    bool wiKeywordImplicit_;
 };
 
 // --- END classes --------------------------------------------------
@@ -537,16 +554,18 @@ QString xmetExprFromFilters(const Filters &filters);
 /**
  * Converts a SIGMET/AIRMET area expression to a filter sequence.
  *
- * \param[in]  expr             SIGMET/AIRMET area expression.
- * \param[out] matchedRanges    Sequence of string position ranges of each fully matched filter in \c expr.
- * \param[out] incompleteRanges Sequence of string position ranges of each incomplete (partly matched) filter in \c expr along with the reasons why they didn't match.
- * \param[in]  wiExclusive      If true, the WI filter is not allowed to occur together with other types of filters.
- * \param[in]  wiOnly           If true, the WI filter is the only filter allowed. NOTE: wiExclusive has no effect if wiOnly is true.
+ * \param[in]  expr              SIGMET/AIRMET area expression.
+ * \param[out] matchedRanges     Sequence of string position ranges of each fully matched filter in \c expr.
+ * \param[out] incompleteRanges  Sequence of string position ranges of each incomplete (partly matched) filter in \c expr along with the reasons why they didn't match.
+ * \param[in]  wiExclusive       If true, the WI filter is not allowed to occur together with other types of filters.
+ * \param[in]  wiOnly            If true, the WI filter is the only filter allowed. NOTE: wiExclusive is irrelevant if wiOnly is true.
+ * \param[in]  wiKeywordImplicit If true, the 'WI' keyword is considered implicit if wiOnly is true. Any occurrence of the 'WI' keyword is then
+ *                               considered a syntax error. NOTE: wiKeywordImplicit is irrelevant if wiOnly is false.
  * \return The filter sequence representing fully matched filters in the order of appearance in \c expr.
  */
 Filters filtersFromXmetExpr(
         const QString &expr, QList<QPair<int, int> > *matchedRanges = 0, QList<QPair<QPair<int, int>, QString> > *incompleteRanges = 0,
-        bool wiExclusive = true, bool wiOnly = true);
+        bool wiExclusive = true, bool wiOnly = true, bool wiKeywordImplicit = false);
 
 /**
  * Sets the list of polygons that will be intersected in intersectedPolygons().
