@@ -1480,7 +1480,7 @@ Filters filtersFromXmetExpr(
 
     // handle 'WI exclusive' mode
     bool keepWIFilter = false;
-    if (wiExclusive) {
+    if (wiExclusive || wiOnly) {
         int wiMatchLoPos = -1;
         int wiMatchHiPos = -1;
         for (int i = 0; i < pmInfos.size(); ++i) {
