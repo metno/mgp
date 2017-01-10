@@ -435,14 +435,16 @@ class XMETAreaEdit : public QTextEdit
 public:
     /**
      * @param wiExclusive See documentation in filtersFromXmetExpr().
+     * @param wiOnly      See documentation in filtersFromXmetExpr().
      */
-    XMETAreaEdit(QWidget *parent = 0, bool wiExclusive = true);
+    XMETAreaEdit(QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = true);
 
     /**
      * @param text        Initial text.
      * @param wiExclusive See documentation in filtersFromXmetExpr().
+     * @param wiOnly      See documentation in filtersFromXmetExpr().
      */
-    XMETAreaEdit(const QString &text, QWidget *parent = 0, bool wiExclusive = true);
+    XMETAreaEdit(const QString &text, QWidget *parent = 0, bool wiExclusive = true, bool wiOnly = true);
 
     /**
      * Updates filters and highlighting.
@@ -473,6 +475,16 @@ public:
      */
     bool wiExclusive() const;
 
+    /**
+     * Enables or disables WI only mode (whether the WI filter is the only filter allowed).
+     */
+    void setWIOnly(bool);
+
+    /**
+     * Gets whether WI only mode is enabled.
+     */
+    bool wiOnly() const;
+
 private:
     void init();
     virtual void mouseMoveEvent(QMouseEvent *);
@@ -487,6 +499,7 @@ private:
     Filters filters_;
     FIR::Code fir_;
     bool wiExclusive_;
+    bool wiOnly_;
 };
 
 // --- END classes --------------------------------------------------
@@ -528,11 +541,12 @@ QString xmetExprFromFilters(const Filters &filters);
  * \param[out] matchedRanges    Sequence of string position ranges of each fully matched filter in \c expr.
  * \param[out] incompleteRanges Sequence of string position ranges of each incomplete (partly matched) filter in \c expr along with the reasons why they didn't match.
  * \param[in]  wiExclusive      If true, the WI filter is not allowed to occur together with other types of filters.
+ * \param[in]  wiOnly           If true, the WI filter is the only filter allowed. NOTE: wiExclusive has no effect if wiOnly is true.
  * \return The filter sequence representing fully matched filters in the order of appearance in \c expr.
  */
 Filters filtersFromXmetExpr(
         const QString &expr, QList<QPair<int, int> > *matchedRanges = 0, QList<QPair<QPair<int, int>, QString> > *incompleteRanges = 0,
-        bool wiExclusive = true);
+        bool wiExclusive = true, bool wiOnly = true);
 
 /**
  * Sets the list of polygons that will be intersected in intersectedPolygons().

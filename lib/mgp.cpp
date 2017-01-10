@@ -1359,7 +1359,7 @@ static bool parseIncompleteInfoLessThan(const ParseIncompleteInfo &pii1, const P
 
 Filters filtersFromXmetExpr(
         const QString &expr, QList<QPair<int, int> > *matchedRanges, QList<QPair<QPair<int, int>, QString> > *incompleteRanges,
-        bool wiExclusive)
+        bool wiExclusive, bool wiOnly)
 {
     // handle PointFilter as a special case
     {
@@ -1385,21 +1385,23 @@ Filters filtersFromXmetExpr(
     // candidate filters (the result will consist of a subset of these, ordered according to their appearance in the)
     QList<Filter> candFilters;
     candFilters.append(Filter(new WithinFilter));
-    //
-    candFilters.append(Filter(new EOfFilter));
-    candFilters.append(Filter(new WOfFilter));
-    candFilters.append(Filter(new NOfFilter));
-    candFilters.append(Filter(new SOfFilter));
-    //
-    candFilters.append(Filter(new EOfLineFilter));
-    candFilters.append(Filter(new WOfLineFilter));
-    candFilters.append(Filter(new NOfLineFilter));
-    candFilters.append(Filter(new SOfLineFilter));
-    //
-    candFilters.append(Filter(new NEOfLineFilter));
-    candFilters.append(Filter(new NWOfLineFilter));
-    candFilters.append(Filter(new SEOfLineFilter));
-    candFilters.append(Filter(new SWOfLineFilter));
+
+    if (!wiOnly) {
+        candFilters.append(Filter(new EOfFilter));
+        candFilters.append(Filter(new WOfFilter));
+        candFilters.append(Filter(new NOfFilter));
+        candFilters.append(Filter(new SOfFilter));
+        //
+        candFilters.append(Filter(new EOfLineFilter));
+        candFilters.append(Filter(new WOfLineFilter));
+        candFilters.append(Filter(new NOfLineFilter));
+        candFilters.append(Filter(new SOfLineFilter));
+        //
+        candFilters.append(Filter(new NEOfLineFilter));
+        candFilters.append(Filter(new NWOfLineFilter));
+        candFilters.append(Filter(new SEOfLineFilter));
+        candFilters.append(Filter(new SWOfLineFilter));
+    }
 
     // find initial matched and incomplete ranges
     QList<ParseMatchInfo> pmInfos;

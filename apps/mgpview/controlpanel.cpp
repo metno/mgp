@@ -704,6 +704,12 @@ void ControlPanel::initialize(const QString &initExpr)
     connect(wiExclusiveCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateWIExclusive()));
     xmetExprLayout2->addWidget(wiExclusiveCheckBox_);
 
+    wiOnlyCheckBox_ = new QCheckBox("WI Only");
+    wiOnlyCheckBox_->setChecked(xmetAreaEdit_->wiOnly());
+    connect(wiOnlyCheckBox_, SIGNAL(stateChanged(int)), SLOT(updateWIOnly()));
+    xmetExprLayout2->addWidget(wiOnlyCheckBox_);
+
+
     xmetExprLayout2->addStretch(1);
 
     // --- END SIGMET/AIRMET area expression section -------------------------------------------
@@ -1087,6 +1093,12 @@ void ControlPanel::setXmetExprFromFilters()
 void ControlPanel::updateWIExclusive()
 {
     xmetAreaEdit_->setWIExclusive(wiExclusiveCheckBox_->isChecked());
+    handleXmetExprChanged();
+}
+
+void ControlPanel::updateWIOnly()
+{
+    xmetAreaEdit_->setWIOnly(wiOnlyCheckBox_->isChecked());
     handleXmetExprChanged();
 }
 
