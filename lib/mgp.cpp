@@ -83,15 +83,18 @@ static double xmetExtractLon(const QString &s, bool &success)
     Q_ASSERT(s.size() == 6);
     Q_ASSERT((s[0].toLower() == 'e') || (s[0].toLower() == 'w'));
     bool ok;
-    int ipart = s.mid(1, 3).toInt(&ok) % 360;
-    Q_ASSERT(ok);
-    if (ipart > 180)
-        ipart = qAbs(ipart - 360);
     const int fpart = s.mid(4, 2).toInt(&ok);
     Q_ASSERT(ok);
     //const int fbase = 100;
     const int fbase = 60; // minutes
     if (!((fpart >= 0) && (fpart <= (fbase - 1)))) {
+        success = false;
+        return 0;
+    }
+    int ipart = s.mid(1, 3).toInt(&ok);
+    Q_ASSERT(ok);
+    Q_ASSERT(ipart >= 0);
+    if ((ipart + ((fpart > 0) ? 1 : 0)) > 180) {
         success = false;
         return 0;
     }
@@ -111,15 +114,18 @@ static double xmetExtractLat(const QString &s, bool &success)
     Q_ASSERT(s.size() == 5);
     Q_ASSERT((s[0].toLower() == 'n') || (s[0].toLower() == 's'));
     bool ok;
-    int ipart = s.mid(1, 2).toInt(&ok);
-    Q_ASSERT(ok);
-    Q_ASSERT(ipart >= 0);
-    ipart = qMin(ipart, 90);
     const int fpart = s.mid(3, 2).toInt(&ok);
     Q_ASSERT(ok);
     //const int fbase = 100;
     const int fbase = 60; // minutes
     if (!((fpart >= 0) && (fpart <= (fbase - 1)))) {
+        success = false;
+        return 0;
+    }
+    int ipart = s.mid(1, 2).toInt(&ok);
+    Q_ASSERT(ok);
+    Q_ASSERT(ipart >= 0);
+    if ((ipart + ((fpart > 0) ? 1 : 0)) > 90) {
         success = false;
         return 0;
     }
