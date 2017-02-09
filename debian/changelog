@@ -1,3 +1,9 @@
+metno-mgp (1.1.16-1) precise; urgency=low
+
+  * Prevent abs lat/lon outside [0, 90] and [0, 180] respectively
+
+ -- Jo Asplin <jo.asplin@met.no>  Mon, 9 Feb 2017 07:48:00 +0200
+
 metno-mgp (1.1.15-1) precise; urgency=low
 
   * Implemented 'WI only' and 'WI keyword implicit' modes
