@@ -151,19 +151,6 @@ void XMETAreaEdit::contextMenuEvent(QContextMenuEvent *event)
     }
     menu->exec(event->globalPos());
     delete menu;
-
-//    QMenu *menu = createStandardContextMenu();
-//    foreach (QAction *action, menu->actions()) {
-//      if (action->text().toLower().contains("paste")) {
-////          qDebug() << "paste action:" << action << "; text:" << action->text();
-//        action->dumpObjectInfo();
-//        disconnect(action, 0, 0, 0);
-//        connect(action, SIGNAL(triggered()), this, SLOT(specialPaste()));
-//      }
-//    }
-
-//    menu->exec(event->globalPos());
-//    delete menu;
 }
 
 void XMETAreaEdit::keyPressEvent(QKeyEvent *event)
