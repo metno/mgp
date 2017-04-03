@@ -24,12 +24,7 @@ static void initResource()
 
 MGP_BEGIN_NAMESPACE
 
-// Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
-// Examples:
-//        0 -> E00000)
-//    -M_PI -> W18000
-//   M_PI_2 -> E09000
-static QString xmetFormatLon(double val)
+QString xmetFormatLon(double val)
 {
     double lon = RAD2DEG(fmod(val, 2 * M_PI));
     if (lon > 180)
@@ -50,12 +45,7 @@ static QString xmetFormatLon(double val)
             .arg(QString("%1").arg(fpart, 2, 10, QLatin1Char('0')));
 }
 
-// Returns the SIGMET/AIRMET degrees form of a latitude value in radians ([-M_PI_2, M_PI_2]).
-// Examples:
-//         0 -> N0000
-//   -M_PI_2 -> S9000
-//    M_PI_4 -> N4500
-static QString xmetFormatLat(double val)
+QString xmetFormatLat(double val)
 {
     double lat = RAD2DEG(fmod(val, M_PI));
     lat = qMin(qMax(lat, -90.0), 90.0);

@@ -4,6 +4,8 @@
 #include "pixmaps/remove.xpm"
 #include "pixmaps/moveup.xpm"
 #include "pixmaps/movedown.xpm"
+#include "xmetareaedit.h"
+#include "mgp.h"
 #include <QTextEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -17,11 +19,12 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <QMenu>
+#include <QVariantList>
 
 #include <QDebug>
 
-SelLabel::SelLabel(int index)
-    : QLabel(QString("%1").arg(index))
+SelLabel::SelLabel()
+    : QLabel(0)
 {
     setMargin(0);
 }
@@ -58,28 +61,18 @@ void PointEdit::init(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, i
     mainLayout->setMargin(0);
     mainLayout->setSpacing(0);
 
-    selLabel_ = new SelLabel(-1);
+    selLabel_ = new SelLabel;
     selLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     selLabel_->setMinimumWidth(30);
     selLabel_->setAlignment(Qt::AlignRight);
     connect(selLabel_, SIGNAL(mouseClicked(QMouseEvent *)), SIGNAL(mouseClicked(QMouseEvent *)));
     mainLayout->addWidget(selLabel_);
 
-    lonDirEdit_ = new QComboBox;
-    lonDirEdit_->addItem("E", E);
-    lonDirEdit_->addItem("W", W);
-    lonDirEdit_->setCurrentIndex(lonDirEdit_->findData(lonDir_));
-    mainLayout->addWidget(lonDirEdit_);
-
-    lonDegEdit_ = new QSpinBox;
-    lonDegEdit_->setRange(0, 180);
-    lonDegEdit_->setValue(lonDeg_);
-    mainLayout->addWidget(lonDegEdit_);
-
-    lonSecEdit_ = new QSpinBox;
-    lonSecEdit_->setRange(0, 59);
-    lonSecEdit_->setValue(lonSec_);
-    mainLayout->addWidget(lonSecEdit_);
+    spacingLabel1_ = new SelLabel;
+    spacingLabel1_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    spacingLabel1_->setMinimumWidth(10);
+    connect(spacingLabel1_, SIGNAL(mouseClicked(QMouseEvent *)), SIGNAL(mouseClicked(QMouseEvent *)));
+    mainLayout->addWidget(spacingLabel1_);
 
     latDirEdit_ = new QComboBox;
     latDirEdit_->addItem("N", N);
@@ -88,14 +81,69 @@ void PointEdit::init(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, i
     mainLayout->addWidget(latDirEdit_);
 
     latDegEdit_ = new QSpinBox;
+    latDegEdit_->setAlignment(Qt::AlignRight);
     latDegEdit_->setRange(0, 90);
     latDegEdit_->setValue(latDeg_);
     mainLayout->addWidget(latDegEdit_);
 
     latSecEdit_ = new QSpinBox;
+    latSecEdit_->setAlignment(Qt::AlignRight);
     latSecEdit_->setRange(0, 59);
     latSecEdit_->setValue(latSec_);
     mainLayout->addWidget(latSecEdit_);
+
+    spacingLabel2_ = new QLabel;
+    spacingLabel2_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    spacingLabel2_->setMinimumWidth(10);
+    mainLayout->addWidget(spacingLabel2_);
+
+    lonDirEdit_ = new QComboBox;
+    lonDirEdit_->addItem("E", E);
+    lonDirEdit_->addItem("W", W);
+    lonDirEdit_->setCurrentIndex(lonDirEdit_->findData(lonDir_));
+    mainLayout->addWidget(lonDirEdit_);
+
+    lonDegEdit_ = new QSpinBox;
+    lonDegEdit_->setAlignment(Qt::AlignRight);
+    lonDegEdit_->setRange(0, 180);
+    lonDegEdit_->setValue(lonDeg_);
+    mainLayout->addWidget(lonDegEdit_);
+
+    lonSecEdit_ = new QSpinBox;
+    lonSecEdit_->setAlignment(Qt::AlignRight);
+    lonSecEdit_->setRange(0, 59);
+    lonSecEdit_->setValue(lonSec_);
+    mainLayout->addWidget(lonSecEdit_);
+}
+
+int PointEdit::lonDir() const
+{
+    return lonDirEdit_->itemData(lonDirEdit_->currentIndex()).toInt();
+}
+
+int PointEdit::lonDeg() const
+{
+    return lonDegEdit_->value();
+}
+
+int PointEdit::lonSec() const
+{
+    return lonSecEdit_->value();
+}
+
+int PointEdit::latDir() const
+{
+    return latDirEdit_->itemData(latDirEdit_->currentIndex()).toInt();
+}
+
+int PointEdit::latDeg() const
+{
+    return latDegEdit_->value();
+}
+
+int PointEdit::latSec() const
+{
+    return latSecEdit_->value();
 }
 
 void PointEdit::setSelected(bool selected)
@@ -103,6 +151,8 @@ void PointEdit::setSelected(bool selected)
     selected_ = selected;
     const QString ssheet(selected_ ? "QLabel { background-color : #f27b4b; color : black; }" : "");
     selLabel_->setStyleSheet(ssheet);
+    spacingLabel1_->setStyleSheet(ssheet);
+    //spacingLabel2_->setStyleSheet(ssheet);
 }
 
 void PointEdit::setLabelText(const QString &text)
@@ -120,7 +170,7 @@ void ScrollArea::keyPressEvent(QKeyEvent *event)
     event->ignore();
 }
 
-XMETAreaEditDialog::XMETAreaEditDialog(QTextEdit *xmetAreaEdit, QWidget *parent)
+XMETAreaEditDialog::XMETAreaEditDialog(XMETAreaEdit *xmetAreaEdit, QWidget *parent)
     : QDialog(parent)
     , xmetAreaEdit_(xmetAreaEdit)
 {
@@ -178,21 +228,48 @@ void XMETAreaEditDialog::initialize(PointEdit *pointEdit)
 // Opens modal dialog based on current contents of xmetAreaEdit_.
 // Upon clicking Cancel, dialog closes and contents of xmetAreaExit_ is unmodified.
 // Upon clicking Ok, dialog closes and contents of xmetAreaExit_ is modified.
-void XMETAreaEditDialog::edit()
+void XMETAreaEditDialog::edit(bool wiKeywordImplicit)
 {
     // clear existing contents
     while (pointsLayout_->count())
         remove(0);
 
     // set new contents and initial values
-    // ---> 1: parse xmetAreaEdit_->toPlainText() and extract as many valid (lon,lat) points as possible.
-    // ---> 2: add a PointEdit widget to the pointsLayout for each of those points.
-//    for (int i = 0; i < 8; ++i) {
-//        PointEdit *pointEdit = new PointEdit;
-//        pointsLayout_->addWidget(pointEdit);
-//        initialize(pointEdit);
-//    }
-//    select(atIndex(0));
+    const mgp::Filters filters = xmetAreaEdit_->filters();
+    foreach (mgp::Filter filter, *filters) {
+        if (filter->type() == mgp::FilterBase::WI) {
+            const QVariantList list = filter->toVariant().toList();
+            Q_ASSERT(!(list.size() % 2));
+            for (int i = 0; i < list.size(); i += 2) {
+                bool ok = false;
+
+                const double lon = list.at(i).toDouble(&ok);
+                Q_ASSERT(ok);
+                const QString lonExpr = mgp::xmetFormatLon(lon);
+                const PointEdit::LonDir lonDir = (lonExpr.at(0).toUpper() == QLatin1Char('E')) ? PointEdit::E : PointEdit::W;
+                const int lonDeg = lonExpr.mid(1, 3).toInt(&ok);
+                Q_ASSERT(ok);
+                const int lonSec = lonExpr.mid(4, 2).toInt(&ok);
+                Q_ASSERT(ok);
+
+                const double lat = list.at(i + 1).toDouble(&ok);
+                Q_ASSERT(ok);
+                const QString latExpr = mgp::xmetFormatLat(lat);
+                const PointEdit::LatDir latDir = (latExpr.at(0).toUpper() == QLatin1Char('N')) ? PointEdit::N : PointEdit::S;
+                const int latDeg = latExpr.mid(1, 2).toInt(&ok);
+                Q_ASSERT(ok);
+                const int latSec = latExpr.mid(3, 2).toInt(&ok);
+                Q_ASSERT(ok);
+
+                PointEdit *pointEdit = new PointEdit(lonDir, lonDeg, lonSec, latDir, latDeg, latSec);
+                pointsLayout_->addWidget(pointEdit);
+                initialize(pointEdit);
+            }
+            select(atIndex(0));
+            break;
+        }
+    }
+
     updateButtonsAndLabels();
 
     // open dialog
@@ -200,17 +277,23 @@ void XMETAreaEditDialog::edit()
         QString s;
         for (int i = 0; i < pointsLayout_->count(); ++i) {
             PointEdit *pointEdit = qobject_cast<PointEdit *>(pointsLayout_->itemAt(i)->widget());
-            const PointEdit::LonDir lonDir = pointEdit->lonDir();
-            const int lonDeg = pointEdit->lonDeg();
-            const int lonSec = pointEdit->lonSec();
-            const PointEdit::LatDir latDir = pointEdit->latDir();
-            const int latDeg = pointEdit->latDeg();
-            const int latSec = pointEdit->latSec();
-            s.append(QString("]%1[ ").arg(i));
+
+            if (i > 0) s += " - ";
+
+            s += (pointEdit->latDir() == PointEdit::N) ? "N" : "S";
+            s += QString("%1").arg(pointEdit->latDeg(), 2, 10, QLatin1Char('0'));
+            s += QString("%1 ").arg(pointEdit->latSec(), 2, 10, QLatin1Char('0'));
+
+            s += (pointEdit->lonDir() == PointEdit::E) ? "E" : "W";
+            s += QString("%1").arg(pointEdit->lonDeg(), 3, 10, QLatin1Char('0'));
+            s += QString("%1").arg(pointEdit->lonSec(), 2, 10, QLatin1Char('0'));
         }
+
+        if (!wiKeywordImplicit)
+            s.prepend("WI ");
+
         if (!s.isEmpty()) {
-            //xmetAreaEdit_->setPlainText(s);
-            xmetAreaEdit_->setPlainText("WI N6259 E01030 - N6359 E01130 - N5959 E01230");
+            xmetAreaEdit_->setPlainText(s);
         }
     }
 }

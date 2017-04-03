@@ -6,17 +6,17 @@
 #include <QDialog>
 #include <QMetaType>
 
+class XMETAreaEdit;
 class QToolButton;
 class QComboBox;
 class QSpinBox;
-class QTextEdit;
 class QVBoxLayout;
 
 class SelLabel : public QLabel
 {
     Q_OBJECT
 public:
-    SelLabel(int);
+    SelLabel();
 private:
     void mousePressEvent(QMouseEvent *);
 signals:
@@ -33,19 +33,13 @@ public:
     PointEdit(LonDir = E, int = 0, int = 0, LatDir = N, int = 0, int = 0, QWidget * = 0);
     PointEdit(const PointEdit &);
 
-    void setLonDir(LonDir) { }
-    LonDir lonDir() const { return E; }
-    void setLonDeg(int) { }
-    int lonDeg() const { return -1; }
-    void setLonSec(int) { }
-    int lonSec() const { return -1; }
+    int lonDir() const;
+    int lonDeg() const;
+    int lonSec() const;
 
-    void setLatDir(LatDir) { }
-    LatDir latDir() const { return S; }
-    void setLatDeg(int) { }
-    int latDeg() const { return -1; }
-    void setLatSec(int) { }
-    int latSec() const { return -1; }
+    int latDir() const;
+    int latDeg() const;
+    int latSec() const;
 
     void setSelected(bool);
     bool isSelected() const { return selected_; }
@@ -57,6 +51,9 @@ private:
 
     SelLabel *selLabel_;
     bool selected_;
+
+    QLabel *spacingLabel1_;
+    QLabel *spacingLabel2_;
 
     QComboBox *lonDirEdit_;
     QSpinBox *lonDegEdit_;
@@ -84,13 +81,13 @@ class XMETAreaEditDialog : public QDialog
 {
     Q_OBJECT
 public:
-    XMETAreaEditDialog(QTextEdit *, QWidget *parent = 0);
+    XMETAreaEditDialog(XMETAreaEdit *, QWidget *parent = 0);
 
 public slots:
-    void edit();
+    void edit(bool);
 
 private:
-    QTextEdit *xmetAreaEdit_;
+    XMETAreaEdit *xmetAreaEdit_;
     QVBoxLayout *pointsLayout_; // ### renamed from layersLayout_
     ScrollArea *scrollArea_;
     QToolButton *addNewButton_; // ### renamed from addEmptyButton_

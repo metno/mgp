@@ -35,7 +35,7 @@ void XMETAreaEdit::init()
     dialogEditAction_ = new QAction("Edit", 0);
     dialogEditAction_->setShortcut(Qt::CTRL | Qt::Key_E);
 
-    connect(dialogEditAction_, SIGNAL(triggered()), xmetAreaEditDialog_, SLOT(edit()));
+    connect(dialogEditAction_, SIGNAL(triggered()), this, SLOT(editInDialog()));
 }
 
 void XMETAreaEdit::resetHighlighting()
@@ -238,4 +238,9 @@ void XMETAreaEdit::setWIKeywordImplicit(bool on)
 bool XMETAreaEdit::wiKeywordImplicit() const
 {
     return wiKeywordImplicit_;
+}
+
+void XMETAreaEdit::editInDialog()
+{
+    xmetAreaEditDialog_->edit(wiKeywordImplicit_);
 }

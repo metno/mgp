@@ -476,6 +476,24 @@ Filters filtersFromXmetExpr(
         bool wiExclusive = true, bool wiOnly = true, bool wiKeywordImplicit = false);
 
 /**
+ * Returns the SIGMET/AIRMET degrees form of a longitude value in radians ([-M_PI, M_PI]).
+ * Examples:
+ *        0 -> E00000)
+ *    -M_PI -> W18000
+ *   M_PI_2 -> E09000
+ */
+QString xmetFormatLon(double val);
+
+/**
+ * Returns the SIGMET/AIRMET degrees form of a latitude value in radians ([-M_PI_2, M_PI_2]).
+ * Examples:
+ *         0 -> N0000
+ *   -M_PI_2 -> S9000
+ *    M_PI_4 -> N4500
+ */
+QString xmetFormatLat(double val);
+
+/**
  * Sets the list of polygons that will be intersected in intersectedPolygons().
  * @param polygons The list of intersectable polygons indexed from 0 to n-1.
  */

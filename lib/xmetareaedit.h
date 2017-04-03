@@ -7,10 +7,10 @@
 #include <QBitArray>
 
 //! This class extends a QTextEdit with validation and highlighting of a SIGMET/AIRMET area expression.
-// WARNING: For now, this class is defined outside the mgp namespace in order not to confuse the
-// Qt meta object compiler. ###
+// ### WARNING: For now, this class is defined outside the mgp namespace in order not to confuse the Qt meta object compiler.
 class XMETAreaEdit : public QTextEdit
 {
+    Q_OBJECT
 public:
     /**
      * @param wiExclusive       See documentation in filtersFromXmetExpr().
@@ -99,6 +99,9 @@ private:
     bool wiKeywordImplicit_;
     QAction *dialogEditAction_;
     XMETAreaEditDialog *xmetAreaEditDialog_;
+
+private slots:
+    void editInDialog();
 };
 
 #endif // XMETAREAEDIT_H
