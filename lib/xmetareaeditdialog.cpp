@@ -440,7 +440,7 @@ void XMETAreaEditDialog::updateButtonsAndLabels()
     // update labels
     for (int i = 0; i < pointsLayout_->count(); ++i) {
         PointEdit *pointEdit = qobject_cast<PointEdit *>(pointsLayout_->itemAt(i)->widget());
-        pointEdit->setLabelText(QString("%1").arg(i));
+        pointEdit->setLabelText(QString("%1").arg(i + 1));
     }
 }
 
