@@ -107,7 +107,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         qApp->quit();
     } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_C)) {
         openControlPanel();
-    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_E)) {
+    } else if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_S)) {
         ControlPanel::instance().toggleFiltersEditableOnSphere();
     }
 }

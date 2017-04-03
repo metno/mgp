@@ -13,6 +13,7 @@
 #include <QDialog>
 
 #include "mgp.h"
+#include "xmetareaedit.h"
 
 class QGroupBox;
 class QCheckBox;
@@ -227,7 +228,7 @@ private:
     QCheckBox *resultPolygonsLinesVisibleCheckBox_;
     QCheckBox *resultPolygonsPointsVisibleCheckBox_;
 
-    mgp::XMETAreaEdit *xmetAreaEdit_;
+    XMETAreaEdit *xmetAreaEdit_;
 
     QCheckBox *wiExclusiveCheckBox_;
     QCheckBox *wiOnlyCheckBox_;

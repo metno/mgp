@@ -688,7 +688,7 @@ void ControlPanel::initialize(const QString &initExpr)
     xmetExprGroupBox->setLayout(xmetExprLayout);
     mainLayout->addWidget(xmetExprGroupBox);
 
-    xmetAreaEdit_ = new mgp::XMETAreaEdit;
+    xmetAreaEdit_ = new XMETAreaEdit;
     xmetExprLayout->addWidget(xmetAreaEdit_);
     connect(xmetAreaEdit_, SIGNAL(textChanged()), SLOT(handleXmetExprChanged()));
 

@@ -8,6 +8,7 @@
 #include <QRegExp>
 #include <QStack>
 #include <QFile>
+#include <QStringList>
 #include <algorithm>
 
 #include <QDebug>

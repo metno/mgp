@@ -1,11 +1,12 @@
-#include "mgp.h"
+#include "xmetareaedit.h"
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QAbstractTextDocumentLayout>
 #include <QToolTip>
-#include <QDebug>
+#include <QAction>
+#include <QMenu>
 
-MGP_BEGIN_NAMESPACE
+#include <QDebug>
 
 XMETAreaEdit::XMETAreaEdit(QWidget *parent, bool wiExclusive__, bool wiOnly__, bool wiKeywordImplicit__)
     : QTextEdit(parent)
@@ -28,6 +29,13 @@ XMETAreaEdit::XMETAreaEdit(const QString &text, QWidget *parent, bool wiExclusiv
 void XMETAreaEdit::init()
 {
     setMouseTracking(true);
+
+    xmetAreaEditDialog_ = new XMETAreaEditDialog(this, this);
+
+    dialogEditAction_ = new QAction("Edit", 0);
+    dialogEditAction_->setShortcut(Qt::CTRL | Qt::Key_E);
+
+    connect(dialogEditAction_, SIGNAL(triggered()), xmetAreaEditDialog_, SLOT(edit()));
 }
 
 void XMETAreaEdit::resetHighlighting()
@@ -134,6 +142,37 @@ void XMETAreaEdit::mousePressEvent(QMouseEvent *event)
     QTextEdit::mousePressEvent(event);
 }
 
+void XMETAreaEdit::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu *menu = createStandardContextMenu();
+    menu->addAction(dialogEditAction_);
+    menu->insertSeparator(dialogEditAction_);
+    menu->exec(event->globalPos());
+    delete menu;
+
+//    QMenu *menu = createStandardContextMenu();
+//    foreach (QAction *action, menu->actions()) {
+//      if (action->text().toLower().contains("paste")) {
+////          qDebug() << "paste action:" << action << "; text:" << action->text();
+//        action->dumpObjectInfo();
+//        disconnect(action, 0, 0, 0);
+//        connect(action, SIGNAL(triggered()), this, SLOT(specialPaste()));
+//      }
+//    }
+
+//    menu->exec(event->globalPos());
+//    delete menu;
+}
+
+void XMETAreaEdit::keyPressEvent(QKeyEvent *event)
+{
+    if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_E)) {
+        dialogEditAction_->trigger();
+    } else {
+        QTextEdit::keyPressEvent(event);
+    }
+}
+
 bool XMETAreaEdit::update()
 {
     const QString text = toPlainText();
@@ -211,5 +250,3 @@ bool XMETAreaEdit::wiKeywordImplicit() const
 {
     return wiKeywordImplicit_;
 }
-
-MGP_END_NAMESPACE
