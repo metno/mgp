@@ -80,16 +80,19 @@ void PointEdit::init(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, i
     latDirEdit_->setCurrentIndex(latDirEdit_->findData(latDir_));
     mainLayout->addWidget(latDirEdit_);
 
-    latDegEdit_ = new QSpinBox;
-    latDegEdit_->setAlignment(Qt::AlignRight);
-    latDegEdit_->setRange(0, 90);
-    latDegEdit_->setValue(latDeg_);
-    mainLayout->addWidget(latDegEdit_);
-
     latSecEdit_ = new QSpinBox;
     latSecEdit_->setAlignment(Qt::AlignRight);
     latSecEdit_->setRange(0, 59);
     latSecEdit_->setValue(latSec_);
+    connect(latSecEdit_, SIGNAL(valueChanged(int)), SLOT(handleLatSecValueChanged(int)));
+
+    latDegEdit_ = new QSpinBox;
+    latDegEdit_->setAlignment(Qt::AlignRight);
+    latDegEdit_->setRange(0, 90);
+    latDegEdit_->setValue(latDeg_);
+    handleLatSecValueChanged(latSecEdit_->value());
+
+    mainLayout->addWidget(latDegEdit_);
     mainLayout->addWidget(latSecEdit_);
 
     spacingLabel2_ = new QLabel;
@@ -103,16 +106,19 @@ void PointEdit::init(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, i
     lonDirEdit_->setCurrentIndex(lonDirEdit_->findData(lonDir_));
     mainLayout->addWidget(lonDirEdit_);
 
-    lonDegEdit_ = new QSpinBox;
-    lonDegEdit_->setAlignment(Qt::AlignRight);
-    lonDegEdit_->setRange(0, 180);
-    lonDegEdit_->setValue(lonDeg_);
-    mainLayout->addWidget(lonDegEdit_);
-
     lonSecEdit_ = new QSpinBox;
     lonSecEdit_->setAlignment(Qt::AlignRight);
     lonSecEdit_->setRange(0, 59);
     lonSecEdit_->setValue(lonSec_);
+    connect(lonSecEdit_, SIGNAL(valueChanged(int)), SLOT(handleLonSecValueChanged(int)));
+
+    lonDegEdit_ = new QSpinBox;
+    lonDegEdit_->setAlignment(Qt::AlignRight);
+    lonDegEdit_->setRange(0, 180);
+    lonDegEdit_->setValue(lonDeg_);
+    handleLonSecValueChanged(lonSecEdit_->value());
+
+    mainLayout->addWidget(lonDegEdit_);
     mainLayout->addWidget(lonSecEdit_);
 }
 
@@ -158,6 +164,16 @@ void PointEdit::setSelected(bool selected)
 void PointEdit::setLabelText(const QString &text)
 {
     selLabel_->setText(text);
+}
+
+void PointEdit::handleLonSecValueChanged(int val)
+{
+    lonDegEdit_->setMaximum((val == 0) ? 180 : 179);
+}
+
+void PointEdit::handleLatSecValueChanged(int val)
+{
+    latDegEdit_->setMaximum((val == 0) ? 90 : 89);
 }
 
 ScrollArea::ScrollArea(QWidget *parent)

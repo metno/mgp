@@ -62,6 +62,10 @@ private:
     QSpinBox *latDegEdit_;
     QSpinBox *latSecEdit_;
 
+private slots:
+    void handleLonSecValueChanged(int);
+    void handleLatSecValueChanged(int);
+
 signals:
     void mouseClicked(QMouseEvent *);
 };
