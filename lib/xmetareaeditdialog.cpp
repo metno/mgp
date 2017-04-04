@@ -192,9 +192,8 @@ XMETAreaEditDialog::XMETAreaEditDialog(XMETAreaEdit *xmetAreaEdit, QWidget *pare
 {
     setWindowTitle("Points");
     setFocusPolicy(Qt::StrongFocus);
-    setFixedSize(400, 300);
+    setFixedSize(450, 300);
 
-    //QVBoxLayout *mainLayout = new QVBoxLayout(this);
     QVBoxLayout *mainLayout = new QVBoxLayout;
 
     QWidget *pointsWidget = new QWidget;
