@@ -92,15 +92,15 @@ public slots:
 
 private:
     XMETAreaEdit *xmetAreaEdit_;
-    QVBoxLayout *pointsLayout_; // ### renamed from layersLayout_
+    QVBoxLayout *pointsLayout_;
     ScrollArea *scrollArea_;
-    QToolButton *addNewButton_; // ### renamed from addEmptyButton_
+    QToolButton *addNewButton_;
     QToolButton *duplicateSelectedButton_;
     QToolButton *removeSelectedButton_;
     QToolButton *moveSelectedUpButton_;
     QToolButton *moveSelectedDownButton_;
     QToolButton *createToolButton(const QIcon &, const QString &, const char *) const;
-    void initialize(PointEdit *); // ### PointEdit renamed from Layer
+    void initialize(PointEdit *);
     int selectedIndex() const;
     PointEdit *selected();
     void selectIndex(int);
