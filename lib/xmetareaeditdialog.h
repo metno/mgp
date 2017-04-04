@@ -30,7 +30,7 @@ public:
     enum LonDir { E, W };
     enum LatDir { N, S };
 
-    PointEdit(LonDir = E, int = 0, int = 0, LatDir = N, int = 0, int = 0, QWidget * = 0);
+    PointEdit(int = E, int = 0, int = 0, int = N, int = 0, int = 0, QWidget * = 0);
     PointEdit(const PointEdit &);
 
     int lonDir() const;
@@ -47,7 +47,7 @@ public:
     void setLabelText(const QString &);
 
 private:
-    void init(LonDir, int, int, LatDir, int, int);
+    void init(int, int, int, int, int, int);
 
     SelLabel *selLabel_;
     bool selected_;

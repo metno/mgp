@@ -34,7 +34,7 @@ void SelLabel::mousePressEvent(QMouseEvent *event)
     emit mouseClicked(event);
 }
 
-PointEdit::PointEdit(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, int latDeg_, int latSec_, QWidget *parent)
+PointEdit::PointEdit(int lonDir_, int lonDeg_, int lonSec_, int latDir_, int latDeg_, int latSec_, QWidget *parent)
     : QWidget(parent)
     , selected_(false)
 {
@@ -44,15 +44,15 @@ PointEdit::PointEdit(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, i
 PointEdit::PointEdit(const PointEdit &other)
     : QWidget(other.parentWidget())
 {
-    init(other.lonDirEdit_->itemData(other.lonDirEdit_->currentIndex()).value<LonDir>(),
+    init(other.lonDirEdit_->itemData(other.lonDirEdit_->currentIndex()).toInt(),
          other.lonDegEdit_->value(),
          other.lonSecEdit_->value(),
-         other.latDirEdit_->itemData(other.latDirEdit_->currentIndex()).value<LatDir>(),
+         other.latDirEdit_->itemData(other.latDirEdit_->currentIndex()).toInt(),
          other.latDegEdit_->value(),
          other.latSecEdit_->value());
 }
 
-void PointEdit::init(LonDir lonDir_, int lonDeg_, int lonSec_, LatDir latDir_, int latDeg_, int latSec_)
+void PointEdit::init(int lonDir_, int lonDeg_, int lonSec_, int latDir_, int latDeg_, int latSec_)
 {
     setContentsMargins(0, 0, 0, 0);
 
