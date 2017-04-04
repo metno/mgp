@@ -1,2 +1,4 @@
 lib/mgp.h usr/include/mgp
+lib/xmetareaedit.h usr/include/mgp
+lib/xmetareaeditdialog.h usr/include/mgp
 lib/libmgp.a usr/lib
