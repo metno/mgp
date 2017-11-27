@@ -3,8 +3,8 @@ Section: science
 Priority: extra
 Maintainer: Norwegian Meteorological Institute met.no <jo.asplin@met.no>
 Build-Depends: debhelper (>= 9),
- libqt4-dev, libqt4-dev-bin | qt4-qmake,
- libqt4-opengl-dev, freeglut3-dev
+ qtbase5-dev, qtbase5-dev-tools, qttools5-dev-tools, libqt5xmlpatterns5-dev,
+qt5-default,libqt5opengl5-dev, freeglut3-dev
 Standards-Version: 3.9.2
 
 Package: metno-mgp

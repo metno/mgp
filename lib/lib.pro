@@ -1,6 +1,6 @@
 TEMPLATE = lib
 CONFIG += staticlib debug
-QT += xml xmlpatterns
+QT += xml xmlpatterns widgets
 TARGET = mgp 
 SOURCES += mgpmath.cpp mgp.cpp xmetareaedit.cpp xmetareaeditdialog.cpp polygonintersector.cpp kml.cpp
 HEADERS += mgpmath.h mgp.h xmetareaedit.h xmetareaeditdialog.h data/enor_fir.h data/enob_fir.h data/norway_municipalities.kml polygoninterse

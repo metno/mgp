@@ -1,6 +1,6 @@
 TEMPLATE = app
 TARGET = mgpview 
-QT += opengl xml xmlpatterns 
+QT += opengl xml xmlpatterns widgets
 
 CONFIG += debug
 

@@ -1,3 +1,10 @@
+metno-mgp (1.1.19-2) xenial; urgency=medium
+
+  * adjustments to enable edit dialog in Ted 	
+  * compile with qt5
+
+ -- Helen Korsmo <helenk@met.no>  Mon, 27 Nov 2017 14:51:37 +0100
+
 metno-mgp (1.1.19-1) precise; urgency=low
 
   * Added missing header file

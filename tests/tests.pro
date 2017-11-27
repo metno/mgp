@@ -1,5 +1,4 @@
-CONFIG += qtestlib
-QT += xml xmlpatterns
+QT += xml xmlpatterns testlib
 TEMPLATE = app
 TARGET = testmgp
 
