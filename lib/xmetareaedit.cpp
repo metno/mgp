@@ -145,17 +145,17 @@ void XMETAreaEdit::mousePressEvent(QMouseEvent *event)
 void XMETAreaEdit::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu *menu = createStandardContextMenu();
-    if (wiOnly_) {
-        menu->addAction(dialogEditAction_);
-        menu->insertSeparator(dialogEditAction_);
-    }
+    menu->addAction(dialogEditAction_);
+    menu->insertSeparator(dialogEditAction_);
     menu->exec(event->globalPos());
     delete menu;
 }
 
 void XMETAreaEdit::keyPressEvent(QKeyEvent *event)
 {
-    if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_E) && wiOnly_) {
+
+    qDebug() << __PRETTY_FUNCTION__ ;
+    if ((event->modifiers() & Qt::ControlModifier) && (event->key() == Qt::Key_E)) {
         dialogEditAction_->trigger();
     } else {
         QTextEdit::keyPressEvent(event);

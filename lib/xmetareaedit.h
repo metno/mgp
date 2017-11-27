@@ -84,7 +84,7 @@ private:
     virtual void mouseMoveEvent(QMouseEvent *);
     virtual void mousePressEvent(QMouseEvent *);
     virtual void contextMenuEvent(QContextMenuEvent *);
-    virtual void keyPressEvent(QKeyEvent *);
+
     void resetHighlighting();
     void addMatchedRange(const QPair<int, int> &);
     void addIncompleteRange(const QPair<int, int> &, const QString &);
@@ -97,8 +97,11 @@ private:
     bool wiExclusive_;
     bool wiOnly_;
     bool wiKeywordImplicit_;
+
+protected:
     QAction *dialogEditAction_;
     XMETAreaEditDialog *xmetAreaEditDialog_;
+    virtual void keyPressEvent(QKeyEvent *);
 
 private slots:
     void editInDialog();
