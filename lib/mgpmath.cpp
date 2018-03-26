@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstdio>
+#include <QDebug>
 
 MGP_BEGIN_NAMESPACE
 MGPMATH_BEGIN_NAMESPACE
@@ -123,7 +124,7 @@ void _4DPoint::mulMatPoint(const _4x4Matrix &m)
     }
 }
 
-// Computes and returns the dot product of this point and m.
+// Computes and returns the dot product of this point and p (this · p).
 double _4DPoint::dot(const _4DPoint &p)
 {
     return
@@ -271,6 +272,13 @@ double _3DPoint::dot(const _3DPoint &a, const _3DPoint &b)
     return a.x() * b.x() + a.y() * b.y() + a.z() * b.z();
 }
 
+void _3DPoint::subtract(const _3DPoint &p)
+{
+    c_[0] -= p.get(0);
+    c_[1] -= p.get(1);
+    c_[2] -= p.get(2);
+}
+
 void Math::normalize(double &x, double &y)
 {
     double
@@ -319,6 +327,31 @@ double Math::angle(double x, double y)
     if (a < 0)          a += (2 * M_PI); else
     if (a > (2 * M_PI)) a -= (2 * M_PI);
     return a;
+}
+
+double Math::angle(const Point &p0, const Point &p1, const Point &p2, bool *valid, bool debug)
+{
+    const _3DPoint cp0(p0);
+
+    _3DPoint a(p1); a.subtract(cp0);
+    _3DPoint b(p2); b.subtract(cp0);
+
+    const double normA = a.norm();
+    const double normB = b.norm();
+    const double cosTheta = _3DPoint::dot(a, b) / (normA * normB);
+    if (isnan(cosTheta)) {
+        if (debug)
+            qDebug() << "   cosTheta (nan):" << cosTheta << ", normA:" << normA << ", normB:" << normB << ", p0 p1 p2:" << p0 << p1 << p2
+                     << ", p0==p1:" << (p0 == p1) << ", p0==p2:" << (p0 == p2)
+                     << ", cp0 a b:" << cp0 << a << b;
+        if (valid)
+            *valid = false;
+        return -1;
+    }
+
+    if (valid)
+        *valid = true;
+    return acos(cosTheta);
 }
 
 double Math::distance(const Point &p1, const Point &p2)
@@ -1192,6 +1225,96 @@ bool isClockwise(const Polygon &polygon)
         sum += (polygon->at(next).first - polygon->at(i).first) * (polygon->at(next).second + polygon->at(i).second);
     }
     return (sum > 0);
+}
+
+Polygon removeInvalidVertices(const Polygon &polygon, double minDegrees)
+{
+    const double minRadians = DEG2RAD(minDegrees);
+    Polygon outPoly(new QVector<Point>());
+    Polygon p1(new QVector<Point>(*polygon.data()));
+
+    // loop over vertex scans until either 1) at least three vertices remain after a scan that found no invalid vertices, or 2) fewer than three vertices remain after a scan
+    int k = 0;
+    while (true) {
+
+        Polygon p2(new QVector<Point>());
+        int invalidIndex = -1; // index of first invalid vertex in this scan, or -1 if no invalid vertex has been found
+
+        const int n = p1->size();
+        // scan vertices, removing at most one invalid one
+        for (int i = 0; i < n; ++i) {
+
+            if (invalidIndex == -1) {
+                // check if vertex i is the invalid vertex in this scan
+
+                const int i1 = (i - 1 + n) % n; // index of vertex before i (circular)
+                const int i2 = (i + 1) % n; // index of vertex after i (circular)
+                //{
+                //    bool validComp2 = true;
+                //    qDebug() << "k:" << k << ", i1 i i2:" << i1 << i << i2 << ", angle:" << Math::angle(p1->at(i), p1->at(i1), p1->at(i2), &validComp2, true)
+                //             << ", minRadians:" << minRadians << ", valid:" << validComp2;
+                //}
+
+                if ((p1->at(i) != p1->at(i1)) && (p1->at(i) != p1->at(i2))) {
+                    bool validComp = true;
+                    const double angle = Math::angle(p1->at(i), p1->at(i1), p1->at(i2), &validComp);
+                    if (validComp) {
+                        //qDebug() << "    valid computation, allowing angles to be compared";
+                        if (angle < minRadians) {
+                            //qDebug() << "    sharp angle!";
+                            invalidIndex = i; // vertex i is at a sharp angle, so remove it
+                        }
+                    } else {
+                        //qDebug() << "    invalid computation!";
+                        invalidIndex = i; // vertex i was involved in an invalid computation, so remove it
+                    }
+                } else {
+                    //qDebug() << "    coinciding!";
+                    invalidIndex = i; // vertex i coincides with one of its neighbours, so remove it
+                }
+            }
+
+            if (i != invalidIndex) {
+                // vertex i is either 1) valid or 2) invalid, but not the first one in this scan, so keep it
+                //qDebug() << "    keeping vertex" << i;
+                p2->append(p1->at(i));
+            } else {
+                // vertex i is the first invalid vertex in this scan, so remove it (by not copying it to p2)
+                //qDebug() << "    removing vertex" << i << "!";
+            }
+        }
+
+        if (p2->size() < 3) {
+            // too many invalid vertices found, so return an empty polygon
+            //qDebug() << "    too many invalid vertices found; returning an empty polygon!";
+            outPoly = Polygon();
+            break;
+        }
+
+        if (p1->size() == p2->size()) {
+            // no invalid vertices found in this scan, so return final result
+            //qDebug() << "    no invalid vertices found in this scan; return final result ...";
+            outPoly = p2;
+            break;
+        }
+
+        // copy p2 to p1, empty p2, and iterate
+        //qDebug() << "    invalid vertices found in this scan; iterating ...";
+        p1 = Polygon(new QVector<Point>(*p2.data()));
+        p2 = Polygon(new QVector<Point>());
+
+        k++;
+    }
+
+    return outPoly;
+}
+
+Polygons removeInvalidVertices(const Polygons &polygons, double minDegrees)
+{
+    Polygons outPolys = Polygons(new QVector<Polygon>());
+    for (int i = 0; i < polygons->size(); ++i)
+        outPolys->append(removeInvalidVertices(polygons->at(i), minDegrees));
+    return outPolys;
 }
 
 MGPMATH_END_NAMESPACE

@@ -1304,7 +1304,7 @@ Polygons applyFilters(const Polygons &inPolys, const Filters &filters)
         }
     }
 
-    return outPolys;
+    return math::removeInvalidVertices(outPolys);
 }
 
 Polygons applyFilters(const Polygon &polygon, const Filters &filters)
@@ -1586,11 +1586,13 @@ QList<QPair<int, Polygons> > intersectedPolygons(const Polygons &intersectors)
 
 double area(const Polygon &polygon)
 {
+    Q_UNUSED(polygon);
     return -1; // ### TBD
 }
 
 double area(const Polygons &polygons)
 {
+    Q_UNUSED(polygons);
     return -1; // ### TBD
 }
 

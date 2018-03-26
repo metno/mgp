@@ -15,14 +15,14 @@ class _4x4Matrix
 {
 public:
     _4x4Matrix();
-    void set(int i, int j, double val) {c_[i][j] = val;};
-    double get(int i, int j) const {return c_[i][j];};
+    void set(int i, int j, double val) { c_[i][j] = val; }
+    double get(int i, int j) const { return c_[i][j]; }
     // Right-multiplies this matrix with m (this * m) storing the result in
     // this matrix:
-    void mulMat(const _4x4Matrix& m);
+    void mulMat(const _4x4Matrix &m);
     // Left-multiplies this matrix with m (m * this) storing the result in
     // this matrix:
-    void mulMatLeft(const _4x4Matrix& m);
+    void mulMatLeft(const _4x4Matrix &m);
     void loadIdentity();
 
     // Rotates around a primary axis
@@ -41,23 +41,22 @@ class _4DPoint
 {
 public:
     _4DPoint();
-    _4DPoint(const _4DPoint&);
+    _4DPoint(const _4DPoint &);
     _4DPoint(double x, double y, double z);
-    void set(int i, double val) {c_[i] = val;}
-    void set(double x, double y, double z)
-        {c_[0] = x; c_[1] = y; c_[2] = z; c_[3] = 1;}
+    void set(int i, double val) { c_[i] = val; }
+    void set(double x, double y, double z) { c_[0] = x; c_[1] = y; c_[2] = z; c_[3] = 1; }
     double get(int i) const {return c_[i];}
-    double x() const {return c_[0];}
-    double y() const {return c_[1];}
-    double z() const {return c_[2];}
-    void mulMatPoint(const _4x4Matrix& m);
-    double dot(const _4DPoint& p);
-    void cross(const _4DPoint& p);
-    void rotate(const _4DPoint& p, const double alpha);
+    double x() const { return c_[0]; }
+    double y() const { return c_[1]; }
+    double z() const { return c_[2]; }
+    void mulMatPoint(const _4x4Matrix &m);
+    double dot(const _4DPoint &p);
+    void cross(const _4DPoint &p);
+    void rotate(const _4DPoint &p, const double alpha);
     void normalize();
     void scale(double fact);
-    void add(const _4DPoint& p);
-    void subtract(const _4DPoint& p);
+    void add(const _4DPoint &p);
+    void subtract(const _4DPoint &p);
     void print(char lead[]) const;
 private:
     double c_[4];
@@ -74,6 +73,7 @@ public:
     void setPoint(double x, double y, double z) { c_[0] = x; c_[1] = y; c_[2] = z; }
     void setPoint(double* c) { c_[0] = c[0]; c_[1] = c[1]; c_[2] = c[2]; }
     double* getPoint() { return c_; }
+    double get(int i) const { return c_[i]; }
     double x() const { return c_[0]; }
     double y() const { return c_[1]; }
     double z() const { return c_[2]; }
@@ -82,8 +82,10 @@ public:
     static _3DPoint fromSpherical(double lon, double lat);
     static _3DPoint cross(const _3DPoint &p1, const _3DPoint &p2);
     static double dot(const _3DPoint &p1, const _3DPoint &p2);
+    void subtract(const _3DPoint &p);
     void normalize();
     static _3DPoint normalized(const _3DPoint &p);
+    operator QString() const { return QString("(%1 %2 %3)").arg(c_[0]).arg(c_[1]).arg(c_[2]); } // for use with qDebug() etc.
 private:
     double c_[3];
 };
@@ -97,6 +99,18 @@ public:
     static double norm(double x, double y);
     static double norm(double x, double y, double z);
     static double angle(double x, double y);
+
+    /**
+     * Returns the angle between two vectors
+     *
+     * @param   p0 - common base point
+     * @param   p1 - endpoint of first vector
+     * @param   p2 - endpoint of second vector
+     * @param   valid - if null, this will be set to true iff the computation was valid (i.e. no division-by-zero errors occurred etc.)
+     * @param   debug - if true, debug info will be printed
+     * @returns Angle in radians between vectors p0p1 and p0p2.
+     */
+    static double angle(const Point &p0, const Point &p1, const Point &p2, bool *valid = 0, bool debug = false);
 
     /**
      * Returns the spherical distance (i.e. along the great circle on the unit sphere) between two points.
@@ -168,6 +182,12 @@ Polygon reversed(const Polygon &polygon);
 
 // Returns true iff a polygon is oriented clockwise.
 bool isClockwise(const Polygon &polygon);
+
+// Returns a polygon with invalid vertices removed. An invalid vertex is one at a sharp angle or one coinciding with a neighbour.
+Polygon removeInvalidVertices(const Polygon &polygon, double minDegrees = 5.0);
+
+// Convenience function that calls removeInvalidVertices(const Polygon &, double) for a list of polygons, returning the result in a corresponding list.
+Polygons removeInvalidVertices(const Polygons &polygons, double minDegrees = 5.0);
 
 // --- END global functions --------------------------------------------------
 
